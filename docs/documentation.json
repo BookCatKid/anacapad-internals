@@ -41322,17 +41322,17 @@
        "description": "UDN of the current group coordinator",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 25,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_MemberID-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 25 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41343,33 +41343,45 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_MemberID (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9f14",
+         "notes": "Looks up CurrentCoordinator and installs a type 7 caller-buffer descriptor (25 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 25,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentCoordinator` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentCoordinator` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentCoordinator; the lazy lookup and destination are established."
        ]
       },
       "CurrentGroupID": {
        "description": "group UUID of the zone group being handed off",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 36,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_GroupID-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 36 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41380,70 +41392,110 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_GroupID (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9f3c",
+         "notes": "Looks up CurrentGroupID and installs a type 7 caller-buffer descriptor (36 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 36,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentGroupID` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentGroupID` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentGroupID; the lazy lookup and destination are established."
        ]
       },
       "OtherMembers": {
-       "description": "member-list blob of the other zone-group members",
+       "description": "An empty other-member list or a comma-separated list of up to 32 fixed-width 24-byte identifiers. The base helper validates nonempty framing by length and by each comma's byte position, not each identifier's text.",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 4096,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "Empty, or 24-byte chunks with a single comma between chunks.",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_MemberList-domain value",
-       "range": "impl-bounded (req-slot arg)",
-       "special_values": "none identified",
+       "range": "0 bytes or 25n - 1 bytes, for n from 1 to 32.",
+       "special_values": "Empty is accepted by the framing helper.",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The worker passes the materialized field to f_102ab92c, which checks comma framing in an 800-byte internal buffer; failure maps to 402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_MemberList (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9f64",
+         "notes": "Looks up OtherMembers and installs a type 7 caller-buffer descriptor (4096 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ab960",
+         "notes": "Bytes plus NUL cannot exceed 0x320. A nonempty list must have length 24 or length+1 a multiple of 25; the scan requires commas only at expected multiples of 25 and replaces them with NUL.",
+         "function": "0x102ab92c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df848",
+         "notes": "Maps a false return from the OtherMembers helper to 402.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 4096,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `OtherMembers` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `OtherMembers` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace how the worker uses the individually framed IDs to import or check group membership."
        ]
       },
       "CurrentURI": {
        "description": "the URI the zone group is currently rendering (AVTransportURI), carried into the new coordinator so it can resume the stream",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 1025,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "AVTransportURI-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 1025 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41454,33 +41506,45 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "AVTransportURI (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9f8c",
+         "notes": "Looks up CurrentURI and installs a type 7 caller-buffer descriptor (1025 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 1025,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentURI` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentURI` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentURI; the lazy lookup and destination are established."
        ]
       },
       "CurrentURIMetaData": {
        "description": "DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 4097,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "AVTransportURIMetaData-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 4097 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41491,33 +41555,45 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "AVTransportURIMetaData (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9fb4",
+         "notes": "Looks up CurrentURIMetaData and installs a type 7 caller-buffer descriptor (4097 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 4097,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentURIMetaData` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentURIMetaData` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentURIMetaData; the lazy lookup and destination are established."
        ]
       },
       "SleepTimerState": {
        "description": "serialized sleep-timer state blob",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 18,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_SleepTimerState-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 18 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41528,33 +41604,45 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_SleepTimerState (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9fdc",
+         "notes": "Looks up SleepTimerState and installs a type 7 caller-buffer descriptor (18 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 18,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `SleepTimerState` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `SleepTimerState` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for SleepTimerState; the lazy lookup and destination are established."
        ]
       },
       "AlarmState": {
        "description": "serialized alarm state blob",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 5489,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_AlarmState-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 5489 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41565,33 +41653,45 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_AlarmState (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa004",
+         "notes": "Looks up AlarmState and installs a type 7 caller-buffer descriptor (5489 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 5489,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `AlarmState` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `AlarmState` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for AlarmState; the lazy lookup and destination are established."
        ]
       },
       "StreamRestartState": {
        "description": "serialized stream-restart state blob",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 1640,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_StreamRestartState-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 1640 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41602,16 +41702,28 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_StreamRestartState (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa02c",
+         "notes": "Looks up StreamRestartState and installs a type 7 caller-buffer descriptor (1640 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 1640,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `StreamRestartState` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `StreamRestartState` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for StreamRestartState; the lazy lookup and destination are established."
        ]
       },
       "CurrentAVTTrackList": {
@@ -41639,20 +41751,32 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_Queue (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa054",
+         "notes": "Looks up CurrentAVTTrackList in the engine-driven request adapter.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentAVTTrackList` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentAVTTrackList` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentAVTTrackList; the lazy lookup and destination are established."
        ]
       },
       "CurrentQueueTrackList": {
-       "description": "serialized queue track-list blob",
+       "description": "The service XML advertises CurrentQueueTrackList. The firmware adapter instead looks up SharedQueueTrackList and PrivateQueueTrackList, each into a separate type 8 descriptor, and does not look up CurrentQueueTrackList by that literal name.",
        "direction": "in",
        "primitive": {
         "type_tag": null,
@@ -41669,40 +41793,60 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The adapter materializes the two list descriptors via request +8; compatibility with the advertised field depends on how the parser handles missing or unexpected fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_Queue (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa078",
+         "notes": "Looks up SharedQueueTrackList and installs a type 8 descriptor via 0x105615a8.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa09c",
+         "notes": "Looks up PrivateQueueTrackList and installs a separate type 8 descriptor via 0x105615a8.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentQueueTrackList` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentQueueTrackList` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Verify how request +8 handles missing SharedQueueTrackList or PrivateQueueTrackList or a supplied CurrentQueueTrackList, and continue through the two list consumers."
        ]
       },
       "CurrentSourceState": {
        "description": "serialized source state blob",
        "direction": "in",
        "primitive": {
-        "type_tag": null,
-        "parse_helper": null,
-        "buf_cap": null,
+        "type_tag": 7,
+        "parse_helper": "0x1056157c",
+        "buf_cap": 165,
         "fmt": null,
-        "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
+        "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_SourceState-domain value",
-       "range": "impl-bounded (req-slot arg)",
+       "range": "destination buffer: 165 bytes including space for NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none",
@@ -41713,16 +41857,28 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_SourceState (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa0c0",
+         "notes": "Looks up CurrentSourceState and installs a type 7 caller-buffer descriptor (165 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": null,
+       "buf_cap": 165,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentSourceState` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentSourceState` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentSourceState; the lazy lookup and destination are established."
        ]
       },
       "ResumePlayback": {
@@ -41750,22 +41906,34 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_ResumePlayback (boolean): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa0e8",
+         "notes": "Looks up ResumePlayback in the engine-driven request adapter.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df680",
+         "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `ResumePlayback` is parsed then forwarded verbatim to r5-in vfunc +212 (site 0x102fc448) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ResumePlayback` = verbatim forward to impl vfunc +212 (obj r5-in, call site 0x102fc448); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Trace the engine's post-materialization handling and concrete acceptance rules for ResumePlayback; the lazy lookup and destination are established."
        ]
       }
      },
      "outputs": {},
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "The engine calls a lazy adapter; the adapter selects request fields by name and returns 402 if its request +8 call reports failure. The outer wrapper does not materialize the fields before invoking the engine. A class-specific topology rejection can therefore occur before argument validation.",
       "evidence": [
        {
         "type": "firmware",
@@ -41773,6 +41941,30 @@
         "build": "86.10-80260",
         "address": "0x102fc3a0",
         "notes": "wrapper + impl decode"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102fc3e0",
+        "notes": "The wrapper initializes the request adapter table (0x10eb2ff8). Its +8 method calls the underlying request +0x1c for each field, installs the output descriptors, then materializes via request +8; isel maps a zero parser result to 402.",
+        "function": "0x102f9e9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102fa140",
+        "notes": "isel returns 402 on a zero result from request +8, otherwise zero.",
+        "function": "0x102f9e9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102df680",
+        "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
+        "function": "0x102df410"
        }
       ]
      },
@@ -41856,7 +42048,7 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The base import has a branch that updates the current URI and marks it dirty, clears and marks a previously stored next URI dirty, then requests local UPnP event work. The resulting LastChange delta can publish the current and next URI and metadata.",
       "evidence": [
        {
         "type": "firmware",
@@ -41864,11 +42056,42 @@
         "build": "86.10-80260",
         "function": "0x102fc3a0",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dfa60",
+        "notes": "Sets current URI dirty at +0x4251; also marks +0x4252 and clears the next URI and metadata when the old next URI is nonempty.",
+        "function": "0x102df410"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dfad0",
+        "notes": "Signals the local event source at impl+0x10 via f_1067c6ec.",
+        "function": "0x102df410"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b56c0",
+        "notes": "Promotes +0x4251 and +0x4252 to pending LastChange bytes +0xa094 and +0xa095.",
+        "function": "0x102b5658"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e4d38",
+        "notes": "The delta formatter checks the two pending flags for AVTransportURI/AVTransportURIMetaData and NextAVTransportURI/NextAVTransportURIMetaData.",
+        "function": "0x102e43a0"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Map the other LastChange fields affected by the imported alarm, timer, restart, source and queue state, and the conditions for all notifying branches."
       ]
      },
      "state_transitions": {
@@ -42122,7 +42345,7 @@
      "args_verified_empty": true,
      "implementation_notes": " Handler 0x102fc3a0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
      "todo": [
-      "Map the lazy request adapter 0x102fc3a0 supplies to 0x102df410, then verify the exact serialized argument grammars, late fault conditions and local transport events."
+      "Verify each serialized argument's acceptance and consuming state changes, including parser handling of the advertised versus requested queue fields and the remaining post-materialization faults."
      ],
      "resolved_findings": [
       "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer.",
