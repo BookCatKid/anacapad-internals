@@ -51938,7 +51938,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10ed9cb0",
-         "notes": "One binary table has f_104de170 at +0x1c, with its address point 0x10ed9c94 installed into the primary vptr at 0x104db70c. This method has the same argument and record layout as the consumer: it supplies duration validity and the duration word at 0x104de3e4/0x104de3f4 and the relative position out-parameter at 0x104de404, with a separate fallback for source position -1 at 0x104de674. The route installing this object into the active streamer has not been established here.",
+         "notes": "SpotifyAudioInput binds f_104de170 at +0x1c. Its address point 0x10ed9c94 is installed in the primary vptr at 0x104db70c. The method returns zero if audio input byte +0x11c is set; otherwise it builds the record, including duration validity and the duration word at 0x104de3e4/0x104de3f4 and the relative position output at 0x104de404, with separate handling of saved position -1.",
          "function": "0x104de170"
         },
         {
@@ -52562,12 +52562,27 @@
        "address": "0x1025b8d8",
        "notes": "Indexed helper locks its session and gathers a playback record (f_10341b9c); it subsequently uses media/time helpers f_1041f3cc and f_1041e550 to fill position outputs. The outer indexed worker does not overwrite TrackURI with impl+0x5dc.",
        "function": "0x1025b768"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10219cf0",
+       "notes": "Spotify registers streamer source type 2 through f_106a76b8: r5 is the Spotify VLI control object adjusted by +8 and r6 is the SpotifyAudioInput object. The registration helper writes these at record+4 and +8 in the first free 12-byte entry of the nine-entry table at streamer+0x2e8. f_106a8b08 selects by type and installs the record at streamer+0x354 (0x106a8df4); a failing selection callback clears it at 0x106a8e34."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021992c",
+       "notes": "The Spotify object constructs the embedded SpotifyAudioInput at +0x148 via f_104db630, which installs the table with f_104de170 at +0x1c. The same pointer is passed as the streamer source type 2 record's +8 position interface at 0x10219cf0.",
+       "function": "0x104db630"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: all eight output slots are mapped. Indexed values come from the due snapshot, queue entry and media record; streamer times are empty, formatted or NOT_IMPLEMENTED depending on result and duration availability. Stream metadata combines the provider record with the string from topology slot +0x48, and streamer/default URI is overwritten with the engine URI.",
-      "Bind topology slot +0x48 at 0x102b1a00 and the live streamer implementations of slot +0x1c at 0x106aa01c, starting with the f_104de170 table and its constructor. Trace provider selection, metadata and ordinal validity, and XML-field precedence when topology metadata and stream metadata disagree."
+      "Established: all eight output slots are mapped. Indexed values read a snapshot, queue entry and media record. Streamer type 2 calls SpotifyAudioInput f_104de170; the common streamer formatter then combines the provider record with the string from topology slot +0x48.",
+      "Bind topology slot +0x48 at 0x102b1a00 and trace XML-field precedence when its metadata and the stream record disagree. Complete the SpotifyAudioInput metadata/ordinal validity and saved-position fallbacks, and check for other live implementations of the streamer position interface."
      ]
     },
     "GetRemainingSleepTimerDuration": {
