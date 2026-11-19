@@ -80498,58 +80498,58 @@
     }
    },
    "events": {
-     "mechanism": "GENA SUBSCRIBE accepted at /MediaServer/ConnectionManager/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
-     "lastchange_template": null,
-     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
-     "wss_event_names": [
-      "connectionManager"
-     ],
-     "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
-     "evidence": [
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f0bedc",
-       "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x1032eb50",
-       "notes": "The constructor installs the secondary event-source vptr 0x10eb86e8 at core+8. Its +0x18 slot points to f_1067ab54 and its +0x14 slot to 0x1032e9d8."
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x1068406c",
-       "notes": "For an eligible nonempty subscriber group the shared worker invokes source slot +0x18."
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x1032e9d8",
-       "notes": "The thunk subtracts 8 from this and branches to f_1032e8e8. The renderer emits all three named properties and ends with f_10676968, which appends the GENA propertyset closing tag."
-      }
-     ],
-     "notify_path": "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
-     "wss_registry": [
-      {
-       "idx": 22,
-       "name": "connectionManager",
-       "id": 77,
-       "tag": 67
-      }
-     ],
-     "todo": [
-      "Residual: verify which state changes, if any, mark this source dirty after initial subscription and trace a concrete accepted subscription through callback delivery. The connectionManager WSS registry name alone does not prove a publisher."
-     ],
-     "resolved_findings": [
-      "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher."
-     ]
+    "mechanism": "GENA subscription handler f_105e8290 for /MediaServer/ConnectionManager/Event; the eligible subscriber renderer writes separate properties rather than a LastChange document.",
+    "lastchange_template": null,
+    "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
+    "wss_event_names": [
+     "connectionManager"
+    ],
+    "wss_note": "connectionManager is a WSS event registry name, not proof of a live publisher.",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10f0bedc",
+      "notes": "The LastChange namespace registry covers AVTransport, RenderingControl and Queue, not ConnectionManager. This service renders its own propertyset."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032eb50",
+      "notes": "The constructor installs the secondary event-source vptr 0x10eb86e8 at core+8. Its +0x18 slot points to f_1067ab54 and its +0x14 slot to 0x1032e9d8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068406c",
+      "notes": "For an eligible nonempty subscriber group the shared worker invokes source slot +0x18."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032e9d8",
+      "notes": "The thunk subtracts 8 from this and branches to f_1032e8e8. The renderer emits all three named properties and ends with f_10676968, which appends the GENA propertyset closing tag."
+     }
+    ],
+    "notify_path": "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+    "wss_registry": [
+     {
+      "idx": 22,
+      "name": "connectionManager",
+      "id": 77,
+      "tag": 67
+     }
+    ],
+    "todo": [
+     "Residual: verify which state changes, if any, mark this source dirty after initial subscription and trace a concrete accepted subscription through callback delivery. The connectionManager WSS registry name alone does not prove a publisher."
+    ],
+    "resolved_findings": [
+     "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher."
+    ]
    },
    "errors": [
     {
