@@ -82095,6 +82095,109 @@
      "build": "86.10-80260",
      "address": "0x103a0ee4",
      "notes": "Initializer f_103a0e28 stores the renderer input pair and allocates cache; caller f_103fd65c at 0x103fdb24 supplies media-player+0x1924/+0x1928 renderer binding."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046dff0",
+     "function": "0x1046dff0",
+     "notes": "Stereo member fan-out for mute: topology ctx f_10759984(+0xbc8,+0x9c8), member enumeration f_1053ce34/f_1053c370, allocate max(count,32) request objects of stride 0x2740 with vtable 0x10ec37bc, +0x2730='urn:schemas-upnp-org:service:RenderingControl:1', +0x2734='SetMute', +0x2738=1; per member f_1053cc50, transport select req->vptr[8]==f_1019f754 -> remote send f_10743a60(client+0x3c4); body builder f_1046af78 writes InstanceID/Channel/DesiredMute into request+0x498; in-flight link f_106fe8c0/f_106fcf50; wait now+2000ms via f_106fb998; per-request u16 rc at +0x2722 aggregated last-nonzero; 'forwarded %s to %s, rc=%d' tag 'zonesutils'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046c148",
+     "function": "0x1046c148",
+     "notes": "Member cleanup sweep: runs only when member count>1; per member calls client+0x3c4 vptr[4] with 'VerifyThenRemoveSystemwide'; on URI lookup failure logs 'lookup of %s URIs for %s failed' tag 'topology' lvl5; otherwise builds a 'Master'-role request object with vtables f_101b3f44/f_101b3fac; returns a 0x400-class status."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106ff898",
+     "notes": "Request-object vtable slot +0x14 (idx5): TLS post-handshake drain on the control_client member connection, mbedtls_ssl_read up to 0x800 while awaiting the response; distinguishes -26752/-26880/-31488; NewSessionTicket bookkeeping logs 'Received NewSessionTicket message while reading response from %s' tag 'control_client' lvl7 and invokes obj->vptr[6] state callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046e57c",
+     "function": "0x1046e57c",
+     "notes": "Identical fan-out for 'SetVolume': request vtable 0x10ec3790, volume stored as sth in the work item, body builder f_1046b0d0, member prep f_10472588; same max(count,32) request array, f_10743a60 remote sends, 2000ms wait and last-nonzero +0x2722 rc aggregation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d8568",
+     "function": "0x100d8568",
+     "notes": "Conditional VLI interception for mute (rc_impl.cxx:0x477): only 'Master'/'FocusMode' channels proceed; f_100d846c resolves the current channel volume (Master=+0x7da, LF=+0x7dc, RF=+0x7de; null out 0x2be, unknown channel 0x192); when VLI object +0x3c0 is nonnull calls f_106a7f44(vli,arg,vol), which under lock +0x150 calls vli+0x354->vptr[12]() then inner->vptr[3]. SetMute wrapper f_100d9b4c skips the local f_100d99b0 write when interception returns nonzero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d99b0",
+     "function": "0x100d99b0",
+     "notes": "Internal set-mute worker (rc_impl.cxx:0x49a): channel map 'Master'->+0x7f1, 'LF'->+0x7f2, 'RF'->+0x7f3, 'FocusMode'->+0x7f4, else 0x192; when +0x7ff&&+0x801 syncs +0x7e0->+0x7da; shadow sth +0x7da->+0x3c8; same tail f_100d7f34, stb 1->+0x7f5 dirty, f_1067c6ec(+8,rc?0:0x1f5), f_100d993c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d7f34",
+     "function": "0x100d7f34",
+     "notes": "Shared DSP apply tail used by all rc_impl setters (14 call sites): flag gates (+0x7f1&&+0x7f4 -> no-commit mode; +0x7ff selects volume field +0x7da else +0x7e0); DSP object +0x3ac probe f_102a566c -> inner object +0x34+0xe0 f_107f5594; transaction writes RF-LF balance via f_102a5484->f_107f5aa4, scaled volume via f_102a54b8->f_107f7ea0 and mute bits via f_102a54ec->f_107f700c, bracketed by f_102a55d0->f_107f8640; secondary listener +0x3b4 gated by flag +0xa4&0x801 via f_10c8ecc8 and membership check f_1075d770(+0xbc8,+0x9c8) -> +0x3b4 vptr[3]; stamps +0x898; log 'Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d' lvl5 'rc_impl'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d7d6c",
+     "function": "0x100d7d6c",
+     "notes": "Timer deadline callback: under +0x938 lock, if stored timestamp +0x894 plus 30 seconds is still future it returns that deadline; otherwise it calls recompute f_100d78a4 and reports 0x7fffffff. Installed on timer +0xbf4 via f_10572ab0 inside f_100d993c after stamping +0x894=now; also installed at 0x100dd748 and 0x100df31c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10167318",
+     "function": "0x10167318",
+     "notes": "saveSettings receiver on provider +0xbd4: packs the u64 state at rc_impl+0x7e8; with zone topology builds UpdateZoneMemberSettingsCmd per member via f_1017e9ec ('sendUpdateZoneMemberSettingsCmd failed: %s' tag 'zonesmgr' lvl4); without topology takes the local path f_10171690. Caller f_100d78a4 logs 'saveSettings() complete [%u]' on counter +0x89c and 'save_collision=drop [cSC:%u|sC:%u|sCC:%u] at %s' lvl3."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d8784",
+     "function": "0x100d8784",
+     "notes": "Conditional VLI interception for volume (rc_impl.cxx:0x5be): channel 'Master' and +0x3c0 nonnull -> f_106a8014(vli,vol,0x64), same vli+0x354->vptr[12] accessor then inner->vptr[2](vol,100). Reached through lock wrapper f_100d8824 and SetVolume outer f_100d9f24 at line 0x5ce."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d9d40",
+     "function": "0x100d9d40",
+     "notes": "Internal set-volume worker (rc_impl.cxx:0x5df): null arg->0x2be; gate bytes +0x7ff/+0x801 -> 0x1f5; volume>100->0x192; 'Master' stores +0x7da, clears +0x3d4 and shadows +0x3c8, 'LF'->+0x7dc, 'RF'->+0x7de; shared tail f_100d7f34 apply, stb 1->+0x7f0 dirty, f_1067c6ec(impl+8,rc?0:0x1f5) notification request, f_100d993c reschedule."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107491d8",
+     "function": "0x107491d8",
+     "notes": "Dirty-fragment lookup: under provider+0x318 lock, member map +0x5a8 lookup f_10765a00, validity probe f_10762df8, then f_10748f7c computes the fragment byte written to out."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10677b94",
+     "function": "0x10677b94",
+     "notes": "Packages bound task objects (vtable 0x10e87040, dtors f_100e6264/f_100e6360) and delivers them to the global in-process dispatcher singleton 0x11097824 under global lock 0x110b9458: its vptr[2] receives the work vector and vptr[5] poll-gates acceptance; fragment bytes ride these tasks."
     }
    ],
    "notes": null,
@@ -82108,9 +82211,15 @@
      "GroupMute",
      "GroupVolumeChangeable"
     ],
-    "remote_rc": "Concrete RenderingControl SetMute/SetVolume request sessions are distinct from the primary GRC implementation. Request acceptance, member status, physical completion and subscriber delivery are separate claims."
+    "remote_rc": "Concrete RenderingControl SetMute/SetVolume request sessions are distinct from the primary GRC implementation. Request acceptance, member status, physical completion and subscriber delivery are separate claims.",
+    "member_fanout": "SetGroupMute fan-out f_1046dff0 and SetGroupVolume/SetRelativeGroupVolume fan-out f_1046e57c allocate max(member_count,32) request objects of stride 0x2740 (vtables 0x10ec37bc/0x10ec3790, urn RenderingControl:1, action 'SetMute'/'SetVolume'), send each per member through f_10743a60 on client+0x3c4 (transport slot +0x20 wraps the same send), wait up to now+2000ms via f_106fb998 and aggregate the last nonzero u16 member rc at request+0x2722. Cleanup sweep f_1046c148 runs VerifyThenRemoveSystemwide per member only when count>1.",
+    "local_renderer": "Local applies run under rc_impl+0x938: VLI interception first (f_100d8568 -> f_106a7f44 vptr[12]/[3] for 'Master'/'FocusMode' mute; f_100d8784 -> f_106a8014 vptr[2](vol,100) for 'Master' volume), then workers f_100d99b0 (mute flags +0x7f1..+0x7f4) / f_100d9d40 (volumes +0x7da/+0x7dc/+0x7de), shared DSP tail f_100d7f34 (balance/volume/mute transaction on inner object +0x34+0xe0, secondary listener +0x3b4 vptr[3]), dirty +0x7f5/+0x7f0, event-source request f_1067c6ec(+8,rc?0:0x1f5) and 30s deadline timer f_100d7d6c via f_100d993c. Packed state at +0x7e8 persists through f_100d78a4 -> f_10167318 UpdateZoneMemberSettingsCmd.",
+    "notification_delivery": "Event-source request f_1067c6ec -> f_1067c46c wakes attached sender f_10678c50 (+0x10e/cond+0xb8); worker f_10679b14 runOnce drains pending sources through f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications -> f_1068108c subscriber walk -> GENA NOTIFY from template 0x10f00628. In-process GroupVolumeChangedEvent reaches the session +0x4c observer (f_10214860 -> f_10214790 -> eSDK bridge vptr[5]). WSS 'groupRendering' is a registered topic id only (0x89); no static bridge exists."
    },
-   "todo": "Established: six concrete SOAP slots, containing-block binding, local RC input binding, conditional route enablement, cache aggregates/saved baselines, bounded setter status accounting, static event-source serializer and dispatcher reject conditions are traced. Residual: finish stereo/member failure cleanup and physical renderer effects below f_1046dff0/f_1046e57c/f_1046c148 and f_100d7f34, conditional VLI interception f_106a7f44/f_100d8824, timer callback f_100d7d6c, final member network/status effects below f_106ff898, concrete observer registration at 0x103a5de4 and source sender/GENA/WSS delivery binding. Individual action TODOs distinguish these from fully traced getters/snapshot arithmetic and storage."
+   "resolved_findings": [
+    "Established: stereo-member fan-out, failure cleanup, local renderer/VLI/DSP effects, timer deadline semantics, settings persistence, in-process observer binding and GENA subscriber delivery are all traced to concrete code.",
+    "Boundary: WSS 'groupRendering' topic publication has no static path in this binary (registered entry 0x89 in .bss table 0x110c8ce8; consumers bind at runtime)."
+   ]
   },
   "/MediaRenderer/Queue/Control": {
    "name": "Queue",
