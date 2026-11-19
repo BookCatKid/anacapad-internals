@@ -39929,7 +39929,7 @@
      },
      "side_effects": [
       {
-       "description": "Can delegate the previous group, reset indexed playback, restore a prior source or deactivate the local line input.",
+       "description": "Can delegate the previous group, reset the indexed session, clear an indexed queue, then restore a prior source or deactivate local VLI.",
        "evidence": [
         {
          "type": "firmware",
@@ -39977,11 +39977,43 @@
          "address": "0x102d524c",
          "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
          "function": "0x102d4e80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d4f84",
+         "function": "0x102d4e80",
+         "notes": "Always submits op 21 PREPARE_FOR_DELEGATION before source classification (op names at table 0x10eb843c). The running consumer at 0x102663f4 and stopped consumer at 0x102683a4 both call f_1025aac0 and acknowledge 1 without setting their immediate notification flags. f_1025aac0 installs the prepareToBeDelegationTarget tag at session+0x4b38, resets its +0x4a4c state record and replaces +0x259c with a default 1285-byte record."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d548c",
+         "function": "0x102d4e80",
+         "notes": "With sp+0x47 clear, submits op 0 CHANGE_TRANSPORT_URI with empty URI strings and a record with flags 0x0173802f. Both consumers skip the x-rincon-queue branches for the empty URI (0x10265dec/0x10266750/0x10266a38 and 0x10268188/0x10268c08/0x10268df0). The ordinary reset calls f_1025832c with selector 0, activating the queue object at session+0x2b188, clearing it, and installing the supplied flags on that object. The stopped worker also checks for a special state-8 continuation at 0x10268ee0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d5128",
+         "function": "0x102d4e80",
+         "notes": "Submits op 4 REMOVE_ALL_TRACKS_FROM_QUEUE with selector 2 after the optional op 0. The running consumer at 0x10265d6c and stopped consumer at 0x1026863c load the target from session+0x326a8. The constructor stores the Q:1 object (session+0x2ff98) there at 0x1025fc1c after passing its name at 0x1025f690 to f_1014d000. f_10262a98 clears that queue through f_1014da34 whether active or not. Only an active match also updates the selected ordinal from f_10146924, zeros the upper bound at session+0x326ce and calls f_10261b38."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d51ac",
+         "function": "0x102d4e80",
+         "notes": "The no-reload arm calls f_106aa3b0 (logged as stopLocalPlaybackAsGroupMember), then f_102b1cc8(impl,0,0). Its f_106a8f5c deactivates a registered VLI source via source slot +0x14 with sender 0 if present, clears manager +0x354, and calls manager control slot +0x28 unless the registered type was 8. If no source was registered the deactivation returns zero and f_102b1cc8 does not run the group-clear or event path."
         }
        ],
        "todo": [
-        "Established: Can delegate the previous group, reset indexed playback, restore a prior source or deactivate the local line input.",
-        "Trace f_10255f64's reset and reinitialization records to their indexed-session state changes, and the VLI deactivation call to its final renderer state."
+        "Established: indexed ops 21, 0 and 4 prepare delegation, reset the source with an empty URI and clear the Q:1 queue. VLI deactivation unregisters the current source when one exists.",
+        "Identify what the stopped state-8 exception preserves and the concrete clock and sink effects of the final callback at 0x102d51e0."
        ]
       }
      ],
@@ -40043,11 +40075,27 @@
         "address": "0x102d50fc",
         "function": "0x102d4e80",
         "notes": "f_10147148 reads the current URI after topology setup. It requires x-rincon-queue: and a # suffix that strtol base 10 converts to a positive value with no remaining bytes. A match sets +0xa214; f_102b5658 promotes it to +0xa09c, and f_102e43a0 emits the DirectControlClientID, DirectControlIsSuspended and DirectControlAccountID block."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10267e04",
+        "function": "0x10267b68",
+        "notes": "Stopped op 0's ordinary empty-URI reset sets its publication flag on the common completion path at 0x102681e0. Stopped op 4 sets that flag only if its target was active (0x10268678). The flag takes the f_102642d4 snapshot path, which requests AVTransport delivery at 0x102648c4 if the listener and sender are live. Running op 4's active case sets the first output flag at 0x102665c0; the direct 0x10265a08 wake instead checks the second output/local refresh flag at 0x10265914. The two flags are not equivalent."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1d20",
+        "function": "0x102b1cc8",
+        "notes": "When f_106a8f5c finds a registered source, f_10395838 clears the VLI group via f_1039561c (cookie zero, empty group string). f_102b1cc8 then sets AVTransport+0xa214 and schedules its event source. The collector latches this as +0xa09c for the direct-control field block even if the group string was already empty."
        }
       ],
       "todo": [
-       "Established: local setup can publish URI, transport, control action, valid-mode, direct-control and timer/alarm deltas. The peer SetAVTransportURI call is not local LastChange.",
-       "Follow the indexed records submitted at 0x102d4f84, 0x102d5128 and 0x102d548c to identify additional LastChange dirties and which consumer branches request a wake."
+       "Established: local setup can publish URI, transport, control action, valid-mode, direct-control and timer/alarm deltas. Stopped indexed resets/queue clears can schedule the snapshot and sender. The peer SetAVTransportURI call is not local LastChange.",
+       "Resolve the running consumer's outer handling of the first output flag and identify the exact track, count and transport fields the refreshed indexed snapshots can mark dirty."
       ]
      },
      "state_transitions": {
@@ -40116,10 +40164,42 @@
         "address": "0x102d08a4",
         "function": "0x102d086c",
         "notes": "Compares saved restore URI +0x2e2a with current URI +0x5dc. If different, sets the output byte and reloads the stored URI, metadata and auxiliary string via f_102ceb40, returning its result. If identical, returns zero and sets the byte only when the URI is empty. At 0x102d5368 the caller keeps the byte clear only on a zero return with a clear output; otherwise it calls f_102ceb40 with empty strings, sets the byte and discards the result of that empty-source call. After the indexed reconfiguration calls, 0x102d514c permits the later saved-source reload only with that byte clear and a nonempty saved URI; otherwise it takes the VLI deactivation arm."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d4f84",
+        "function": "0x102d4e80",
+        "notes": "Always submits op 21 PREPARE_FOR_DELEGATION before source classification (op names at table 0x10eb843c). The running consumer at 0x102663f4 and stopped consumer at 0x102683a4 both call f_1025aac0 and acknowledge 1 without setting their immediate notification flags. f_1025aac0 installs the prepareToBeDelegationTarget tag at session+0x4b38, resets its +0x4a4c state record and replaces +0x259c with a default 1285-byte record."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d548c",
+        "function": "0x102d4e80",
+        "notes": "With sp+0x47 clear, submits op 0 CHANGE_TRANSPORT_URI with empty URI strings and a record with flags 0x0173802f. Both consumers skip the x-rincon-queue branches for the empty URI (0x10265dec/0x10266750/0x10266a38 and 0x10268188/0x10268c08/0x10268df0). The ordinary reset calls f_1025832c with selector 0, activating the queue object at session+0x2b188, clearing it, and installing the supplied flags on that object. The stopped worker also checks for a special state-8 continuation at 0x10268ee0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d5128",
+        "function": "0x102d4e80",
+        "notes": "Submits op 4 REMOVE_ALL_TRACKS_FROM_QUEUE with selector 2 after the optional op 0. The running consumer at 0x10265d6c and stopped consumer at 0x1026863c load the target from session+0x326a8. The constructor stores the Q:1 object (session+0x2ff98) there at 0x1025fc1c after passing its name at 0x1025f690 to f_1014d000. f_10262a98 clears that queue through f_1014da34 whether active or not. Only an active match also updates the selected ordinal from f_10146924, zeros the upper bound at session+0x326ce and calls f_10261b38."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d51ac",
+        "function": "0x102d4e80",
+        "notes": "The no-reload arm calls f_106aa3b0 (logged as stopLocalPlaybackAsGroupMember), then f_102b1cc8(impl,0,0). Its f_106a8f5c deactivates a registered VLI source via source slot +0x14 with sender 0 if present, clears manager +0x354, and calls manager control slot +0x28 unless the registered type was 8. If no source was registered the deactivation returns zero and f_102b1cc8 does not run the group-clear or event path."
        }
       ],
       "todo": [
-       "Established: topology setup enters indexed mode. The home-theater predicate and VLI provider result, followed by the restore URI comparison, select the early and late source branches.",
+       "Established: topology setup enters indexed mode. It may install an empty indexed source with flags 0x0173802f, and can reset the active ordinal when clearing the Q:1 queue. The teardown path unregisters any active VLI source.",
        "Trace concrete renderer state after f_102ceb40 and the VLI clock removal, including the type-specific sink state left after deactivation."
       ]
      },
