@@ -153934,16 +153934,22 @@
      "type": "firmware",
      "address": "0x10f92844",
      "notes": "http client"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1098e310 / f_1098ed0c / f_10996714 / f_10995d28",
+     "address": "0x1098e63c",
+     "callsite": "0x1098e660 / 0x1098e66c / 0x1098e70c / 0x1098e718",
+     "notes": "f_1098ed0c passes caller r7's two words through f_1098e310 (0x1098ed38-0x1098ed6c). f_1098e310 tests the signed high word, then low-word nonzero when high=0, accepting only positive int64 durations. Raw branches 0x409d00a0 at 0x1098e648 and 0x409e000c/0x409eff5c at 0x1098e6e8/f0 establish fallback for <=0. Fallback literal at 0x10f92328 is {0,0x7530}=30000. Both branches store transfer+0x48/4c and call f_1092a3c0 with r4=0x9b, tied to 'Failed to set CURLOPT_TIMEOUT_MS' at 0x1098e744. Async setup at 0x10995318-38 passes the captured r26/r27 pair in r7; sync setup at 0x10996754-0x109967bc passes caller r6 pair. Sync loop explicitly calls sonosClockGetTime(1), timevalAddMs at 0x109967e8 and timevalGt at 0x1099681c. Monitor f_10995d28 queries curl info 0x300003 via f_1090d080 at 0x10995e24; it does not call sonosClockGetTime. Its timeout log passes stored budget in r7/r8 at 0x10995eb4-b8, not elapsed delta. Curl errors use the other entry arm 0x10995d60-db8."
     }
-   ],
-   "todo": [
-    "Residual: the per-request timeout value - the deadline is a caller-supplied field armed into req+0x48/+0x4c (Request Timeout literal has no code ref; each call site carries its own budget)."
    ],
    "resolved_findings": [
     "Resolved: thread-pool = performAsync scheduling over the pool {not scheduled. No active thread pool available, Client not setup, empty URL, Curl error, Request timed out in %lld ms, curl_multi_perform}.",
     "Thread-pool scheduling and request state proven: performAsync submits work onto the eventLoop scopeHttpClient thread-pool - if no pool is live the request is cancelled (not scheduled. No active thread pool available. Cancelling.); Client not setup guards uninitialized submission. Requests run on a curl_multi loop (curl_multi_perform/poll/info_read) with per-request curl easy state: Curl error (%d): %s surfaces CURLE codes, Request timed out in %lld ms is the deadline, HTTP request attempted with empty URL is the arg guard. Perf counters taskCount (tasks actively processed) + mainLoopIteration (loop time) drive the metrics. DNS resolution rides asio categories {generic, std:unknown, asio.netdb, asio.addrinfo, asio.misc} with netdb errors {Service not found, Socket type not supported, Host not found authoritative/non-authoritative}. Session state: Session status 0x%x connected %d wantWrite %d wantRead %d is the per-connection readiness word.",
-    "Resolved: the timeout mechanism (async_http_client 0x10995d28) - each request carries a deadline timeval pair at req+0x48/+0x4c; the monitor compares elapsed via sonosClockGetTime and emits 'Request timed out in %lld ms' with the elapsed delta. The deadline is armed per-request at schedule time (caller-supplied timeout), not a global rodata constant.",
-    "Worker pool proven: scopeHttpClient pool init passes count r5=1 (0x10694808-0x10694814) through the clamp wrapper f_10989174->f_10989148 (count<3 arm -> (1,0)); the pool runs a single worker thread, with scope:mtx and scope:cv channels bound on the same object."
+    "Worker pool proven: scopeHttpClient pool init passes count r5=1 (0x10694808-0x10694814) through the clamp wrapper f_10989174->f_10989148 (count<3 arm -> (1,0)); the pool runs a single worker thread, with scope:mtx and scope:cv channels bound on the same object.",
+    "Timeout storage is a signed 64-bit millisecond duration at transfer+0x48/+0x4c, not an absolute timeval deadline. f_1098e310 copies a positive supplied duration into it and sets CURLOPT_TIMEOUT_MS (option 155); zero or negative input substitutes 30000 ms from 0x10f92328. f_10995d28 queries curl info 0x300003, converts the transfer-time result and compares it against this budget, logging the budget with 'Request timed out in %lld ms' and setting local error 0x15. The synchronous wrapper f_10996714 additionally uses sonosClockGetTime(1), timevalAddMs and timevalGt to bound its perform/poll loop. Those are separate timing paths. Callers can supply different budgets; the default is nevertheless compiled in, disproving the old no-global-constant premise."
    ]
   },
   "browse_ids": {
