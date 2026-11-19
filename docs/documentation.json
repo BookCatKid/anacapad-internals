@@ -88780,7 +88780,7 @@
      "notes": null
     },
     "GetShareIndexInProgress": {
-     "description": "Returns IsIndexing flag via impl->v[+0x8].",
+     "description": "Returns IsIndexing as decimal 0 or 1. Handler 0x103078bc calls statically bound cd_impl slot +0x38 = f_1030269c, which reads indexing byte impl+0x514 under mutex impl+0x918 and returns zero. See the ContentDirectory service-level binding proof.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x103078bc",
@@ -88818,186 +88818,267 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x1030269c",
+      "impl_vfunc": "cd_impl primary vtable 0x10eb3f20 slot +0x38"
      },
      "inputs": {},
      "outputs": {
       "IsIndexing": {
-       "description": "produced by impl 0x1030269c via media-store member this+0x168",
+       "description": "Current indexing flag read under mutex; zero initially, one after indexing event type 0 and zero after type 1.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
-        "fmt": null
+        "fmt": "%d"
        },
-       "semantic_type": "signed int32",
-       "format": "%d decimal",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "unrestricted/impl-validated per 0x1030269c",
-       "range": "see impl 0x1030269c",
-       "special_values": "none observed in this build",
+       "semantic_type": "boolean",
+       "format": "decimal 0 or 1",
+       "unit": "none",
+       "accepted_values": "0, 1",
+       "range": "{0,1}",
+       "special_values": "0 includes the initial state before any indexing callback.",
        "required": false,
-       "default": "see impl 0x1030269c",
-       "validation": "impl-produced",
+       "default": "none; current value written on success",
+       "validation": "Byte writers produce only 0 or 1; handler formats the saved byte as decimal.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307980",
-         "notes": "out-arg access site"
+         "function": "0x1030269c",
+         "address": "0x103026c8",
+         "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb4408",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103078bc",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x38]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x103078bc",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x38].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x38]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x103078bc",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', 'r30 v[+0x38]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x38].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query delegate: r4 v[+0x8], r30 v[+0x38] (call-derived member-method semantics)",
-       "evidence": [
+         "function": "0x10302990",
+         "address": "0x10302a58",
+         "notes": "Event byte zero writes +0x514=1/+0x515=1; event byte one writes +0x514=0/+0x515=1 at 0x10302a68/0x10302a6c. Other bytes leave the indexing flag unchanged; byte two updates error fields. All paths call notifier at 0x103029e4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10303de4",
+         "address": "0x10304084",
+         "notes": "Initializes indexing byte +0x514 to zero."
+        },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x103078bc",
-         "notes": "delegate map ['r4 v[+0x8]', 'r30 v[+0x38]']; notify-family calls []"
+         "address": "0x10307914",
+         "notes": "Calls cd_impl primary +0x38, emits IsIndexing at 0x10307980 through decimal formatter 0x1055fcf4 and commits at 0x1030799c. No input registration."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x8], r30 v[+0x38] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      }
+     },
+     "validation": {
+      "description": "No inputs are registered. Validator returns 1 because the request is freshly constructed per SOAP call. Wrapper 402 is unreachable; extra raw SOAP children do not register inputs.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Service-level per-call request proof: constructor zeroes registered-input count, and no-input wrappers always validate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103078bc",
+        "address": "0x10307914",
+        "notes": "Calls cd_impl primary +0x38, emits IsIndexing at 0x10307980 through decimal formatter 0x1055fcf4 and commits at 0x1030799c. No input registration."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "No action arguments or library-ready gate; only the no-input request-validity check, which always succeeds on the proven SOAP dispatch path.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Service-level per-call request proof: constructor zeroes registered-input count, and no-input wrappers always validate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103078bc",
+        "address": "0x10307914",
+        "notes": "Calls cd_impl primary +0x38, emits IsIndexing at 0x10307980 through decimal formatter 0x1055fcf4 and commits at 0x1030799c. No input registration."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads byte +0x514 under mutex +0x918. Constructor initializes it to 0. Callback f_10302990, also exposed by adjustor 0x10302a78 subtracting 0x13c, locks the same mutex, tests event byte [r4]: 0 writes indexing=1 at 0x10302a58, 1 writes indexing=0 at 0x10302a6c. Both set dirty byte +0x515=1. Type 2 and other values do not change +0x514. These are the only +0x514 stores in the cd_impl method range.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1030269c",
+        "address": "0x103026c8",
+        "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302990",
+        "address": "0x10302a58",
+        "notes": "Event byte zero writes +0x514=1/+0x515=1; event byte one writes +0x514=0/+0x515=1 at 0x10302a68/0x10302a6c. Other bytes leave the indexing flag unchanged; byte two updates error fields. All paths call notifier at 0x103029e4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10303de4",
+        "address": "0x10304084",
+        "notes": "Initializes indexing byte +0x514 to zero."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Only mutex lock/unlock, saved output byte and response records. No index scan is started, stopped or refreshed.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1030269c",
+         "address": "0x103026c8",
+         "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103078bc",
+         "address": "0x10307914",
+         "notes": "Calls cd_impl primary +0x38, emits IsIndexing at 0x10307980 through decimal formatter 0x1055fcf4 and commits at 0x1030799c. No input registration."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The getter emits no event. Separately, callback f_10302990 calls f_1067c6ec(impl+8) at 0x103029e4 after processing every event byte, including unrecognized types. Event serializer f_103035c4 renders ShareIndexInProgress when +0x515 is dirty or full state is requested; the getter does not clear that flag.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103078bc",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10302990",
+        "address": "0x10302a58",
+        "notes": "Event byte zero writes +0x514=1/+0x515=1; event byte one writes +0x514=0/+0x515=1 at 0x10302a68/0x10302a6c. Other bytes leave the indexing flag unchanged; byte two updates error fields. All paths call notifier at 0x103029e4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1030269c",
+        "address": "0x103026c8",
+        "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103035c4",
+        "address": "0x103037ac",
+        "notes": "ShareIndexInProgress name in full-state serialization; dirty-change rendering at 0x10303a60."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x38]",
+      "description": "None in the getter. Independent event type 0 sets indexing true and type 1 sets it false; dirty byte is set on both even if the value was already equal.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103078bc",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', 'r30 v[+0x38]']"
+        "function": "0x1030269c",
+        "address": "0x103026c8",
+        "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302990",
+        "address": "0x10302a58",
+        "notes": "Event byte zero writes +0x514=1/+0x515=1; event byte one writes +0x514=0/+0x515=1 at 0x10302a68/0x10302a6c. Other bytes leave the indexing flag unchanged; byte two updates error fields. All paths call notifier at 0x103029e4."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x38].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_1030269c returns 0 after unlocking; handler writes IsIndexing through f_1055fcf4 and commits. Generic nonzero-delegate fault at 0x10307930 and the wrapper literal 402 are dead with this binding and fresh no-input request.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x1030269c",
+        "address": "0x103026c8",
+        "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x103078bc",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x10307914",
+        "notes": "Calls cd_impl primary +0x38, emits IsIndexing at 0x10307980 through decimal formatter 0x1055fcf4 and commits at 0x1030799c. No input registration."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Service-level per-call request proof: constructor zeroes registered-input count, and no-input wrappers always validate."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [],
+     "fault_sites": [
+      "0x10307930"
+     ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "impl 0x1030269c: single exit returns 0; the action never faults from the impl -- only the handler request-gate can emit 402 | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "unreachable request-validity zero",
+       "meaning": "Dead no-input wrapper branch; concrete implementation always returns zero.",
        "fault_sites": [
-        "0x103078bc"
+        "0x10307930"
        ],
        "conditions": [
         {
-         "description": "impl/store gate failed",
+         "description": "No reachable condition on the proven SOAP path.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302834",
-           "notes": "impl body"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x106960f8",
+           "address": "0x10696404",
+           "notes": "Service-level per-call request proof: constructor zeroes registered-input count, and no-input wrappers always validate."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103078bc",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1030269c",
+           "address": "0x103026c8",
+           "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
           }
          ]
         }
@@ -89007,15 +89088,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1030269c",
-         "notes": "impl domain bounded: {0}"
+         "function": "0x106960f8",
+         "address": "0x10696404",
+         "notes": "Service-level per-call request proof: constructor zeroes registered-input count, and no-input wrappers always validate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103078bc",
-         "notes": "wrapper parse + fault path"
+         "function": "0x1030269c",
+         "address": "0x103026c8",
+         "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
         }
        ]
       }
@@ -89026,23 +89109,44 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x103078bc",
-       "address": "0x103078bc",
-       "notes": "action wrapper handler"
+       "function": "0x1030269c",
+       "address": "0x103026c8",
+       "notes": "Mutex +0x918 lock at 0x103026c4; copies byte +0x514 to output at 0x103026d0; unlock 0x103026d4; returns zero."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb42d0",
-       "notes": "action dispatch table entry"
+       "function": "0x10302990",
+       "address": "0x10302a58",
+       "notes": "Event byte zero writes +0x514=1/+0x515=1; event byte one writes +0x514=0/+0x515=1 at 0x10302a68/0x10302a6c. Other bytes leave the indexing flag unchanged; byte two updates error fields. All paths call notifier at 0x103029e4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10303de4",
+       "address": "0x10304084",
+       "notes": "Initializes indexing byte +0x514 to zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103078bc",
+       "address": "0x10307914",
+       "notes": "Calls cd_impl primary +0x38, emits IsIndexing at 0x10307980 through decimal formatter 0x1055fcf4 and commits at 0x1030799c. No input registration."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106960f8",
+       "address": "0x10696404",
+       "notes": "Service-level per-call request proof: constructor zeroes registered-input count, and no-input wrappers always validate."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x103078bc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetSortCapabilities": {
      "description": "Returns empty SortCaps. Handler 0x10307cc0 validates the no-input request and tail-calls worker 0x10307bf4, which calls cd_impl slot +0x0c with a 0x400-byte buffer. Statically bound primary vtable 0x10eb3f20 maps it to f_10302498: strlcpy of the empty string at 0x10ea6a2c, then return 0. See the ContentDirectory service-level binding and per-call request proofs.",
