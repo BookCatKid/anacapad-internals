@@ -198235,15 +198235,56 @@
    "hal": "hal_detect_{open,close,get_cable_states} cable-detect HAL + 'cable detect token' open/close",
    "logs": "/opt/log/anacapa.hdmi.log",
    "arch": "'Arch: limelight' platform identifier",
-   "todo": [
-    "Established: HDMI ops behind a registered ioctl-callback driver interface; hdmi.log diagnostics; no sysfs/i2c literals.",
-    "Residual: which ioctl command numbers and CEC frame content - driver-call boundary, kernel module side"
-   ],
-   "hal_boundary": "The HDMI hardware boundary is now pinned: hal_detect_open, hal_detect_close and hal_detect_get_cable_states resolve to .dynstr IMPORTS (0x1006216f/21eb/2223), i.e. anacapa calls an external HAL shared library for cable detection - the .text never builds CEC frames or EDID transactions itself (no 'cec'/CEC_* opcode literals exist in the binary). The SMAPI routes v1/players/{playerId}/hdmi/{status,edid,powercycle} (+household variants) therefore terminate in thin wrappers: status -> hal_detect_get_cable_states, edid -> the 'edidStatus' property surface (0x10f97a08), powercycle -> a HAL call. The only in-binary HDMI driver evidence is DDPI user-space completion plumbing ('ddpi_udc_timeslicecomplete returned %d'), i.e. anacapa waits on the display-driver's timeslice completions while the actual CEC/EDID I2C traffic is generated inside the HAL lib/DDPI driver stack. So: CEC commands ARE sent for powercycle, but from the external HAL, not from anacapa code.",
+   "hal_boundary": "The HDMI hardware boundary is now pinned: hal_detect_open, hal_detect_close and hal_detect_get_cable_states resolve to .dynstr IMPORTS (0x1006216f/21eb/2223), i.e. anacapa calls an external HAL shared library for cable detection - the .text never builds CEC frames or EDID transactions itself (no 'cec'/CEC_* opcode literals exist in the binary). The SMAPI routes v1/players/{playerId}/hdmi/{status,edid,powercycle} (+household variants) therefore terminate in thin wrappers: status -> hal_detect_get_cable_states, edid -> the 'edidStatus' property surface (0x10f97a08), powercycle -> a HAL call. The only in-binary HDMI driver evidence is DDPI user-space completion plumbing ('ddpi_udc_timeslicecomplete returned %d'), i.e. anacapa waits on the display-driver's timeslice completions while the actual CEC/EDID I2C traffic is generated inside the HAL lib/DDPI driver stack. So: CEC commands ARE sent for powercycle, but from the external HAL, not from anacapa code. Kernel side recovered in shipped audiodev.ko: /dev/audioctl is its registered cdev; audioctl_device_ioctl is an old-style 4-arg .ioctl(inode,file,cmd,arg) that bounds _IOC_NR(cmd)-6 <= 0x96 and dispatches through a .rodata jump table at .rodata+0x1b4. nr 0x2c -> case .text+0x4c98 calls fpga_ReadRegCmd into a kernel buffer and copies the result out for _IOC_READ commands; nr 0x1e -> an inline block filling defaults then reading the temperature list.",
    "resolved_findings": [
     "Resolved: all three ops terminate in imported hal_detect_* dynsyms - CEC/EDID generation lives in the external HAL lib + DDPI driver; anacapa only polls cable states, surfaces edidStatus, and waits on ddpi timeslice completions. No CEC frame construction exists in-binary.",
     "Resolved (partial): HDMI surface = ARC/eARC audio-in (HDMI_ARC/HDMI_EARC modes) + status telemetry {edidStatus, stateCEC, tvCECStatus, deviceCEC} + capability bit HdmiCecAvailable emitted in status XML (' HdmiCecAvailable='). Cloud API exposes v1 hdmi endpoints {status, edid, powercycle} per player and household. CEC command sending is conditional - 'target does not support HDMI CEC' reject path exists; powercycle IS an exposed cloud action. EDID is read and reported via the edid endpoint. Product log /opt/log/anacapa.hdmi.log.",
-    "Resolved (partial): no sysfs/i2c device path literals exist for HDMI - the only /sys path in the image is /sys/class/net/eth0 (ethernet stats). HDMI edid read and powercycle ride the generic driver dispatch: literal \"ioctl_func -> %d\" / \"ioctl callback returned error %d\" (0x10f7eee2/0x10f7eef4) show a registered ioctl-callback interface, plus hdmi.log diagnostics output. So the mechanism is a driver ioctl callback, not userspace i2c/sysfs."
+    "Resolved (partial): no sysfs/i2c device path literals exist for HDMI - the only /sys path in the image is /sys/class/net/eth0 (ethernet stats). HDMI edid read and powercycle ride the generic driver dispatch: literal \"ioctl_func -> %d\" / \"ioctl callback returned error %d\" (0x10f7eee2/0x10f7eef4) show a registered ioctl-callback interface, plus hdmi.log diagnostics output. So the mechanism is a driver ioctl callback, not userspace i2c/sysfs.",
+    "Ioctl command numbers proven in libsyslib_hal.so.1: cable states hal_detect_get_cable_states (0x1d08) issues ioctl(fd,0x4004fc2c,&u32) on the /dev/audioctl fd opened by hal_audiodev_open (kind-12 handle), tests result bit 0x800, writes the raw word to out[0] and a small count to out[0x10]. The SAME 0x4004fc2c word is used by hal_thermal_get_status (kind-13 handle, masks result 0x2c070000) and by hal_inputs_get_status (0x1554, on a global static fd, result masked 0x3dff000f in the caller) - one shared board status read whose fields are partitioned in userspace. hal_thermal_get_temps uses a different command, ioctl 0x400cfc1e (nr 0x1e), pre-filling the output array with -44 (0xffffffd4) before the call.",
+    "Kernel module side: audiodev.ko (description 'TDM Driver For MPC8xxx') registers the 'audioctl' char node backing /dev/audioctl. audioctl_device_ioctl (.text+0x4924) reads r6=arg (old-style .ioctl signature), dispatches on _IOC_NR(cmd) via jump table (index = nr-6, bound 0x96) at .rodata+0x1b4 whose entries are R_PPC relocations into .text. nr 0x2c's case at .text+0x4c98 calls fpga_ReadRegCmd(sp+8) and falls into the shared tail at 0x4be8 that validates the getter result, tests cmd & 0x40000000 (_IOC_READ via andis.) and __copy_tofrom_user's the buffer to user arg. Neighboring cases bind fpga_get_ir_runt_threshold, fpga_set_ir_runt_threshold, audioctl_ir_repeater, fpga_WriteRegCmd, tas5708_init_amps and a counter bump at sect20+0x124.",
+    "CEC frame content resolved as a proven absence: no CEC opcodes or frame literals exist in anacapad (only 'target does not support HDMI CEC' and the status field names stateCEC/tvCECStatus/deviceCEC serialized by f_10aeb5dc alongside eARCActive, testAudio, testVideo, errorTV, errorARC); libsyslib_hal.so.1 exports no hal_cec_* symbol (full 53-entry dynsym enumerated); the shipped kernel modules audiodev.ko, sonos_device.ko, hwevent_queue.ko, ir_rcvr.ko and chk.ko contain no CEC symbols or strings (hwevent_queue's 'HDMI' is an event-source enum label in its name table). Powercycle reaches the platform through the 'tvPowerState' property on an injected interface (f_101866c0 reads it via vfunc+8 and builds the 'target does not support HDMI CEC' error object, code 0x5a), so CEC frames are generated entirely outside the shipped image (DDPI/display driver + TV hardware stack)."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_detect_get_cable_states",
+     "address": "0x1da0",
+     "notes": "ioctl fd=handle+0, cmd 0x4004fc2c, arg=&u32(handle+4); result bit 0x800 gates count select; raw word -> out[0], count -> out[0x10]."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_inputs_get_status",
+     "address": "0x15b4",
+     "notes": "Same cmd word 0x4004fc2c on global static fd; arg buffer zeroed before call; result stored verbatim."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_thermal_get_temps",
+     "address": "0x1f68",
+     "notes": "ioctl 0x400cfc1e (nr 30); output u32 array pre-filled with -44 (0xffffffd4) elements before call."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "audioctl_device_ioctl",
+     "address": "0x4c98",
+     "notes": "nr 0x2c case calls fpga_ReadRegCmd into sp+8; shared tail 0x4be8 tests _IOC_READ bit and copy_to_user. Jump table at .rodata+0x1b4, index nr-6, bound 0x96."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x101866c0",
+     "address": "0x1018670c",
+     "notes": "tvPowerState property read through interface vfunc+8; 'target does not support HDMI CEC' fallback error object code 0x5a. No CEC frame bytes."
+    }
    ]
   },
   "toml_config": {
