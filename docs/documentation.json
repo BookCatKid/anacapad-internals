@@ -154601,17 +154601,26 @@
      "type": "firmware",
      "address": "0x10f12a30",
      "notes": "wireless enum"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1073ff9c",
+     "notes": "Global0x110978c0 -> call0x1073ffb4 -> f_106adbc4 locking+0x68 and loading+0x1f0 -> r26/r5 -> XML formatter0x107400b8. BusyClients call0x1073ffc4 -> f_106adc60 -> seven byte indicators and0x10f04e58. Local state stores0x106adf58/0x106ae160 disprove an unavailable peer-only producer premise."
     }
    ],
    "todo": [
-    "Residual: the IdleState bit flags - the member is wire-received (peer-computed), so bit names live in the producing node logic, not the topology emit path."
+    "Established: actual local 32-bit IdleState getter and XML chain, null-global output0, and separately enumerated BusyClients bytes/name table. Remaining: trace the state producers reaching stores0x106adf58/0x106ae160 to object+0x1f0, recover each bit predicate and its relation to radio/scan requests, then reconcile with the seven busy-client registrations without equating identifier ordinals to state bits. Start with global0x110978c0, f_106adbc4 and the local writer cluster. The old peer-computed-byte limitation is disproved; this is actionable static work."
    ],
    "resolved_findings": [
     "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
     "Mode semantics mapped: SONOSNET_MODE = SonosNet mesh member, ETHERNET_MODE = wired with radio roles reduced, STATION_MODE = plain WiFi STA, STATION_SATELLITE_MODE = satellite over STA link, SONOSNET_SATELLITE_STATION_PRIMARY_MODE = satellite carrying the primary STA uplink, INVALID_MODE = unset. Transitions are config-driven not autonomous: the mode word comes from the wireless config (WirelessInfo reports WifiMode %d + WifiModeString); SonosNetDisabled + IdleState(0x%08x bitmask) + BusyClients + ConnectionType expose the operational state. The setup() in SonosNet disable test mode path schedules an automatic revert in %d seconds - test-mode transitions are self-reverting.",
     "Resolved: the numeric enum mapping - the WifiModeString emit path at 0x1073ff10 computes idx=mode+1, bounds cmplwi 0x5, then dispatches through the self-relative jump table at 0x10f11f7c: -1=INVALID_MODE, 0=SONOSNET_MODE, 1=STATION_MODE, 2=SONOSNET_SATELLITE_STATION_PRIMARY_MODE, 3=STATION_SATELLITE_MODE, 4=ETHERNET_MODE (out-of-range -> 'Unknown'). The companion display ladder maps to human strings {'SonosNet (wireless)', 'SonosNet (Ethernet)', 'Ethernet', 'Ethernet (WiFi Disabled)', 'WiFi', 'Home Theater 2.0', 'Home Theater (Ethernet)'} (0x10f02c60 block).",
     "Resolved: the wifi-enabled FSM vocabulary is proven in enum_tables.10fadd94: INACTIVE=1, WIFI_ENABLING=2, ACK_AWAIT=3, WIFI_DISABLING=4, WIFI_DISABLED=5, ACK_NOT_RECEIVED=6.",
-    "IdleState member proven wire-received: the emit path reads lbz +0x82e(r30) and prints it as 0x%08x; the dominant writer (f_10761d40) is a verbatim struct copy mapping wire record +0x18..+0x1f -> members +0x828..+0x82f (+0x1e -> +0x82e). The other writers (0x1074/0x1076 cluster) are same-shape record copies, so the bitmask is set by whichever peer produced the zone-member document - bit meanings are producer-side semantics outside this path."
+    "The actual WirelessInfo IdleState XML source is local: f_1073ff10 loads global0x110978c0, and when nonnull calls f_106adbc4 at0x1073ffb4. That getter locks object+0x68 and returns the full word at object+0x1f0; the caller passes it as r5 to the IdleState 0x%08x formatter at0x107400b8. A null global leaves the initialized output0. The old attribution to a peer byte at+0x82e and f_10761d40 struct copying is not this emit chain and is withdrawn.",
+    "BusyClients is independently built by f_106adc60 using seven local client bytes at object+0x1e9..+0x1ef and the names table0x10f04e58: AUDIO_OUT, AUDIO_IN, LOCAL_SONOSNET, NO_SONOSNET_PEERS, NO_PRIMARY, UPGRADING and HT_SWAP; active names are comma-space separated. The companion name getter f_106adc2c also accepts index7=UNKNOWN_ID and returns an empty spelling above7. These client identifiers are not automatically the IdleState word bit positions.",
+    "Local writer stores to the getter member occur at0x106adf58 and0x106ae160, with initialization at0x106ae58c. This supplies a concrete static continuation into the producing logic. The dpUpdateIdleState reference at0x105b6c30 only constructs a named task and does not itself compute the state bits."
    ]
   },
   "audio_decoders": {
