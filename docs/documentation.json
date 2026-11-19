@@ -74945,7 +74945,7 @@
      }
     },
     "GetVolumeDBRange": {
-     "description": "Reads as a volume-range query but its impl slot is the ButtonSetMute button handler in BOTH impl classes (f_100dcd88) - the action is anomalous: it executes a hardware-button mute commit and cannot return a range",
+     "description": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b920",
@@ -74981,7 +74981,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric rendering-instance selector; this zone player implements exactly one rendering instance.",
+       "description": "Required rendering-instance selector; zero selects error 800 and nonzero selects 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -74993,32 +74993,25 @@
        "semantic_type": "instance selector (integer)",
        "format": "decimal integer parsed into a type-tag-4 argument record (helper 0x105614e0, 24-byte record)",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
-       "special_values": "none",
+       "accepted_values": "none producing success",
+       "range": "ui4 request storage; zero and nonzero select distinct faults",
+       "special_values": "0 selects 800",
        "required": true,
-       "default": "none",
-       "validation": "Request layer faults 402 if absent/malformed (req vfunc +0x08). Not checked - impl ignores it.",
+       "default": "none: required argument",
+       "validation": "Compared with zero after request-layer validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b960",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d65c8",
+         "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
         }
        ],
-       "notes": null
+       "notes": "No successful rendering instance for this action."
       },
       "Channel": {
-       "description": "Audio channel selector string; compared verbatim (strcmp, case-sensitive) by the implementation.",
+       "description": "Required request string; ignored by the implementation after request validation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -75030,141 +75023,208 @@
        "semantic_type": "channel token",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "ignored",
-       "range": "max 1023 chars",
-       "special_values": {
-        "any": "impl works on 'Master' internals"
-       },
+       "accepted_values": "any request-layer-valid string; no implementation comparison",
+       "range": "request buffer capacity 1024",
+       "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "Parsed but unused.",
+       "default": "none: required argument",
+       "validation": "Request registration f_1056157c; no implementation channel validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b984",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x100d65c8",
+         "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
         }
        ],
-       "notes": null,
+       "notes": "Master and other strings do not change the nonzero result for a given InstanceID.",
        "buf_cap": 1024
       }
      },
      "outputs": {
       "MinValue": {
-       "description": "never produced - the impl slot resolves to the ButtonSetMute handler f_100dcd88, which writes no range output",
+       "description": "Never written by the implementation and never emitted by the wrapper, because every implementation status is nonzero.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
         "fmt": null
        },
-       "semantic_type": "signed int16",
-       "format": "%d decimal",
-       "unit": "none",
-       "accepted_values": "impl-produced value",
-       "range": "unconstrained",
+       "semantic_type": "i2",
+       "format": "signed 16-bit formatter exists only on an unreachable success branch",
+       "unit": "none: no successful output",
+       "accepted_values": "none",
+       "range": "none",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "none",
+       "validation": "No output is returned for status 800 or 702.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ba3c",
-         "notes": "out-arg access site"
+         "address": "0x100d65c8",
+         "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b030",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100dcd88",
-         "address": "0x100dcd88",
-         "notes": "ButtonSetMute impl - no out-param stores for range values"
+         "address": "0x1073b9d8",
+         "notes": "Success formatting cannot be reached after this implementation returns."
         }
        ],
-       "notes": "impl is a shared button/apply helper; out writes unverified - possible stale-slot emission like the stub cases."
+       "notes": "No dB value or range is established by an error-only implementation."
       },
       "MaxValue": {
-       "description": "never produced - the impl slot resolves to the ButtonSetMute handler f_100dcd88, which writes no range output",
+       "description": "Never written by the implementation and never emitted by the wrapper, because every implementation status is nonzero.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
         "fmt": null
        },
-       "semantic_type": "signed int16",
-       "format": "%d decimal",
-       "unit": "none",
-       "accepted_values": "impl-produced value",
-       "range": "unconstrained",
+       "semantic_type": "i2",
+       "format": "signed 16-bit formatter exists only on an unreachable success branch",
+       "unit": "none: no successful output",
+       "accepted_values": "none",
+       "range": "none",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "none",
+       "validation": "No output is returned for status 800 or 702.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ba60",
-         "notes": "out-arg access site"
+         "address": "0x100d65c8",
+         "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b03c",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100dcd88",
-         "address": "0x100dcd88",
-         "notes": "ButtonSetMute impl - no out-param stores for range values"
+         "address": "0x1073b9d8",
+         "notes": "Success formatting cannot be reached after this implementation returns."
         }
        ],
-       "notes": "impl is a shared button/apply helper; out writes unverified - possible stale-slot emission like the stub cases."
+       "notes": "No dB value or range is established by an error-only implementation."
       }
      },
-     "validation": "Request-layer parse; impl performs no argument checks.",
-     "requirements": "none beyond parse",
-     "state_dependencies": "none - no state gating observed beyond argument checks",
+     "validation": {
+      "description": "Wrapper requires InstanceID and Channel through f_105614e0/f_1056157c and request virtual +8. Implementation compares only InstanceID with zero, does not validate Channel and never accepts the operation.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b920",
+        "notes": "Input registration and request validation before bound slot call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65c8",
+        "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID and Channel must pass request-layer validation before implementation dispatch. No validated InstanceID produces success: zero returns 800, every nonzero value returns 702. Channel is not inspected by the implementation.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2738",
+        "notes": "Concrete primary vptr 0x10ed270c; binding store at 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65c8",
+        "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65d8",
+        "notes": "Raw 0x7c691f9e: opcode31, RT3, RA9, RB3, BC30, low XO15. isel r3,r9,r3,30 selects r9=800 when CR7.EQ is set by InstanceID==0; otherwise r3=702. Shared listing shows op31(975), so this select was independently decoded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b9d8",
+        "notes": "Fresh CR0-setting move selects fault for either nonzero result; no stale-condition-register success path."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "none: the implementation reads no renderer or platform state and makes no calls. Only the incoming InstanceID affects status.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65c8",
+        "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "IMPL-CLASS ANOMALY: both classes resolve the slot to f_100dcd88, the ButtonSetMute handler - it queries state via f_100d9b4c('Master') and logs 'on:%d src:%s'; MinValue/MaxValue are never produced by the impl.",
+       "description": "No renderer state mutation, locking, helper call or output write. The function only selects a nonzero status from InstanceID.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dcd88",
-         "address": "0x100dce08",
-         "notes": "ButtonSetMute log 'on:%d src:%s' at 0x100dce04"
+         "address": "0x100d65c8",
+         "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying none (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists none (capability query) into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success is signaled by the implementation leaving cr0.eq=1 at return (the callee performs a cr0-writing op such as 'mr. r30,r3' on its status); the wrapper then emits outputs via req vfunc +0x24 and commits via +0x14. Any other path calls req vfunc +0x14 with r4 = implementation return code, producing a SOAP fault whose numeric code equals the impl return value.",
+     "events_triggered": "none: no event-source, observer or scheduler call.",
+     "state_transitions": "none: neither volume nor operation state changes.",
+     "return_behavior": {
+      "description": "After request validation, InstanceID zero returns 800 and nonzero returns 702. Both are forwarded as SOAP faults without formatting outputs. Request-layer validation failure selects 402; null service+4 or unknown action name selects dispatcher 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2738",
+        "notes": "Concrete primary vptr 0x10ed270c; binding store at 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65c8",
+        "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d65d8",
+        "notes": "Raw 0x7c691f9e: opcode31, RT3, RA9, RB3, BC30, low XO15. isel r3,r9,r3,30 selects r9=800 when CR7.EQ is set by InstanceID==0; otherwise r3=702. Shared listing shows op31(975), so this select was independently decoded."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b9d8",
+        "notes": "Fresh CR0-setting move selects fault for either nonzero result; no stale-condition-register success path."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b9ec",
@@ -75175,21 +75235,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Dispatcher rejects unknown action name or null service+4.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Dispatcher rejects unknown action name or null service+4.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Dispatcher rejects unknown action name or null service+4."
           }
          ]
         }
@@ -75199,30 +75258,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Dispatcher rejects unknown action name or null service+4."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Request-layer validation failed before the implementation call.",
        "fault_sites": [
         "0x1073b9ec"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed before the implementation call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073b9ec"
+           "address": "0x1073b9ec",
+           "notes": "Request-layer validation failed before the implementation call."
           }
          ]
         }
@@ -75232,12 +75288,66 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073b9ec"
+         "address": "0x1073b9ec",
+         "notes": "Request-layer validation failed before the implementation call."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d65c8",
+           "notes": "InstanceID is nonzero."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d65c8",
+         "notes": "InstanceID is nonzero."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "InstanceID is zero; the concrete implementation still rejects the operation.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is zero; the concrete implementation still rejects the operation.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d65d8",
+           "notes": "InstanceID is zero; the concrete implementation still rejects the operation."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d65d8",
+         "notes": "InstanceID is zero; the concrete implementation still rejects the operation."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -75246,30 +75356,38 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b920",
-       "address": "0x1073b920",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2738",
+       "notes": "Concrete primary vptr 0x10ed270c; binding store at 0x104d4dc0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e0c",
-       "notes": "action dispatch table entry"
+       "address": "0x100d65c8",
+       "notes": "The concrete primary slot 0x2c points to 0x100d65c8. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "calls f_100d9b4c(this,0,'Master',r30,r4); 'ButtonSetMute'/'on:%d src:%s' logs; table-indexed log string selection",
-       "function": "0x100dcd88"
+       "address": "0x100d65d8",
+       "notes": "Raw 0x7c691f9e: opcode31, RT3, RA9, RB3, BC30, low XO15. isel r3,r9,r3,30 selects r9=800 when CR7.EQ is set by InstanceID==0; otherwise r3=702. Shared listing shows op31(975), so this select was independently decoded."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b9d8",
+       "notes": "Fresh CR0-setting move selects fault for either nonzero result; no stale-condition-register success path."
       }
      ],
      "notes": "Flag for live-object verification: the installed impl may differ if a derived class overrides +0x2c.",
-     "todo": [
-      "Established: dispatch and handler 0x1073b920 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x2c",
+      "function": "0x100d65c8",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "RampToVolume": {
      "description": "CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.",
