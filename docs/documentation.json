@@ -68338,19 +68338,36 @@
          "function": "0x1015108c",
          "address": "0x101510b8",
          "notes": "*row+0x780 incremented"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153e98",
+         "address": "0x10153ee8",
+         "notes": "walker calls callback vt+0x20 = f_1015108c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f6c0",
+         "notes": "f_1014f48c calls f_10144f10 (callback vptr 0x10e93668)"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
         "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit; job+0x1464 holds a single-value argument and job+0x1468 counts items before it. The number of tokens (not their values) sets how many existing tracks the pre-commit trim f_102f7798 keeps (see side_effects).",
-        "Residual: the container-expansion code that calls f_1015108c is not identified. Its only reference is slot 0x10e93688 of the callback table at 0x10e93678 (f_10150fdc, f_10150fe8, f_101511d0, f_10152eac, f_1015108c, f_10151018), which has no lis/addi reference in code, so which expanded items are counted is not established. Next step is to find the code that installs that table."
+        "Residual: on the f_10144f10 and f_1014b700 expansion paths, f_1015108c runs for every expanded item. The third path, f_10146300 (called by f_1014f48c at 0x1014f5b4), passes a callback with the same vptr to f_104634c4, and no vt+0x20 call has been found in that walker or its direct callees, so whether items expanded there are counted is not settled."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
         "Resolved (binding): bound as a string by f_1056157c into job+0x1420 (parse site 0x104654bc). f_102f7634 strchr's it for ',' and, when absent, strtol's it into job+0x1464 (0x102f7774); f_102f7798 splits it on ',' with f_10c39f14 and strtoul's every token with errno checking (0x102f77fc), counting the valid tokens; the success path tokenises it with f_10c39f14 and range-checks each value against the inserted count u16 job+0x1478, returning 402 when out of range (0x102f7f08).",
         "Established (validation, f_102f7bd0 0x102f7ea0..0x102f7f08): f_10c39f14 splits the argument into tokens of up to 0x20 bytes at sp+0x349c. When job+0x1468 is zero each token is converted with strtol(token, NULL, 10) and rejected when it is negative (0x102f7f04) or greater than the inserted count u16 job+0x1478 (0x102f7ec8). When job+0x1468 is nonzero the token text is not converted; the check is applied to job+0x1464 - job+0x1468 instead (0x102f7eac). A rejection makes the action fail with 402 (0x192, 0x102f7cb4). The token buffer is then overwritten with CurrentTrackIndex (0x102f7f38), so no NewCurrentTrackIndices value reaches the queue commit. In plain terms: each listed index must lie between 0 and the number of tracks added, otherwise the action returns 402, and the values themselves never reach the queue commit. The number of entries in the list does matter: the pre-commit trim f_102f7798 keeps that many existing tracks starting at CurrentTrackIndex (see side_effects).",
-        "Established (job+0x1464/0x1468): when the argument has no comma, f_102f7634 stores strtol(text, NULL, 10) at job+0x1464 (strchr ',' at 0x102f775c, store at 0x102f7778). The per-entry callback f_102f7a50 passes job+0x1464 and &job+0x1468 to f_1014f808 (0x102f7a9c..0x102f7abc), which hands them to the row initialiser f_1014b270 (0x1014f964, 0x1014f970). That stores the index at row+0x77c (0x1014b35c) and the pointer at row+0x780 (0x1014b344). f_1015108c, called once per item with a running counter at ctx+8, increments *row+0x780 while the counter is below the index and the index is above the current value (0x10151098..0x101510b8). So job+0x1468 counts expanded items seen before that index, and the check at 0x102f7eac uses the index minus that count."
+        "Established (job+0x1464/0x1468): when the argument has no comma, f_102f7634 stores strtol(text, NULL, 10) at job+0x1464 (strchr ',' at 0x102f775c, store at 0x102f7778). The per-entry callback f_102f7a50 passes job+0x1464 and &job+0x1468 to f_1014f808 (0x102f7a9c..0x102f7abc), which hands them to the row initialiser f_1014b270 (0x1014f964, 0x1014f970). That stores the index at row+0x77c (0x1014b35c) and the pointer at row+0x780 (0x1014b344). f_1015108c, called once per item with a running counter at ctx+8, increments *row+0x780 while the counter is below the index and the index is above the current value (0x10151098..0x101510b8). So job+0x1468 counts expanded items seen before that index, and the check at 0x102f7eac uses the index minus that count.",
+        "Established (who calls f_1015108c): the table holding f_1015108c is the vtable 0x10e93668 (f_1015108c is slot +0x20, at 0x10e93688). It is referenced in code: f_1014cdd0 stores it as a vptr (0x1014cdd8), and f_10144f10 (0x10144f84), f_10146300 (0x1014633c), f_1014b700 (0x1014b814) and f_1014fd08 (0x1014fe14) build stack callback objects with it. f_1014f808, which the per-entry callback f_102f7a50 calls, reaches f_1014f48c at 0x1014f984, and f_1014f48c calls f_10144f10 (0x1014f6c0) and f_1014b700 (0x1014f600). Both pass the callback to the walker f_10153fe0, which calls f_10153e98 (0x1015421c). f_10153e98 builds each item and calls callback vt+0x20 = f_1015108c(callback, item index = word+4 >> 8, &item) at 0x10153ee8. When that returns 0 it logs and returns 800. In plain terms: while a container URI is expanded, the counter callback runs once for every item the walker produces, so job+0x1468 ends up as the number of expanded items that come before the requested index."
        ]
       },
       "NumberOfURIs": {
