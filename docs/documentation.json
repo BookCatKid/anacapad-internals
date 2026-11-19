@@ -51842,7 +51842,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x104882f4",
-         "notes": "The SOAP caller passes null for the provider's r7 ordinal-like halfword output. f_104de170 only writes audio-input+0x584c to that separate halfword destination when it is nonnull (0x104de424). Its direct record stores update other fields; they do not make the record ordinal valid used by this SOAP action.",
+         "notes": "The SOAP caller passes null for the provider's r7 play-mode halfword output (0x104882e4); f_104de170 writes audio-input+0x584c to that destination only when nonnull. The LastChange snapshot passes a destination and converts that halfword to a play-mode name at 0x10489e54. The separate record ordinal-valid and ordinal fields are what GetPositionInfo uses to fill Track.",
          "function": "0x10488248"
         }
        ],
@@ -69213,7 +69213,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. The non-indexed streamer branch delegates to the active source rather than emitting LastChange itself. A changed indexed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block. For Spotify, the streamer call records a pending mode update; the worker applies shuffle and repeat separately rather than applying changes synchronously in the SOAP handler.",
+      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. A changed indexed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block. For Spotify, the streamer call records a pending mode update and the worker submits shuffle and repeat separately. The SDK's shuffle and repeat update handlers skip their notifications on equality with the respective compared values. If a resulting VLI mode-change event reaches the AVTransport worker, it dirties the common block and schedules the sender. The mode is read from the active streamer when LastChange is collected, not copied from the SOAP request or from the notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -69372,11 +69372,46 @@
         "address": "0x10226a3c",
         "notes": "The Spotify thread consumes a pending selector-1 change in f_102269e0. It sends bit 0 of the requested mode to the shuffle setter; it sends repeat 2 when bit 2 is set, otherwise repeat takes bit 1. The worker tests the setter results separately, records failures through f_10225360 and clears pending at 0x10226a88. The SOAP success path does not wait for these results.",
         "function": "0x102269e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10cfa620",
+        "notes": "The SDK update table at 0x10fd3fd4 sends selector 31 to 0x10cfa620 (shuffle) and 32 to 0x10cfa5d4 (repeat). Shuffle compares the update word to the cached byte at +0xb86; repeat compares to the cached word at +0xb88. Equality takes the zero-result branch without calling the notification helper. Unequal values update those fields and call f_10d3bb08 with IDs 5/6 for shuffle on/off or 7/8 for repeat on/off. The repeat getter used to build the reported mode reads a different byte, +0xb8b."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10218150",
+        "notes": "f_10218574 dispatches the queued Spotify notification ID through f_10217d80; IDs 5 through 8 share the 0x10218150 entry. f_1022694c reads the SDK getters, producing shuffle bit 0 only for shuffle value 1, repeat bit 1 for repeat value 1 and repeat bit 2 for repeat value 2. The worker passes this mode to receiver slot +0x44, after its receiver readiness checks. Controller table word 0x10ea532c selects f_1022d5e4, which stores the mode through f_104dc1e8 at audio-input+0x584c and then sends onVirtualLineInPlayModesChanged. The embedded fallback thread's +0x44 entry at 0x10ea44a4 is a no-op."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a6aec",
+        "notes": "The controller forwards onVirtualLineInPlayModesChanged through the interface stored at controller+0x3f0. f_1021996c supplies streamer+0x120 to the controller constructor, and its +0x34 slot (0x10f046b8) thunk adjusts back to the streamer. f_106a6a8c forwards to the listener at streamer+0x2d0, slot +0x34. The listener's address point 0x10ecbe2c binds that slot to f_10416de4; it calls f_1041adb4 with the VliPropertiesChangedEvent mode flag set and the metadata flag clear."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102bef24",
+        "notes": "The AVTransport VliPropertiesChangedEvent receiver f_102beca8 copies the metadata and mode flags and submits the callback f_102afb40 via f_102eff8c. With the mode flag set, the callback enters f_102afa40, which sets impl+0x4658 and calls f_1067c6ec on the event source at impl+0x10. f_102b5658 tests the flag at 0x102b582c, promotes it to the common LastChange dirty latch at impl+0x7785, and clears the source flag at 0x102b57a4 on a consuming pass."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10489e50",
+        "notes": "Mode-one collection reaches f_1048b570 at 0x102b5d20. Its metadata snapshot helper f_10489b18 initializes a play-mode halfword to zero and passes it to the provider as r7 through f_106a9f90. Spotify returns audio-input+0x584c in that halfword (0x104de430); the successful snapshot branch stores it and copies the f_10145f50 name into the CurrentPlayMode buffer via snapshot pointers +0x6c/+0x70, which point to the LastChange string at formatter stack+0x60de and its capacity."
        }
       ],
       "todo": [
-       "Established: indexed equality suppresses the request's own wake. The bound Spotify streamer control stages a request without a same-mode check or a direct LastChange wake; a Spotify thread consumes it using distinct shuffle and repeat setters.",
-       "Follow Spotify shuffle/repeat change callbacks into the streamer state snapshot and AVTransport LastChange sender, including whether the provider emits a callback for an unchanged value. Spotify type 2 is the only direct call to the registration helper in this build."
+       "Established: the indexed same-mode path skips its wake; the Spotify SOAP path stages changes without an equality check. Spotify SDK update handlers suppress equal-value notifications; the traced VLI mode-event receiver dirties LastChange and collection reads the active provider's stored mode.",
+       "Bind the setter-issued SDK messages to selectors 31/32 and trace the effective repeat byte +0xb8b versus the notification comparison word +0xb88, including repeat-1 to repeat-all. Verify the notification callback registration and queue/lifecycle gates that select controller delivery, and the actor subscription and scheduler acceptance gates between VliPropertiesChangedEvent publication and the traced AVTransport receiver. Spotify type 2 is the only direct call to the registration helper in this build."
       ]
      },
      "state_transitions": {
