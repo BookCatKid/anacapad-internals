@@ -131678,17 +131678,93 @@
    "process": "/bin/upgrade_mgr external daemon (not inside anacapad); Netstart-triggered upgrades ('Netstart triggered upgrade 0x%x')",
    "modes": "hh-upgrade household-wide + UserUpdateScheduler/AutoUpdateScheduler; 'User-initiated HH upgrade report' poll; 'guest upgrade not allowed via reauth'",
    "guards": "'Do not update, alarm scheduled soon': alarms defer upgrades; 'Server upgrade does not support multiplex yet'; unknown client/server state handling",
-   "retry": "'Retrying upgrade (%d/%d)... Giving up after max attempts'",
+   "retry": "In anacapad f_102a9764, the retry branch compares the counter at +0x64 unsigned against 4: values 0-4 enter the retry path and log counter+1 out of 5; larger values enter the give-up path. Counter initialization, increment sites and surrounding state gates still need a complete policy trace.",
    "reporting": "upgrade_mgr{,_user}_report.json, /tmp/upgrade_mgr_info.txt, /jffs/upgrade*.log, upgrade_sys_report*.log; reportFirmwareDownload telemetry; 'Upgrade report has more devices than the maximum supported' household cap; 'Unable to report firmware update; muse error'",
    "files": "/jffs/{upgrade.log,upgrade_prev.log,upgrade_tmp_prev.log,app/log/upgrade_mgr.log}",
    "todo": [
-    "Established: fetch URL grammar, cert-bundle path, signature+envelope-decrypt pipeline, flash-write path all proven from /bin/upgrade."
+    "Established: anacapad spawn/report-file path, bounded retry branch, upgrade URL builder/wget exec, certificate-bundle save paths, conditional signature/decrypt calls, product partition gates and libflash delegation are disassembled with evidence. Remaining: map the complete upgrade_mgr-to-upgrade socket/process dispatch and failure propagation, signature acceptance enforcement and key/cipher selection, plus actual erase/write/verify/boot-slot behavior. Trace upgrade_mgr entry/dispatch into upgrade, upgrade f_10009024 and its state handlers, callers of the signature handler f_10004db4 and final accepted-count checks, references to UBI_RED_KEY_WITH_NONCE, ZZ crypto implementations in libsonoscrypto.so.3 and hal_flash_reprogram_flash in libflash.so.1. Until those call chains are decoded, neither a universal no-IPC handshake nor a fully proven verification/flash pipeline is justified."
    ],
-   "handshake": "The anacapad<->upgrade_mgr handshake is process-spawn + report-file polling, not message IPC. Flow: check decides ('%zu/%zu ZPs need auto-update', or the user path 'User-initiated HH update: ...') -> anacapad downloads the manifest itself ('manifest URL: %s', 'manifest connect error 0x%x (%u)', 'manifest download complete/error') -> the BeginSoftwareUpdate UPnP action is invoked on the local device ('BeginSoftwareUpdate failure for local device (UPnP result: %u)') -> 'creating auto upgr process' spawns /bin/upgrade_mgr ('Failed to spawn auto upgr process'). Manifest URL grammar: '%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s'; the .upd payload URL appends '&sonosid=%s&householdid=%s&au=1'. upgrade_mgr reports back via files anacapad polls: /tmp/upgrade_mgr_info.txt, upgrade_mgr_report.json (auto), upgrade_mgr_user_report.json + _prev (user path, 'Timed out polling for user-initiated HH upgrade report', 'User-initiated HH upgrade report consumed', \"Unknown upgrade client state: '%s'\", a device-count cap 'Upgrade report has more devices than the maximum supported'), and /jffs/app/log/upgrade_mgr.log.",
+   "handshake": "Verified auto-update path: f_102a7c90 calls manifest work f_10676054 and then f_10675dc0 with upgrade_mgr_report.json. f_10675a5c invokes a local-device virtual operation whose failure is logged as BeginSoftwareUpdate failure, then builds argv containing /bin/upgrade_mgr and calls f_1076a8ec. These observations establish a spawn/report-file path, not the absence of every live IPC path. /bin/upgrade itself has a socket command parser for HELLO, DOWNLOAD, FLASHWRITE, REBOOT, PING and QUIT, so its protocol must be kept separate from anacapad report polling. The complete upgrade_mgr-to-upgrade dispatch chain remains to be traced.",
    "resolved_findings": [
-    "Established: handshake = BeginSoftwareUpdate UPnP action -> spawn /bin/upgrade_mgr -> poll report files; manifest .upm and payload .upd URL grammars including sonosid/householdid/au params; user vs auto report file split.",
-    "Resolved: the anacapad-to-upgrade_mgr handshake is process spawn + JSON report files, not a live IPC channel. Trigger chain: UPnP BeginSoftwareUpdate -> manifest URL fetch ('manifest download complete'/'manifest connect error') -> 'creating auto upgr process' spawns /bin/upgrade_mgr (UPGRADE_MGR_SPAWN_FAILED on failure). Result returns via upgrade_mgr_report.json with fields {pendingUpdateHours, numUpdateAttempts, startTime, elapsedSeconds, blockedUpdateReason, updateHHStatus, serverIP, errorMsg, extendedError, zoneType, startVersion, targetVersion, hardwareVersion, serialNumber, updateZPResult, numZPsInHH, numZPsInHHDelta, numZPsToUpdate, numZPsDropped, targetSystemVersion, updateHHResult, numFailedZPs, numZPsWithError}; also upgrade_mgr_user_report.json(+_prev) and state file upgrade_mgr.txt ('Failed to save state %d'). Retry: 'Retrying upgrade (%d/%d)' bounded by max attempts ('Giving up after max upgrade attempts'), 'Launching update failed, retrying in %d seconds'; policy keys {R_AutoUpdatePolicy, R_CheckUpdateInterval}. .upd verification happens inside the spawned /bin/upgrade_mgr, outside this binary.",
-    "Resolved: /bin/upgrade internals decoded from its own strings - fetch is exec of /usr/bin/wget with URL template \"%s%s-%u-%u.upd?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\" (version-tuple + region + serial query); verify pipeline = cert bundle (/jffs/sys/run/rcb/upd_cert_bundle.rcb, parsed or saved to JFFS) -> \"Sonos signature parse/verification\" -> per-section enveloped-data decrypt ({Enveloped data decrypt init/decrypt/final failed} = EVP envelope) with wrapped-key type UBI_RED_KEY_WITH_NONCE (\"no encrypted upgrade key available\",\"encrypted signature section not supported\"); write = hal_flash_* (get_bootsection/get_bootgeneration, erase/write/verify, FLASHWRITE/FLASHWRITE_DONE events, \"Forcing reboot after failed flashwrite\"). Per-product partition flags {LACKS_BOOTSOUND_PARTITION, LACKS_M4_PARTITION} gate the BOOTSOUND/M4 sections (\"Skipping X section - no partition\")."
+    "Both /bin/upgrade and /bin/upgrade_mgr are present as stripped 32-bit big-endian PowerPC ELFs in reference/public/files/bin. The upgrade executable, rather than strings attributed to an unavailable binary, was disassembled for the findings below.",
+    "/bin/upgrade f_1000a300 builds either the .upd URL \"%s%s-%u-%u.upd?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\" or \"%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\". An absent/empty payload selector falls back to \"default\". Both branches can append &sonosid=%s&householdid=%s, and a separate flag gates &au=1; these suffixes are not unconditional payload-only behavior. f_10007438 forks and execl's /usr/bin/wget with -qC, -T 300 and -O -, with an optional -L 4445 argument pair. The custom wget option meanings have not been inferred from their spelling.",
+    "Certificate-bundle path corrected: f_100065d8 parses an embedded bundle with sonosRcbParseHeader and sonosRcbVerifySig, and saves a successfully parsed bundle under /jffs/sys/run/rcb/%s-%s.rcb. /jffs/sys/run/rcb/upd_cert_bundle.rcb is the parse-failure fallback save path, not a proven universal input trust-bundle path.",
+    "Signature and decryption are conditional section paths, not a proven simple verify-then-decrypt pipeline. f_10004db4 parses through ZZ0121 and verifies through ZZ0124; success increments the accepted-signature counter at context +0x224, while a verification failure does not increment it. f_10004998 tests section flag 0x4 before calling f_100045c8 for enveloped decryption, and rejects a section also carrying signature flag 0x1. f_100045c8 uses ZZ0053/ZZ0052/ZZ0050/ZZ0047 for parse/init/update/final. Calling these EVP or naming the exact cipher solely from diagnostics is unsupported. UBI_RED_KEY_WITH_NONCE is present at 0x10040124 but its active key-selection path is not yet established.",
+    "Installation f_100065d8 checks LACKS_M4_PARTITION and LACKS_BOOTSOUND_PARTITION and clears the corresponding section slots when those product flags are true. It initializes libflash, reads partition table, boot section and generation, writes and runs the package upgrade script via /var/upgradescript, then delegates flash reprogramming to hal_flash_reprogram_flash. Erase/write/verify internals reside in libflash.so.1 rather than being demonstrated by error strings alone. FLASHWRITE and FLASHWRITE_DONE are recognized protocol state names in f_1000a108."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102a7c90 / f_10675a5c / f_10676054",
+     "address": "0x10675a5c",
+     "callsite": "0x102a7d28-0x102a7d4c, 0x10675c18-0x10675c9c, 0x10676190",
+     "notes": "Manifest work then report filename passed onward; local BeginSoftwareUpdate diagnostic and /bin/upgrade_mgr argv passed to spawn helper. Does not exclude other IPC."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102a9764 / f_10277698",
+     "address": "0x102a9b80",
+     "callsite": "0x102a9b80-0x102a9c54, 0x102777a8-0x102777e8",
+     "notes": "Unsigned counter >4 selects give-up; else retry log uses count+1 and limit 5. Alarm guard logs Do not update, alarm scheduled soon on its rejecting branch."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade",
+     "build": "86.10-80260",
+     "function": "f_1000a300 / f_10007438",
+     "address": "0x1000a300",
+     "callsite": "0x1000a3dc-0x1000a514, 0x10007578-0x10007660",
+     "notes": "Payload/manifest templates at 0x10024738/0x100246f0; default selector and conditional suffixes. wget exec calls 0x100075f0/0x10007660 and actual argv literals."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade",
+     "build": "86.10-80260",
+     "function": "f_100065d8",
+     "address": "0x100065d8",
+     "callsite": "0x10006628-0x100066f8, 0x100067fc-0x10006898",
+     "notes": "Bundle parse callback is sonosRcbVerifySig. Successful parse formats /jffs/sys/run/rcb/%s-%s.rcb; failed parse selects upd_cert_bundle.rcb, then sonosFileCreate saves supplied bundle bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade",
+     "build": "86.10-80260",
+     "function": "f_10004db4 / f_10004998 / f_100045c8",
+     "address": "0x10004db4",
+     "callsite": "0x10004efc, 0x10004fa4-0x10004ff8, 0x10004af4-0x10004b50, 0x10004788-0x100048dc",
+     "notes": "Signature parse/verify and accepted-count increment only on success; encrypted-section flag gates decrypt helper; encrypted signature rejected. ZZ-named crypto calls require library tracing for algorithm claims."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade",
+     "build": "86.10-80260",
+     "function": "f_100065d8",
+     "address": "0x10006700",
+     "callsite": "0x10006700-0x1000675c, 0x1000689c-0x100069b0, 0x10006a98-0x10006bac",
+     "notes": "Product partition gates and section clearing; hal_flash metadata calls; script system call at 0x10006ae8 before hal_flash_reprogram_flash at 0x10006bac."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade",
+     "build": "86.10-80260",
+     "function": "f_10009024 / f_1000a108",
+     "address": "0x10009024",
+     "callsite": "0x10009060, 0x100090c8-0x10009170, 0x1000a234-0x1000a27c",
+     "notes": "Socket-read diagnostic and command parser disprove treating all external-upgrade coordination as file-only. FLASHWRITE/DONE state parsing; peer and manager reachability remain unverified."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10540460 / f_103bcf24 / f_1015ce40",
+     "address": "0x10540460",
+     "callsite": "0x1054055c, 0x103bd054, 0x1015d1c4",
+     "notes": "Software-generation firmware URL string at 0x10ee71bc; bitrate log at 0x10ec59a4; user-report filename at 0x10e956ec. These references alone do not define every download or report-field semantic."
+    }
    ]
   },
   "content_managers": {
