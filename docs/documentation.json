@@ -90835,7 +90835,7 @@
      ]
     },
     "SetBrowseable": {
-     "description": "Sets Browseable flag via impl->v[+0x40].",
+     "description": "Unsupported setter in this firmware: a present Browseable argument reaches cd_impl primary slot +0x40 = f_10302488 and always faults with 800, without changing browseability. A missing required argument faults with 402 first. The wrapper parses a signed decimal word using permissive strtol, not the boolean true/false parser. See the ContentDirectory service-level concrete binding proof.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10307424",
@@ -90867,11 +90867,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10302488",
+      "impl_vfunc": "cd_impl primary vtable 0x10eb3f20 slot +0x40"
      },
      "inputs": {
       "Browseable": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302488",
+       "description": "Required named text converted to a signed 32-bit word, then normalized to false for zero and true for nonzero before the unsupported setter.",
        "direction": "in",
        "primitive": {
         "type_tag": 5,
@@ -90880,143 +90882,271 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302488",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "semantic_type": "signed int32 converted to boolean",
+       "format": "strtol(text,NULL,10); accepts a decimal prefix, whitespace and sign",
+       "unit": "none",
+       "accepted_values": "Any present text reaches the setter. Empty and nonnumeric text convert to zero; trailing nonnumeric text is ignored. Only missing required input causes request-validation 402.",
+       "range": "At most first 23 text bytes are retained before NUL termination; converted word uses 32-bit strtol result. No explicit 0/1 or range check.",
+       "special_values": "0, empty text and text such as true convert to false; nonzero numeric prefixes convert to true. All present forms still receive fault 800.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10307464",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb4388",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "outputs": {},
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10307424",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307424",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10307424",
-        "notes": "member vfunc calls: ['r30 v[+?]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "default": "none; absent input faults with 402",
+       "validation": "Presence/parsed flag is checked, not complete lexical validity. No conversion end-pointer or errno is inspected.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10307424",
-         "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+         "address": "0x10307464",
+         "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10561514",
+         "address": "0x10561534",
+         "notes": "Sets type tag 5, local buffer at argument+0x18, capacity 0x18, destination word pointer +8, collected length zero and parsed flag +0x31=0. Argument constructor f_10561414 initializes optional flag +0x30=0 at 0x10561428."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b34",
+         "notes": "Tag 5 dispatch table at 0x10eebbdc+20 targets 0x10560b24: strtol(text,NULL,10), stores 32-bit result at destination. No end-pointer or errno check. Parser first marks parsed flag +0x31=1 at 0x10560a74 and NUL-terminates at collected length or capacity-1."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560708",
+         "address": "0x10560744",
+         "notes": "Copies source bytes up to argument capacity; f_10560a58 overwrites the final byte with NUL when capacity is reached, leaving at most 23 text bytes for this 24-byte buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10730414",
+         "address": "0x107304b4",
+         "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      }
+     },
+     "outputs": {},
+     "validation": {
+      "description": "Fetch required Browseable, install type-5 24-byte descriptor, then request validation at 0x10307480. Missing input returns false and selects 402. A found input is marked parsed before strtol; empty, nonnumeric, overflow and trailing junk are not converted into request-validation failures. The parsed word is normalized to boolean at 0x103074a0 before calling the stub.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307424",
+        "address": "0x10307464",
+        "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10561514",
+        "address": "0x10561534",
+        "notes": "Sets type tag 5, local buffer at argument+0x18, capacity 0x18, destination word pointer +8, collected length zero and parsed flag +0x31=0. Argument constructor f_10561414 initializes optional flag +0x30=0 at 0x10561428."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b34",
+        "notes": "Tag 5 dispatch table at 0x10eebbdc+20 targets 0x10560b24: strtol(text,NULL,10), stores 32-bit result at destination. No end-pointer or errno check. Parser first marks parsed flag +0x31=1 at 0x10560a74 and NUL-terminates at collected length or capacity-1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560708",
+        "address": "0x10560744",
+        "notes": "Copies source bytes up to argument capacity; f_10560a58 overwrites the final byte with NUL when capacity is reached, leaving at most 23 text bytes for this 24-byte buffer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x107304b4",
+        "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Browseable must be present to reach the delegate. No library-state or readiness precondition; after request validation the stub always rejects with 800.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302488",
+        "address": "0x1030248c",
+        "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10307424",
+        "address": "0x10307464",
+        "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x107304b4",
+        "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "No library or configuration state read by f_10302488. Argument parsing uses only the request descriptor, local input buffer and output word.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302488",
+        "address": "0x1030248c",
+        "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10561514",
+        "address": "0x10561534",
+        "notes": "Sets type tag 5, local buffer at argument+0x18, capacity 0x18, destination word pointer +8, collected length zero and parsed flag +0x31=0. Argument constructor f_10561414 initializes optional flag +0x30=0 at 0x10561428."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b34",
+        "notes": "Tag 5 dispatch table at 0x10eebbdc+20 targets 0x10560b24: strtol(text,NULL,10), stores 32-bit result at destination. No end-pointer or errno check. Parser first marks parsed flag +0x31=1 at 0x10560a74 and NUL-terminates at collected length or capacity-1."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "No browseability or persistent state change. Wrapper allocates the request input record and emits a SOAP fault. The implementation is a constant-error stub.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302488",
+         "address": "0x1030248c",
+         "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10307424",
+         "address": "0x10307464",
+         "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No event or notifier call in wrapper, parser or implementation stub. Rejected requests do not emit a library-change event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10302488",
+        "address": "0x1030248c",
+        "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10307424",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10307464",
+        "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b34",
+        "notes": "Tag 5 dispatch table at 0x10eebbdc+20 targets 0x10560b24: strtol(text,NULL,10), stores 32-bit result at destination. No end-pointer or errno check. Parser first marks parsed flag +0x31=1 at 0x10560a74 and NUL-terminates at collected length or capacity-1."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "None. Neither parsed false nor parsed true changes the constant-true behavior of GetBrowseable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10302488",
+        "address": "0x1030248c",
+        "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10307424",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "address": "0x10307464",
+        "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302470",
+        "address": "0x1030247c",
+        "notes": "GetBrowseable independently writes constant byte 1."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Request-validity zero selects literal 402 before delegate invocation. Otherwise f_10302488 returns 800, forwarded through request +0x14 at 0x103074c8. Empty-success commit through +0x0c at 0x10307510 requires delegate return zero and is dead. This action has no successful supported request in this build.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10302488",
+        "address": "0x1030248c",
+        "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x10307424",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10307464",
+        "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x107304b4",
+        "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -91029,52 +91159,38 @@
      "errors": [
       {
        "code": 800,
-       "code_expr": "vret(r5-in,+0x40)",
-       "meaning": "dead action: validly parsed calls always fault with this code; malformed requests may still fail earlier at the request-validation gate (402)",
-       "fault_sites": [
-        "0x10302488"
-       ],
-       "conditions": [
-        {
-         "description": "any invocation; impl body is li r3,0x320; blr",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10302488",
-           "notes": "li r3,0x320; blr"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302488",
-         "notes": "impl stub: unconditional 800"
-        }
-       ]
-      },
-      {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "constant 0x320 from f_10302488",
+       "meaning": "Every call whose required argument is present reaches the unsupported setter and faults 800.",
        "fault_sites": [
         "0x103074c8"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Request validity succeeds; stub unconditionally returns 800 irrespective of parsed value.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10307424",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10302488",
+           "address": "0x1030248c",
+           "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10307424",
+           "address": "0x10307464",
+           "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10560a58",
+           "address": "0x10560b34",
+           "notes": "Tag 5 dispatch table at 0x10eebbdc+20 targets 0x10560b24: strtol(text,NULL,10), stores 32-bit result at destination. No end-pointer or errno check. Parser first marks parsed flag +0x31=1 at 0x10560a74 and NUL-terminates at collected length or capacity-1."
           }
          ]
         }
@@ -91084,8 +91200,82 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307424",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10302488",
+         "address": "0x1030248c",
+         "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10307424",
+         "address": "0x10307464",
+         "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "literal 0x192",
+       "meaning": "Required Browseable argument is missing, so request validation fails before the stub. Invalid numeric text alone does not select 402.",
+       "fault_sites": [
+        "0x103074c8"
+       ],
+       "conditions": [
+        {
+         "description": "Required input has neither parsed flag nor optional flag set.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10561514",
+           "address": "0x10561534",
+           "notes": "Sets type tag 5, local buffer at argument+0x18, capacity 0x18, destination word pointer +8, collected length zero and parsed flag +0x31=0. Argument constructor f_10561414 initializes optional flag +0x30=0 at 0x10561428."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10730414",
+           "address": "0x107304b4",
+           "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10307424",
+           "address": "0x10307464",
+           "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10561514",
+         "address": "0x10561534",
+         "notes": "Sets type tag 5, local buffer at argument+0x18, capacity 0x18, destination word pointer +8, collected length zero and parsed flag +0x31=0. Argument constructor f_10561414 initializes optional flag +0x30=0 at 0x10561428."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10730414",
+         "address": "0x107304b4",
+         "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10307424",
+         "address": "0x10307464",
+         "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
         }
        ]
       }
@@ -91106,14 +91296,58 @@
        "build": "86.10-80260",
        "address": "0x10eb430c",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302488",
+       "address": "0x1030248c",
+       "notes": "Unconditionally loads return value 0x320 (800), then returns; no object read, state write or helper call. Primary slot +0x40 entry 0x10eb3f60."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10307424",
+       "address": "0x10307464",
+       "notes": "Registers Browseable through request +0x1c, sets type 5 with f_10561514, validates at 0x10307480, converts parsed word to boolean and calls primary +0x40 at 0x103074ac. Nonzero fault 0x103074c8; missing-input literal 402 at 0x103074fc. Commit 0x10307510 requires delegate zero, impossible here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10561514",
+       "address": "0x10561534",
+       "notes": "Sets type tag 5, local buffer at argument+0x18, capacity 0x18, destination word pointer +8, collected length zero and parsed flag +0x31=0. Argument constructor f_10561414 initializes optional flag +0x30=0 at 0x10561428."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560a58",
+       "address": "0x10560b34",
+       "notes": "Tag 5 dispatch table at 0x10eebbdc+20 targets 0x10560b24: strtol(text,NULL,10), stores 32-bit result at destination. No end-pointer or errno check. Parser first marks parsed flag +0x31=1 at 0x10560a74 and NUL-terminates at collected length or capacity-1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560708",
+       "address": "0x10560744",
+       "notes": "Copies source bytes up to argument capacity; f_10560a58 overwrites the final byte with NUL when capacity is reached, leaving at most 23 text bytes for this 24-byte buffer."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10730414",
+       "address": "0x107304b4",
+       "notes": "For a found input, invokes text-copy and conversion helpers, then checks parsed flag +0x31 or optional flag +0x30. Missing required Browseable leaves both zero and returns false; malformed numeric text is not rejected by tag-5 conversion."
       }
      ],
      "notes": null,
-     "implementation_notes": "impl f_10302488 = unconditional 0x320 stub (dead action). Dead-action semantics: every structurally valid call reaches the impl and faults with the fixed code; malformed requests can still fail earlier inside the wrapper (402 gate).",
-     "todo": [
-      "Established: direct dispatch to handler 0x10307424; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Primary slot +0x40 is statically bound to the constant-800 stub. The integer parser is permissive: do not describe malformed numeric text as a 402 condition. No successful commit or browseability mutation is reachable."
     },
     "UpdateObject": {
      "description": "Updates ObjectID: CurrentTagValue -> NewTagValue via impl->v[+0x24].",
