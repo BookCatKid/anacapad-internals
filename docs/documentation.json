@@ -81294,7 +81294,7 @@
      ]
     },
     "SetVolumeDB": {
-     "description": "ANOMALY: the impl slot (+0x28) points at f_100dcc84 - a function that ignores all arguments, XOR-toggles the Master mute byte (impl+0x7f1 ^= 1), syncs the volume mirror (+0x7da->+0x3c8 when flag +0x7ff is clear), applies state via f_100d7f34, sets dirty +0x7f5 and logs 'ButtonSetMute on:%d src:%s'. In the derived class B the slot is 0x1047241c (a real, unexplored function). In class A the SOAP action behaves as a Master-mute toggle regardless of arguments.",
+     "description": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073c38c",
@@ -81330,7 +81330,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric rendering-instance selector; this zone player implements exactly one rendering instance.",
+       "description": "Required instance selector; nonzero faults with 702, and zero reaches the documented implementation rejection.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -81342,32 +81342,60 @@
        "semantic_type": "instance selector (integer)",
        "format": "decimal integer parsed into a type-tag-4 argument record (helper 0x105614e0, 24-byte record)",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "Required parser result; cannot cause a successful setting change",
+       "range": "ui4",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "Request layer faults 402 if absent/malformed (req vfunc +0x08). Not checked by f_100dcc84 - impl ignores it.",
+       "default": "none: required argument",
+       "validation": "Numeric ui4 request parser; no successful instance on this binding.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c3cc",
-         "notes": "in-arg access site"
+         "address": "0x10ed2734",
+         "notes": "Bound primary slot +0x28 contains f_100dc060."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100dc060",
+         "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc0b4",
+         "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc108",
+         "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100edd90",
+         "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c45c",
+         "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
         }
        ],
-       "notes": null
+       "notes": "The requested setting does not alter the documented failure outcome."
       },
       "Channel": {
-       "description": "Audio channel selector string; compared verbatim (strcmp, case-sensitive) by the implementation.",
+       "description": "Required channel string used only in optional result diagnostics; not compared or validated against channel names by this implementation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -81379,35 +81407,61 @@
        "semantic_type": "channel token",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "ignored",
-       "range": "max 1023 chars",
-       "special_values": {
-        "any": "impl operates on impl+0x7f1 (the Master mute byte) only"
-       },
+       "accepted_values": "Required parser result; cannot cause a successful setting change",
+       "range": "request buffer capacity 1024",
+       "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "Parsed but unused.",
+       "default": "none: required argument",
+       "validation": "Required string parser with capacity 1024; the implementation does not select a channel.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c3f0",
-         "notes": "in-arg access site"
+         "address": "0x10ed2734",
+         "notes": "Bound primary slot +0x28 contains f_100dc060."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x100dc060",
+         "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc0b4",
+         "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc108",
+         "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100edd90",
+         "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c45c",
+         "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
         }
        ],
-       "notes": null,
+       "notes": "The requested setting does not alter the documented failure outcome.",
        "buf_cap": 1024
       },
       "DesiredVolume": {
-       "description": "Parsed value that is never consumed by the installed impl.",
+       "description": "Required signed 16-bit requested dB value, used only in optional diagnostics; no conversion or setting write occurs.",
        "direction": "in",
        "primitive": {
         "type_tag": 3,
@@ -81419,53 +81473,299 @@
        "semantic_type": "none",
        "format": "integer parsed value",
        "unit": "none",
-       "accepted_values": "any - unread",
-       "range": "unconstrained",
+       "accepted_values": "Required parser result; cannot cause a successful setting change",
+       "range": "signed 16-bit",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "no impl use",
+       "default": "none: required argument",
+       "validation": "Signed 16-bit request parser; no implementation value predicate or conversion.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c418",
-         "notes": "in-arg access site"
+         "address": "0x10ed2734",
+         "notes": "Bound primary slot +0x28 contains f_100dc060."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ec3aa4",
-         "notes": "argument name string"
+         "address": "0x100dc060",
+         "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc0b4",
+         "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc108",
+         "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100edd90",
+         "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c45c",
+         "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
         }
        ],
-       "notes": "The base-vtable impl f_100dcc84 ignores all three args and toggles the mute byte instead."
+       "notes": "The requested setting does not alter the documented failure outcome."
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse; impl performs no argument checks (class A impl reads zero argument bytes).",
-     "requirements": "impl mutex; flag impl+0x7ff=0 enables the +0x7da->+0x3c8 sync.",
-     "state_dependencies": "flag impl+0x7ff==0 enables the +0x7da->+0x3c8 mirror sync; impl class A vs B changes behavior entirely",
+     "validation": {
+      "description": "Required inputs use the existing request parser descriptors. Implementation statuses depend only on InstanceID and the documented local configuration/capability gate, not the requested setting.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2734",
+        "notes": "Bound primary slot +0x28 contains f_100dc060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc060",
+        "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc0b4",
+        "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc108",
+        "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100edd90",
+        "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c45c",
+        "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required arguments must pass request-layer validation. There is no successful implementation setting change on this concrete binding. Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2734",
+        "notes": "Bound primary slot +0x28 contains f_100dc060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc060",
+        "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc0b4",
+        "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc108",
+        "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100edd90",
+        "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c45c",
+        "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads byte +0x7ff only when InstanceID is zero, under mutex +0x938. Optional diagnostic context reads and logging are separate from renderer state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2734",
+        "notes": "Bound primary slot +0x28 contains f_100dc060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc060",
+        "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc0b4",
+        "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc108",
+        "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100edd90",
+        "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c45c",
+        "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "IMPL-CLASS ANOMALY: in class A the slot is f_100dcc84, the ButtonToggleMute handler - it toggles mute byte impl+0x7f1 ignoring DesiredVolume, commits +0x7da->+0x3c8 via f_100d7f34, dirty-marks +0x7f5 and notifies f_1067c6ec. In class B, f_1047241c runs a 'Master'-literal volume ctx via f_100d6630 and conditionally delegates to the same button handler.",
+       "description": "Acquires/releases mutex +0x938. Optionally formats and logs the action result and request context; no rendering state, DSP cache, dirty flag, event source, hardware command or timer is changed.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dcc84",
-         "address": "0x100dccb8",
-         "notes": "xori +0x7f1,1 toggle at 0x100dccb8; ButtonToggleMute log at 0x100dcd18"
+         "address": "0x10ed2734",
+         "notes": "Bound primary slot +0x28 contains f_100dc060."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc060",
+         "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc0b4",
+         "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc108",
+         "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100edd90",
+         "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c45c",
+         "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
         }
        ]
       }
      ],
-     "events_triggered": "In class A the impl is the ButtonToggleMute path which marks +0x7f5 dirty and calls f_1067c6ec on impl+8 (notify channel); the derived-class variant adds the grouped-operation prelude before the same path",
-     "state_transitions": "CLASS A: Master mute byte flips on every invocation",
-     "return_behavior": "Success is signaled by the implementation leaving cr0.eq=1 at return (the callee performs a cr0-writing op such as 'mr. r30,r3' on its status); the wrapper then emits outputs via req vfunc +0x24 and commits via +0x14. Any other path calls req vfunc +0x14 with r4 = implementation return code, producing a SOAP fault whose numeric code equals the impl return value. In class A the action commits after toggling mute - i.e. SOAP SetVolumeDB appears as a mute toggle, not a volume write.",
+     "events_triggered": "none: the reachable implementation path has no event-source request or renderer observer dispatch.",
+     "state_transitions": "none: all validated implementation calls return a failure before any rendering setting is changed.",
+     "return_behavior": {
+      "description": "Every validated call faults; no successful empty action response is reached. 702 for nonzero InstanceID, otherwise 800 for byte +0x7ff zero or 501 for nonzero. Request validation separately selects 402; dispatcher unknown-action/null-implementation selects 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2734",
+        "notes": "Bound primary slot +0x28 contains f_100dc060."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc060",
+        "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc0b4",
+        "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc108",
+        "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100edd90",
+        "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c45c",
+        "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073c478",
@@ -81476,21 +81776,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -81500,30 +81799,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Required request argument validation failed.",
        "fault_sites": [
         "0x1073c478"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request argument validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073c478"
+           "address": "0x1073c478",
+           "notes": "Required request argument validation failed."
           }
          ]
         }
@@ -81533,12 +81829,94 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073c478"
+         "address": "0x1073c478",
+         "notes": "Required request argument validation failed."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "InstanceID is zero and byte +0x7ff is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is zero and byte +0x7ff is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dc0b4",
+           "notes": "InstanceID is zero and byte +0x7ff is nonzero."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc0b4",
+         "notes": "InstanceID is zero and byte +0x7ff is nonzero."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dc108",
+           "notes": "InstanceID is nonzero."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc108",
+         "notes": "InstanceID is nonzero."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "InstanceID is zero and byte +0x7ff is zero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is zero and byte +0x7ff is zero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dc0b4",
+           "notes": "InstanceID is zero and byte +0x7ff is zero."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc0b4",
+         "notes": "InstanceID is zero and byte +0x7ff is zero."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -81547,37 +81925,51 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073c38c",
-       "address": "0x1073c38c",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2734",
+       "notes": "Bound primary slot +0x28 contains f_100dc060."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11ec0",
-       "notes": "action dispatch table entry"
+       "address": "0x100dc060",
+       "notes": "Primary slot +0x28 is f_100dc060. It locks +0x938 and returns 702 for nonzero InstanceID. For InstanceID zero, it reads byte +0x7ff and selects 800 when zero, 501 otherwise. Channel and signed DesiredVolume are used only by optional action-result diagnostic logging; there is no channel comparison, dB conversion, volume write, mute toggle, request forwarding or notification call. The mutex is released before returning the selected failure."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl body: lbz/xori/stb on impl+0x7f1, 'ButtonSetMute' log tag at 0x10e88378, f_100d7f34 apply",
-       "function": "0x100dcc84"
+       "address": "0x100dc0b4",
+       "notes": "Raw 0x7fea4f9e is isel r31,r10,r9,30; r10=800, r9=501, CR7 EQ records byte(+0x7ff)==0. Hence zero selects 800 and nonzero 501, not a mute operation."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "derived vtable slot +0x28 = 0x1047241c (different impl - likely the real VolumeDB setter, unexplored)",
-       "address": "0x10ed279c"
+       "address": "0x100dc108",
+       "notes": "Nonzero InstanceID selects 702 without loading byte +0x7ff."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100edd90",
+       "notes": "Optional f_100edb1c action/result diagnostic formats Channel and DesiredVolume under rc_upnp_events and calls f_109b72ac. It is not a renderer command or subscription notification."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073c45c",
+       "notes": "Wrapper explicitly tests numeric return with mr. before choosing fault versus empty response."
       }
      ],
-     "notes": "Whether this is deliberate feature-rewiring or the live object uses class B's override is unresolved; the SOAP-visible behavior in class A is a mute toggle.",
-     "todo": [
-      "Established: dispatch and handler 0x1073c38c are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The result is determined by the proven primary implementation, not by the presence of mutation code at another address point or beyond an unreachable capability gate.",
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x28",
+      "function": "0x100dc060"
+     }
     }
    },
    "state_variables": {
