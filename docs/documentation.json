@@ -177169,7 +177169,7 @@
    ]
   },
   "0x1011c34c": {
-   "description": "Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request.",
+   "description": "Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request. Caller audit (branch and data-pointer scan exhaustive): the only entries are the two tail paths of selector f_1011caec and the lone thunk f_1011c564. f_1011caec supplies types 0/1/3 computed from the URI; its callers are f_102b4f40 at 0x102b5070, which probes with destination null and capacity zero inside an existence check, and f_102c3f84 (avt_impl) at 0x102c4588, which resolves into stack buffer sp+0x23e4 with capacity 0x401 and feeds the result to CQ URL builder f_1011c864. The thunk is reached only from f_104c9bd8 at 0x104c9ccc, which hardcodes type 2 and passes its own (destination, capacity) arguments through; upstream f_104ca364 calls it only when the descriptor vfunc+0x1c string fetch returns empty (a nonempty result is strlcpy-copied directly instead), and its two call sites in f_104cbf1c (0x104cc110 and 0x104cc26c) pass stack buffer sp+0x8a8 with capacity 0x401 that has been pre-zeroed (stw plus memset of 0x3fd). Every real output caller therefore hands the resolver a 0x401-byte stack buffer matching the stored row URI field. Malformed-row audit: the per-row URI pointer at +4 is dereferenced without a null check (lbz of its first byte), so a corrupted row would fault inside the resolver rather than be detected, while an empty URI string is benign and still reports match-present through the direct-copy path. The row count at view+0x4a4 is reloaded on every pass, so the scan bound is a live read of the view, which is itself a stack-resident snapshot holding no lock. The resolver allocates nothing and performs only libc string calls plus the svcmanifest log helpers; it has no exception cleanup of its own, and a fault inside a callee can only leave a partially written destination.",
    "why_external": "Determines selected service endpoint URL text, output truncation behavior and presence-query status.",
    "required_for_behavior": true,
    "role": "music_service_manifest_consumer",
@@ -177180,9 +177180,62 @@
      "build": "86.10-80260",
      "address": "0x1011c34c",
      "notes": "Instruction-level endpoint/view/caller trace; see music_service_manifest and svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c398",
+     "function": "0x1011c34c",
+     "notes": "isel r8,0,r9,cr30 computes the output-enable byte as (dest!=0 && cap!=0); the cap==0 entry at 0x1011c520 forces r8=0, and cr4_eq on it skips the write path while still counting the match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c420",
+     "function": "0x1011c34c",
+     "notes": "Matching row URI pointer at row+4 is dereferenced with lbz and no NULL check; count at view+0x4a4 is reloaded into r10 every pass at 0x1011c474 so the loop bound is a live read."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102b5070",
+     "function": "0x102b4f40",
+     "notes": "Probe-mode call f_1011caec(view sp+0x85c, this+0x5dc uri, 0, 0): boolean existence check for a type-1/3 endpoint, gated by f_101477e4(uri)!=0 or f_10147050(uri)!=0; true leads to f_102b377c registration with 'sn_%u'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c4588",
+     "function": "0x102c3f84",
+     "notes": "avt_impl call f_1011caec(view sp+0xa58, uri r30, sp+0x23e4, 0x401); on true the resolved URL plus original URI go to CQ URL builder f_1011c864 at 0x102c45a4, whose failure returns 800."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104c9ccc",
+     "function": "0x104c9bd8",
+     "notes": "Lone thunk f_1011c564 site: f_1011c34c(view sp+0x10, 2, dest r30, cap r26) hardcodes endpoint type 2 with dest/cap passed through from f_104c9bd8 args."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc110",
+     "function": "0x104cbf1c",
+     "notes": "Upstream capacity for the type-2 path: dest sp+0x8a8 cap 0x401 pre-zeroed by stw+memset(0x3fd); second identical site at 0x104cc26c. Wrapper f_104ca364 diverts to a direct strlcpy when vfunc+0x1c already yields a nonempty string."
     }
    ],
-   "todo": "Established: Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request. Remaining: Audit all caller capacities/initialization and malformed stored row/string/exception cases."
+   "resolved_findings": [
+    "Established: caller inventory is exhaustive - two tail paths inside selector f_1011caec (endpoint types 0/1/3) plus thunk f_1011c564 called once from f_104c9bd8 with hardcoded type 2; no data or vtable references to the resolver or thunk exist.",
+    "Established: every output-producing caller supplies a 0x401-byte stack buffer matching the stored row URI field (f_102c3f84 sp+0x23e4, f_104cbf1c sp+0x8a8 pre-zeroed); the only other call probes with null/0 for a pure existence check.",
+    "Established: the per-row URI pointer is dereferenced without a null check, so a malformed row would fault inside the resolver; an empty stored URI is benign and still returns match-present via the direct-copy path.",
+    "Established: the scan bound is a live reload of view+0x4a4 each pass over an unsynchronized stack-resident view; the resolver has no locks, no allocation and no exception cleanup, so the only damage a callee fault can do is a partially written destination."
+   ]
   },
   "0x104c9bd8": {
    "description": "The direct caller at 0x104c9ccc requests endpoint type 2, binding this resolver to the reporting vocabulary entry. Its enclosing f_104c9bd8 constructs the runtime view and first requires its separate provider gate f_104c9acc to succeed. After the resolver call it destroys the view and returns the original destination pointer from r30, without testing or returning the resolver boolean. If the gate fails it returns null. Therefore a nonnull result from this wrapper is not proof that a reporting endpoint was found or fitted; caller buffer initialization and subsequent request construction still need tracing. Reporting gate f_104c9acc first invokes provider slot +0x1c; a nonnull pointer with nonzero first byte immediately returns true. Otherwise an empty item URI returns false; a nonempty URI must pass f_101477e4 and service-ID extraction f_1071aeb0, after which it constructs a manifest view and queries endpoint type 2 through f_1011c29c. That presence helper compares stored type values without requiring nonempty URI or an output buffer. Consequently this gate is not a universal endpoint-URL validity check. The exact provider-slot string meaning and the full URI predicate/extraction grammar remain to be traced.",
