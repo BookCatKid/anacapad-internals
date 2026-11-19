@@ -25738,7 +25738,7 @@
        ]
       },
       "DesiredIcon": {
-       "description": "Icon identifier. Copied into a 0x81-byte buffer (128 characters), trimmed, and written to selector 0x40001 only when non-empty.",
+       "description": "Icon identifier. Copied into a 0x81-byte buffer (128 UTF-8 payload bytes), trimmed, and written to selector 0x40001 only when non-empty.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -25748,10 +25748,10 @@
         "via_slot": 28
        },
        "semantic_type": "string argument (type-tag-7 record)",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "any text; longer than 128 characters is truncated",
-       "range": "max 1023 chars",
+       "format": "utf-8 text, buffer cap 1024 bytes (1023 payload bytes plus NUL)",
+       "unit": "UTF-8 bytes (string length)",
+       "accepted_values": "UTF-8 text within the request buffer; the local copy truncates at its byte limit without retaining a partial UTF-8 character",
+       "range": "At most 128 UTF-8 payload bytes in the local write, excluding the terminating NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
@@ -25805,6 +25805,34 @@
          "build": "86.10-80260",
          "address": "0x105b4838",
          "notes": "selector 0x40001"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b480c",
+         "notes": "Call f_10906304 with space for 128 payload bytes and NUL"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10906334",
+         "notes": "Reserve one byte for NUL"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1090636c",
+         "notes": "Copy one byte per iteration"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x109063f8",
+         "notes": "On truncation call f_10905728, which adjusts the terminator to avoid retaining a partial UTF-8 character"
         }
        ],
        "notes": null,
