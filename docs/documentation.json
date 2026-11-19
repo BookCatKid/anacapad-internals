@@ -61826,7 +61826,7 @@
      "todo": "Established: primary GRC vptr 0x10ec3824 slot +0x10 -> 0x1039cbf0, complete getter status domain and exact cached aggregation are traced. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Residual: bind the renderer/configuration input to f_103a0e28, finish extra snapshot helper f_100daab0, and follow in-process callback f_103a3abc plus the sender/delivery bridge behind f_1067c6ec. Cache refresh can request notifications; no runtime-only dispatch boundary is asserted."
     },
     "SetGroupMute": {
-     "description": "Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; 'SetGroupMute: %s set to %d rc=%d').",
+     "description": "Applies the requested mute to the local renderer and prepared remote RenderingControl SetMute requests. Primary GRC vptr 0x10ec3824 slot +0x0c selects f_103a23b4 -> f_103a2160 -> f_103a1b8c. The call waits for its remote batch and local renderer return, aggregates failures into 802/803, and updates cached mute information only for operations reporting zero.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10738fb0",
@@ -61862,7 +61862,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "description": "Parsed u32 InstanceID; f_103a23b4 requires zero and otherwise returns 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -61874,12 +61874,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text",
        "unit": "none - dimensionless index",
-       "accepted_values": "decimal uint32",
-       "range": "unbounded u32 in wrapper",
+       "accepted_values": "0",
+       "range": "0 only",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Parsed by f_105614e0 (u32); forwarded to impl.",
+       "validation": "Compared with zero before group lookup and fan-out.",
        "evidence": [
         {
          "type": "firmware",
@@ -61906,7 +61906,7 @@
        "notes": null
       },
       "DesiredMute": {
-       "description": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
+       "description": "Boolean request argument configured by f_10561444 as a type-1 byte destination. The wrapper forwards the resulting byte; the GRC implementation adds no 0/1 range predicate.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -61915,15 +61915,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
+       "semantic_type": "boolean byte",
        "format": "decimal text",
        "unit": "none - boolean-ish byte",
-       "accepted_values": "byte numeric",
-       "range": "boolean: parsed by f_10561444 byte-bool reader: nonzero literal -> 1; forwarded as the DesiredMute flag to impl f_103a23b4",
+       "accepted_values": "Parsed boolean byte; zero is false and nonzero is true in remote formatting.",
+       "range": "byte-width argument; no additional GRC range check",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Parsed by f_10561444 to a byte; passed to impl as r5. Text accepted: byte-valued numeric (parser identical in shape to the other typed helpers); exact lexical rules unresolved.",
+       "validation": "f_10561444 configures the parser destination and capacity 24. Remote formatter f_1055fc08 emits text 0 for zero, 1 otherwise; this is not proof that the input lexical parser accepts every numeric byte.",
        "evidence": [
         {
          "type": "firmware",
@@ -61945,6 +61945,13 @@
          "build": "86.10-80260",
          "function": "0x103a23b4",
          "notes": "consumed at impl boundary"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1055fc08",
+         "notes": "Remote boolean formatter tests r4 for zero and selects literal 0/1 strings; the request-argument descriptor constructor f_10561444 does not itself parse text."
         }
        ],
        "notes": null
@@ -61989,129 +61996,87 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xc]",
+      "description": "Requires successful SOAP argument validation, InstanceID zero (702 otherwise), and nonnull group accessor f_1075cf7c(impl+0x278,impl+0x274) (701 otherwise). f_103a2160 refreshes local state, locks +0x1c8 and rejects busy byte +0x258 with 801; otherwise it sets busy before releasing the lock. No coordinator-identity comparison or requirement for remote members appears in this implementation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738fb0",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x103a2160",
+        "notes": "Busy test at 0x103a2190; literal 801 at 0x103a21ac; set busy at 0x103a21cc. Zero remote IDs join the local-operation path at 0x103a2148."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0xc]",
+      "description": "Uses local ID +0x274, group accessor +0x278, topology +0x264, renderer +0x26c, cache +0x25c, mutex +0x1c8 and busy/dirty bytes +0x258/+0x259. f_103fd65c copies media-player+0x1924/+0x1928 at 0x103fdadc..0x103fdaf4 into the shared-pointer pair passed to initializer f_103a0e28 at 0x103fdb24. RC constructor f_1046c6a4 installs primary vptr 0x10ed270c at 0x1046c94c. Its +0x0c is f_1046c0b0, with conditional VLI handling through f_100d8664 and normal +0x9c -> f_1046e50c. Remote request slots have stride 0x2740 and specialized vptr 0x10ec37bc, not the GRC SOAP vptr.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738fb0",
-        "notes": "member vfunc calls: ['r30 v[+0xc]']"
+        "address": "0x103a1e18",
+        "notes": "Local RC dispatch at 0x103a1e34. f_1046e50c calls stereo helper f_1046dff0, updates failure counter through f_1046c3cc and tail-calls f_100db3fc."
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: SOAP, initializer, concrete local RC and remote session bindings are traced. Residual: enumerate the stereo-member dependencies of f_1046dff0 and renderer/backend dependencies below f_100db3fc, including the conditional VLI predicate f_100d8568 -> f_106a7f44."
      },
      "side_effects": [
       {
-       "description": "Worker f_103a1b8c applies the mute locally and builds remote renderingcontrol:setmute upnp operation records (urn:schemas-upnp-org:service:renderingcontrol:1) dispatched to each member zone; logs 'setgroupmute: local set to %d rc=%d' / '%s set to %d rc=%d'. Impl-object vtable and member iteration details unresolved",
+       "description": "f_10744d1c enumerates remote IDs; f_10743a60 or a custom session +0x20 prepares endpoint data. Failed preparation skips a member rather than counting it as a failed operation. Each prepared request carries InstanceID 0, Channel Master and DesiredMute; f_106fe8c0 assigns a correlation UUID and f_106fcf50 links it into the batch. The requested clock deadline is now+2000ms before f_106fb998, which also bounds it by global timeout configuration. After that batch returns the worker always calls local RC +0x0c. Zero local/remote statuses update cache entries via f_1039eac0; nonzero statuses are counted and logged. Even with no remote IDs it attempts the local operation. Shared refresh can also update renderer sonar cache +0x930 through f_100daab0.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a1b8c",
-         "address": "0x103a1b8c",
-         "notes": "group fan-out worker: builds remote RC UPnP op records per member zone"
+         "address": "0x103a1d34",
+         "notes": "Request argument construction through 0x103a1db0; deadline at 0x103a1dcc; batch at 0x103a1e14; local call 0x103a1e34."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106fb998",
+         "notes": "Bounded network batch uses session +8/+0xc/+0x14 callbacks and poll; concrete specialized table resolves to f_106fd104/f_106fd5d4/f_106ff898. f_106fe8c0 is UUID setup, not submission."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - Worker f_103a1b8c applies the mute locally and builds remote renderingcontrol:setmute upnp operation records (urn:schemas-upnp-org:service:renderingcontrol:1) dispatched to each member zone; logs 'setgroupmute: local set to %d rc=%d' / '%s set to %d rc=%d'. Impl-object vtable and member iteration details unresolved.",
-        "Residual: the element this section's own analysis flags as unresolved (see its description) - the delegate or member path it names is not traced (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "todo": "Established: endpoint preparation, UUID assignment, batch/local ordering and cache updates are traced. Residual: finish stereo fan-out f_1046dff0, its failure cleanup f_1046c3cc -> f_1046c148, and physical renderer mutations below f_100db3fc; enumerate final transport/status effects below session f_106ff898. No completed device operation is inferred merely from a prepared request."
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "When every attempted operation reports zero, the worker marks dirty +0x259 and after unlocking calls f_1067c6ec(impl+8) at 0x103a212c and f_103a6d74(impl+0x188,{groupVolume,groupMute}) at 0x103a2140. The latter prepares GroupVolumeChangedEvent work and calls f_100f14ec at 0x103a7218. Its successful-delivery work item is f_103a5e8c -> f_103a59b4; f_103a3abc only manages a captured cancellation functor and f_103a3ce0 logs cancellation. Failure cases do not take this worker notification branch, even if successful members already changed. The preceding local refresh has its own change-dependent notification path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10738fb0",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x103a2124",
+        "notes": "All-success path f_1067c6ec/f_103a6d74; f_103a59b4 reaches registered observer virtual +0 at 0x103a5de4."
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: action-specific notification requests, work-item and cancellation bindings are traced. Residual: bind the concrete observers invoked at 0x103a5de4 and the sender/delivery worker behind f_1067c6ec before attributing GENA/WSS delivery; finish downstream notification effects in the local renderer/stereo workers."
      },
      "state_transitions": {
-      "description": "Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' names built in f_1039d11c are evented state variables.",
+      "description": "Busy +0x258 is set before fan-out and cleared at 0x103a1f4c on the common result path. Each member reporting success can update its cached mute and the all-muted counter through f_1039eac0. The final cached group volume/mute are computed under +0x1c8. All success additionally sets dirty +0x259; partial and total failures return faults without rolling back earlier successful member changes. A zero status is a reported operation result, not proof of audible silence or completed subscription delivery.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10ec39fc",
-        "notes": "'GroupMute' state-var name"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10ec3a08",
-        "notes": "'GroupVolumeChangeable'"
+        "address": "0x103a1f00",
+        "notes": "Result aggregation, busy clear and dirty selection through 0x103a2010."
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - Member mute bytes change (local + remote); 'GroupMute'/'GroupVolumeChangeable' names built in f_1039d11c are evented state variables.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
+      "todo": "Established: busy lifecycle, aggregate cache updates, failure non-rollback and dirty-state gate are traced. Residual: finish downstream stereo/renderer state changes below f_1046dff0/f_100db3fc and the conditional VLI worker f_106a7f44 before claiming an end-to-end mute transition."
      },
      "return_behavior": {
-      "description": "Impl returns an int status in r3; wrapper checks cr0.eq and, when clear, passes the code to req->v[+0x14] (fault propagation). Whether member-level failures are aggregated into the rc or masked (accepted-vs-succeeded) is unresolved - per-member rc is only logged ('rc=%d').",
+      "description": "Complete implementation status domain is {0,701,702,801,802,803}: nonzero InstanceID -> 702, missing group -> 701, busy -> 801, all attempted operations fail -> 802, some but not all fail -> 803, none fail -> 0. Attempt count is prepared remote requests plus one local operation. Missing remote endpoint preparations are skipped and do not enter that count. f_106fb998 and the local renderer call finish before aggregation; member error codes are logged/count inputs, not forwarded individually. Wrapper request-validation failure produces 402; dispatcher rejection is separately 401.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10739054",
-        "notes": "impl->v[+0x0c](impl,InstanceID,byte)",
-        "function": "f_10738fb0"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103a1c0c",
-        "notes": "'urn:...:service:RenderingControl:1' + 'SetMute' request table built",
-        "function": "f_103a1b8c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103a1fe8",
-        "notes": "'SetGroupMute: local set to %d rc=%d'",
-        "function": "f_103a1b8c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103a1ea4",
-        "notes": "'SetGroupMute: %s set to %d rc=%d' remote member log",
-        "function": "f_103a1b8c"
+        "address": "0x103a2008",
+        "notes": "Unsigned equality at 0x103a200c selects literal 802 at 0x103a1f6c when failures equal preparedRemotes+1, otherwise literal 803 at 0x103a2010. Zero failures reach 0x103a2124."
        }
       ]
      },
@@ -62125,158 +62090,86 @@
      "errors": [
       {
        "code": 701,
-       "code_expr": "vret(r5-in,+0xc)",
-       "fault_sites": [
-        "0x10739070"
-       ],
-       "meaning": "nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}",
-       "conditions": [
-        {
-         "description": "zone-member list empty/invalid",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103a23b4",
-           "notes": "impl prologue"
-          }
-         ]
-        }
-       ],
+       "meaning": "No group bound.",
+       "condition": "f_1075cf7c returns null after InstanceID zero passes.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x103a23b4",
-         "notes": "addi r3,0x2bd path"
+         "notes": "Concrete primary +0x0c implementation group-lookup gate."
         }
-       ],
-       "condition": "f_103a23b4 returns 701 when f_1075cf7c finds no bound group; success delegates to f_103a2160/f_103a1b8c. Downstream worker faults require tracing those workers, not the unrelated session destructor chain.",
-       "domain_note": "domain fully bounded: impl 0x103a23b4 exits=[701, 702]; impl rc propagated to fault vfunc; per-member rc only logged",
-       "resolved_domain": "{0,701,702,801,member-delegate}",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0xc); sites: 0x10739070).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": "402",
-       "meaning": "SOAP 402 Invalid Args: raised when req->v[+0x08] rejects the request state or the required-arg lookup through req->v[+0x1c] fails",
-       "conditions": [
-        {
-         "description": "Required argument absent or its lookup through the request-object parse helper fails",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10739070",
-           "notes": "request fault path invoked by the SetGroupMute handler after argument parse failure"
-          }
-         ]
-        }
-       ],
-       "fault_sites": [
-        "0x10739070"
-       ],
+       "code": 402,
+       "meaning": "SOAP argument validation failure.",
+       "condition": "The wrapper request gate rejects parsed arguments before the implementation call; the GRC mute worker has no DesiredMute range-fault branch.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10739070",
-         "notes": "fault site in the SetGroupMute SOAP handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10738fb0",
-         "notes": "402 gate verified in handler body"
+         "address": "0x107390b8",
+         "notes": "Wrapper fault tail passes literal 402; the implementation status domain contains no 402."
         }
-       ],
-       "condition": "req->v[+0x08] request gate fails or required-arg lookup/parse fails (literal 0x192 raised via req->v[+0x14])",
-       "domain_note": "domain fully bounded: impl 0x103a23b4 exits=[701, 702]; the fault path is reached when the impl call reports failure",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: 0x10739070).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 702,
-       "code_expr": "const 0x2be",
-       "meaning": "nonzero InstanceID rejected: impl receives the handler-parsed InstanceID word in r4 (handler parses literal InstanceID via req->v[+0x1c] -> parse helper into a stack word, then r4=lwz from that slot); impl prologue cmpwi r4,0 / beq->body, fallthrough returns 0x2be (702 Invalid InstanceID); only instance 0 exists in this build",
-       "fault_sites": [
-        "0x103a23b4"
-       ],
-       "conditions": [
-        {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": null,
-           "notes": "GRC impls all begin cmpwi r4,0 / beq -> body; r4=handler-parsed InstanceID stack word (e.g. GetGroupMute handler 0x10738f0c r4=lwz(sp+0x18)); nonzero -> 0x2be"
-          }
-         ]
-        }
-       ],
+       "meaning": "Invalid InstanceID.",
+       "condition": "InstanceID is nonzero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x103a23b4",
-         "notes": "head"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10738f0c",
-         "notes": "handler loads parsed InstanceID word into r4 for impl vfunc call (GetGroupMute shape, shared across GRC)"
+         "notes": "InstanceID r4 zero comparison before group lookup."
         }
-       ],
-       "notes": null
+       ]
       },
       {
        "code": 801,
-       "code_expr": "vret(f_103a2160)",
-       "meaning": "reentrancy rejection: worker f_103a2160 reads flag byte *(impl+0x258); when already set it returns 0x321 (801) without performing the mutation (operation-in-progress); on first entry it sets the flag and continues into setter worker f_103a1b8c",
-       "fault_sites": [
-        "0x103a21ac"
-       ],
-       "conditions": [
-        {
-         "description": "*(impl+0x258) flag already set (nested/duplicate invocation while a group-set is active)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103a2190",
-           "notes": "lbz r9,0x258(r31); beq -> continue; else return 0x321"
-          }
-         ]
-        }
-       ],
+       "meaning": "Group operation already in progress.",
+       "condition": "Busy byte impl+0x258 is nonzero under mutex +0x1c8.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103a2160",
-         "notes": "reentrancy-guard worker; blr at 0x103a21c0 returns 0x321 when flag set; else stb 1 -> tail f_103a1b8c"
+         "address": "0x103a21ac",
+         "notes": "Literal 0x321 returned after unlocking."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x103a23b4 exits=[701, 702]",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(f_103a2160); sites: 0x103a21ac).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "code": 802,
+       "meaning": "Every attempted member operation failed.",
+       "condition": "Failure count equals prepared remote count plus one local operation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103a1f6c",
+         "notes": "Literal 0x322; equality branch at 0x103a200c."
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "meaning": "Some attempted member operations failed.",
+       "condition": "Failure count is nonzero and less than prepared remote count plus one.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103a2010",
+         "notes": "Literal 0x323; earlier successful member cache updates are not rolled back."
+        }
        ]
       }
      ],
@@ -62336,11 +62229,18 @@
        "address": "0x104660c0",
        "function": "0x10465fac",
        "notes": "Independent queue-side cross-check: f_103fa434 calls AVTransport constructor f_10511f34 at 0x103fb5d8 and stores that object at media-player+0x1934 at 0x103fb680. f_10511f34 calls base f_102c05d8 at 0x1051218c (alternate paths 0x1051275c/0x10512b34), then forms final vptr 0x10edfbb8 at 0x10512340/44 and stores it at object+0 at 0x105123c0 (raw 0x91370000). The queue constructor receives media-player+0x1934 in r5 at 0x103fb6e0/0x103fb6e8; f_10465fac saves r5 in r27 and stores it at queue-manager+0x128 at 0x104660c0 (raw 0x937f0128). Thus this member points to the derived AVTransport object, not 0x10e97d30. Its raw table slots +0x7c/+0xd8/+0xdc are f_102aa8b4/f_102bd324/f_102bd4f0. Forwarders f_1046594c/f_10465970 load queue-manager+0x128 then dispatch +0xd8/+0xdc. This separate queue binding must not be substituted for the GRC primary table 0x10ec3824."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046c94c",
+       "notes": "RC primary vptr 0x10ed270c binds the member supplied through media-player+0x1924 -> f_103a0e28 -> GRC+0x26c; independently distinct from queue AVTransport and the GRC primary vptr."
       }
      ],
      "notes": null,
-     "implementation_notes": "SOAP service+4 is bound to the GroupRenderingControl object constructed by f_1039f2e0, final primary vptr 0x10ec3824. Slot +0xc is f_103a23b4. It returns 702 for InstanceID r4!=0 and 701 on f_1075cf7c group-lookup miss; success tail-calls f_103a2160 with the desired mute byte. The old f_103a3f28/f_103a3f40 attribution was a session destructor pair: installing 0x10e97d30 and freeing memory through f_108094fc does not acquire a group session or post a mute request. The queue-side member at queue-manager+0x128 is independently bound to derived AVTransport vptr 0x10edfbb8, which is also not the GRC SOAP delegate.",
-     "todo": "Established: service+4 binding, constructor-installed primary vptr 0x10ec3824 and SetGroupMute slot +0xc -> f_103a23b4 are proven; the old f_103a3f40 attribution was a deleting destructor. InstanceID/group gates lead to f_103a2160 -> f_103a1b8c, not to a destructor or deallocator request adapter. Residual: finish the fan-out worker/delegate error, state and notification paths below f_103a2160/f_103a1b8c before resolving the remaining section records. This is recoverable static work, not a runtime-injection boundary."
+     "implementation_notes": "f_1039f2e0 primary vptr 0x10ec3824 -> +0x0c f_103a23b4 -> f_103a2160 -> f_103a1b8c. Concrete local RC vptr 0x10ed270c +0x0c -> f_1046c0b0, conditional VLI interception or +0x9c -> f_1046e50c -> stereo helpers and f_100db3fc. Specialized network session vptr 0x10ec37bc supplies request callbacks, not the SOAP implementation. Full GRC status domain {0,701,702,801,802,803}; remote batch precedes local operation; no automatic rollback on partial failure.",
+     "todo": "Established: concrete SOAP/local-renderer/session bindings, fan-out construction, batch deadline, local fallback, member cache updates, notification request gates and complete GRC status aggregation are traced. Residual: finish stereo-member workers f_1046dff0/f_1046c148 and renderer f_100db3fc (plus conditional VLI f_106a7f44), final session transport/status helper f_106ff898, and bind the concrete observer/sender delivery paths from f_103a59b4/f_1067c6ec. These are static downstream targets, not runtime-only dispatch boundaries."
     },
     "SetGroupVolume": {
      "description": "Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).",
