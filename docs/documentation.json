@@ -221586,15 +221586,65 @@
      "build": "86.10-80260",
      "address": "0x10724b24",
      "notes": "Hit copies sixty bytes to caller; miss shares lock cleanup and returns zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107201a8",
+     "address": "0x107201e4",
+     "notes": "Move-assign into owner+0x18d0 under owner+8 lock: frees every existing node and key string at 0x107201e4-0x10720230, then adopts the source map root/links/count and reinitializes the source empty at 0x10720230-0x107202b4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10728dc8",
+     "address": "0x1072988c",
+     "notes": "ContentKeys parse move-assigns the local dedupe map into the singleton at 0x110b44f0 (+0x18d0); second move at 0x1072a0e8 on the empty/early path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10728dc8",
+     "address": "0x10729d40",
+     "notes": "Insert-if-absent node alloc 0x5c: std::string key at +4 via f_107175a0, 0x3c payload memcpy into node+0x1c at 0x10729d70-0x10729d7c, map insert f_1072e254 at 0x10729d94 after lower_bound f_1072e48c at 0x10729758."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10728dc8",
+     "address": "0x10729d28",
+     "notes": "Pre-existing key logs 'duplicate content key entry detected from ContentKeys' at level 4 to logger 'sonoscp'; stored payload still copied to out arg7 at 0x107297cc-0x107297d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10716a08",
+     "address": "0x10716ac4",
+     "notes": "Variant ctor: five-case tag jump table at 0x10f0e3e0; base64 arm uses sonosBase64DecReset/Update/IsValid writing decoded bytes at +4 and length at +0x24, tag 3 stored on decode failure at 0x10716b04."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107266a0",
+     "address": "0x10726768",
+     "notes": "Cache wrapper: miss delegates to single-key fetch f_10725a88; exactly one retry when result is 0x3fc or 0x40d. No clock read anywhere in the chain."
     }
    ],
-   "todo": "Residual: trace population and invalidation of owner+0x18d0, bind the 0x3c-byte decrypt-parameter payload, and locate any caller-side expiration/rotation checks. f_10724a8c proves an in-image locked lookup/copy path but has no local time check; it does not establish a TTL or an external-only cache.",
    "resolved_findings": [
     "ContentKeys decoded as a SMAPI metadata extension, not a local key store: it is the http://www.sonos.com/Services/1.1|contentKeys field in track metadata (same SMAPI namespace as {uriTimeout, positionInformation, privateDataFieldName, getDeviceAuthTokenResult, count, index, total, mediaCollection, mediaMetadata, getMetadataResult, searchResult, getMediaMetadataResult}) carrying DRM descriptors like skd://itunes.apple.com/P{pid}/s1/e1 (StoreKit/Apple Music). The ContentKeys table is a keyed dedupe map (duplicate content key entry detected from ContentKeys) bound per playback via X-Sonos-Playback-Id: %s. Device auth comes through SMAPI getDeviceAuthToken (result element getDeviceAuthTokenResult, callbackPath) gated on OAuth credentialType (WARNING! ... credentialType = %u (not OAuth)). Playback-intent vocabulary {IMPLICIT, EXPLICIT:PLAY, EXPLICIT:SEEK, EXPLICIT:SKIP_FORWARD, EXPLICIT:SKIP_BACK, EXPLICIT:PAUSE} carries the licensed-content skip semantics. The decode-side counterpart is the HLS EXT-X-KEY KEYFORMAT=com.apple.streamingkeydelivery path (playlist_parsers record) - the contentKeys field delivers the skd URI the key fetcher then resolves.",
     "Resolved: the SMAPI Services/1.1 auth + key vocabulary is fully literal (0x10f0fa70-0x10f0fdf0): session ops getSessionId/getSessionIdResult, refreshAuthToken/refreshAuthTokenResult, getDeviceAuthToken/getDeviceAuthTokenResult; credential fields {auth_token_key, account_tier, auth_status}; session members {deviceSessionToken (CK_deviceSessionKey), deviceSessionKey, contentKey (CK_contentKey), uri}; the key record carries subfields {algorithm, keySize, value, expiration, httpHeaders} - so both the session key and the content key are {algorithm,keySize,value,expiration,httpHeaders} structs delivered inside SMAPI metadata, not locally generated. \"mult-key decrypt params not found in lookup dict\" confirms a key-id lookup dict; \"reauthorizing preinstalled service SID %u\" the reauth path.",
     "Established: full SMAPI auth/key field vocabulary (session ops, CK_ key records with {algorithm,keySize,value,expiration,httpHeaders}).",
     "The in-image surface does not stop at metadata. f_10724a8c locks owner+8, constructs a string key from incoming r4 and calls f_1072e5a4 on the lookup container at owner+0x18d0 (0x10724ab8-0x10724b04). A successful lookup copies exactly 0x3c bytes from node+0x1c into caller r5 and returns one at 0x10724b20-0x10724b40. A missing key logs mult-key decrypt params not found in lookup dict and returns zero at 0x10724b78-0x10724bb0. Lock cleanup is shared by hit/miss. Null key input takes a separate string-construction path with end=-1; it is not assumed to be a valid empty lookup.",
-    "This lookup itself performs no clock read or expiration comparison between container access and payload copy. That is bounded evidence about this function, not proof that cached keys never expire. The earlier insert/delete/TTL assertions were not established by the duplicate-entry literal; tracing population, invalidation and any caller-side expiration check is still necessary. The XML key vocabulary and expiration field name alone do not determine a rotation policy, and the presence of an in-image dictionary disproves the claim that all relevant state must reside only in an external HLS layer."
+    "This lookup itself performs no clock read or expiration comparison between container access and payload copy. That is bounded evidence about this function, not proof that cached keys never expire. The earlier insert/delete/TTL assertions were not established by the duplicate-entry literal; tracing population, invalidation and any caller-side expiration check is still necessary. The XML key vocabulary and expiration field name alone do not determine a rotation policy, and the presence of an in-image dictionary disproves the claim that all relevant state must reside only in an external HLS layer.",
+    "Resolved population and invalidation: the decrypt-parameter dictionary is an embedded rb-tree at offset 0x18d0 of the singleton content-provider object (global 0x110b44f0, vtable 0x10f0e7d4 'cont_prov_media_sens', constructor f_1071fbbc storing a self-linked sentinel at +0x18e8). Only f_10728dc8 populates it: while parsing the ContentKeys entry list it builds, per entry, a key-id string plus a 0x3c-byte payload, hashes the key (f_10806d50), lower-bounds (f_1072e48c) and inserts a 0x5c node {+4 std::string key, +0x1c payload} via f_1072e254 only when absent, so the first occurrence wins and a repeat key logs 'duplicate content key entry detected from ContentKeys' at level 4 to 'sonoscp' (0x10729d08-0x10729d3c); each iteration's stored payload is still copied to caller out-arg r7 at 0x107297cc-0x107297d8. After the list, f_107201a8 move-assigns the local map into global+0x18d0 under the global lock at +8 (0x10729884-0x10729894 and 0x1072a0e0-0x1072a0f0): it frees every existing node and key string, adopts the source root/links/count and reinitializes the source empty. Invalidation is therefore wholesale replacement on each ContentKeys parse plus destructor f_1072255c/f_1072259c; there is no per-entry erase and no TTL.",
+    "Resolved payload shape: the 0x3c-byte decrypt-parameter payload is the tagged variant produced by f_10716a08 (five-case tag jump table at 0x10f0e3e0; the base64 arm uses sonosBase64DecReset/Update/IsValid at 0x10716ac4-0x10716af8, writing decoded bytes at +4 and length at +0x24, and stores tag 3 on decode failure at 0x10716b04). Layout {u32 tag +0, payload bytes +4 (up to 0x20), u32 len +0x24, link/scratch +0x38}. Validity gate f_10717188 requires nonzero tag, nonzero +0x24 length and a nonempty paired key-id string; failures log 'session: received NONE with key' to 'sonoscp_crypto' (0x107171d4-0x10717228).",
+    "Resolved expiration question: no expiration or rotation check exists on this cache path. f_10724a8c (lookup), wrapper f_107266a0 (on miss delegates to f_10725a88, retrying once when the result is 0x3fc or 0x40d at 0x10726768-0x107267c4), caller f_104ab0f4 and its caller f_1047fe64, populator f_10728dc8 and single-key fetch f_10725a88 contain no clock read or date comparison. Entries remain valid until the next ContentKeys parse replaces the map wholesale; the SMAPI key-record 'expiration' subfield belongs to the fetched key document, not to this dictionary's eviction policy. The miss path f_10725a88 performs the single-key request through f_10720028 on the global object and the ZZ0038 primitive at 0x1072622c-0x10726238; it does not insert results into the dictionary."
    ]
   },
   "http_headers": {
