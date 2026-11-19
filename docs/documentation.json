@@ -195556,12 +195556,8 @@
    "modes": "ZP_MODE_{UNKNOWN,STANDALONE,HT_SATELLITE,EXCLUSIVE_BT}: incl. bluetooth-exclusive mode",
    "consistency": "ValidateBondedState + isBondedZoneConsistent cross-ZP map compare + MissingBondedZoneMemberDetectedEvent; ifBondedZoneGet{Next,Partner}UUID traversal",
    "ops": "addSatellite(map)/removeHTSatellite + separateBondedZoneKeepPlaying graceful unbond; RemoteHTSwapStateChangedEvent (surround L/R swap); bonded->primary default-loudness",
-   "dsp": "dsp_preset_satellite.xml + dsp_system_satellite.bin + satellite_processor.bin: satellite-specific DSP chains",
+   "dsp": "dsp_preset_<role>.xml + dsp_system_<role>.bin + satellite_processor.bin: per-role DSP preset (XML chain config) and binary DSP system image selected by dsp_builder across {/jffs/app/debug/dsp, /opt/dsp, dsp}; satellite_processor.bin is the debug-override drop for the separate satellite audio-processor blob",
    "tz": "timezone DB from update-timezone.sonos.com/timezone/timezones.xml",
-   "todo": [
-    "Established: satellite file set {dsp_preset_*.xml, dsp_system_*.bin, satellite_processor.bin} + lifecycle log vocabulary + persisted satellite.{xml,bin} pair.",
-    "Residual: the semantic role of each DSP blob (what satellite_processor.bin configures vs dsp_system_satellite.bin) - the file names are proven, contents are config data"
-   ],
    "satellite_audio_path": "Satellite audio path decoded: bonded secondaries run a dedicated DSP preset 'dsp_preset_satellite.xml' plus per-channel gains delivered as HTChProcConfig protobufs ('Could not convert loaded satellite protobuf to HTChProcConfig', 'satellite channel: %i %s', 'satellite: failed to set gain for channel type %zu', 'could not send %s to satellite %s;%s. rc %d, error %d, %s, count %u'). Bonded zones carry SEPARATE bonded volume breakpoint tables alongside the defaults - 'Bonded gain for \"%s\" not found in DSPConfig', 'default (%i) and bonded (%i) volume breakpoint lengths differ', 'default and bonded volume breakpoints differ', 'volume (%i) and gain (%i) lengths differ in bonded volume breakpoints', 'no bonded volume breakpoints specified, using default instead', 'Num bonded subs', 'sub_bonded'/'sub_unbonded'. HT_SWAP exists ({HT_SWAP_START,HT_SWAP_END,HT_SWAP_ERROR}) but 'Swap is disabled as this player is in a bonded zone.' - role transitions '_satellite'/'satellite to normal'/'normal to satellite' happen through bonded membership, not the swap FSM. Secondaries are hidden: 'Setting invisible=true based on bonded secondary state'; primary keeps default loudness (\"bonded; set primary's default loudness %d\").",
    "create_recover": "Create sequence: AddBondedZones -> 'Created bonded zone; start topology monitor' -> state pushed to secondaries ('Pushing bonded zone state to secondaries failed: %d', 'Failed sending state to new bonded zone. Schedule recovery', 'Error creating bonded zone; %d'). Recovery (recoverBondedZone): retries while topology is unsettled ('retrying as topology hasn't settled yet (ct=%u)'), checks 'Status from topology is: %d', then either 'reducing bonded zone to %s', 'separating this player from bonded zone', aborts on 'partner is incompatible', or succeeds ('recoverBondedZone successful %s; %s sent to secondaries'). Sonar config is cleared on RemoveBondedZone, restickBondedSecondary and unstickBondedSecondary paths.",
    "channelmap_grammar": {
@@ -195580,7 +195576,57 @@
    },
    "resolved_findings": [
     "Established: full ChannelMapSet grammar - uuid:tokenList entries; complete channel-token vocabulary {CC,SW,LR,RS,LTF,RTF,LTR,RTR,LW,RW,LTM,RTM,AX1,AX2}; 42-entry speaker-role table at 0xee62b0; flatChannelMapSet joinZone wire form; action arg shapes decoded.",
-    "Resolved: the satellite DSP file set is literal (0x10e73a60-0x10e73ad0): {dsp_preset_default.xml, dsp_preset_satellite.xml, dsp_system_default.bin, dsp_system_satellite.bin, satellite_processor.bin} - bonding swaps the default preset/system pair for the satellite pair and loads satellite_processor.bin. Satellite lifecycle log vocabulary (0x10e8bdff-0x10ebc257): Satellite() map emit, \"Disable HT sat %s\", role strings \"Satellite of sat %s\" / \"Satellite of SELF %s\" / \"Satellite of SUB %s\" / \"Satellite on SOURCE %s\", \"SatelliteCmd: %s rc=%d\", \"Satellite config override: From: %s To: %s\", \"Satellites: reconnected Sat %s\" / \"Failed to reconnect with %s\" / \"removing Sat %s\", \"setting satellite state to UUID %s failed: %d\". The satellite.xml/satellite.bin files at 0x10e73a8b-0x10e73ad0 round out the persisted satellite config pair."
+    "Resolved: the satellite DSP file set is literal (0x10e73a60-0x10e73ad0): {dsp_preset_default.xml, dsp_preset_satellite.xml, dsp_system_default.bin, dsp_system_satellite.bin, satellite_processor.bin} - bonding swaps the default preset/system pair for the satellite pair and loads satellite_processor.bin. Satellite lifecycle log vocabulary (0x10e8bdff-0x10ebc257): Satellite() map emit, \"Disable HT sat %s\", role strings \"Satellite of sat %s\" / \"Satellite of SELF %s\" / \"Satellite of SUB %s\" / \"Satellite on SOURCE %s\", \"SatelliteCmd: %s rc=%d\", \"Satellite config override: From: %s To: %s\", \"Satellites: reconnected Sat %s\" / \"Failed to reconnect with %s\" / \"removing Sat %s\", \"setting satellite state to UUID %s failed: %d\". The satellite.xml/satellite.bin files at 0x10e73a8b-0x10e73ad0 round out the persisted satellite config pair.",
+    "DSP blob roles resolved by construction grammar and call path. The dsp_builder names files 'dsp' + kind + role + ext: kind '_preset' forces '.xml' and kind '_system' forces '.bin' (f_10dcf744: r29==1 -> '.bin' else '.xml'); the role piece is '_satellite' when the builder's satellite flag is set (optionally followed by '_flex'), '_default' on the marked-default arm, or nothing on the plain arm. dsp_preset_satellite.xml is therefore the bonded satellite's DSP preset (the XML filter/chain configuration), dsp_system_satellite.bin is the satellite's binary DSP system image, and the *_default names are the normal-role counterparts, not satellite files. The builder walks the search dirs {JFFS 'app/debug/dsp' override, '/opt/dsp', 'dsp'} and logs the first validated variant ({Override|Flex|satellite|plain} {System|Preset} Path). satellite_processor.bin is outside this grammar: it has no 'dsp_' prefix and '_processor' is not in the builder suffix vocabulary, and no instruction in the binary materializes 'satellite_processor' or its pooled tails ('satellite', '_processor', 'processor.bin'). Its only in-binary binding is the /removeDSPDebugFiles endpoint f_100bc518 (action-table entry 0x11091338 next to /putDSP, /setPersistentEQ, /dolby_config, /audio_tap), which deletes all five names from the JFFS 'app/debug/dsp' dir, so these are developer override drops for DSP resources. By family and naming convention satellite_processor.bin overrides the satellite audio-processor program blob, distinct from the dsp_system/dsp_preset pair that configures the local speaker DSP; the real resource name is supplied by its consumer at runtime, which is the static boundary here - no literal in anacapad loads it. Correction: 'satellite.xml' and 'satellite.bin' are not real file names, they are string-pool tails inside 'dsp_preset_satellite.xml' (0x10e73a8b) and 'dsp_system_satellite.bin' (0x10e73abf) with zero code references; the earlier 'persisted satellite config pair' claim is withdrawn. Rootfs check: none of the blobs ship in the squashfs; the DSP is reached through device nodes /dev/dspW and /dev/dspdefault."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100bc518",
+     "address": "0x11091338",
+     "notes": "status-page action table binds '/removeDSPDebugFiles' to f_100bc518; neighbors /putDSP 0x100bb63c, /setPersistentEQ 0x100ba218, /dolby_config 0x100be454, /audio_tap 0x100becc4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100bc518",
+     "address": "0x100bc8b8",
+     "notes": "deletes each listed name under 'app/debug/dsp/' (built at 0x100bc61c) via remove(); logs 'successfully deleted %s'/'unable to delete %s even though it exists' under 'mod_zp'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10dcf744",
+     "address": "0x10dcf820",
+     "notes": "DSP name constructor: appends '_satellite' when r8 flag set, then '_flex' when r9 set (0x10dcf84c); r8==0 + r6!=0 appends '_default' (0x10dcf87c); r7==1 selects '.bin' else '.xml' (0x10dcf8b4/0x10dcf7d0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10dce770",
+     "address": "0x10dce80c",
+     "notes": "'Building paths' under 'dsp_config_manager': constructJFFSRootPath('app/debug/dsp') plus '/opt/dsp' and 'dsp' form the search dirs; lookup failure logs 'default preset file could not be found'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10dcfac8",
+     "address": "0x10dcfe04",
+     "notes": "preset path builder appends kind piece '_preset' to base 'dsp' then role suffix via f_10dcf744; 'system' sibling builds '_system'+'.bin'. Logs 'Constructed {Override|Flex|satellite|} {System|Preset} Path: %s' or 'Failed to validate all {system|preset} paths'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fef2f0",
+     "notes": "dsp_builder role-suffix vocabulary {'_satellite' 0x10fef2f0, '_flex' 0x10fef2fc, '_default' 0x10fef304} and kind pieces {'_system' 0x10fef384, '_preset' 0x10fef38c}; no '_processor' suffix exists in the binary."
+    }
    ]
   },
   "topology_engine": {
