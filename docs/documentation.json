@@ -222996,9 +222996,61 @@
      "build": "86.10-80260",
      "address": "0x106b8e58",
      "notes": "Watchdog arming: mutex +0xf8 guards sonosClockGetTime(1,&ts) into +0xec, then calls timer +0xf4 vfunc+0xc with delay {0,0x1388} and self callback, so the health check re-arms every 5000 units; f_106b8d34 compares elapsed to 0x186a0 and logs 'eventLoop elapsed-time:%lld' to 'watchdog'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a4f34",
+     "function": "0x109a4d1c",
+     "notes": "Event-service ctor gate: Thread::start (bl f_109a448c) is skipped when r6==0. Impl ctor f_109a08c4 always calls f_109a4d1c(svc,r4=impl,r5=-1,r6=0,r7=f_109a6218), so the io_context-embedded service spawns no internal thread; the lazy reactor instance at 0x109a5f40 passes r6=1 and does spawn one."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a5f40",
+     "function": "0x109a5bc4",
+     "notes": "Reactor factory path: new(0xa8) second event service built with r6=1 (self-pump) plus a 0x7c epoll object (dual vtables 0x10f92f90/0x10f92fb0) whose vfunc+4 is the wait entry; registered into impl+0x20 service list under mutex impl+0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a62c4",
+     "function": "0x109a6218",
+     "notes": "Lazy reactor lookup stored at service+0x7c: walks impl+0x20 list for service key 0x11097d30; on miss calls f_109a5bc4 which spawns the dedicated thread (body f_109a3334). A scope io_context therefore acquires a pump thread only on first async-descriptor registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a3334",
+     "notes": "Internal reactor thread body (arg+4 = 0xa8 event service): sets TLS key 0x11097d40, then runs the same scheduler drain shape as run (pops service+0x94 nodes, calls node+4 with r3=svc, waits on service+0x40 condvar / service+0x78 epoll vfunc+4, tracks service+0x90 outstanding)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a7e1c",
+     "notes": "Strand post (vfunc+0x10 -> strand_impl): appends item to strand_impl list under impl+0xc mutex, pushes drain node onto owning impl+0x98 ready list, bumps impl+0x90, wakes impl via impl+0x78 event-object vfunc+4. Scope-bound work lands in the scope's own io_context ready queue."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101a5384",
+     "function": "0x101a50b0",
+     "notes": "Scope member census (0x1e0): +0x148/+0x14c shared_ptr<{ptr,ptr,0x3e8}> bounded work queue, +0x150..+0x1b4 zeroed slot arrays, +0x1bc/+0x1c0 shared_ptr<byte>, +0x1c8/+0x1cc list anchor =1/+0x1d0/+0x1d4 self-pointers, +0x1d8 waiter count; f_100e4f24 drains waiters by signalling scope+0xc0 (scope:cv companion) until +0x1d8==0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b8c38",
+     "notes": "Member-path io_context dispatch census: scanning all io_context wrapper members (eventloop+0xdc, scope+0x12c, HttpClient-embedded +0x12c, owners 0xb14/0x544/0x3cc/0x36c/0x1d4/0x4/0x130/0x8) for vcall sites on slots +8/+0x10/+0x18/+0x1c/+0x20 finds member-path run() only on eventloop+0xdc (workers f_106b8cd0, plus vfunc+0x18 reset here); every other io_context reaches run/poll only through runtime-held executor copies."
     }
    ],
-   "todo": "Remaining: which concrete thread pumps each named scope's own io_context (per-scope run-loop owners are not yet enumerated), and the complete poster-to-scope binding census across all f_10bbca78/strand call sites. The scheduler-side mechanism (flat ready queue, post-bound scope via held strand) is now established.",
    "resolved_findings": [
     "Worker cardinality is verified with GNU e500 disassembly, not inferred from a log format: f_106b8f2c sets descriptor base to object+0xb4 and end sentinel to object+0xdc. After each spawn it compares descriptor+8 to that sentinel, then advances the descriptor by 0x20 (0x106b8f84-0x106b8fa8). This executes exactly twice, for +0xb4 and +0xd4; the printed thread count is independently literal 2 at 0x106b8fd4. The worker entry is f_106b8cd0. Object+0x98 prevents repeating initialization.",
     "The earlier claim that every queued item carries one of scopeDefault/scope:mtx/scope:cv/scopeHttpClient was not established by literal xrefs. f_101a50b0 constructs scope:mtx and scope:cv separately at 0x101a50e4 and 0x101a5114; these are distinct constructor arguments, not two entries in a recovered work-registration table. The HttpClient construction path at 0x106947e8 supplies scopeHttpClient and then a separate scope:mtx label. f_1018d27c supplies scopeDefault at 0x1018f850 and scopeHttpClient at 0x1018fd9c. These sites prove caller provenance for labels, not a complete work-to-scheduler-scope map.",
@@ -223006,7 +223058,11 @@
     "Dispatch machinery is now traced end to end. The eventloop object holds shared_ptr<io_context wrapper> at +0xdc whose impl (0xa0 bytes, f_109a08c4) carries an intrusive ready queue +0x94, recycle list +0x98, atomic outstanding counter +0x90, mutex+condvar+eventfd-style wait service, and a 'sonosAsyncWorkGuard'. Both worker threads call the same vfunc+8 run loop f_109a0b1c: a flat MPMC queue where each node {+0 next,+4 handler,+8 aux} is dispatched by calling node+4. Posting (vfunc+0xc -> f_109a4fec) executes inline when the caller is already inside this io_context (TLS key 0x11097d40), else enqueues and signals. There is no per-item scope field in the scheduler itself.",
     "The 'scope' objects are self-contained execution scopes, not scheduler partitions: f_101a50b0 builds a 0x1e0-byte object containing a named mutex 'scope:mtx' (+0) and condvar 'scope:cv' (+0xa8) that carry the scope name for diagnostics, plus its own shared_ptr<io_context> (+0x12c), shared_ptr<strand executor> (+0x134), and an embedded dual-vptr service-registry member (+0x120). Work is bound to a scope at post time through the strand the poster holds; the strand serializes handlers one at a time into the scope's own io_context.",
     "Concrete scope instances: scopeDefault embedded in the app context (this+0x3f328); scopeHttpClient heap-allocated, shared_ptr at app+0x3fa98 and a second inline construction inside HttpClient init at 0x106947c4; scopeMp/scopeLoadOp and siblings follow the pattern 'std::string name = scopeX + formatted index; new(0x1e0) scope stored as shared_ptr beside it' (obj+0x18b0/+0x18c8 for Mp). scopeAvt and scopeZP names are formatted with an instance index byte ('scopeAvt%d','scopeZP%d' style via f_100ec240 vsnprintf helper).",
-    "Event emission uses a separate global registry at 0x110ba798: emitters intern event names (f_10bbd098, map at +0x10) then queue (f_10bbca78, maps at +8/+0x20) carrying a source-name pointer (e.g. +0x23c); when no eventloop is bound the emit logs 'Attempt to queue event %s(%u) from \"%s\" with no eventloop configured' on 'inprocess-events' level 3/7."
+    "Event emission uses a separate global registry at 0x110ba798: emitters intern event names (f_10bbd098, map at +0x10) then queue (f_10bbca78, maps at +8/+0x20) carrying a source-name pointer (e.g. +0x23c); when no eventloop is bound the emit logs 'Attempt to queue event %s(%u) from \"%s\" with no eventloop configured' on 'inprocess-events' level 3/7.",
+    "Pump topology resolved to the member-offset boundary. The only member-path io_context::run in .text is on eventloop+0xdc by the two workers (f_106b8cd0 -> f_106b8c54). A census of all twelve io_context wrapper constructions (f_1099de48 call sites) finds no member-path run()/poll() call site for any scope io_context (+0x12c) or other owner member; the shared_ptr is copied into each consumer's executor (the scope's own strand at +0x134 already holds a copy at strand+4), so the concrete pump thread per named scope is a runtime registration not recoverable from member offsets.",
+    "Scope io_contexts spawn no dedicated thread at construction: embedded event-service ctor f_109a4d1c skips Thread::start when r6==0 and impl ctor f_109a08c4 always passes r6=0. Pump capacity is acquired lazily: the service stores factory f_109a6218 at +0x7c, which on first use creates the epoll reactor service (f_109a5bc4, r6=1) whose own thread runs the identical scheduler drain (f_109a3334) on that service's queue inside the same impl.",
+    "Strand-bound posting fully traced: strand vfunc+0x10 runs f_109a7e1c on the strand_impl, which appends to the strand list under impl+0xc mutex, pushes a drain node onto the owning impl+0x98 ready list, bumps impl+0x90, and wakes via impl+0x78 event-object vfunc+4; handlers therefore execute on whatever thread runs that impl. Inline execution applies only when the poster's TLS key 0x11097d40 already names the same impl.",
+    "The scope's own work machinery is separate from its io_context: a bounded work queue {head,tail,cap=0x3e8} at +0x148, plus a shutdown-waiter list +0x1c8/+0x1cc with count +0x1d8 that f_100e4f24 drains by signalling scope+0xc0 until empty. The complete poster-to-scope binding table is runtime map content (emitter+8 key via f_10bc0b8c, emitter+0x20 key via f_10bc17f4 in the global registry), not a static enumeration."
    ]
   },
   "devicecertmanager": {
