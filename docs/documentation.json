@@ -92305,7 +92305,7 @@
      "notes": null
     },
     "RefreshShareIndex": {
-     "description": "Triggers a share-index refresh (AlbumArtistDisplayOption) via impl->v[+0x30].",
+     "description": "Requests share-index work through the bound share manager. NONE/ITUNES/WMP/BOTH select display mode; FULL forces full work, SCHED uses scheduling flags, and other strings use current display mode. This queues work rather than waiting for scan completion, though the manager can block awaiting its current idle state. SCHED intentionally reports success even when the scheduler returns720.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306f60",
@@ -92337,11 +92337,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10302b78 ->0x1010ee00/0x1010ee28/0x1010ee58 ->0x1010eafc",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x30"
      },
      "inputs": {
       "AlbumArtistDisplayOption": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302b78",
+       "description": "Required text selecting display/index scheduling mode. Not an unsigned integer or strict enum.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -92350,29 +92352,39 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosUintArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "unrestricted/impl-validated per 0x10302b78",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "Case-sensitive NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "NONE, ITUNES, WMP, BOTH, FULL, SCHED, or any other string using current display mode.",
+       "range": "1024-byte buffer including NUL",
+       "special_values": "Present empty/unrecognized/lowercase text falls back to global current display mode; missing argument402. SCHED suppresses underlying720.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required, with fallback semantics for unrecognized supplied text",
+       "validation": "Bounded required type7 string. Worker uses strcmp, no numeric conversion or invalid-enum rejection.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306fa0",
-         "notes": "in-arg access site"
+         "function": "0x10306f60",
+         "address": "0x10306fc0",
+         "notes": "Required AlbumArtistDisplayOption string cap0x400 via1056157c; validator false ->402 at10307030. Primary+0x30=10302b78 called10306fe0. Nonzero fault10306ffc; zero empty commit10307044. Proven service-level cd_impl binding, not runtime-injected boundary."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e89c48",
-         "notes": "argument name string"
+         "function": "0x10302b78",
+         "address": "0x10302b88",
+         "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ee00",
+         "address": "0x1010ee24",
+         "notes": "Normal thunk loads underlying manager from provider+0x4de8, selected display mode inr4, args5..10 all0 ->1010eafc. FULL thunk1010ee28 loads display global110953dc, arg7=1, others0. SCHED thunk1010ee58 loads same global, args5/6=1,arg7=0,arg8=original r4(0),args9/10=0. Thus all concrete branches reach the same manager worker."
         }
        ],
        "notes": null,
@@ -92381,271 +92393,363 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Only required-string presence can produce402. Concrete implementation does not resolve ObjectIDs or parse/store XML. Exact SCHED/FULL keywords are checked before display modes. All ordinary branches propagate manager0/720, while SCHED explicitly discards that status and returns0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10306f60",
-        "notes": "wrapper family decode"
+        "function": "0x10306f60",
+        "address": "0x10306fc0",
+        "notes": "Required AlbumArtistDisplayOption string cap0x400 via1056157c; validator false ->402 at10307030. Primary+0x30=10302b78 called10306fe0. Nonzero fault10306ffc; zero empty commit10307044. Proven service-level cd_impl binding, not runtime-injected boundary."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302b78",
+        "address": "0x10302b88",
+        "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee00",
+        "address": "0x1010ee24",
+        "notes": "Normal thunk loads underlying manager from provider+0x4de8, selected display mode inr4, args5..10 all0 ->1010eafc. FULL thunk1010ee28 loads display global110953dc, arg7=1, others0. SCHED thunk1010ee58 loads same global, args5/6=1,arg7=0,arg8=original r4(0),args9/10=0. Thus all concrete branches reach the same manager worker."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ebd4",
+        "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x30]",
+      "description": "Bound share provider at impl+0x34c. Underlying manager must be ready (+0x100) and not shutting down (+0x4e12) for ordinary acceptance; waits until state+0x52c8==2. SCHED response0 is not proof those conditions were met. No external lookup or remote service required by this path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306f60",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "function": "0x10302b78",
+        "address": "0x10302b88",
+        "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee00",
+        "address": "0x1010ee24",
+        "notes": "Normal thunk loads underlying manager from provider+0x4de8, selected display mode inr4, args5..10 all0 ->1010eafc. FULL thunk1010ee28 loads display global110953dc, arg7=1, others0. SCHED thunk1010ee58 loads same global, args5/6=1,arg7=0,arg8=original r4(0),args9/10=0. Thus all concrete branches reach the same manager worker."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ebd4",
+        "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x30]",
+      "description": "Global110953dc supplies current display mode. Share manager mode+0x120, sort+0x124, share list/count+0x4de8, state+0x52c8, ready/shutdown bytes and mutex/condition control queueing. Cached index stamp+0x4df0 is refreshed from provider time when available. Does not read object stores or favorites state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306f60",
-        "notes": "member vfunc calls: ['r30 v[+0x30]']"
+        "function": "0x10302b78",
+        "address": "0x10302b88",
+        "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ebd4",
+        "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ecc8",
+        "notes": "On acceptance: marks each share at+0x5f0+i*0x4cc, queues marker localRequestReindex at+0x521c, increments+0x5220 and+0x11c, copies identity into+0x102, writes display mode+0x120. Sort mode+0x124 unchanged because arg9=0. Sets flags+0x4e0e=arg5,+0x4e0f=arg6,+0x4e10 from forced-full arg7 or display-mode change versus global; clears+0x4e13. Catalog flag helper103d2358 receives(current sort==1)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010edb0",
+        "notes": "Null stamp arg8 sets cached stamp invalid then queries provider clock at manager+0x5218->+0xbc->+0x240 v+8; success copies time via10c3f1d8. Clears waiting byte+0x4e11, wakes condition1098761c, unlocks and returns0. No synchronous SystemUpdateID increment or cd_impl indexing-byte write."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x30] (call-derived member-method semantics)",
+       "description": "Accepted request marks shares, advances request counters, writes localRequestReindex marker and chosen display mode, configures work flags, refreshes queued stamp and wakes manager worker. Does not synchronously update global display mode, emit XML or finish indexing. Rejected ordinary request720 does not enqueue; SCHED hides the same rejection.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302b78",
+         "address": "0x10302b88",
+         "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010eafc",
+         "address": "0x1010ebd4",
+         "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010eafc",
+         "address": "0x1010ecc8",
+         "notes": "On acceptance: marks each share at+0x5f0+i*0x4cc, queues marker localRequestReindex at+0x521c, increments+0x5220 and+0x11c, copies identity into+0x102, writes display mode+0x120. Sort mode+0x124 unchanged because arg9=0. Sets flags+0x4e0e=arg5,+0x4e0f=arg6,+0x4e10 from forced-full arg7 or display-mode change versus global; clears+0x4e13. Catalog flag helper103d2358 receives(current sort==1)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010eafc",
+         "address": "0x1010edb0",
+         "notes": "Null stamp arg8 sets cached stamp invalid then queries provider clock at manager+0x5218->+0xbc->+0x240 v+8; success copies time via10c3f1d8. Clears waiting byte+0x4e11, wakes condition1098761c, unlocks and returns0. No synchronous SystemUpdateID increment or cd_impl indexing-byte write."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "No direct GENA notification, SystemUpdateID increment or ShareIndexInProgress mutation in action/queue path. Later independent manager status callbacks can publish indexing/error state through10302990 and serializer103035c4; action success is not a promise of a start, completion or GENA event, particularly for SCHED.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302b78",
+        "address": "0x10302b88",
+        "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ecc8",
+        "notes": "On acceptance: marks each share at+0x5f0+i*0x4cc, queues marker localRequestReindex at+0x521c, increments+0x5220 and+0x11c, copies identity into+0x102, writes display mode+0x120. Sort mode+0x124 unchanged because arg9=0. Sets flags+0x4e0e=arg5,+0x4e0f=arg6,+0x4e10 from forced-full arg7 or display-mode change versus global; clears+0x4e13. Catalog flag helper103d2358 receives(current sort==1)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010edb0",
+        "notes": "Null stamp arg8 sets cached stamp invalid then queries provider clock at manager+0x5218->+0xbc->+0x240 v+8; success copies time via10c3f1d8. Clears waiting byte+0x4e11, wakes condition1098761c, unlocks and returns0. No synchronous SystemUpdateID increment or cd_impl indexing-byte write."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302990",
+        "address": "0x103029e4",
+        "notes": "Separate share-index status callback not action body: event byte0 sets cd_impl+0x514=1 at10302a58; byte1 clears at10302a6c; dirty+0x515=1. Event2 updates share error. Notifier1067c6ec called103029e4; serializer103035c4 renders dirty ShareIndexInProgress/ShareIndexLastError. Queue acceptance alone does not guarantee an eventual start/completion event."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Ordinary accepted call: ready/not-shutdown -> wait current state idle2 if necessary -> configure queued reindex -> wake worker -> return0. Rejected call ->720, except SCHED ->0. Actual scan lifecycle and callback-driven indexing byte transitions occur after this request boundary, not as synchronous action effects.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ebd4",
+        "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ecc8",
+        "notes": "On acceptance: marks each share at+0x5f0+i*0x4cc, queues marker localRequestReindex at+0x521c, increments+0x5220 and+0x11c, copies identity into+0x102, writes display mode+0x120. Sort mode+0x124 unchanged because arg9=0. Sets flags+0x4e0e=arg5,+0x4e0f=arg6,+0x4e10 from forced-full arg7 or display-mode change versus global; clears+0x4e13. Catalog flag helper103d2358 receives(current sort==1)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010edb0",
+        "notes": "Null stamp arg8 sets cached stamp invalid then queries provider clock at manager+0x5218->+0xbc->+0x240 v+8; success copies time via10c3f1d8. Clears waiting byte+0x4e11, wakes condition1098761c, unlocks and returns0. No synchronous SystemUpdateID increment or cd_impl indexing-byte write."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302990",
+        "address": "0x103029e4",
+        "notes": "Separate share-index status callback not action body: event byte0 sets cd_impl+0x514=1 at10302a58; byte1 clears at10302a6c; dirty+0x515=1. Event2 updates share error. Notifier1067c6ec called103029e4; serializer103035c4 renders dirty ShareIndexInProgress/ShareIndexLastError. Queue acceptance alone does not guarantee an eventual start/completion event."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Missing input402. SCHED always returns0 after invoking scheduler, even if720. FULL and ordinary/fallback display-mode calls return manager0 or720 unchanged. rc0 commits no output arguments. No 701/711/store-save error domain on the fully traced worker.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10306f60",
+        "address": "0x10306fc0",
+        "notes": "Required AlbumArtistDisplayOption string cap0x400 via1056157c; validator false ->402 at10307030. Primary+0x30=10302b78 called10306fe0. Nonzero fault10306ffc; zero empty commit10307044. Proven service-level cd_impl binding, not runtime-injected boundary."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302b78",
+        "address": "0x10302b88",
+        "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ee00",
+        "address": "0x1010ee24",
+        "notes": "Normal thunk loads underlying manager from provider+0x4de8, selected display mode inr4, args5..10 all0 ->1010eafc. FULL thunk1010ee28 loads display global110953dc, arg7=1, others0. SCHED thunk1010ee58 loads same global, args5/6=1,arg7=0,arg8=original r4(0),args9/10=0. Thus all concrete branches reach the same manager worker."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010ebd4",
+        "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010eafc",
+        "address": "0x1010edb0",
+        "notes": "Null stamp arg8 sets cached stamp invalid then queries provider clock at manager+0x5218->+0xbc->+0x240 v+8; success copies time via10c3f1d8. Clears waiting byte+0x4e11, wakes condition1098761c, unlocks and returns0. No synchronous SystemUpdateID increment or cd_impl indexing-byte write."
+       }
+      ]
+     },
+     "fault_sites": [],
+     "errors": [
+      {
+       "code": 402,
+       "meaning": "Required AlbumArtistDisplayOption missing. Empty/unrecognized supplied text is not this fault.",
+       "fault_sites": [
+        "0x10307030"
+       ],
+       "conditions": [
+        {
+         "description": "Required AlbumArtistDisplayOption missing. Empty/unrecognized supplied text is not this fault.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10306f60",
+           "address": "0x10306fc0",
+           "notes": "Required AlbumArtistDisplayOption string cap0x400 via1056157c; validator false ->402 at10307030. Primary+0x30=10302b78 called10306fe0. Nonzero fault10306ffc; zero empty commit10307044. Proven service-level cd_impl binding, not runtime-injected boundary."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302b78",
+           "address": "0x10302b88",
+           "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10306f60",
-         "notes": "delegate map ['r30 v[+0x30]']; notify-family calls []"
-        }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x30] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306f60",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x30]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306f60",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x30]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x30].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306f60",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [
-      {
-       "site": "0x10306ffc",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x30)"
-      }
-     ],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "vret(r5-in,+0x30); parse/req-layer",
-       "meaning": "impl impl literal exit returns 0; two out-branches tail into sched thunks -> f_1010eafc domain {0,720}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10306ffc"
-       ],
-       "conditions": [
-        {
-         "description": "impl/store gate failed",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103026f8",
-           "notes": "impl body"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10306f60",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103026f8",
-         "notes": "impl rc path"
+         "address": "0x10306fc0",
+         "notes": "Required AlbumArtistDisplayOption string cap0x400 via1056157c; validator false ->402 at10307030. Primary+0x30=10302b78 called10306fe0. Nonzero fault10306ffc; zero empty commit10307044. Proven service-level cd_impl binding, not runtime-injected boundary."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1010ebe8",
-         "notes": "li r20,0x2d0 gated on lbz *(r31+0x4e12) busy flag"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1010ec5c",
-         "notes": "second 720 path when *(r31+0x100)==0 - share engine not running"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1010ed9c",
-         "notes": "li r20,0 success exits (x3)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e89cbc",
-         "notes": "'sharelist' / 'request reindex (ad:..)' log strings - worker identity"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302b78",
-         "notes": "impl body: literal-0 exit + b-tail sched thunks"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10306f60",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "unresolved": {
-        "proven": "literal exit paths bounded by accumulator scan",
-        "unknown": "call-derived rc values from worker/delegate chain",
-        "impl_exit_literals": {
          "function": "0x10302b78",
-         "lits": [
-          0,
-          360,
-          1024
-         ],
-         "passthrough_exits": 1
-        },
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "worker_literal_bound": [
-        720
-       ],
-       "literal_bound": [
-        0,
-        402,
-        701,
-        711
-       ],
-       "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x30); parse/req-layer; sites: 0x10306ffc).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+         "address": "0x10302b88",
+         "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+        }
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "worker/delegate rc domain adds [710] beyond the documented accumulator bound",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302e2c",
-         "notes": "CD impl layer"
-        }
+       "code": 720,
+       "meaning": "Non-SCHED manager path sees shutdown or !ready at entry, or shutdown while waiting for current idle state. SCHED suppresses the same scheduler error.",
+       "fault_sites": [
+        "0x1010ebf4",
+        "0x1010eca8"
        ],
-       "notes": "propagated reachability; site-level trigger undecoded",
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Non-SCHED manager path sees shutdown or !ready at entry, or shutdown while waiting for current idle state. SCHED suppresses the same scheduler error.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302e2c",
-           "notes": "CD impl layer"
+           "function": "0x10302b78",
+           "address": "0x10302b88",
+           "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010eafc",
+           "address": "0x1010ebd4",
+           "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10302e2c emits constant set {701, 711} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302b78",
+         "address": "0x10302b88",
+         "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010eafc",
+         "address": "0x1010ebd4",
+         "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
+        }
        ]
       }
      ],
@@ -92665,13 +92769,65 @@
        "build": "86.10-80260",
        "address": "0x10eb42f4",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10306f60",
+       "address": "0x10306fc0",
+       "notes": "Required AlbumArtistDisplayOption string cap0x400 via1056157c; validator false ->402 at10307030. Primary+0x30=10302b78 called10306fe0. Nonzero fault10306ffc; zero empty commit10307044. Proven service-level cd_impl binding, not runtime-injected boundary."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302b78",
+       "address": "0x10302b88",
+       "notes": "Exact case-sensitive SCHED ->1010ee58(impl+0x34c,0), then FORCES rc0 ignoring scheduler status at10302ba0. Exact FULL ->1010ee28 with returned rc. NONE/ITUNES/WMP/BOTH select0/1/2/3 respectively; every other string (including empty) loads global110953dc and uses normal1010ee00. No invalid-enum fault; does not synchronously set global display mode."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010ee00",
+       "address": "0x1010ee24",
+       "notes": "Normal thunk loads underlying manager from provider+0x4de8, selected display mode inr4, args5..10 all0 ->1010eafc. FULL thunk1010ee28 loads display global110953dc, arg7=1, others0. SCHED thunk1010ee58 loads same global, args5/6=1,arg7=0,arg8=original r4(0),args9/10=0. Thus all concrete branches reach the same manager worker."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010eafc",
+       "address": "0x1010ebd4",
+       "notes": "Manager mutex+0x20. Shutdown byte+0x4e12 !=0 ->720 at1010ebf4; ready byte+0x100==0 also ->720. While state+0x52c8!=2 waits condition+0xb0, setting+0x4e11=1. Shutdown after wait ->720 at1010eca8. May wait current work idle; does not wait newly queued indexing to complete."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010eafc",
+       "address": "0x1010ecc8",
+       "notes": "On acceptance: marks each share at+0x5f0+i*0x4cc, queues marker localRequestReindex at+0x521c, increments+0x5220 and+0x11c, copies identity into+0x102, writes display mode+0x120. Sort mode+0x124 unchanged because arg9=0. Sets flags+0x4e0e=arg5,+0x4e0f=arg6,+0x4e10 from forced-full arg7 or display-mode change versus global; clears+0x4e13. Catalog flag helper103d2358 receives(current sort==1)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010eafc",
+       "address": "0x1010edb0",
+       "notes": "Null stamp arg8 sets cached stamp invalid then queries provider clock at manager+0x5218->+0xbc->+0x240 v+8; success copies time via10c3f1d8. Clears waiting byte+0x4e11, wakes condition1098761c, unlocks and returns0. No synchronous SystemUpdateID increment or cd_impl indexing-byte write."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302990",
+       "address": "0x103029e4",
+       "notes": "Separate share-index status callback not action body: event byte0 sets cd_impl+0x514=1 at10302a58; byte1 clears at10302a6c; dirty+0x515=1. Event2 updates share error. Notifier1067c6ec called103029e4; serializer103035c4 renders dirty ShareIndexInProgress/ShareIndexLastError. Queue acceptance alone does not guarantee an eventual start/completion event."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10306f60; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Statically closed through concrete request queue boundary; no inference that SOAP success means scan completion."
     },
     "RequestResort": {
      "description": "Requests an index resort (SortOrder) via impl->v[+0x34].",
