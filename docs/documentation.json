@@ -60081,17 +60081,62 @@
          "function": "0x1046519c",
          "address": "0x1046531c",
          "notes": "f_105615a8 sink"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370058",
+         "address": "0x103700bc",
+         "notes": "strcmp 'URIs'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370058",
+         "address": "0x10370354",
+         "notes": "attribute 'uri'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370058",
+         "address": "0x10370404",
+         "notes": "strcmp 'DIDL-Lite'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370564",
+         "address": "0x103706cc",
+         "notes": "per-entry callback (URI, metadata)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1036fd9c",
+         "address": "0x1036fde0",
+         "notes": "newline to space"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144c50",
+         "address": "0x10144cc0",
+         "notes": "1000 on XML parse failure"
         }
        ],
-       "notes": "Streamed into the track-list parser, which runs the insert once per URI and metadata pair. The first failing entry's code is returned, or 1000 when the list itself cannot be parsed.",
+       "notes": "Streamed into the track-list parser, which runs the insert once per URI and metadata pair. The first failing entry's code is returned, or 1000 when the list itself cannot be parsed. Format: <URIs><URI uri=\"track URI\"><DIDL-Lite>track metadata</DIDL-Lite></URI>...</URIs>. URIs over 1024 bytes and metadata over 4096 bytes are cut; newlines in metadata become spaces; an XML parse failure gives 1000.",
        "buf_cap": null,
-       "todo": [
-        "Established: the blob is streamed through the f_1014ce8c parser, which calls f_105116e0 per entry.",
-        "Residual: the tokenisation grammar (separator between URI and metadata, between entries) lives in the parser vtable 0x10e937e0 and is not traced; next step is to disassemble its slots starting at f_10144950."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `EnqueuedURIsAndMetaData` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding): bound as a streaming sink by f_105615a8 (kind 8, parse site 0x1046531c) fed to the parser object initialised by f_1014ce8c at sp+0x174 (parser vtable 0x10e937e0, owner job at parser+8). The parser invokes the job's callback f_105116e0 (job vtable 0x10edfba4 slot +8) once per entry with the entry URI and metadata pointers; a parser error is the u16 at parser+0xc read at 0x105118dc."
+        "Resolved (binding): bound as a streaming sink by f_105615a8 (kind 8, parse site 0x1046531c) fed to the parser object initialised by f_1014ce8c at sp+0x174 (parser vtable 0x10e937e0, owner job at parser+8). The parser invokes the job's callback f_105116e0 (job vtable 0x10edfba4 slot +8) once per entry with the entry URI and metadata pointers; a parser error is the u16 at parser+0xc read at 0x105118dc.",
+        "Established (track-list grammar): the value is an XML document read by a SAX parser. f_1014ce8c tail-calls f_1037045c(parser+0x10, handler parser+4), which registers the callbacks with f_10c3ffa8: start element f_1037043c -> f_10370058, end element f_103706e0 -> f_10370564, character data f_1036fd7c -> f_1036fc90. Each callback returns at once when the stop byte reader+0xc is set. The start handler keeps the element depth at reader+0x1414. Until a <URIs> element is seen (strcmp at 0x103700bc, depth stored at reader+0x1418) every element is ignored. Inside <URIs>, a <URI> element (strcmp at 0x10370320) starts an entry, its depth is stored at reader+0x141c, and its attribute named uri (strcmp at 0x10370354) is copied with the bounded copy f_10906304(reader+0xd, value, 0x401) at 0x10370390, so at most 1024 bytes of the URI are kept. Inside a <URI>, a <DIDL-Lite> element (strcmp at 0x10370404) starts the metadata: it and every element, attribute and text node below it are written back out as XML text into reader+0x40e by f_1036fd9c ('<', ' ', '=\"', '\"', '>', '</'), with namespace declarations handled in f_1036fc90 (' xmlns', ':'). f_1036fd9c stops at reader+0x140f, so metadata beyond 4096 bytes is silently cut, and it replaces each newline byte 0x0a with a space (isel at 0x1036fde0). Other elements directly inside <URI> are ignored (0x1037040c). At </URI> (strcmp at 0x1037069c) the end handler calls the handler's slot +8 with (reader+0xd URI, reader+0x40e metadata) at 0x103706cc; f_101446ac -> f_10144650 passes the pair to the owner callback and records the first nonzero result at parser+0xc (0x1014468c). A nonzero result sets the stop byte (0x103706d8), so the remaining entries are skipped. </DIDL-Lite> and </URIs> clear their depth fields (0x1037061c, 0x10370688). f_10144c50 runs the parse (f_10c3fc68 -> f_10c3f440) and records 1000 at parser+0xc when the XML fails to parse and no entry error was recorded first (0x10144cc0). In plain terms: the argument must look like <URIs><URI uri=\"...\"><DIDL-Lite ...>...</DIDL-Lite></URI>...</URIs>. Each <URI> element is one track, its uri attribute is the track URI and its DIDL-Lite child is the track metadata."
        ]
       }
      },
@@ -67924,17 +67969,62 @@
          "function": "0x102f7bd0",
          "address": "0x102f7c40",
          "notes": "f_1014ce8c(parser,job)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370058",
+         "address": "0x103700bc",
+         "notes": "strcmp 'URIs'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370058",
+         "address": "0x10370354",
+         "notes": "attribute 'uri'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370058",
+         "address": "0x10370404",
+         "notes": "strcmp 'DIDL-Lite'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10370564",
+         "address": "0x103706cc",
+         "notes": "per-entry callback (URI, metadata)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1036fd9c",
+         "address": "0x1036fde0",
+         "notes": "newline to space"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144c50",
+         "address": "0x10144cc0",
+         "notes": "1000 on XML parse failure"
         }
        ],
-       "notes": "Streamed into the track-list parser, which runs the insert once per URI and metadata pair. The first failing entry's code is returned, or 1000 when the list itself cannot be parsed.",
+       "notes": "Streamed into the track-list parser, which runs the insert once per URI and metadata pair. The first failing entry's code is returned, or 1000 when the list itself cannot be parsed. Format: <URIs><URI uri=\"track URI\"><DIDL-Lite>track metadata</DIDL-Lite></URI>...</URIs>. URIs over 1024 bytes and metadata over 4096 bytes are cut; newlines in metadata become spaces; an XML parse failure gives 1000.",
        "buf_cap": null,
-       "todo": [
-        "Established: entries stream through the f_1014ce8c parser into f_102f7a50.",
-        "Residual: the tokenisation grammar lives in parser vtable 0x10e937e0 and is not traced; next step is to disassemble its slots from f_10144950."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `EnqueuedURIsAndMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding): bound as a streaming sink by f_105615a8 (parse site 0x10465510) feeding the f_1014ce8c parser (init at 0x102f7c40), which calls the job callback f_102f7a50 (job vtable 0x10eb2fd0 slot +8) per entry; the parser error is the u16 read at 0x102f7c8c."
+        "Resolved (binding): bound as a streaming sink by f_105615a8 (parse site 0x10465510) feeding the f_1014ce8c parser (init at 0x102f7c40), which calls the job callback f_102f7a50 (job vtable 0x10eb2fd0 slot +8) per entry; the parser error is the u16 read at 0x102f7c8c.",
+        "Established (track-list grammar): the value is an XML document read by a SAX parser. f_1014ce8c tail-calls f_1037045c(parser+0x10, handler parser+4), which registers the callbacks with f_10c3ffa8: start element f_1037043c -> f_10370058, end element f_103706e0 -> f_10370564, character data f_1036fd7c -> f_1036fc90. Each callback returns at once when the stop byte reader+0xc is set. The start handler keeps the element depth at reader+0x1414. Until a <URIs> element is seen (strcmp at 0x103700bc, depth stored at reader+0x1418) every element is ignored. Inside <URIs>, a <URI> element (strcmp at 0x10370320) starts an entry, its depth is stored at reader+0x141c, and its attribute named uri (strcmp at 0x10370354) is copied with the bounded copy f_10906304(reader+0xd, value, 0x401) at 0x10370390, so at most 1024 bytes of the URI are kept. Inside a <URI>, a <DIDL-Lite> element (strcmp at 0x10370404) starts the metadata: it and every element, attribute and text node below it are written back out as XML text into reader+0x40e by f_1036fd9c ('<', ' ', '=\"', '\"', '>', '</'), with namespace declarations handled in f_1036fc90 (' xmlns', ':'). f_1036fd9c stops at reader+0x140f, so metadata beyond 4096 bytes is silently cut, and it replaces each newline byte 0x0a with a space (isel at 0x1036fde0). Other elements directly inside <URI> are ignored (0x1037040c). At </URI> (strcmp at 0x1037069c) the end handler calls the handler's slot +8 with (reader+0xd URI, reader+0x40e metadata) at 0x103706cc; f_101446ac -> f_10144650 passes the pair to the owner callback and records the first nonzero result at parser+0xc (0x1014468c). A nonzero result sets the stop byte (0x103706d8), so the remaining entries are skipped. </DIDL-Lite> and </URIs> clear their depth fields (0x1037061c, 0x10370688). f_10144c50 runs the parse (f_10c3fc68 -> f_10c3f440) and records 1000 at parser+0xc when the XML fails to parse and no entry error was recorded first (0x10144cc0). In plain terms: the argument must look like <URIs><URI uri=\"...\"><DIDL-Lite ...>...</DIDL-Lite></URI>...</URIs>. Each <URI> element is one track, its uri attribute is the track URI and its DIDL-Lite child is the track metadata."
        ]
       }
      },
