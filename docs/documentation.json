@@ -65316,20 +65316,50 @@
     {
      "code": 401,
      "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "meaning": "Dispatcher rejection before action execution: the name is not in the table, or the named action exists but the AVTransport wrapper has no implementation object bound.",
      "fault_sites": [
       "0x102fa67c"
      ],
      "conditions": [
       {
-       "description": "Request action name matches no entry in the service dispatch table after the name-table search",
+       "description": "The action name does not match any of the 42 entries in the binary's action table.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x102fa650",
+         "notes": "The dispatcher binary-searches the 42 entries at 0x10eb3018. Each entry is 12 bytes; the strcmp result determines the next interval or selects the matching entry.",
+         "function": "0x102fa5c4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "address": "0x102fa67c",
-         "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
+         "notes": "Only one dispatcher fault call: li r4,0x191 at 0x102fa66c, TRequest slot +0x14 at 0x102fa674, then slot +0x38 tail call at 0x102fa6c4. A bound match invokes the action and reaches +0x38 without entering this reject tail.",
+         "function": "0x102fa5c4"
+        }
+       ]
+      },
+      {
+       "description": "The action name matches, but the wrapper's implementation pointer at svc+0x04 is null.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa6c8",
+         "notes": "On a name match, lwz r30,4(r23) loads the wrapper's impl pointer and the equal branch at 0x102fa6d0 goes to the same reject tail when this pointer is null.",
+         "function": "0x102fa5c4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa67c",
+         "notes": "Only one dispatcher fault call: li r4,0x191 at 0x102fa66c, TRequest slot +0x14 at 0x102fa674, then slot +0x38 tail call at 0x102fa6c4. A bound match invokes the action and reaches +0x38 without entering this reject tail.",
+         "function": "0x102fa5c4"
         }
        ]
       }
@@ -65339,18 +65369,28 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x102fa650",
+       "notes": "The dispatcher binary-searches the 42 entries at 0x10eb3018. Each entry is 12 bytes; the strcmp result determines the next interval or selects the matching entry.",
+       "function": "0x102fa5c4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fa6c8",
+       "notes": "On a name match, lwz r30,4(r23) loads the wrapper's impl pointer and the equal branch at 0x102fa6d0 goes to the same reject tail when this pointer is null.",
+       "function": "0x102fa5c4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "address": "0x102fa67c",
-       "notes": "fault raise site"
+       "notes": "Only one dispatcher fault call: li r4,0x191 at 0x102fa66c, TRequest slot +0x14 at 0x102fa674, then slot +0x38 tail call at 0x102fa6c4. A bound match invokes the action and reaches +0x38 without entering this reject tail.",
+       "function": "0x102fa5c4"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x102fa66c); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
-     ]
+     "notes": "These branches share the only dispatcher-authored 401 emit. Once an action handler is called, the dispatcher returns the request status; it does not replace handler results with 401."
     }
    ],
    "evidence": [
