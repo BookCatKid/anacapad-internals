@@ -167744,21 +167744,32 @@
   },
   "fmt_device_payload": {
    "name": "device-payload.bin format",
-   "summary": "The per-model device-payload section inside the .upd (also shipped standalone as package/*-device-payload.bin). It is a manufacturing/configuration data image, NOT the kernel/rootfs - those are separate .upd section types (0x06 and 0x04).",
-   "todo": [
-    "Residual: per-record semantics inside the 0xd5 calibration TLV stream and the trailing calibration pages - factory-producer (NCD) spec, not reachable from the anacapad image; the updater writes the blob opaquely."
-   ],
+   "summary": "The standalone device-payload artifact has a .bit-style FPGA configuration header and one binary body. It is separate from kernel.uImage and rootfs.squashfs. Earlier manufacturing/calibration-TLV interpretations were caused by a wrong-width length read.",
+   "todo": "Established: complete outer field boundaries, including the four-byte e length and exact EOF, and a native FPGA flash-writer branch. Residual: join the type0x0d updater output to the concrete FPGA programming/boot consumer, then decode the e-body packet/register configuration and resulting hardware behavior. The body is not a demonstrated calibration TLV stream; absence of a named NCD producer is not a reason to stop tracing shipped code.",
    "artifacts": [
     "package/86.10-80260-1-9-device-payload.bin",
     "package/86.10-80260-1-9-kernel.uImage",
     "package/86.10-80260-1-9-rootfs.squashfs"
    ],
    "resolved_findings": [
-    "Resolved (boundary): payload = the per-model kernel.uImage + rootfs.squashfs bundle written by the updater.",
-    "Layout: a 5-word prologue {0x0009, 0x0ff0, 0x0ff0, 0x0ff0, 0x0000} then a record stream of {u16 id/tag, u16 BE length, value} entries. The first record (id 0x0161, len 0x20) names the payload 'top_level.ncd;UserID=0xFFFFFFFF' (NCD = the board configuration-data class).",
-    "Tagged fields follow with ASCII-tag + u16 length: 'b' = firmware tag '3s50avq100', 'c' = date '2012/06/14', 'd' = time '23:19:49', then binary sections (tag 'e' and onwards) carrying erased-flash regions and calibration data.",
-    "Relationship to the other payloads: this is the model-specific board data the updater writes to its own flash region - the kernel.uImage and rootfs.squashfs ship as separate .upd sections (and as standalone package files), while device-payload.bin (55KB) is the small per-model calibration/config blob consumed by the type-0x0d section handler.",
-    "Recovered from the shipped artifact (86.10-80260-1-9-device-payload.bin, 54757 bytes): the outer stream is one 0x0161/0x20 header record 'top_level.ncd;UserID=0xFFFFFFFF' followed by {u8 tag, u16 BE len} records - 'b'='3s50avq100' (firmware tag), 'c'='2012/06/14' (build date), 'd'='23:19:49' (build time), 'e'=empty marker, then tag 0xd5 len 35071 = the calibration region opening with 0xaa99 magic and a dense nested TLV stream of 0x30xx/0x31xx/0x32xx/0x33xx-family records (repeated per-channel gain code patterns 0x0881/0x0920/0x1247 - amp/radio cal arrays). Region after 0x895d is sparse binary calibration pages to EOF."
+    "Byte-exact framing disproves the calibration-TLV interpretation. The 54757-byte shipped artifact starts with u16BE value9 at file+0, nine prologue bytes 0ff00ff00ff00ff000 at +2, then u16BE value1 at +0xb and ASCII a at +0xd. The a record has u16BE length32 at +0xe and NUL-terminated top_level.ncd;UserID=0xFFFFFFFF at +0x10. Thus 0x0161 was a conflation of the preceding word and the a tag, not a sixteen-bit record ID.",
+    "The b/c/d records use one-byte tags and u16BE lengths: b at +0x30 has length11 and string 3s50avq100; c at +0x3e has length11 and string 2012/06/14; d at +0x4c has length9 and string 23:19:49. The part-like value, NCD source filename and framing are consistent with a Xilinx .bit-style FPGA configuration artifact, not evidence of per-channel gain or radio calibration arrays.",
+    "The decisive extent is tag e at file+0x58. Its next FOUR bytes 00 00 d5 88 form u32BE length54664. Its binary value starts +0x5d and ends at +0xd5e5, exactly EOF. The first32 value bytes are ff, with aa99 at absolute +0x7d. There is no tag0xd5, no length35071 calibration record, and no separate trailing pages at +0x895d. The previously alleged nested TLVs were arbitrary words inside this one binary payload.",
+    "Native support for an FPGA flash target exists independently: libflash.so.1 hal_flash_reprogram_flash at 0x373c scans partition descriptors, and 0x3a78-0x3a90 emits Writing fpga to partition %d using the relocation at library VA0x1ff18 -> string0x3eb4 before calling its write helper f_34c0. This establishes a real FPGA writer, not yet the full type0x0d-to-standalone-file join or the packet/register semantics of the binary body. Those require further native tracing; no claim of an unreachable proprietary calibration producer remains."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-device-payload.bin",
+     "address": "0x58",
+     "notes": "File offset: tag e followed by u32BE 54664; body at0x5d ends exactly at EOF0xd5e5."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "address": "0x3a78",
+     "notes": "FPGA partition write branch; format string pointer relocation at0x1ff18 resolves to0x3eb4."
+    }
    ]
   },
   "sonos_custom_libs": {
