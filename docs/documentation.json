@@ -176672,7 +176672,7 @@
    "todo": "Established: f_100c6d3c is a descriptor-cache reload, not a catalog-difference comparator. Under the object+0x13a40 mutex it clears the cache, opens the live catalog with f_100c5fd0, parses descriptors using f_10554918 and copies successfully parsed rows to object+0x23c. Its optional output byte is set by f_10554918 only when the parsed count is strictly greater than the caller's original count; it is not a generic changed-document flag. f_100c6e20 copies an already-populated cache, otherwise falls back to this reload with no output byte. Remaining: Trace descriptor parser callbacks, initial-count/capacity initialization f_10554858 and account consumer f_101b7e90 to establish truncation/reconciliation semantics."
   },
   "0x1011b710": {
-   "description": "f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately.",
+   "description": "f_1011b710(this, sid, requestedVersion, uriField) performs the synchronous manifest download on the caller's thread; there is no queueing. Its only static caller is the descriptor-gated wrapper f_100c6c3c at 0x100c6d04, which itself is reached through the this-adjusting thunk 0x100c7460 and two direct call sites inside the refresh worker f_101b869c; f_101b869c runs under a refcount/guard-byte dispatch wrapper at 0x100bbc90 (guard byte 0x11090020, atomic stwcx counters). The wrapper does the service-descriptor lookup (vfunc+0x20), requires capability bit 0x400000, extracts a 0x401-byte URI field via f_105543d0 and a 16-bit version from ctx+0x138, then calls f_1011b710 on this+0x13ad0; it returns 0x192 when the capability check fails, else the worker's code. Inside f_1011b710: under the obj+0x10 mutex an already-set active byte +0xc4 is rejected with 800 (0x320); otherwise the byte is set and the mutex released, so the byte serializes only this entry point, never the file operations. No validation of sid, version or URI is performed here: sid and the caller-supplied version are stored verbatim at row+0/row+4 and the URI is memcpy'd 1025 bytes verbatim to row+8, so the persisted version is the descriptor-supplied 16-bit value, not anything from the HTTP response. It builds an HTTP GET via f_10545064 + f_10546520 with a clock-id 1 deadline now+10000ms; a nonzero f_10546520 result logs 'Failure ... ret=0x321, lRet=<raw>' and returns 801 (0x321). A zero status leads to streamed JSON parsing f_1011aabc(this, httpobj, deadline, model) with the same deadline; a zero parse result also returns 801. The row assembled on the stack is {sid@+0, version@+4, uri[0x401]@+8, model@+0x40c} matching the 0x4fc table stride; the model is the parsed body copied via f_102399a4. f_1011a5d0 then loads svcmanifests.json under the file mutex; failure only logs 'Failed to load manifests JSON file' and continues, so the upsert f_10119434 then works on whatever the failed parse left in the stack table (empty or a partial prefix) and a successful save rewrites the whole file with just that content, not merely one row. Upsert or save (public wrapper f_1011b65c) failure returns 801; with the saver's false-returning fallback stub, an 801 can still have installed a stub file and fired the kind13 observer. On success the code builds the '%u' sid string and inserts the row into the memory cache via f_1011be38(obj+0x1e0, key, row, 1), which takes the cache-internal +0x18 mutex itself; the file mutex is not held across the load/upsert/save sequence, so a delete or a second writer can commit between this thread's locked load and locked save (last whole-file writer wins), and cache readers can observe the old entry until the post-save insert lands. Return codes: 0 success, 800 busy (active byte already set), 801 any fetch/parse/upsert/save failure; the Failure log prints the mapped 801 as 'ret' and the raw f_10546520 status as 'lRet'. The active byte is cleared under the mutex on every normal exit but there is no RAII guard or catch, so an exception thrown by a callee leaves the byte set and the entry point rejects further runs with 800.",
    "why_external": "Determines observable service-manifest download status, concurrency and cache/file side effects.",
    "required_for_behavior": true,
    "role": "music_service_manifest",
@@ -176683,9 +176683,63 @@
      "build": "86.10-80260",
      "address": "0x1011b710",
      "notes": "Instruction-level trace in the 86.10-80260 binary; see svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6d04",
+     "function": "0x100c6c3c",
+     "notes": "Sole call site: wrapper does descriptor vfunc+0x20 lookup, tests flags&0x400000, extracts 0x401-byte URI (f_105543d0) and hword version ctx+0x138, calls worker on this+0x13ad0; returns 0x192 when gated."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b810",
+     "function": "0x1011b710",
+     "notes": "f_10546520(httpobj,uri,0,0,&deadline,0); nonzero result -> 'Failure' log then 0x321; zero -> streamed parse f_1011aabc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b944",
+     "function": "0x1011b710",
+     "notes": "Row assembly: sid at sp+0x128, requested version at +0x12c, memcpy(uri,0x401) at +0x130, parsed model copied to +0x534 (row+0x40c) via f_102399a4; no validation of inputs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b970",
+     "function": "0x1011b710",
+     "notes": "Load f_1011a5d0; zero result only logs 'Failed to load manifests JSON file' (0x1011ba74) then continues to upsert f_10119434 and save f_1011b65c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b83c",
+     "function": "0x1011b710",
+     "notes": "Common tail relocks obj+0x10, clears +0xc4, unlocks; every normal exit clears the byte; no catch block in function."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100bbc90",
+     "notes": "Caller-side dispatch wrapper: guard byte 0x11090020, atomic stwcx refcount inc/dec around f_101b869c; all synchronous."
     }
    ],
-   "todo": "Established: f_1011b710 takes service ID, requested manifest version and a URI. Under object+0x10 mutex it rejects an already-set active byte +0xc4 with 800; otherwise it sets the byte, releases the mutex, constructs an HTTP GET with a clock-id 1 deadline 10000ms in the future and calls f_10546520. Zero HTTP status leads to streamed JSON parsing f_1011aabc using the same deadline. Failure of HTTP, JSON parsing, cache-row upsert or persistence returns 801. Success returns zero. The active byte is cleared under the mutex on normal completion. Failure to load existing svcmanifests.json logs a warning and continues to upsert and save, rather than aborting immediately. Remaining: Trace source/version input validation, HTTP/JSON error causes, asynchronous caller propagation and races with cache/file writers; basic cache policy is documented in svc_manifest.details.cache_lookup."
+   "resolved_findings": [
+    "Established: no input validation inside f_1011b710; sid and the descriptor-supplied 16-bit version are stored verbatim, the 0x401-byte URI field is memcpy'd verbatim; the only gates are the wrapper's 0x400000 capability check, HTTP status, JSON parse, the 34-row upsert cap and the save result.",
+    "Established: 801 aggregates f_10546520 HTTP failure, f_1011aabc streamed-parse failure, upsert failure and save failure, including the saver's false-returning fallback that still installs a stub file and fires kind13.",
+    "Established: a failed f_1011a5d0 load only logs a warning; the following upsert+save rewrites the file from the stack table contents (possibly only the new row), so refresh can collapse the persisted set.",
+    "Established: the +0xc4 byte serializes only this function; the load/upsert/save/cache-insert steps are separately locked operations, so interleaving writers can commit between them and a throw leaves the byte stuck set.",
+    "Established: the failure log prints ret=0x321 (the mapped code) and lRet=<raw f_10546520 status>, and the wrapper maps a missing 0x400000 capability to 0x192 before the worker runs.",
+    "Resolved boundary: the concrete HTTP result domain of f_10546520 and the parse-status domain of f_1011aabc belong to their own records; here only the zero/nonzero test is observable."
+   ]
   },
   "0x10119434": {
    "description": "Manifest row upsert f_10119434 replaces an existing row with the same sid. For a new sid it permits append while count<=33, reaching a maximum of 34 rows; a full 34-row table rejects a new sid. Existing rows can still be replaced at capacity. Constructor f_101191c8 initializes exactly 34 row objects at stride 0x4fc.",
