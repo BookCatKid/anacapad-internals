@@ -81602,7 +81602,7 @@
      }
     },
     "SetMute": {
-     "description": "Writes the per-channel mute byte (impl+0x7f1/2/3/4) under the impl mutex; on the Master path it additionally syncs the volume u16 (+0x7da -> +0x3c8, with a +0x7e0 -> +0x7da snapshot when both flags +0x7ff and +0x801 are set), applies committed state via f_100d7f34, sets the dirty flag impl+0x7f5=1 and emits two notifications (f_1067c6ec on impl+8, then f_100d993c).",
+     "description": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind. Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established. Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b334",
@@ -81638,7 +81638,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric rendering-instance selector; this zone player implements exactly one rendering instance.",
+       "description": "Required instance selector; only zero is accepted by the local worker and the mute source-hook gate.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -81657,32 +81657,86 @@
         "min": 0,
         "max": 0
        },
-       "special_values": {
-        "0": "the only instance implemented; any other value faults with 702"
-       },
+       "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "Request layer faults 402 if absent/malformed (req vfunc +0x08). The worker f_100d99b0 checks it under the mutex: nonzero -> return 0x2be (0x100d9a00-0x100d9ab8).",
+       "validation": "Nonzero ultimately returns local 702, although forwarding may already have run.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b374",
-         "notes": "in-arg access site"
+         "address": "0x10ed2718",
+         "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d8568",
+         "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e50c",
+         "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046af78",
+         "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d99b0",
+         "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9a7c",
+         "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b40c",
+         "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
         }
        ],
-       "notes": null
+       "notes": "Forwarding can precede local checks; public status does not forward peer errors."
       },
       "Channel": {
-       "description": "Audio channel selector string; compared verbatim (strcmp, case-sensitive) by the implementation.",
+       "description": "Required case-sensitive local channel selector; forwarded unchanged to peers.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -81701,36 +81755,87 @@
         "FocusMode"
        ],
        "range": "max 1023 chars",
-       "special_values": {
-        "Master": "writes impl+0x7f1 and additionally runs a flag-gated volume-field sync (impl+0x7e0 -> +0x7da) when BOTH impl+0x7ff and impl+0x801 are nonzero",
-        "LF": "writes impl+0x7f2",
-        "RF": "writes impl+0x7f3",
-        "FocusMode": "writes impl+0x7f4 - a fourth channel accepted by SetMute but rejected by GetMute"
-       },
+       "special_values": "Master may enter the optional source hook; FocusMode is local-only for that hook gate.",
        "required": true,
        "default": "none",
-       "validation": "Worker strcmp chain at 0x100d9a08-0x100d9b48; unmatched token returns 402 (r30 preset to 0x192 at 0x100d9b34).",
+       "validation": "Unknown local token returns 402 after the instance check.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b398",
-         "notes": "in-arg access site"
+         "address": "0x10ed2718",
+         "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x100d8568",
+         "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e50c",
+         "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046af78",
+         "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d99b0",
+         "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9a7c",
+         "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b40c",
+         "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
         }
        ],
-       "notes": null,
+       "notes": "Forwarding can precede local checks; public status does not forward peer errors.",
        "buf_cap": 1024
       },
       "DesiredMute": {
-       "description": "Requested mute state; stored verbatim as the channel's mute byte.",
+       "description": "Required parsed boolean byte stored in the selected channel cache; remote formatting normalizes zero/nonzero to 0/1.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -81742,61 +81847,635 @@
        "semantic_type": "mute flag",
        "format": "integer parsed into a u16/u8-sized argument record",
        "unit": "none",
-       "accepted_values": "any parsed value - stored as a byte; no boolean normalization observed in the impl",
-       "range": "unconstrained",
+       "accepted_values": "Boolean parser result",
+       "range": "parsed boolean byte",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "Request-layer parse only (req vfunc +0x08); the impl stores the low byte without range checks.",
+       "validation": "No additional value predicate in the local setter; parser byte width alone does not establish all accepted lexical forms.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b3c0",
-         "notes": "in-arg access site"
+         "address": "0x10ed2718",
+         "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ec3ab4",
-         "notes": "argument name string"
+         "address": "0x100d8568",
+         "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "stb r26,0x7f1(this): desired byte written to Master mute field",
-         "address": "0x100d9a24",
-         "function": "0x100d99b0"
+         "address": "0x1022abac",
+         "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e50c",
+         "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046af78",
+         "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d99b0",
+         "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9a7c",
+         "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b40c",
+         "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
         }
        ],
-       "notes": null
+       "notes": "Forwarding can precede local checks; public status does not forward peer errors."
       }
      },
      "outputs": {},
-     "validation": "InstanceID must equal 0 (else 702); Channel must be exactly Master, LF, RF or FocusMode (else 402). DesiredMute is not range-validated.",
-     "requirements": "impl mutex free; in derived-class impls the prelude object at impl+0xbc8/+0x9c8 must initialize (f_1046dff0/f_1046c3cc).",
-     "state_dependencies": "flags impl+0x7ff && impl+0x801 gate the +0x7e0->+0x7da snapshot on the Master path",
+     "validation": {
+      "description": "Required request arguments must parse. Local application requires InstanceID zero and exact Master/LF/RF/FocusMode. Forwarding precedes those local checks and its errors do not prevent local application; the special source hook has its own gate described above. No general fixed-output-mode rejection applies to local mute. The boolean descriptor supplies a byte; no arbitrary-numeric lexical acceptance is inferred.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2718",
+        "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8568",
+        "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e50c",
+        "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046af78",
+        "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d99b0",
+        "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9a7c",
+        "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b40c",
+        "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required request arguments must parse. Local application requires InstanceID zero and exact Master/LF/RF/FocusMode. Forwarding precedes those local checks and its errors do not prevent local application; the special source hook has its own gate described above. No general fixed-output-mode rejection applies to local mute.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2718",
+        "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8568",
+        "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e50c",
+        "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046af78",
+        "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d99b0",
+        "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9a7c",
+        "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b40c",
+        "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind. Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs.",
+      "todo": [
+       "Established: Topology, source-control lookup, cached channel/mode/shadow fields and backend references.",
+       "Unknown: Concrete other-source and backend dependencies. ",
+       "Next: Bind other registered provider +0x30 / returned +0x0c workers, concrete +0x3ac/+0x3b4 backend methods below f_100d7f34, and f_1046c148 topology sessions before claiming their external effects."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2718",
+        "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8568",
+        "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e50c",
+        "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046af78",
+        "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d99b0",
+        "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9a7c",
+        "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b40c",
+        "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Writes mute byte impl+0x7f1..0x7f4 (Master/LF/RF/FocusMode) under mutex +0x938; on the Master path syncs +0x7e0->+0x7da when flags +0x7ff and +0x801 are both set, mirrors +0x7da->+0x3c8, commits via f_100d7f34, sets dirty flag +0x7f5=1 and notifies (f_1067c6ec on impl+8 arg 0x1f5, then f_100d993c).",
+       "description": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established. Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs. f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving.",
+       "todo": [
+        "Established: Peer requests, failure counter/cleanup submission, synchronous cached writes, dirty/event/timer work, including mutations before 501.",
+        "Unknown: Concrete source-control/backend effects, cleanup completion and durable saving.",
+        "Next: Bind other registered provider +0x30 / returned +0x0c workers, concrete +0x3ac/+0x3b4 backend methods below f_100d7f34, and f_1046c148 topology sessions before claiming their external effects. Finish deferred provider +0x3bc slot +0x14 / f_10167318."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100db3fc",
-         "address": "0x100d9a24",
-         "notes": "stb desired,+0x7f1 at 0x100d9a24; sync at 0x100d9a3c; notify f_1067c6ec at 0x100d9a80"
+         "address": "0x10ed2718",
+         "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d8568",
+         "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1022abac",
+         "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046e50c",
+         "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046af78",
+         "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d99b0",
+         "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9a7c",
+         "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1046c368",
+         "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b40c",
+         "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
         }
        ]
       }
      ],
-     "events_triggered": "Two event/notify calls follow the write (f_1067c6ec at 0x100d9a80 on impl+8 with r10=0x1f5, then f_100d993c at 0x100d9a88); impl+0x7f5=1 marks rendering state dirty - consistent with LastChange eventing of Mute/Volume but the emitted payload is generated downstream (not statically recovered).",
-     "state_transitions": "channel mute byte 0->1 or 1->0 per channel field",
-     "return_behavior": "Success is signaled by the implementation leaving cr0.eq=1 at return (the callee performs a cr0-writing op such as 'mr. r30,r3' on its status); the wrapper then emits outputs via req vfunc +0x24 and commits via +0x14. Any other path calls req vfunc +0x14 with r4 = implementation return code, producing a SOAP fault whose numeric code equals the impl return value. Success means the byte was committed locally and the apply/notify sequence ran; in derived-class (proxy) impls a grouped-operation prelude runs first.",
+     "events_triggered": {
+      "description": "An accepted local channel marks +0x7f5 and requests f_1067c6ec(this+8), even if application later reports 501. Hook-handled calls skip this normal RC path. Peer requests and optional action-result diagnostics do not prove LastChange or delivery.",
+      "todo": [
+       "Established: Local dirty/source-request reachability and hook suppression of the normal local path.",
+       "Unknown: Payload/sender delivery and events from concrete hook/backend/cleanup workers.",
+       "Next: Bind RC metadata serializer and f_1067c6ec -> f_1067c46c -> f_10678c50 attached sender; follow concrete source/backend/cleanup workers named in action TODO."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2718",
+        "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8568",
+        "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e50c",
+        "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046af78",
+        "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d99b0",
+        "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9a7c",
+        "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b40c",
+        "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs. Forwarded peer results do not determine the local transition; hook success bypasses the ordinary cached transition.",
+      "todo": [
+       "Established: All local cache transitions and no rollback on apply-zero 501.",
+       "Unknown: Completed device mute, source-control effects, membership cleanup and durable storage.",
+       "Next: Bind other registered provider +0x30 / returned +0x0c workers, concrete +0x3ac/+0x3b4 backend methods below f_100d7f34, and f_1046c148 topology sessions before claiming their external effects. Finish settings provider +0x3bc slot +0x14 and f_10167318."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2718",
+        "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8568",
+        "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e50c",
+        "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046af78",
+        "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d99b0",
+        "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9a7c",
+        "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b40c",
+        "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Hook-handled call returns 0. Otherwise returns ONLY local 702/402/501/0, irrespective of proxy or cleanup status; there are no outputs. Local 501 can follow cached mutations, notification request and timer scheduling. Dispatcher rejects with 401 and request parsing with 402. No event delivery or hardware completion is implied by 0.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2718",
+        "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8568",
+        "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1022abac",
+        "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046e50c",
+        "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046af78",
+        "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d99b0",
+        "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d9a7c",
+        "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1046c368",
+        "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b40c",
+        "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b420",
@@ -81807,21 +82486,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Dispatcher rejects unknown action or null implementation.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Dispatcher rejects unknown action or null implementation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Dispatcher rejects unknown action or null implementation."
           }
          ]
         }
@@ -81831,42 +82509,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Dispatcher rejects unknown action or null implementation."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper, or unrecognized Channel token (not Master/LF/RF/FocusMode) rejected by the worker.",
+       "meaning": "Request validation fails or local Channel is not exact Master/LF/RF/FocusMode.",
        "fault_sites": [
         "0x1073b420"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request validation fails or local Channel is not exact Master/LF/RF/FocusMode.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073b420"
-          }
-         ]
-        },
-        {
-         "description": "Channel not in {Master, LF, RF, FocusMode}",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073b420"
+           "address": "0x100d9b34",
+           "notes": "Request validation fails or local Channel is not exact Master/LF/RF/FocusMode."
           }
          ]
         }
@@ -81876,38 +82539,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073b420"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "r30=0x192 preset before final strcmp; mismatch -> return 402",
          "address": "0x100d9b34",
-         "function": "0x100d99b0"
+         "notes": "Request validation fails or local Channel is not exact Master/LF/RF/FocusMode."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 702,
-       "code_expr": null,
-       "meaning": "InstanceID nonzero; checked inside worker f_100d99b0 under the mutex.",
+       "meaning": "Nonzero InstanceID reaches the local worker; peer forwarding may already have run.",
        "fault_sites": [
         "0x1073b420"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "Nonzero InstanceID reaches the local worker; peer forwarding may already have run.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073b420"
+           "address": "0x100d9ab8",
+           "notes": "Nonzero InstanceID reaches the local worker; peer forwarding may already have run."
           }
          ]
         }
@@ -81917,20 +82569,40 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073b420"
-        },
+         "address": "0x100d9ab8",
+         "notes": "Nonzero InstanceID reaches the local worker; peer forwarding may already have run."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Local cached mute is already written, but f_100d7f34 returns zero; dirty/event/timer work still occurs.",
+       "fault_sites": [
+        "0x1073b420"
+       ],
+       "conditions": [
+        {
+         "description": "Local cached mute is already written, but f_100d7f34 returns zero; dirty/event/timer work still occurs.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d9a7c",
+           "notes": "Local cached mute is already written, but f_100d7f34 returns zero; dirty/event/timer work still occurs."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "cmpwi r29(instID); bne -> return 0x2be",
-         "address": "0x100d9a00",
-         "function": "0x100d99b0"
+         "address": "0x100d9a7c",
+         "notes": "Local cached mute is already written, but f_100d7f34 returns zero; dirty/event/timer work still occurs."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -81939,37 +82611,89 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b334",
-       "address": "0x1073b334",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2718",
+       "notes": "Primary slot +0x0c contains f_1046c0b0; secondary +0x9c at 0x10ed27a8 contains f_1046e50c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e78",
-       "notes": "action dispatch table entry"
+       "address": "0x100d8568",
+       "notes": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl shim: lock +0x938, log 'SetMuteWithoutProxy ch:%s, on:%d', call worker f_100d99b0, unlock, return worker rc",
-       "function": "0x100db3fc"
+       "address": "0x1022abac",
+       "notes": "Literal r3=0 return proves the concrete Spotify +0x30 getter cannot yield a source-control interface."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "derived-class SetMute: grouped-op prelude then base f_100db3fc",
-       "function": "0x1046e50c"
+       "address": "0x1046e50c",
+       "notes": "Fallback dispatch uses primary +0x9c -> f_1046e50c. It calls f_1046dff0 with flag 1, then f_1046c3cc, then ALWAYS f_100db3fc -> f_100d99b0, discarding both forwarding and cleanup status. The topology snapshot must have byte +0 nonzero and word +0x288 zero to forward. Constant-true filter f_10472504 admits remote entries; f_1046b49c clones the 12-byte capture, and f_1046af78 formats the original InstanceID, Channel and boolean DesiredMute into RenderingControl SetMute. Endpoint preparation failure selects internal 1034 and stops new preparation; already prepared sessions still wait through f_106fb998 with a 2000-ms deadline. Last nonzero session halfword +0x2722 becomes the internal proxy status, not the public result. f_1046c3cc resets +0xc54 on zero, increments on nonzero and invokes f_1046c148 after more than two consecutive failures. That helper can prepare VerifyThenRemoveSystemwide topology work; completed membership removal is not established."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046af78",
+       "notes": "Formats captured InstanceID/Channel/DesiredMute; boolean f_1055fc08 emits 0/1. f_1046b49c modes 1/2/3 copy pointer, clone 12 bytes, free 12 bytes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d99b0",
+       "notes": "Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c even when the apply boolean is zero. Zero apply selects 501; nonzero selects 0. No equality shortcut, general +0x7ff rejection or rollback occurs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9a7c",
+       "notes": "Raw 0x7fca4f9e is isel r30,r10,r9,30, r10=501/r9=0 after apply-result compare: zero apply selects 501, not success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046c368",
+       "notes": "Raw 0x7f394f9e is isel r25,r25,r9,30 after work-flag compare, r9=1024: no work preserves original status; work selects 1024, which public SetMute discards."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "notes": "f_100d7f34 computes combined mute/volume application using the cached channel state and backend objects +0x3ac/+0x3b4; its boolean is distinct from hardware completion. Timer f_100d993c schedules f_100d7d6c, then f_100d78a4 attempts deferred EQ-key storage via +0x3bc slot +0x14 and f_10167318. Source requests, deferred writes and prepared peer operations are separate from successful subscriber delivery or durable saving."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b40c",
+       "notes": "Fresh mr. tests numeric implementation result; nonzero faults at 0x1073b420 and zero commits an empty response. Wrapper required-argument validation precedes primary +0x0c call at 0x1073b404."
       }
      ],
-     "notes": "'SetMuteWithoutProxy' log tag in base impl vs the 0x1046xxxx prelude in the derived class shows the two impl classes differ in group/proxy handling of the same SOAP action.",
+     "notes": "The fresh wrapper status test and concrete primary/fallback binding replace inherited context-worker and unconditional hardware-completion claims.",
      "todo": [
-      "Established: dispatch and handler 0x1073b334 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+      "Established: Actual hook/proxy/local chain, concrete Spotify null getter, swallowed forwarding status and cache/application ordering.",
+      "Unknown: Other registered source-control interfaces, concrete backend application, topology cleanup completion and subscriber/durable outcomes.",
+      "Next: Bind other f_106a76b8 provider registrations +0x30 and returned +0x0c; follow f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, backend +0x3ac/+0x3b4 below f_100d7f34, storage +0x3bc slot +0x14 / f_10167318, and RC sender."
+     ],
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x0c",
+      "function": "0x1046c0b0",
+      "fallback_slot": "0x9c",
+      "fallback": "0x1046e50c",
+      "proxy": "0x1046dff0",
+      "local": "0x100db3fc",
+      "cache_worker": "0x100d99b0"
+     }
     },
     "SetOutputFixed": {
      "description": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding.",
