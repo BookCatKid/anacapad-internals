@@ -62885,7 +62885,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The wrapper commits a response, not a transport event. f_102e0fb0 on the group local-success path is a peer SetAVTransportURI fan-out, not a LastChange notification.",
+      "description": "The wrapper commits a response, not a transport event. f_102e0fb0 on the group local-success path is a peer SetAVTransportURI fan-out, not a LastChange notification. The shared URI worker has a branch that sets the current URI dirty byte and signals LastChange; clearing a present next URI on that branch separately dirties the next URI and metadata.",
       "evidence": [
        {
         "type": "firmware",
@@ -62926,10 +62926,58 @@
         "address": "0x10512c80",
         "notes": "With prior group-URI state and successful local result, calls f_102e0fb0. Its 0x102e10e4/0x102e1340 path forwards SetAVTransportURI with a generated group URI.",
         "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c4c8",
+        "notes": "f_1067c6ec calls the shared UPnP event scheduler. The scheduler marks the sender pending and requests its event work through f_10678c50, not a synchronous SOAP response or outbound event body.",
+        "function": "0x1067c46c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e61f8",
+        "notes": "Both engine tables bind +0x200 to 0x102e6048 (table words 0x10eaf4ec and 0x10edfdb8). It locks impl+0x458 and calls f_102e43a0 at 0x102e61d4 and 0x102e61f8 for the two subscriber groups, with r7=1 and r7=0 respectively. The formatter opens LastChange for InstanceID 0 at 0x102e47b0.",
+        "function": "0x102e6048"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102cf320",
+        "notes": "One shared URI worker branch marks +0x4251, sets +0x4252 when clearing a nonempty next URI, and schedules a notification via impl+0x10. It also clears +0x7764 and sets +0x7765 if restart was pending.",
+        "function": "0x102ceb40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e4a50",
+        "notes": "Writes AVTransportURI using the collected source string and AVTransportURIMetaData from +0x9dd at 0x102e4aa0. Next URI fields are written separately and can use the +0xa095 delta flag.",
+        "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b56d8",
+        "notes": "Samples impl+0x4252 into pending event byte +0xa095 if not already pending. A consuming pass clears the source dirty byte at 0x102b57bc.",
+        "function": "0x102b5658"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e4d7c",
+        "notes": "The delta branch checks +0xa095, then writes NextAVTransportURI from +0x1a03 and NextAVTransportURIMetaData from +0x1e04; full serialization can write the pair without this test.",
+        "function": "0x102e43a0"
        }
       ],
       "todo": [
-       "Trace f_102ceb40's local notifications to specific changed LastChange fields and distinguish them from effects of the peer SetAVTransportURI RPCs."
+       "Identify which input URI or restored/cleared source categories take the confirmed URI notification branch versus notifying elsewhere, and track other fields dirtied by those branches."
       ]
      },
      "state_transitions": {
