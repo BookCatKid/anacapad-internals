@@ -20864,7 +20864,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads impl+0x1ac0, then under the object+0x8 mutex reads the stored play id at object+0x98 and the audio source at object+0x9c.",
+      "description": "Reads impl+0x1ac0. Before locking object+0x8, f_104f6414 reads the source at +0x9c (0x104f6448) and queries its current play id through slot +0x30 (0x104f6460). It checks the stored play id at object+0x98 under the later lock.",
       "evidence": [
        {
         "type": "firmware",
@@ -20937,7 +20937,10 @@
       }
      ],
      "events_triggered": {
-      "description": "None; no event publisher is reached from the wrapper, the worker or f_104f6414.",
+      "description": "There is no direct publisher in the wrapper, mapper or sender; the sender delegates to the chirp audio source.",
+      "todo": [
+       "Bind the audio-source slots +0x30 and +0x20 at 0x104f6460 and 0x104f65d4 and check whether they publish any events."
+      ],
       "evidence": [
        {
         "type": "firmware",
@@ -20951,12 +20954,15 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x104f6414",
-        "notes": "only log helpers"
+        "notes": "The current-play-id and stop calls delegate through the audio source vtable"
        }
       ]
      },
      "state_transitions": {
-      "description": "On success the room-detection object returns to idle with its play id cleared; every failure path leaves the chirp and the stored id untouched.",
+      "description": "The sender clears the stored play id at 0x104f65e4 only when the audio-source stop call succeeds. A zero return at 0x104f65d8 branches to failure without rolling back any effects of that call.",
+      "todo": [
+       "Resolve the audio-source stop implementation called at 0x104f65d4 and check whether a zero return can change playback even though the stored play id is unchanged."
+      ],
       "evidence": [
        {
         "type": "firmware",
