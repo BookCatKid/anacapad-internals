@@ -79268,7 +79268,7 @@
      ]
     },
     "SetOutputFixed": {
-     "description": "Builds/fills a 0x34-byte config record (size tag 0x34, fields zeroed, then conditional fills) and reads flags +0x7ff/+0x801 off an object in r4 - the impl signature differs from the standard (impl,instID,val) shape: it operates on a caller-supplied record and a second object.",
+     "description": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b5b4",
@@ -79304,7 +79304,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Required instance selector; nonzero faults with 702, and zero reaches the documented implementation rejection.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -79316,32 +79316,81 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - impl uses r4 as an object pointer, not the instID value",
-       "range": "unconstrained at impl level",
+       "accepted_values": "Required parser result; cannot cause a successful setting change",
+       "range": "ui4",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Numeric ui4 request parser; no successful instance on this binding.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b5f4",
-         "notes": "in-arg access site"
+         "address": "0x10ed2764",
+         "notes": "Bound primary slot +0x58 contains f_100dc548."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x1073b644",
+         "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc548",
+         "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc340",
+         "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc374",
+         "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102a56b4",
+         "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f6000",
+         "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc380",
+         "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b664",
+         "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
         }
        ],
-       "notes": null
+       "notes": "The requested setting does not alter the documented failure outcome."
       },
       "DesiredFixed": {
-       "description": "Requested fixed-output state; arrives in the impl's record-building convention (impl zeroes a 0x34 record at r3 and reads flags +0x7ff/+0x801 from an object in r4).",
+       "description": "Required boolean request byte; ignored by the reachable failure-only implementation path.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -79353,68 +79402,428 @@
        "semantic_type": "fixed-output flag",
        "format": "integer/bool",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "unconstrained",
+       "accepted_values": "Required parser result; cannot cause a successful setting change",
+       "range": "boolean parser byte",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Type-1 byte destination configured by f_10561444; no additional value predicate before capability rejection.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b618",
-         "notes": "in-arg access site"
+         "address": "0x10ed2764",
+         "notes": "Bound primary slot +0x58 contains f_100dc548."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0af74",
-         "notes": "argument name string"
+         "address": "0x1073b644",
+         "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dcfc0",
-         "address": "0x100dcfc0",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x100dc548",
+         "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc340",
+         "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc374",
+         "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102a56b4",
+         "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f6000",
+         "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc380",
+         "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b664",
+         "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `DesiredFixed` is parsed then forwarded verbatim to r5-in vfunc +88 (site 0x1073b65c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
+       "notes": "The requested setting does not alter the documented failure outcome.",
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredFixed` = verbatim forward to impl vfunc +88 (obj r5-in, call site 0x1073b65c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse.",
-     "requirements": "record/object args per impl convention",
-     "state_dependencies": "flags +0x7ff/+0x801 read on the target object",
+     "validation": {
+      "description": "Required inputs use the existing request parser descriptors. Implementation statuses depend only on InstanceID and the documented local configuration/capability gate, not the requested setting.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2764",
+        "notes": "Bound primary slot +0x58 contains f_100dc548."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b644",
+        "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc548",
+        "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc340",
+        "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc374",
+        "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a56b4",
+        "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6000",
+        "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc380",
+        "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b664",
+        "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required arguments must pass request-layer validation. There is no successful implementation setting change on this concrete binding. Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2764",
+        "notes": "Bound primary slot +0x58 contains f_100dc548."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b644",
+        "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc548",
+        "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc340",
+        "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc374",
+        "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a56b4",
+        "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6000",
+        "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc380",
+        "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b664",
+        "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads byte +0x801 in the outer guard and the device+0x3ac -> +0x34 pointer needed for the constant-false capability helper. Nonzero InstanceID bypasses the capability call. No fixed-output or volume field is updated.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2764",
+        "notes": "Bound primary slot +0x58 contains f_100dc548."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b644",
+        "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc548",
+        "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc340",
+        "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc374",
+        "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a56b4",
+        "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6000",
+        "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc380",
+        "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b664",
+        "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Builds a 0x34-byte status record; when flags impl+0x7ff and impl+0x801 are both set the record is filled with the literal 'Cannot set volume in fixed output mode' (reused error text) and the call fails; otherwise it invokes this->vfunc[+0xe4] and requires a 0x34-byte reply.",
+       "description": "Acquires/releases mutex +0x938. Capability rejection prevents all later fixed-output, volume, EQ, dirty-state, backend and notification changes.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dcfc0",
-         "address": "0x100dd0b4",
-         "notes": "error-text path 0x100dd0b4; vfunc +0xe4 at 0x100dd050"
+         "address": "0x10ed2764",
+         "notes": "Bound primary slot +0x58 contains f_100dc548."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b644",
+         "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc548",
+         "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc340",
+         "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc374",
+         "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102a56b4",
+         "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f6000",
+         "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc380",
+         "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b664",
+         "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying fixed-volume output (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists fixed-volume output into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": "none: the reachable implementation path has no event-source request or renderer observer dispatch.",
+     "state_transitions": "none: all validated implementation calls return a failure before any rendering setting is changed.",
+     "return_behavior": {
+      "description": "Every validated call faults; no successful empty action response is reached. 702 for nonzero InstanceID, otherwise 501 from the constant-false capability gate. Request validation separately selects 402; dispatcher unknown-action/null-implementation selects 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2764",
+        "notes": "Bound primary slot +0x58 contains f_100dc548."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b644",
+        "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc548",
+        "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc340",
+        "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc374",
+        "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102a56b4",
+        "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f6000",
+        "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc380",
+        "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b664",
+        "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b678",
@@ -79425,21 +79834,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -79449,43 +79857,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Required request argument validation failed.",
        "fault_sites": [
-        "0x1073b654",
         "0x1073b678"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request argument validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073b654"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073b678"
+           "address": "0x1073b678",
+           "notes": "Required request argument validation failed."
           }
          ]
         }
@@ -79495,19 +79887,66 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073b654"
-        },
+         "address": "0x1073b678",
+         "notes": "Required request argument validation failed."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "InstanceID is zero and the concrete fixed-output capability helper returns constant false.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is zero and the concrete fixed-output capability helper returns constant false.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dc380",
+           "notes": "InstanceID is zero and the concrete fixed-output capability helper returns constant false."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073b678"
+         "address": "0x100dc380",
+         "notes": "InstanceID is zero and the concrete fixed-output capability helper returns constant false."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dc340",
+           "notes": "InstanceID is nonzero."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc340",
+         "notes": "InstanceID is nonzero."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -79516,34 +79955,72 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b5b4",
-       "address": "0x1073b5b4",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2764",
+       "notes": "Bound primary slot +0x58 contains f_100dc548."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e84",
-       "notes": "action dispatch table entry"
+       "address": "0x1073b644",
+       "notes": "Wrapper supplies internal volume argument r6=100 and DesiredFixed byte r5; calls primary slot +0x58."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: 0x34-record zero-init at r3, flag reads +0x7ff/+0x801 on r4 object",
-       "function": "0x100dcfc0"
+       "address": "0x100dc548",
+       "notes": "Primary slot +0x58 is f_100dc548. SOAP supplies InstanceID, DesiredFixed byte and an internal volume argument 100. The implementation guards mutex +0x938, reads byte +0x801, and calls f_100dc2f8. That worker returns 702 for nonzero InstanceID. For zero it calls f_102a56b4(device +0x3ac), which loads device+0x34, adds 0xe0 and tail-calls f_107f6000; this concrete terminal function returns constant 0. The worker therefore returns 501 at its capability gate. Later level validation, +0x7ff writes, renderer calls and notification paths in f_100dc2f8 are unreachable for this SOAP binding."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100dc340",
+       "notes": "Worker validates InstanceID and returns 702 when nonzero, before capability lookup."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100dc374",
+       "notes": "Concrete call f_102a56b4 receives device pointer loaded from RC+0x3ac."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102a56b4",
+       "notes": "Loads device+0x34, adds 0xe0 and tail-calls f_107f6000."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f6000",
+       "notes": "Complete terminal body has only stack adjustment, r3=0, stack restoration and blr."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100dc380",
+       "notes": "Capability result zero branches directly to epilogue with 501; subsequent level bounds and all mutating code are not executed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b664",
+       "notes": "Wrapper freshly tests implementation status with mr.; every validated implementation call reaches the fault path."
       }
      ],
-     "notes": "Flag +0x7ff is the same byte that gates SetVolume's write and selects volume fields in GetHeadphoneConnected - SetOutputFixed is very likely its writer.",
-     "todo": [
-      "Established: dispatch to handler 0x1073b5b4; flag +0x7ff gates SetVolume's write and selects volume fields in GetHeadphoneConnected - SetOutputFixed is very likely its writer.",
-      "Residual: proof that this action writes +0x7ff and the flag's full semantics. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: writer confirmed - the handler stores the flag at +0x7ff on the RC context.",
-      "Resolved: writer confirmed - the handler stores the flag at +0x7ff on the RC context."
-     ]
+     "notes": "The result is determined by the proven primary implementation, not by the presence of mutation code at another address point or beyond an unreachable capability gate.",
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x58",
+      "function": "0x100dc548"
+     }
     },
     "SetRelativeVolume": {
      "description": "Applies a signed adjustment to the Master volume through the shared worker f_100dcb00 in relative mode (thunk 0x100dcc44 remaps args with mode flag r4=1) and returns the resulting volume.",
