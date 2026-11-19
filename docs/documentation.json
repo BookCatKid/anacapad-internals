@@ -120779,6 +120779,13 @@
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "address": "0x10292f78",
+     "notes": "Calls strncasecmp@plt at 0x10292f98 with literal x-rincon-stream: at 0x10eacf20 and count 16. Calls strlen@plt on the original input at 0x10292fa8; comparison at 0x10292fb0 and isel at 0x10292fc0 return 1 iff the matched input's whole length is <=42, otherwise 0. No selector split occurs in this function."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
      "address": "0x10e99a5c",
      "notes": "%s form"
     },
@@ -147919,6 +147926,36 @@
    ]
   },
   "music_accounts": {
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10508988",
+     "notes": "f_10289258 -> f_102890b0 -> f_10508988 writes a temporary Accounts file using %s.tmp at 0x10e735a4; normal replacement calls rename@plt at 0x10508a7c. Fallback root-only replacement can still return failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b8048",
+     "notes": "Account refresh rereads the store at 0x101b8238, compares cached state at 0x101b8250 and calls f_101bb1d0 on change at 0x101b8290. This establishes a cache-change notification, not remote login success."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101bb1d0",
+     "notes": "The monitoring calls at 0x101bb690 (f_10bbca78) and 0x101bb6c8 (f_10bbd280, r6=1) receive the 24-byte MusicAccountChangedEvent string in r5, constructed by f_101b55ac from 0x10e8ba90..0x10e8baa8. f_10bbb834 combines source and event name into a monitoring key. No account/password fields are passed by these calls. The event-loop path queues a callable at 0x101bb73c; the no-loop path calls f_10bbd098 at 0x101bb9c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105071e4",
+     "notes": "Accounts root writer builds LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud and MuseHouseholdID attributes in that order. Root literal Accounts is at 0x10faba10; these root fields do not establish the conditional credential-element grammar."
+    }
+   ],
    "accountsmgr": {
     "guest": "guest accounts: link-code required; sn_%d serials; \"guest upgrade not allowed via reauth\"; matched by {g,sn,h(ash)}; nickname update; tombstone migration \"Migrated tombstoned %s replication account\"",
     "errors": [
@@ -632330,6 +632367,22 @@
    "exec_call": "cmd->vt[8](cmd, ctx...) invoked via bctrl; cmd object passed in r4->r27; response object r29 built with fields at +160/+180; targets iterated at stride 304 with refcounted (lwarx/stwcx) sub-objects"
   },
   "spec_pair_decode_v2": {
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ecb5c",
+     "notes": "Index-to-label helper uses pointer table 0x10f97094, compares against 326 and returns none for out-of-range values. Reverse lookup f_109ecb90 calls strcmp at 0x109ecbd4. Label lookup does not establish field/type or object/status semantics."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ac459c",
+     "notes": "Eight accessors through f_10ac4678 write pointers at byte offsets 0,8,16,24,40,80,120,152 into 0x10f9fc74 and return counts 1,1,1,2,5,5,4,3. These cover 22 pairs before the sentinel at 0x10f9fd24/0x10f9fd28. Every-consumer dataflow and operation/direction ownership remain unresolved."
+    }
+   ],
    "structure": "{u32 a, u32 b} runs terminated by {ffffffff,ffffffff} inside each op-descriptor block, positioned between the 23-slot vtable and the verb literals + count fields",
    "observed_grammar": "entries are bimodal: {0x82, 0x21-0x6a} (a=const, b=index-like value across 74 distinct values) vs {X, 0x34} (b=const 0x34, a=wide id space 0x13-0x141 incl. the unique ascending ids previously read as cmd-ids) plus small {n,n} pairs (counts) and occasional b=0x36/0x38/0x33/0x6a/0x4e variants",
    "working_model": "Unresolved: both words can be looked up in the name table, but label lookup alone establishes neither a field/type schema nor an object/status contract. A universal semantic interpretation is not established.",
