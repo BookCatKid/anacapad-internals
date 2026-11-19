@@ -48701,7 +48701,7 @@
      ]
     },
     "RemoveAllTracksFromQueue": {
-     "description": "Removes every track from the local queue. Impl f_102b3bf4 delegates to shared worker f_102b3a84(engine,0,0): it formats its first arg with snprintf(\"%u\") and compares it against stored queue-id strings inside the indexed session impl+0x580 (fields +0x2d8ec skip-match and +0x2fff4 match); the hardcoded selector 0 targets the default queue. When the selector matches, f_10149b24 iterates the queue-list object at session+0x2ff98 and f_102b397c performs the removal; a selector mismatch yields 718.",
+     "description": "Clears all membership from queue ID 0 using live derived AVTransport vtable 0x10edfbb8 slot +0x78, f_102b3bf4 -> f_102b3a84 -> f_102b397c. Only InstanceID 0 is accepted. This action supplies version 0 and no output pointer to the common helper, so it has no optimistic UpdateID check and no returned revision. In mode 1 or 2 it submits kind 4 and waits for completion. Both workers call f_10262a98 -> f_1014da34 -> f_10145b98; named queues advance revision even when already empty. Active queue clearing resets current-source bookkeeping and later progresses to STOPPED through the controller; inactive clearing need not stop the selected playback source.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8cc4",
@@ -48737,7 +48737,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Only 0 is accepted; nonzero returns 718 before queue lookup. Decimal queue ID 0 must also match one of the session's queue identifiers.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -48754,7 +48754,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Only 0 is accepted; nonzero returns 718 before queue lookup. Decimal queue ID 0 must also match one of the session's queue identifiers.",
        "evidence": [
         {
          "type": "firmware",
@@ -48769,6 +48769,24 @@
          "build": "86.10-80260",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b3bf4",
+         "address": "0x102b3c0c",
+         "callsite": "0x102b3c18",
+         "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10511f34",
+         "address": "0x10edfc30",
+         "callsite": "0x105123c0",
+         "notes": "Live derived AVTransport vtable 0x10edfbb8 slot +0x78 (word 0x10edfc30) contains f_102b3bf4. Factory constructs derived implementation at 0x103fb5d8; ctor calls base at 0x1051218c then installs derived table at 0x105123c0. Wrapper dispatch at 0x102f8d40 uses this slot."
         }
        ],
        "notes": null
@@ -48776,113 +48794,400 @@
      },
      "outputs": {},
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "Request argument validation precedes implementation dispatch. Nonzero InstanceID yields 718; unresolved queue ID also yields 718; mode outside 1/2 yields 800. There is no client UpdateID or range argument to validate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102f8cc4",
-        "notes": "wrapper + impl decode"
+        "function": "0x102f8cc4",
+        "address": "0x102f8d40",
+        "callsite": "0x102f8d40",
+        "notes": "Only input is InstanceID: required fetch at 0x102f8d04, unsigned descriptor f_105614e0 at 0x102f8d0c, request validation at 0x102f8d20. False validation selects 402 at 0x102f8d90. Implementation nonzero is faulted at 0x102f8d5c; zero commits at 0x102f8da4 with no output formatting."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b3bf4",
+        "address": "0x102b3c0c",
+        "callsite": "0x102b3c18",
+        "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3a20",
+        "callsite": "0x102b3a2c",
+        "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x78]",
+      "description": "InstanceID 0, a resolvable session queue ID 0, and transport mode 1 or 2. An empty queue is accepted. Common version-check input is hardcoded 0, so stale-version rejection 1028 is not reachable for this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc30",
+        "callsite": "0x105123c0",
+        "notes": "Live derived AVTransport vtable 0x10edfbb8 slot +0x78 (word 0x10edfc30) contains f_102b3bf4. Factory constructs derived implementation at 0x103fb5d8; ctor calls base at 0x1051218c then installs derived table at 0x105123c0. Wrapper dispatch at 0x102f8d40 uses this slot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x102f8cc4",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f8d40",
+        "callsite": "0x102f8d40",
+        "notes": "Only input is InstanceID: required fetch at 0x102f8d04, unsigned descriptor f_105614e0 at 0x102f8d0c, request validation at 0x102f8d20. False validation selects 402 at 0x102f8d90. Implementation nonzero is faulted at 0x102f8d5c; zero commits at 0x102f8da4 with no output formatting."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b3bf4",
+        "address": "0x102b3c0c",
+        "callsite": "0x102b3c18",
+        "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3a20",
+        "callsite": "0x102b3a2c",
+        "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014da34",
+        "address": "0x1014da50",
+        "callsite": "0x1014da64",
+        "notes": "Clear helper locks through f_1014aee8, calls f_10145b98 then invokes f_1014d738 whenever queue name +0x4c is nonempty, with no old-count guard; finally unlocks via f_1014af64. f_10145b98 writes count +0x26c8=0 at 0x10145bb4, clears words +0x26d4/+0x26ec and other bookkeeping, resets optional +0x2700 block and invokes backing object +0x48 slot +0xc if present. It logically clears membership rather than compacting each removed track. Named queue version +0x70 increments once and dirty +0x74 is set by f_1014d738, which posts through queue+0x18 at 0x1014d820. Clearing an already-empty named queue therefore still advances revision and posts the update."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x78].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x78]",
+      "description": "Uses impl+0x458 lock, session+0x580, session queue IDs and matching queue objects, mode+0x4654, active queue pointer+0x326c8, current/source bookkeeping and selected URI+0x5dc. Initial revision/count read does not gate mutation because the supplied version is 0. Active status gates playback bookkeeping, not whether membership is cleared.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8cc4",
-        "notes": "member vfunc calls: ['r30 v[+0x78]']"
+        "function": "0x102b3bf4",
+        "address": "0x102b3c0c",
+        "callsite": "0x102b3c18",
+        "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3a20",
+        "callsite": "0x102b3a2c",
+        "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265d6c",
+        "callsite": "0x10265d84",
+        "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10262a98",
+        "address": "0x10262af0",
+        "callsite": "0x10262b3c",
+        "notes": "Compares selected queue with active pointer session+0x326c8, calls f_1014da34 at 0x10262af0 regardless of active status, and only when equal resets current index +0x326cc using f_10146924 (empty count yields 0), resets +0x326ce and calls f_10261b38. That clears source pair +0x35184/+0x35188 and +0x327c8, resets descriptor and invokes f_10261a44. Active running output reaches the common main-loop source-change branch and completion path because count is zero; paused empty-queue handling sets internal state 2 at 0x10269330. Queue-end empty branch writes state 2 at 0x1026e758; outer loop later switches state 2 to state 1 and stopRoutine at 0x1026f4e8/0x1026f4f0. This is not a synchronous SOAP STOPPED guarantee, and inactive queue clearing does not stop an unrelated source."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x78].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x78] (call-derived member-method semantics)",
+       "description": "Sets selected queue count to 0 and resets queue membership bookkeeping. Named queue revision advances once and dirty state is set even if count was already 0. If selected queue is active, current index and auxiliary index become 0 and source descriptor/identity bookkeeping is reset. If selected URI begins x-rincon-queue:, true completion also clears the pending alarm buzzer-fallback deadline. No revision output is exposed.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f8cc4",
-         "notes": "delegate map ['r30 v[+0x78]']; notify-family calls []"
+         "function": "0x1014da34",
+         "address": "0x1014da50",
+         "callsite": "0x1014da64",
+         "notes": "Clear helper locks through f_1014aee8, calls f_10145b98 then invokes f_1014d738 whenever queue name +0x4c is nonempty, with no old-count guard; finally unlocks via f_1014af64. f_10145b98 writes count +0x26c8=0 at 0x10145bb4, clears words +0x26d4/+0x26ec and other bookkeeping, resets optional +0x2700 block and invokes backing object +0x48 slot +0xc if present. It logically clears membership rather than compacting each removed track. Named queue version +0x70 increments once and dirty +0x74 is set by f_1014d738, which posts through queue+0x18 at 0x1014d820. Clearing an already-empty named queue therefore still advances revision and posts the update."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10262a98",
+         "address": "0x10262af0",
+         "callsite": "0x10262b3c",
+         "notes": "Compares selected queue with active pointer session+0x326c8, calls f_1014da34 at 0x10262af0 regardless of active status, and only when equal resets current index +0x326cc using f_10146924 (empty count yields 0), resets +0x326ce and calls f_10261b38. That clears source pair +0x35184/+0x35188 and +0x327c8, resets descriptor and invokes f_10261a44. Active running output reaches the common main-loop source-change branch and completion path because count is zero; paused empty-queue handling sets internal state 2 at 0x10269330. Queue-end empty branch writes state 2 at 0x1026e758; outer loop later switches state 2 to state 1 and stopRoutine at 0x1026f4e8/0x1026f4f0. This is not a synchronous SOAP STOPPED guarantee, and inactive queue clearing does not stop an unrelated source."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b397c",
+         "address": "0x102b3a20",
+         "callsite": "0x102b3a2c",
+         "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d43a0",
+         "address": "0x102d457c",
+         "callsite": "0x102d457c",
+         "notes": "Reads impl+0x6ed8 after clock-id-1 sample; alarm fallback gates at 0x102d44cc..0x102d4530 precede the now<=deadline path setting x-rincon-buzzer:0 through f_102ceb40/f_102cfa50, then clearing deadline at 0x102d45e0. f_102d9ff8 independently reads it at 0x102da444 for playEnd fallback and clears at 0x102da4ac. Timestamp writers f_102cfa50 at 0x102cfe0c/0x102cfecc and f_102dac20 at 0x102db0bc store now+120. Deserialization stores now+3600*h+60*m+s at 0x102b1208. f_102ed780 serializes it at 0x102ed96c under alarm flag +0x5a86 and clear +0x6ed0. The conditional clear in f_102aa770 therefore clears the alarm fallback deadline, not a queue update-id."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x78] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Named clear invokes f_1014d738 once, posting ContentDirectory CdNotifyUpdateId with new revision. The registered observer increments SystemUpdateID and coalesces ContainerUpdateIDs; pending/time gates and Q:0 delay bypass apply. Queue LastChange reads the named queue snapshot's QueueID/version/dirty byte through f_10146cc0 -> f_1025bfd4 -> f_102b0908 -> f_10465e28, then serializes through f_10465b54. Shared sender readiness detects dirty snapshots; subscription and consume/coalescing gates still apply. Active controller metadata publishing wakes the transport source through f_1067c6ec at 0x102648c4. AVTransport producer f_102e6400 -> f_102e6048 -> f_102e43a0 emits grouped transport fields when its source-version/metadata latches change, not necessarily at the SOAP return. A non-queue selected source need not report the queue controller's STOPPED state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8cc4",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1014da34",
+        "address": "0x1014da50",
+        "callsite": "0x1014da64",
+        "notes": "Clear helper locks through f_1014aee8, calls f_10145b98 then invokes f_1014d738 whenever queue name +0x4c is nonempty, with no old-count guard; finally unlocks via f_1014af64. f_10145b98 writes count +0x26c8=0 at 0x10145bb4, clears words +0x26d4/+0x26ec and other bookkeeping, resets optional +0x2700 block and invokes backing object +0x48 slot +0xc if present. It logically clears membership rather than compacting each removed track. Named queue version +0x70 increments once and dirty +0x74 is set by f_1014d738, which posts through queue+0x18 at 0x1014d820. Clearing an already-empty named queue therefore still advances revision and posts the update."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265d6c",
+        "callsite": "0x10265d84",
+        "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102642d4",
+        "address": "0x102648c4",
+        "callsite": "0x102648c4",
+        "notes": "Session state/metadata publishing records a timed source node through f_103420a4 at 0x1026470c, then obtains the transport weak owner at 0x10264784. Nonzero live owner and transport pointer gate f_1067c6ec at 0x102648c4. Stopped active-clear postprocessing reaches f_102642d4 at 0x10267e2c; running clear reaches it through later controller state changes, not a per-track notify loop. Shared AVTransport source snapshot/latches determine emitted fields; external mode 1 source snapshots need not mirror queue-controller state."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10304e78",
+        "address": "0x1030502c",
+        "callsite": "0x1030502c",
+        "notes": "Registers cdImpl+0x11c on CdNotifyUpdateId subject 0x1109cfb8; alternate site 0x103050b4. Constructor f_10303de4 installs vtable 0x10eb3fa0 at +0x11c at 0x10303fd8; slot 0 thunk f_10304904 adjusts this to f_10304808. f_10115574 observer delivery invokes slot 0 at 0x10115984..0x10115998. f_10304808 updates map cd+0x4f0 via f_103032fc, increments cd+0x4e0, sets pending cd+0x4e4 and schedules f_1067c6ec(cd+8). Queue event extra string is empty, so its extra-string branch does not call f_1030470c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103035c4",
+        "address": "0x10303aa0",
+        "callsite": "0x10303aa0",
+        "notes": "ContentDirectory event builder, not Queue service: full buffer includes SystemUpdateID; ContainerUpdateIDs uses f_103034e8 comma-separated container/version map. Incremental SystemUpdateID pending flag +0x4e4 requires whole-seconds elapsed>1 or Q:0 in changed map (0x10303aa0..0x10303ac4), otherwise schedules prior timestamp+2 at 0x10303d4c; emission clears pending at 0x10303af8. Container map has independent timer/pending at +0x50c/+0x4f0, Q:0 bypass at 0x1030371c..0x10303778 and delayed scheduling at 0x10303d10. f_103032fc replaces version for an existing container at 0x1030337c; f_103034e8 consume=1 clears map pending byte."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465b54",
+        "address": "0x10465c00",
+        "callsite": "0x10465c00",
+        "notes": "Queue LastChange builder writes Queue namespace and QueueID %.20s from snapshot+0, UpdateID %u from +0x14. Nonempty snapshots only; incremental mode additionally requires f_1014d540(snapshot). Full includes Curated and QueueOwnerID; incremental includes these only for snapshot+0x52b/+0x119 respectively. f_10465e28 calls f_102b0908 and writes full buffer when supplied, incremental only if snapshot helper returns changed. Does not alone prove publisher scheduling."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c0c0",
+        "callsite": "0x1025c0c0",
+        "notes": "f_102b0908 locks impl+0x458 and calls f_1025bfd4. Copies queue 0 at session+0x2d890 and queue 1 at +0x2ff98 via f_10146cc0, ORs f_1014d540(snapshot) into changed result. f_10146cc0 copies 0x2574 bytes from queue+0x5c; queue revision/dirty +0x70/+0x74 become snapshot+0x14/+0x18. consume=1 clears queue+0x6c/+0x74/+0x175/+0x587 after copying. Other records are initialized placeholders; consume also clears session+0x326c4. f_1014d540 tests snapshot dirty bytes +0x10/+0x18/+0x119/+0x52b."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fbc3c",
+        "callsite": "0x103fbc3c",
+        "notes": "Factory+0x1934 assigned impl at 0x103fb680; 0x103fbb78..0x103fbb98 forms weak pair with raw pointer impl+0x10. r6 is set at 0x103fbc1c before session ctor call 0x103fbc3c; the pair is copied to session+0x2578/+0x257c at 0x1025f53c..0x1025f54c. Running worker scheduling at 0x10265914..0x10265a08 requires change flags and live weak owner. f_1067c6ec delegates to f_1067c46c setting pending and checking notification sender. Actual AVTransport event callback is f_102e6400 -> f_102e6048 -> f_102e43a0, with full and incremental calls at 0x102e61d4/0x102e61f8. Thunk 0x102e4398 instead adjusts r4 and reaches property getter f_102e41a0; it is not the event callback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fb5ac",
+        "callsite": "0x103fb5d8",
+        "notes": "Factory passes r25 common sender as r5 to derived transport constructor f_10511f34 at 0x103fb5d8 and as r4 to Queue constructor f_10465fac at 0x103fb6e4..0x103fb6e8. Transport base ctor calls f_1067aec4(impl+0x10, sender, AVTransport, 11, ...) at 0x102c06e4; Queue ctor calls it on Queue+8 at 0x1046607c. Generic source ctor stores sender weak pair in source+0xb4/+0xb8 at 0x1067af54..0x1067af64. f_1067c46c resolves the weak sender and calls f_10678c50 at 0x1067c5c8; that helper marks sender+0x10e and signals its condition variable. Derived transport ctor installs event-source vtable 0x10edfddc at impl+0x10 at 0x105123d0; slot +0x18 contains f_102e6400. Queue source vtable 0x10ed1c10 has readiness thunk f_10465b4c at +0x1c and producer adapter f_1067ab54 at +0x18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x10679da8",
+        "callsite": "0x10679da8",
+        "notes": "Sender fireNotifications loop loads each source at 0x10679d10..0x10679d18 and calls f_1067d028 at 0x10679da8. A nonzero source+0x110 returns ready. Otherwise 0x1067d0bc..0x1067d1c8 invokes subclass slot +0x1c. Queue f_10465b4c adjusts this by -8 to f_10465aa4, which calls f_102b0908(engine, records, 6, 0) at 0x10465b0c and preserves the changed return through its epilogue. No consume means readiness polling does not clear dirty state. Ready-source dispatch reaches f_10683da0 at 0x10679e54 and source slot +0x18 at 0x10684060..0x1068406c. Queue adapter f_1067ab54 forwards to slot +0x14 = f_10465f74 -> f_10465e28. Thus there is no missing direct AVTransport-to-Queue producer call: the common sender polls Queue snapshot readiness. Actual delivery remains conditional on registered source/subscription state and sender operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e46cc",
+        "callsite": "0x102e46c0",
+        "notes": "f_102e6048 calls f_102e43a0 with r7=1 for supplied full buffer at 0x102e61d4, r7=0 for incremental at 0x102e61f8. At 0x102e46cc..0x102e46dc full mode or impl+0x7785 enters serialization; otherwise 0x102e54a8..0x102e551c tests +0x7786 then +0xa094..+0xa09c. r28 was reassigned impl+0x10000 at 0x102e465c. f_102b5658 updates latches before this gate: +0xa094/+0xa095 latch metadata flags +0x4251/+0x4252 at 0x102b56b4..0x102b56d8; +0xa096/+0xa097 latch capability changes masked by 0x01738000/0xf, with source/mode metadata flags as fallbacks at 0x102b5804..0x102b5828. These are generic gates; deletion-specific snapshot comparisons and their final emitted CurrentTrack/TransportState values remain residual."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e4698",
+        "callsite": "0x102e4698",
+        "notes": "The event builder first calls f_102b5a1c at 0x102e4698; its changed result r27 causes impl+0xa0a2=1 at 0x102e46ac..0x102e46b8 before f_102b5658 latches +0x7785. Mode-2 branch 0x102e55c0 returns to that test, with additional next-URI handling. f_102b5a1c mode2 calls session snapshot f_1026021c at 0x102b5d7c; that calls f_10341c74 at 0x102602fc. The latter compares source-list version +8 with consumed version +0xc at 0x10341cd0..0x10341cf4, returns changed, and consumes the version only when requested. Running deletion increments this version via f_103410c0 at 0x10265930 before notifying the transport at 0x10265a08. This is a version/snapshot gate, not a separate equality test for every XML property. f_102b5658 additionally consumes session metadata through f_1032dc18 at 0x102b59d4, storing its changed flag in +0x7786; that helper reads metadata+0x296b and clears it when consume is requested at 0x1032dda8..0x1032ddb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e47d4",
+        "callsite": "0x102e47d4",
+        "notes": "Full output or latched impl+0x7785 enters the common transport-property block at 0x102e47e4; otherwise 0x102e47e0 skips to 0x102e4d38. The block serializes TransportState at 0x102e47e8, NumberOfTracks at 0x102e4870, CurrentTrack at 0x102e489c, CurrentTrackURI at 0x102e48f4 and AVTransportURI at 0x102e4a50. These values can therefore be repeated unchanged when another source-list change makes the block eligible. f_1026021c puts the source-node +0x28c track number through output-record+4 at 0x10260300..0x1026030c; live active-queue count +0x26c8 goes through record+8 at 0x10260790/0x102603a4, subject to the start-window adjustment at 0x102606b4..0x102607b4. CurrentTrackURI is obtained by f_1014a28c from the selected queue entry at 0x10260470, after invalid indexes are reduced to zero and optional shuffle mapping at 0x102607b8. AVTransportURI is copied from impl+0x5dc at 0x102b5a28..0x102b5a80; deletion does not itself replace that selected source URI. f_10341c74 maps source-head state +0x288 through table 0x10eba220: 0 STOPPED, 1 TRANSITIONING, 2 PLAYING, 3 PAUSED_PLAYBACK. Snapshot timing, not the SOAP return alone, determines which of those values is observed."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x78]",
+      "description": "Both kind-4 workers clear the selected queue. Only clearing the active queue resets current index/descriptor, clears source identity and notifies the track-play monitor. Active running clear marks source change; the main controller requests resync, sees count 0 and enters completion rather than restarting a remaining source. Empty-queue progression writes TRAN_STOPPED, later STOPPED and stopRoutine. Paused handling likewise leaves the empty queue in TRAN_STOPPED before outer stop handling. CurrentTrack and TransportState are timed source snapshots, so SOAP success does not wait for the final STOPPED/current-index-0 event. Inactive clearing leaves active-source state alone. Mode 1 external-source AVTransport snapshots remain source-dependent rather than unconditionally mirroring queue-controller state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8cc4",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x78]']"
+        "function": "0x1026571c",
+        "address": "0x10265d6c",
+        "callsite": "0x10265d84",
+        "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10262a98",
+        "address": "0x10262af0",
+        "callsite": "0x10262b3c",
+        "notes": "Compares selected queue with active pointer session+0x326c8, calls f_1014da34 at 0x10262af0 regardless of active status, and only when equal resets current index +0x326cc using f_10146924 (empty count yields 0), resets +0x326ce and calls f_10261b38. That clears source pair +0x35184/+0x35188 and +0x327c8, resets descriptor and invokes f_10261a44. Active running output reaches the common main-loop source-change branch and completion path because count is zero; paused empty-queue handling sets internal state 2 at 0x10269330. Queue-end empty branch writes state 2 at 0x1026e758; outer loop later switches state 2 to state 1 and stopRoutine at 0x1026f4e8/0x1026f4f0. This is not a synchronous SOAP STOPPED guarantee, and inactive queue clearing does not stop an unrelated source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102642d4",
+        "address": "0x102648c4",
+        "callsite": "0x102648c4",
+        "notes": "Session state/metadata publishing records a timed source node through f_103420a4 at 0x1026470c, then obtains the transport weak owner at 0x10264784. Nonzero live owner and transport pointer gate f_1067c6ec at 0x102648c4. Stopped active-clear postprocessing reaches f_102642d4 at 0x10267e2c; running clear reaches it through later controller state changes, not a per-track notify loop. Shared AVTransport source snapshot/latches determine emitted fields; external mode 1 source snapshots need not mirror queue-controller state."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104c0aa8",
+        "address": "0x104c0b0c",
+        "callsite": "0x104c0b0c",
+        "notes": "Track-play monitor ctor installs vtable 0x10ed8134; slot+0x30 points to f_104bf2e4. Factory constructs it at 0x103faf80 and stores factory+0x1904; session ctor r9 from that field is stored at session+0x2590 (0x1025f598). f_104bf2e4 submits monitor event kind3 through f_104c6264, not a direct AVTransport state assignment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026badc",
+        "address": "0x1026cfd0",
+        "callsite": "0x1026cfd0",
+        "notes": "Main queue routine invokes the running worker with source-change output &session+0x327c4 at 0x1026cfd0; true at 0x1026cfd4 branches to 0x1026ccfc. NodeTX slot+0x24 is f_10637d2c (word 0x10efb780); call 0x1026cd28 passes saved packet ID +0x327d4, identity +0x327d8 and crossfade byte +0x327e0. f_10637d2c logs requestResync and forms control type 0xfd for zero packet ID, otherwise chooses 0xfb/0xfe by crossfade flag. Back in the queue routine, 0x1026cd84..0x1026cd9c sends empty queues or remap failure to 0x1026d0ec; nonempty/no-failure calls switchState f_10264be8 with state6 at 0x1026cdb8. Worker signals request completion at 0x10265910 before returning to these controller branches, so SOAP completion does not wait for subsequent playback or network notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026badc",
+        "address": "0x1026e758",
+        "callsite": "0x1026f4c4",
+        "notes": "After completion handling f_10266c68, 0x1026f30c..0x1026f388 returns to queue-end state handling when there are no more tracks. 0x1026e724..0x1026e758 tests active queue count and sets session+0x32800=2 (TRAN_STOPPED) when empty; alternate queue-policy branch 0x1026ebfc..0x1026ec00 also reaches it on zero count. Paused routine f_102690f0 calls stopped worker at 0x102691cc; zero active count sets the same state2 at 0x10269330. Once f_1026badc returns at outer-loop call 0x1026f4c4, 0x1026f4c8..0x1026f4e8 selects state1 for state2 and calls f_10264be8, then stopRoutine f_102693cc at 0x1026f4f0. Raw isel 0x7c8ae71e at 0x1026f4e4 selects r10=3 on CR7 LT, else r28=1; state2 minus3 is unsigned greater than2, selecting1. This is a conditional later STOPPED transition, not an immediate literal assignment in the deletion implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102642d4",
+        "address": "0x1026470c",
+        "callsite": "0x1026470c",
+        "notes": "State recording maps internal states1..8 using words at 0x10ea8740: [0,1,1,1,2,1,1,3], with mapped-state1 (TRANSITIONING) fallback at 0x102644fc. It clamps an out-of-range selected index to0 at 0x102643a4..0x102643d0, passes mapped state/current index/effective time to f_103420a4 at 0x1026470c. That helper builds a timed source node through f_103404c8 at 0x1034221c, whose writes at 0x10340570..0x10340594 store state+0x288, current index+0x28c and effective time+0x290/+0x294. f_103420a4 inserts/replaces nodes in time order using f_105a8fd4 and increments list version at 0x10342440. Snapshot f_10341c74 first prunes timed source nodes through f_103410d8; f_1034071c reads head+0x28c at 0x103407d4 for CurrentTrack, while f_10341c74 reads state+0x288 at 0x10341d68 and table 0x10eba220 for STOPPED/TRANSITIONING/PLAYING/PAUSED_PLAYBACK. Session-mode snapshot f_1026021c reads queue count separately, so old buffered source state and reduced live count can coexist."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x78].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "No output arguments. Normal implementation domain is 0/718/800: 718 for nonzero InstanceID or failed queue-ID lookup; 800 for mode outside 1/2 or false completion branch; 0 after true completion. Normal kind-4 handlers report true even for an already-empty queue. 1028 belongs to a common helper branch made unreachable by this action's hardcoded version 0; optional revision output is also disabled. Parser validation can fault 402 before dispatch. Stack-check failure aborts, not a SOAP code.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f8cc4",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f8d40",
+        "callsite": "0x102f8d40",
+        "notes": "Only input is InstanceID: required fetch at 0x102f8d04, unsigned descriptor f_105614e0 at 0x102f8d0c, request validation at 0x102f8d20. False validation selects 402 at 0x102f8d90. Implementation nonzero is faulted at 0x102f8d5c; zero commits at 0x102f8da4 with no output formatting."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b3bf4",
+        "address": "0x102b3c0c",
+        "callsite": "0x102b3c18",
+        "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b397c",
+        "address": "0x102b3a20",
+        "callsite": "0x102b3a2c",
+        "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265d6c",
+        "callsite": "0x10265d84",
+        "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -48896,121 +49201,66 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x78)",
-       "meaning": "impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v[+0x1c] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived",
+       "meaning": "Nonzero InstanceID or no session queue ID match.",
        "fault_sites": [
         "0x102f8d5c"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "InstanceID!=0 at f_102b3bf4, or queue ID 0 matches neither stored queue identifier.",
          "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102b3bf4",
-           "notes": "cmpwi r4,0 -> addi r3,0x2ce; worker strcmp paths at 0x102b3afc/0x102b3b10"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b3bf4",
-         "notes": "cmpwi r4,0 -> addi r3,0x2ce; worker strcmp paths at 0x102b3afc/0x102b3b10"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x78)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID gate at impl head); shared engine worker f_102b3a84 domain {718 queue-record lookup, 0x404=1028, callee-fwd}",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "shared worker returned a nonzero code not covered by the 718 selector check",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102b3b88",
-           "notes": "passthrough path"
-          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102b3bf4",
-           "notes": "rc site"
+           "address": "0x102b3c0c",
+           "callsite": "0x102b3c18",
+           "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
           }
          ]
         }
        ],
        "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102f8d5c",
-         "notes": "impl vret passthrough site"
-        },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102b3bf4",
-         "notes": "worker rc sites decoded"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102b3a84",
-         "notes": "worker rc sites decoded"
+         "address": "0x102b3c0c",
+         "callsite": "0x102b3c18",
+         "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
         }
-       ],
-       "domain_note": "domain fully bounded: impl 0x102b3bf4 exits=[1, 3, 52, 718]; Worker/helper rc values beyond the enumerated 718 are surfaced at this site. | worker literal bound [718] (worker_err_literals.json)",
-       "literal_bound": [
-        718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x78); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "code": 800,
+       "code_expr": "vret(r5-in,+0x78)",
+       "meaning": "Transport mode disallows clearing, or submission reports false completion.",
        "fault_sites": [
         "0x102f8d5c"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "Mode outside 1/2 at f_102b397c, or false f_10255f64 branch. Normal kind-4 workers report true completion.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f8cc4",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "function": "0x102b397c",
+           "address": "0x102b3a20",
+           "callsite": "0x102b3a2c",
+           "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1026571c",
+           "address": "0x10265d6c",
+           "callsite": "0x10265d84",
+           "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
           }
          ]
         }
@@ -49020,8 +49270,54 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f8cc4",
-         "notes": "wrapper parse + fault path"
+         "function": "0x102b397c",
+         "address": "0x102b3a20",
+         "callsite": "0x102b3a2c",
+         "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265d6c",
+         "callsite": "0x10265d84",
+         "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "Request validation rejected InstanceID before dispatch.",
+       "fault_sites": [
+        "0x102f8d5c"
+       ],
+       "conditions": [
+        {
+         "description": "Request slot +0x8 returns false at 0x102f8d20; wrapper selects 402 at 0x102f8d90.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102f8cc4",
+           "address": "0x102f8d40",
+           "callsite": "0x102f8d40",
+           "notes": "Only input is InstanceID: required fetch at 0x102f8d04, unsigned descriptor f_105614e0 at 0x102f8d0c, request validation at 0x102f8d20. False validation selects 402 at 0x102f8d90. Implementation nonzero is faulted at 0x102f8d5c; zero commits at 0x102f8da4 with no output formatting."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f8cc4",
+         "address": "0x102f8d40",
+         "callsite": "0x102f8d40",
+         "notes": "Only input is InstanceID: required fetch at 0x102f8d04, unsigned descriptor f_105614e0 at 0x102f8d0c, request validation at 0x102f8d20. False validation selects 402 at 0x102f8d90. Implementation nonzero is faulted at 0x102f8d5c; zero commits at 0x102f8da4 with no output formatting."
         }
        ]
       }
@@ -49032,30 +49328,76 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102f8cc4",
-       "address": "0x102f8cc4",
-       "notes": "action wrapper handler"
+       "function": "0x10511f34",
+       "address": "0x10edfc30",
+       "callsite": "0x105123c0",
+       "notes": "Live derived AVTransport vtable 0x10edfbb8 slot +0x78 (word 0x10edfc30) contains f_102b3bf4. Factory constructs derived implementation at 0x103fb5d8; ctor calls base at 0x1051218c then installs derived table at 0x105123c0. Wrapper dispatch at 0x102f8d40 uses this slot."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb315c",
-       "notes": "action dispatch table entry"
+       "function": "0x102f8cc4",
+       "address": "0x102f8d40",
+       "callsite": "0x102f8d40",
+       "notes": "Only input is InstanceID: required fetch at 0x102f8d04, unsigned descriptor f_105614e0 at 0x102f8d0c, request validation at 0x102f8d20. False validation selects 402 at 0x102f8d90. Implementation nonzero is faulted at 0x102f8d5c; zero commits at 0x102f8da4 with no output formatting."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102b3bf4",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x78 entry"
+       "address": "0x102b3c0c",
+       "callsite": "0x102b3c18",
+       "notes": "Nonzero InstanceID returns 718 at 0x102b3c00. Instance 0 tail-calls f_102b3a84 with r5=0 (version check disabled) and r6=0 (no revision output). Under impl+0x458 lock, decimal selector matches session+0x2d8ec then +0x2fff4, resolving queue objects session+0x2d890 or +0x2ff98. No match returns 718. f_10149b24 reads revision/count at 0x102b3b40, but the mismatch branch 0x102b3bdc is unreachable because this action passes version 0. Optional post-clear output reread at 0x102b3b68 is also unreachable because output pointer is null."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b397c",
+       "address": "0x102b3a20",
+       "callsite": "0x102b3a2c",
+       "notes": "Mode outside 1/2 returns 800 at 0x102b39a4..0x102b39b0. Otherwise recognized queue objects select 1 or 2; f_1032e270 constructs request and f_1032e47c tags kind 4 at request+0xe4 and selector at +0xfc. f_10255f64 submits and waits through f_1032e658. False completion returns 800 at 0x102b3a40; true destroys request, tests source URI with f_1014708c and conditionally clears alarm buzzer-fallback deadline impl+0x6ed8 at 0x102b3a64, returning 0. Unlock/destructor do not propagate extra normal codes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1026571c",
+       "address": "0x10265d6c",
+       "callsite": "0x10265d84",
+       "notes": "Relative running table 0x10ea8468 entry 4 targets 0x10265d6c; stopped table 0x10ea84d0 entry 4 targets 0x1026863c. Selector indexes session+0x326a0 scaled by 4, and both handlers call f_10262a98 (0x10265d84/0x10268654). That helper clears the selected queue and returns whether it was active, not whether clearing succeeded. Both handlers report true completion: running 0x10265d90 or active 0x102665d0; stopped 0x10268344 or 0x102687b4. Active running clear flags source change and notifies monitor at 0x102665b8; inactive clear does not. Active stopped clear resets descriptor, marks metadata changed and notifies monitor at 0x10268660..0x102687c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014da34",
+       "address": "0x1014da50",
+       "callsite": "0x1014da64",
+       "notes": "Clear helper locks through f_1014aee8, calls f_10145b98 then invokes f_1014d738 whenever queue name +0x4c is nonempty, with no old-count guard; finally unlocks via f_1014af64. f_10145b98 writes count +0x26c8=0 at 0x10145bb4, clears words +0x26d4/+0x26ec and other bookkeeping, resets optional +0x2700 block and invokes backing object +0x48 slot +0xc if present. It logically clears membership rather than compacting each removed track. Named queue version +0x70 increments once and dirty +0x74 is set by f_1014d738, which posts through queue+0x18 at 0x1014d820. Clearing an already-empty named queue therefore still advances revision and posts the update."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10262a98",
+       "address": "0x10262af0",
+       "callsite": "0x10262b3c",
+       "notes": "Compares selected queue with active pointer session+0x326c8, calls f_1014da34 at 0x10262af0 regardless of active status, and only when equal resets current index +0x326cc using f_10146924 (empty count yields 0), resets +0x326ce and calls f_10261b38. That clears source pair +0x35184/+0x35188 and +0x327c8, resets descriptor and invokes f_10261a44. Active running output reaches the common main-loop source-change branch and completion path because count is zero; paused empty-queue handling sets internal state 2 at 0x10269330. Queue-end empty branch writes state 2 at 0x1026e758; outer loop later switches state 2 to state 1 and stopRoutine at 0x1026f4e8/0x1026f4f0. This is not a synchronous SOAP STOPPED guarantee, and inactive queue clearing does not stop an unrelated source."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102642d4",
+       "address": "0x102648c4",
+       "callsite": "0x102648c4",
+       "notes": "Session state/metadata publishing records a timed source node through f_103420a4 at 0x1026470c, then obtains the transport weak owner at 0x10264784. Nonzero live owner and transport pointer gate f_1067c6ec at 0x102648c4. Stopped active-clear postprocessing reaches f_102642d4 at 0x10267e2c; running clear reaches it through later controller state changes, not a per-track notify loop. Shared AVTransport source snapshot/latches determine emitted fields; external mode 1 source snapshots need not mirror queue-controller state."
       }
      ],
-     "notes": "None The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).",
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8cc4; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The shared f_102b3a84 version-mismatch and optional revision-output branches are not reachable with the hardcoded arguments supplied by this action."
     },
     "RemoveTrackFromQueue": {
      "description": "Removes the entry selected by ObjectID from queue selector 1 through implementation f_102aa770. Base constructor f_102c05d8 installs vtable 0x10eaf2ec; derived AVTransport implementation constructor f_10511f34, called by the factory at 0x103fb5d8, replaces it with live vtable 0x10edfbb8. Both tables have f_102aa770 at slot +0x70. InstanceID must be zero. A nonzero UpdateID must match the current queue version. Modes 1 and 2 permit the operation. A kind-3 request is submitted to the session worker and the caller waits for its completion byte; success is not merely submission acceptance. The worker deletes the entry and updates queue bookkeeping. The alarm buzzer-fallback deadline clear, ContentDirectory observer chain, Queue notification readiness and snapshot construction, and source bookkeeping are traced below. Conditional current/last-position selection, packet-history reconciliation, empty-queue stop progression and AVTransport snapshots are detailed below. Success alone does not identify a unique playback-state snapshot.",
