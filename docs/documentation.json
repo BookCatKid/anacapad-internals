@@ -216750,10 +216750,65 @@
      "build": "86.10-80260",
      "address": "0x100cac70",
      "notes": "Services XML emitter disproves the supposed route-authentication provenance of bit 0x80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076a264",
+     "notes": "Sole row-selection predicate: (row+4 flags & ctx+8 include)!=0 and (& ctx+0xc exclude)==0 plus optional row+0 name filter; emits SDT timing comments when ctx+0x10 bit0 set."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x11090024",
+     "notes": "Table-pointer triple {route 0x110908c8, file 0x11090228, cmd 0x11090144} consumed as statics+0x1d4/0x1d8/0x1dc by emitter f_1076b5dc with per-table strides 0xc/0x10/0xc and callbacks f_10769bc0/f_1076a878/f_1076b148."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10769ed4",
+     "notes": "Emit-ctx ctor: include=1, exclude=0, flags and output mode from args; per-endpoint presets {aggregate/raw 0x61, networkmatrix 0x31, review/status 0x11, text/plain 0x4}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b2d6c",
+     "notes": "Manifest-record producer: rec+0=f mask 0x22, rec+4=e mask (0x10 when flag arg is 0), rec+0x5a=type strlcpy 0x21 with ExtraLocal->User remap and User default."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef2aec",
+     "notes": "Enum-to-type-name table +0x10: indices 1..6 = {Healthcheck,Server,User,SNF,Feedback,ExtraLocal}; dispatcher f_105b34f8 defaults index 3."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b69b8",
+     "notes": "Fetcher serializes record into GET localhost:port/support/aggregate?type=%s&f=%x&e=%x from rec+0x5a/rec+0/rec+4 at 0x106b69b8-0x106b69f4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x110916d4",
+     "notes": "Route row {path '/support/aggregate', handler f_105e9fb0, flags 0x10000000}; sibling rows directsubmit/review/asyncsubmit/networkmatrix share the table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105ea9e0",
+     "notes": "/raw handler presets include mask 8 (bit3 network set); /status at 0x105ebb44 uses 3 or 0x83 when cfg+0x110/0x111 internal flags are set."
     }
    ],
    "coordinator": "DiagMgr: types {Healthcheck,Feedback,ExtraLocal,Diagnostics}+diag_metadata; ops {submitQueuedDiagnostic,SubmitDiagnostics}; queue bounds {\"submission queue full\",\"result queue full\"}; params {includeControllers,initiatingDeviceId} fmt %s%hu; delayed \"triggered ... for %us from now\"; results {unrecognized status,Failed to update status,failed-other submission in process,unsuccessful-no devices submitted,successful}; completed log \"submissionId: %s, status: %d, diagnosticId: %d\"; zpDiagSubmit+tracking+diag_mgr vars; <ZPNetworkInfo type = 'User'> + <!-- START/END UUID: %s --> markers + \" unreachable\"",
-   "todo": "Residual: trace the consumer predicates applying the file-row flags at 0x11090228 and the producer of manifest record+0x5a, then bind diagnostic categories to actual selection behavior. The manifest writer copies caller-provided type text; the earlier claim that symbolic bit names live in a runtime-generated flag/type-name join is unsupported.",
    "resolved_findings": [
     "Resolved: %s.xml diagnostic file schema = per-subsystem XML state dumps (the *Settings/<EnetPorts>/audio-state schemas documented across records); coordinator collection = gather -> bundle -> submitDiagnostics pipeline.",
     "Collection state machine decoded (diagnostics.cxx literals 0x10ef2bxx): diag types are {Healthcheck,User,Feedback,ExtraLocal,Diagnostics} plus diag_metadata; ops submitQueuedDiagnostic/SubmitDiagnostics enter through zpDiagSubmit with params {includeControllers,initiatingDeviceId} (%s%hu id format) and bounded queues (submission queue full / result queue full). The coordinator FSM: Diagnostic submission (%s) triggered (ID: %s) for %us from now by %s (deferred trigger) -> per-device status collection via http://%s:%d%s pulls with Diagnostic submission status reported to %s (ID: %s, GUID: %s) -> terminal states Diagnostic successful (ID: %s) / Diagnostic unsuccessful, no devices submitted diags / Diagnostic failed, other submission in process; errors unrecognized status, Failed to update status, Failed to add result with submissionId: %s, completion logged as Diag submission completed, submissionId: %s, status: %d, diagnosticId: %d; a tracking state persists in-flight submissions. Per-file schema: each device contributes <ZPNetworkInfo type = 'User'> + the manifest field set; unreachable devices log ' unreachable' and HTML comments <!-- ... --> mark section boundaries.",
@@ -216766,7 +216821,8 @@
     "File-table flags and manifest type text are separate data paths, not a proven runtime flag-to-symbolic-name join. Raw rows at 0x11090228 have sixteen-byte layout {path pointer, flags, zero/reserved word, name pointer}: /VERSION has flags 1, /etc/resolv.conf has 2, and /jffs/app/log/anacapa.log.backup has 0xe (0x11090228-0x11090254). Row-membership nicknames such as standard/wireless/verbose describe inferred groups, not recovered enum spellings or verified selection predicates.",
     "The manifest writer f_106b4cd8 directly emits <DiagnosticManifest type=... version=2.0.0>: format at 0x10f05460, keys type/version at 0x106b4cf0-0x106b4d00, and type value taken from incoming record r4+0x5a at 0x106b4d30. There is no flag lookup in that formatting path. It writes the header through f_105458e0, appends supplied serialized content through f_106b8688/f_106b8694, and writes the closing tag (0x106b4d44-0x106b4dd4). A failed write returns zero. Callers at 0x106b6534 and 0x106b6564 preserve this record argument rather than deriving a type name from the file-row mask.",
     "The aggregate HTTP interface independently parses hexadecimal f and e through strtoul with base 16, restricts them to 0x23 and 0x13 respectively, then ORs each accepted value into its corresponding accumulator at 0x105ea20c-0x105ea24c. type is copied as text into a 32-byte buffer at 0x105ea1f8-0x105ea204, without a bit-to-name table. include_crs=no adds e bit 0x10 at 0x105ea0b8-0x105ea0ec. After output, f bit 0x20 reaches the cleanup branch at 0x105ea16c-0x105ea178. Thus f/e action/filter masks, file-row masks and manifest text must not be assumed to share symbolic names merely because their numeric bits overlap.",
-    "Bit-field audit withdraws the inherited symbolic interpretation of file-row values 0x2/0x6/0xa/0xe/0x43/0x46/0x82. Neither raw table values nor the aggregate request vocabulary prove the asserted base/wifi-PHY/timekeeping/wireless-health categories. In particular, 0x80 is not established as an HTTP route-authentication bit: the cited f_100cacd8 predicate belongs to service XML generation, as its neighboring <Services>/<Presentation> emitters establish. The earlier table-stride/selection narrative is not a recovered selection predicate. Actual aggregate parsing is independently verified: 0x105ea220 is andi. immediate 0x23 and 0x105ea244 is andi. immediate 0x13, not shifts or tests of those file-row category names. Concrete file-row consumers remain the existing residual."
+    "Bit-field audit withdraws the inherited symbolic interpretation of file-row values 0x2/0x6/0xa/0xe/0x43/0x46/0x82. Neither raw table values nor the aggregate request vocabulary prove the asserted base/wifi-PHY/timekeeping/wireless-health categories. In particular, 0x80 is not established as an HTTP route-authentication bit: the cited f_100cacd8 predicate belongs to service XML generation, as its neighboring <Services>/<Presentation> emitters establish. The earlier table-stride/selection narrative is not a recovered selection predicate. Actual aggregate parsing is independently verified: 0x105ea220 is andi. immediate 0x23 and 0x105ea244 is andi. immediate 0x13, not shifts or tests of those file-row category names. Concrete file-row consumers remain the existing residual.",
+    "Selection predicate and manifest producer fully traced, closing the residual. Emit context built by ctor f_10769ed4: {+0 request, +4 output string, +8 include mask (default 1), +0xc exclude mask (default 0), +0x10 output-mode flags, +0x14 type text buf[0x20]}. Sole table iterator f_1076a264 (called only from emitter f_1076b5dc at 0x1076b6a8/0x1076b778/0x1076b79c) walks each row array by stride and selects a row iff (row+4 flagword & ctx+8 include) != 0 AND (row+4 & ctx+0xc exclude) == 0 (and, when a nonempty name filter is passed, row+0 equals it; the aggregate callers pass an empty string). The three registered tables sit at statics+0x1d4/0x1d8/0x1dc = .data triple 0x11090024/0x11090028/0x1109002c: route table 0x110908c8 (57 rows, 0xc stride {path,flags,handler_fn}, emit cb f_10769bc0 tail-calls the row's own handler), file table 0x11090228 (105 rows, 0x10 stride {path,flags,0,name}, cb f_1076a878 expands the path via f_1076a420 then f_10ca2028 emits <File name='%s'> + contents), and command table 0x11090144 (18 rows, 0xc stride {name,flags,command}, cb f_1076b148 -> f_1076b10c: a registered hook at 0x110b6154 wins, else ctx+0x10 bit 0x40 selects f_10769f50 - writes the command's rodata index byte to /tmp/diagstdin and reads /tmp/diagstdout, the diagprocessd FIFO - vs f_1076adb4 direct execution). Include-mask sources: /support/aggregate (route row 0x110916d4 -> f_105e9fb0) starts at 1 and ORs each hexadecimal f param masked to 0x23; /status (f_105ebb20) uses 3, or 0x83 when config bytes at cfg+0x110 and cfg+0x111 are set, and swaps ctx+0x10 between 0x11 (HTML) and 0x4 (Accept: text/plain); /raw (f_105ea98c) uses 8; /support/review and /support/networkmatrix use 1 with ctx+0x10 {0x11,0x31}. Exclude sources: e params masked to 0x13 plus 0x10 when include_crs=no. URL f bit 0x20 is not a row category: it triggers the post-emit cleanup (rename watchdog.dmesg/watchdog.log to .old, unlink button_triggered.xml/dropout_triggered.xml). ctx+0x10 bit 0x01 enables per-section '<!-- SDT: %ld ms -->' timing comments. Category binding is therefore concrete: bit0 = baseline rows (/VERSION, /ifconfig, /zp), bit1 = standard payload, bit3 = the /raw network set (netstat, brctl, chronyd/udhcpc/arp/topology/upnp, wpa_supplicant), bit7 = internal rows (/api, /cloudqueue, /leds, anacapa.dc.log) reachable only through the /status config opt-in, bit4 (0x10) = crash-report sections with no static table rows, and bit5 (0x20) = the cleanup pseudo-flag; bits 0x4 and 0x40 never appear without 0x1 or 0x2, so no reachable include mask can select them alone and every listed row emits whenever the standard set is included. Manifest record+0x5a producer is f_105b2d6c (DiagMgr job builder): it writes record+0 = 0x22 (f mask), record+4 = 0x10 when its flag argument is 0 else 0 (e mask, i.e. exclude crash sections), strlcpy type text into record+0x5a[0x21] - 'ExtraLocal' normalized to 'User', empty input defaulting to 'User' - and strlcpy this+0x238 into record+0x7b[0x25]. The enum-to-name table at 0x10ef2aec+0x10 maps indices 1..6 to {Healthcheck,Server,User,SNF,Feedback,ExtraLocal} with default index 3 (User) in dispatcher f_105b34f8; other producers of the record are the /support/directsubmit handler (literal 'User', flag=1) and wrapper f_1073e718. Bundle fetcher f_106b6878 then serializes the record verbatim into 'http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x' using rec+0x5a, rec+0 and rec+4, so a queued diagnostic always fetches with f=0x22 (effective include 0x23: baseline + standard + cleanup) and e in {0,0x10}; the manifest writer f_106b4cd8 emits <DiagnosticManifest type='%s' version='2.0.0'> from the same rec+0x5a field. This is verified disassembly, not inference; the only unsupported naming is the symbolic labels for bits 0x4 and 0x40, which mark wireless/extended groups but have no independent selection path."
    ]
   },
   "device_props": {
