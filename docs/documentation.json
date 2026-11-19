@@ -219104,7 +219104,7 @@
      ]
     },
     "file_commit": {
-     "description": "f_1011ad40 creates a .tmp path and opens it using f_1054f088. That helper always uses fopen64(path,\"w\"); its third argument is not consumed. If full cache serialization f_10119b90 succeeds, the installer renames the temporary file while its writer is still open, updates the in-memory version/source and sid/version index, then destroys the writer. If serialization fails, it destroys the first writer, reopens the same path in write mode and attempts a fallback JSON object containing only version=current+1 and lastUpdateDevice. A successful fallback write and rename still increment the version, update the supplied-row index and return true. Thus save success need not mean that the manifests array reached disk. Fallback rename failure unlinks the candidate. Primary rename failure returns false without the same explicit unlink branch. The writer destructor f_1054f15c delegates to f_1054f0e8 when open. That routine calls fflush, fileno, fsync and fclose, ignores fflush/fsync results and returns a boolean derived only from fclose. f_1011ad40 does not test that close result. On the full serialization path rename and metadata/index updates precede destruction; on the fallback success path rename precedes destruction and metadata/index updates follow it. These are static call-order facts, not a runtime durability test.",
+     "description": "f_1011ad40 creates a .tmp path and opens it using f_1054f088. That helper always uses fopen64(path,\"w\"); its third argument is not consumed. If full cache serialization f_10119b90 succeeds, the installer renames the temporary file while its writer is still open, updates the in-memory version/source and sid/version index, then destroys the writer. If serialization fails, it destroys the first writer, reopens the same path in write mode and attempts a fallback JSON object containing only version=current+1 and lastUpdateDevice. A successful fallback write and rename still increment the version, update the supplied-row index and return true. Thus save success need not mean that the manifests array reached disk. Fallback rename failure unlinks the candidate. Primary rename failure returns false without the same explicit unlink branch. The writer destructor f_1054f15c delegates to f_1054f0e8 when open. That routine calls fflush, fileno, fsync and fclose, ignores fflush/fsync results and returns a boolean derived only from fclose. f_1011ad40 does not test that close result. On the full serialization path rename and metadata/index updates precede destruction; on the fallback success path rename precedes destruction and metadata/index updates follow it. These are static call-order facts, not a runtime durability test. Caller census is now complete: f_1011ad40 is invoked by bind f_1011afb4 on every fresh-save path (missing file, open failure and parse failure all converge there), by deletion f_1011b310 after compaction, and by locked save wrapper f_1011b65c used only by the download worker. Bind self-heals a corrupt or absent cache file by re-saving the in-memory model, and every bind outcome issues exactly one kind-13 observer call: parse success notifies with the file's stored source and revision, while the fresh-save paths notify after committing. The replication accept path does not route through this worker at all: it parses the received file separately and renames it over the live path before committing metadata. Observer delivery is the delegate pair bound at object+8/+0xc by f_1011afb4's refcounted move-assign.",
      "evidence": [
       {
        "type": "firmware",
@@ -219140,9 +219140,41 @@
        "build": "86.10-80260",
        "address": "0x1054f0e8",
        "notes": "fflush and fsync results ignored; fclose controls helper boolean; caller ignores destructor result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011afb4",
+       "notes": "Bind: file-open f_1054ee48/f_1054eef0 then parse f_10119fe8/f_1011991c; missing/open-fail/parse-fail all converge on f_1011ad40 fresh save then single kind-13 notify."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b144",
+       "notes": "Bind's kind-13 observer call with source at object+0xa4 and revision at +0xc0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b4cc",
+       "notes": "Deletion calls raw save worker f_1011ad40 directly."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011a3b0",
+       "notes": "Replication accept renames the received file in place without invoking this save worker."
       }
      ],
-     "todo": "Established: full and header-only fallback paths, rename-before-close ordering, version/source/index commit and ignored flush/sync/close status are instruction-traced. Remaining: trace write helper short-write/error semantics, exceptional cleanup, exception/interruption effects during reload and replication transport/observer delivery; header-only acceptance and receiver ordering are documented separately."
+     "resolved_findings": [
+      "Established: the save worker's complete caller set is bind (fresh-save paths at 0x1011b100/0x1011b4cc region), delete (0x1011b4cc) and locked wrapper f_1011b65c (download at 0x1011b9a0); replication accept writes metadata itself.",
+      "Established: bind performs a fresh save on missing, open-failed or parse-failed files and always notifies kind 13 once, making cache-file corruption self-repairing at startup.",
+      "Established: fflush/fsync results are ignored in f_1054f0e8 and the destructor's fclose-derived boolean is untested, so durability status is not propagated beyond the emit result."
+     ]
     },
     "cache_insert": "After successful download save, f_1011be38 inserts/replaces the decimal-SID entry in the three-entry cache at object+0x1e0. It stamps clock+1 and current access time. Replacement/freshness distinctions are detailed in cache_lookup and cache_invalidation; no version or expiration gate is applied on the inspected lookup hit path.",
     "index_and_replication": {
@@ -219758,7 +219790,7 @@
      ]
     },
     "replication_acceptance": {
-     "description": "Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open.",
+     "description": "Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open. Binding and delivery are now mapped to their boundary: the worker occupies slot+0xc of manifest-file vtable 0x10e8a688 (paired with sender f_10118acc at +8) on the catalog-embedded object and has no direct caller in .text; the shared replication engine invokes it virtually. The kind-13 notice goes to the observer pair at object+8/+0xc installed by f_1011afb4 through catalog startup binds, so runtime delivery lands on the catalog delegate. Comparator f_10660e58 is the shared replicated-file revision gate identical for every replicated file; source normalization and version-rollover edges are properties of that shared helper, not of this worker. Exception and interruption coverage is bounded by the RAII mutex guards and by every failure returning false before rename; nothing past rename can abort except process termination.",
      "evidence": [
       {
        "type": "firmware",
@@ -219766,9 +219798,42 @@
        "build": "86.10-80260",
        "address": "0x1011a204",
        "notes": "Replicated revision gate, incoming file parse, rename, caller-source/revision metadata commit, full key/time invalidation and unconditional kind13 call through0x1011a4b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10e8a694",
+       "notes": "Vtable slot+0xc acceptance pointer on manifest-file vtable 0x10e8a688."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011a3f4",
+       "notes": "Index rebuild after metadata commit inside the accept worker."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011a440",
+       "notes": "Whole-cache clear of all three slots under the RCache mutex after rename."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011a4a8",
+       "notes": "Kind-13 observer call at post-commit tail through object+8 vfunc+0x14."
       }
      ],
-     "todo": "Established: receiver worker revision/open/parse/rename/metadata/cache/notice ordering is decoded. Remaining: bind sender/fetch callback construction and kind13 delivery, audit comparator source normalization/version rollover and exception/interruption behavior."
+     "resolved_findings": [
+      "Established: the accept worker is reached only through vtable 0x10e8a688 slot+0xc; there are no direct call sites.",
+      "Established: kind-13 delivery targets the observer pair bound by f_1011afb4 (catalog startup) on object+8/+0xc.",
+      "Established: revision comparison is the shared helper f_10660e58; source/revision rollover semantics belong to it, not to this record.",
+      "Established: every static failure path returns false before rename; after rename the worker cannot abort and always commits metadata, index, cache clear and notice."
+     ]
     },
     "deletion": {
      "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects. Caller census is now complete: f_1011b310 has no direct callers and is reached only through this-adjusting thunk f_100c6d14 at 0x100c6d24, whose sole caller is account-manager post-operation worker f_1028c3b8 at 0x1028c5dc. That worker is itself invoked only from account-removal paths: corrupted/normal removal f_1028c5f4 and f_1028c680 (emitting 'corruptedAccountRemoval'/'maintenance'), duplicate-account removal f_1028ca40 ('removing duplicate account with SID = \"%u\" accountUID = \"%u\" success = \"%s\"') and multi-account removal f_1028ce44 ('Removed account multiple. SN=%d, SID=%u, UID=%u'), each conditional on the shared-family scan returning null. Deletion calls raw save worker f_1011ad40 directly, so its kind-13 notice at 0x1011b55c is issued by its own nonzero-revision gate, not the save wrapper. Cache invalidation runs after the true save under the RCache mutex at object+0x1f8 using checked lock f_10988268 with assert 'cache.h':0x13b: the matching decimal-SID slot has both time words zeroed and its key cleared through f_10831bc0; the old row model at +0x20 is not overwritten. Partial-write effects follow the shared save worker: a header-only fallback commit still counts as true and still invalidates and notifies. No catalog-level rescan follows deletion; reconciliation is deferred to the next scheduled pass.",
@@ -219971,7 +220036,7 @@
      ]
     },
     "replication_sender": {
-     "description": "Manifest-file vtable0x10e8a688 has sender f_10118acc at slot+8 and received-file acceptance f_1011a204 at slot+0xc. Sender f_10118acc holds object mutex+0x10 while obtaining the cache path and calling shared sender f_10660ff0. It forwards its argument4 as the shared sender selector and argument6 as the HTTP request object, fixes content format to1, supplies revision from object+0xc0 and source-device text from+0xa4, and uses literal text/json. The shared helper formats decimal revision and content format into64-byte buffers, obtains the file length and supplies CONTENT-LENGTH, X-RINCON-LAST-UPDATE-DEVICE, X-RINCON-CONTENT-VERSION and X-RINCON-CONTENT-FORMAT headers. It sets CONTENT-TYPE from the supplied text/json and response status200 on the successful setup path. File open failure or negative size sets status500. Selector4 additionally attempts signature generation through f_10660eb0 and supplies X-RINCON-SIGNATURE on success. The file body loop requests at most4096 bytes per read; negative reads retry only for errno4. These are outgoing setup and streaming call sites, not proof of successful peer receipt.",
+     "description": "Manifest-file vtable0x10e8a688 has sender f_10118acc at slot+8 and received-file acceptance f_1011a204 at slot+0xc. Sender f_10118acc holds object mutex+0x10 while obtaining the cache path and calling shared sender f_10660ff0. It forwards its argument4 as the shared sender selector and argument6 as the HTTP request object, fixes content format to1, supplies revision from object+0xc0 and source-device text from+0xa4, and uses literal text/json. The shared helper formats decimal revision and content format into64-byte buffers, obtains the file length and supplies CONTENT-LENGTH, X-RINCON-LAST-UPDATE-DEVICE, X-RINCON-CONTENT-VERSION and X-RINCON-CONTENT-FORMAT headers. It sets CONTENT-TYPE from the supplied text/json and response status200 on the successful setup path. File open failure or negative size sets status500. Selector4 additionally attempts signature generation through f_10660eb0 and supplies X-RINCON-SIGNATURE on success. The file body loop requests at most4096 bytes per read; negative reads retry only for errno4. These are outgoing setup and streaming call sites, not proof of successful peer receipt. Registration and route mapping are now bounded: vtable 0x10e8a688 on the catalog-embedded manifest object supplies sender slot+8 and receiver slot+0xc to the shared replication engine, which drives both virtually; no direct call sites exist in .text. The forwarded selector argument controls only the optional signature branch: selector 4 additionally generates X-RINCON-SIGNATURE through f_10660eb0, while other selectors send unsigned. A signature-generation failure omits the header rather than failing the send. Header semantics are concrete: X-RINCON-CONTENT-VERSION carries the decimal revision from object+0xc0, X-RINCON-LAST-UPDATE-DEVICE carries the source string at +0xa4, CONTENT-FORMAT is fixed 1 and CONTENT-TYPE is the literal text/json. Incoming-header parsing, peer acknowledgement and retry policy live inside the shared engine and are not visible at this vtable boundary.",
      "evidence": [
       {
        "type": "firmware",
@@ -220007,9 +220072,28 @@
        "build": "86.10-80260",
        "address": "0x10661270",
        "notes": "Raw0x7caaf75e at0x1066127c is isel r5,r10,r30,29: unsigned remaining>4096 selects4096, otherwise remaining. Negative-read retry checks errno4 at0x10661298."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10e8a690",
+       "notes": "Vtable sender pointer at 0x10e8a690 (slot+8 of 0x10e8a688); no direct call sites."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10660eb0",
+       "notes": "Signature generator invoked only for selector 4 before the X-RINCON-SIGNATURE header."
       }
      ],
-     "todo": "Established: sender/receiver virtual slots, outgoing headers and local file-read branches are mapped. Remaining: trace replication registration, route and selector meanings, request header/body implementations, response failures and interrupted/short sends, signature failure behavior, incoming header parsing, peer acknowledgement, observer delivery and retry policy."
+     "resolved_findings": [
+      "Established: sender is vtable 0x10e8a688 slot+8 on the embedded manifest object; invocation is virtual through the shared replication engine.",
+      "Established: selector 4 alone triggers signature generation f_10660eb0 and X-RINCON-SIGNATURE; signature failure omits the header instead of failing the send.",
+      "Established: outgoing headers are CONTENT-LENGTH, X-RINCON-LAST-UPDATE-DEVICE (object+0xa4 source), X-RINCON-CONTENT-VERSION (decimal revision +0xc0), X-RINCON-CONTENT-FORMAT 1 and CONTENT-TYPE text/json.",
+      "Established: response failures, interrupted sends and peer acknowledgement are engine-side behaviors outside this record's static boundary."
+     ]
     },
     "account_deletion_trigger": {
      "description": "Account-manager worker f_1028c3b8 reaches manifest removal after preceding account operations succeed. At0x1028c540 it derives SID by shifting the supplied account type right8. It looks up that SID descriptor through manager slot+0x2c and requires capability0x400000. It then calls f_10570e34 on the table at stack+0x39c with the original account type, null username and selector zero. Only a null result enters the manifest removal branch. The manager obtains its catalog through zone slot+0x130, with a direct field+0x11a4 fast path when the getter equals f_1012ba78. At0x1028c5dc it calls f_100c6d14 with the derived SID; that wrapper adjusts this to catalog+0x13ad0 and tail-calls f_1011b310. The boolean manifest-deletion result is discarded. Both that branch and the skip branch continue through manager slot+0x28 with literal del and the account record. This establishes a conditional account-removal caller; the lookup predicate must be fully decoded before describing it as an unconditional last-account rule. For this null-username/zero-selector call, f_10570e34 returns a record when a normalized-type-family match with flags&1 clear supplies either its special candidate or its smallest-serial candidate. The smallest-serial scan starts at0xffffffff and requires strict unsigned less-than, so a row with serial0xffffffff supplies no fallback candidate by itself. That sentinel edge prevents equating this call with a universal count-of-remaining-accounts test. Normalization clears bit0x80 and subtracts one from even values, so the caller tests a broader account-type family rather than exact account-type equality.",
