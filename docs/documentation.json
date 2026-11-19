@@ -72737,7 +72737,7 @@
      ]
     },
     "GetOutputFixed": {
-     "description": "Pure delegation: impl f_100d6610 forwards to impl->v[+0xe0](impl, 0, r4-in) - the fixed-output flag lives behind a secondary interface method on the same object.",
+     "description": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073afb8",
@@ -72773,7 +72773,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Required rendering-instance selector. Only numeric zero reaches the read; other values return 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -72785,100 +72785,159 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Required request argument configured with f_105614e0; implementation rejects nonzero with 702",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073aff8",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d7364",
+         "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
         }
        ],
-       "notes": null
+       "notes": "No fallback rendering instance is selected."
       }
      },
      "outputs": {
       "CurrentFixed": {
-       "description": "Produced by a pure vfunc forward: impl calls impl->v[+0xe0](impl, 0, arg) and returns its result - the flag source is a deeper object interface.",
+       "description": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "SOAP boolean formatted as 0 or 1",
        "unit": "none",
-       "accepted_values": "delegate-produced",
-       "range": "unconstrained",
+       "accepted_values": "0 or 1",
+       "range": "0..1",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Emitted only on zero implementation status; f_1055fc08 maps zero to text 0 and any nonzero byte to text 1.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b0b0",
-         "notes": "out-arg access site"
+         "address": "0x100d73a8",
+         "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0aed4",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100d6610",
-         "address": "0x100d6610",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x1073b0b4",
+         "notes": "Wrapper output load/format path after the zero-status test."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentFixed`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "The output is not a write to renderer state."
       }
      },
-     "validation": "Request-layer parse.",
-     "requirements": "none",
-     "state_dependencies": "none",
+     "validation": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state. Output formatting follows the explicit zero-status test, not an inherited condition-register value.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b04c",
+        "notes": "Fresh record-form move before the success/fault branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7364",
+        "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2768",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x5c contains 0x100d7364; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7364",
+        "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses the constructed RC object and mutex +0x938. Data source: 0x7ff/+0x801. The returned value is copied from existing state; this action does not update that state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d73a8",
+        "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Thin virtual forwarder: loads this->vptr[+0xe0] and tail-calls it with the out ptr and literal 0 - the fixed-output flag lives behind the impl own virtual API.",
+       "description": "Acquires and releases mutex +0x938 and writes caller-owned output storage. No renderer setting, dirty byte, notification request, member request or persistence write occurs in the complete getter path. The optional r6 halfword output is written by this method but discarded by the SOAP wrapper.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100d6610",
-         "address": "0x100d661c",
-         "notes": "lwz vptr,+0xe0 -> bctr at 0x100d661c"
+         "address": "0x100d7364",
+         "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
         }
        ]
       }
      ],
-     "events_triggered": "none",
-     "state_transitions": "none",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": "none: the complete concrete getter path makes no event-source or observer call.",
+     "state_transitions": "none: this action does not change renderer settings or operation state.",
+     "return_behavior": {
+      "description": "Implementation status is 0 on the documented valid-input path and 702 for nonzero InstanceID. The wrapper emits its output and commits only on status zero; otherwise it forwards the numeric implementation status as a SOAP fault. Request-layer validation failure separately selects 402. Null service+4 and unknown action names use the dispatcher 401 path.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2768",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x5c contains 0x100d7364; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7364",
+        "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b04c",
+        "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b0b4",
+        "notes": "Wrapper output load and formatter are reached only on zero implementation status."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073b060",
@@ -72889,21 +72948,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
           }
          ]
         }
@@ -72913,43 +72971,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Request-layer validation failed.",
        "fault_sites": [
-        "0x1073b060",
-        "0x1073b090"
+        "0x1073b060"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073b090"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073b060"
+           "address": "0x1073b060",
+           "notes": "Request-layer validation failed."
           }
          ]
         }
@@ -72959,19 +73001,38 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073b090"
-        },
+         "address": "0x1073b060",
+         "notes": "Request-layer validation failed."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d7364",
+           "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073b060"
+         "address": "0x100d7364",
+         "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -72980,34 +73041,38 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073afb8",
-       "address": "0x1073afb8",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2768",
+       "notes": "Concrete primary vptr 0x10ed270c slot 0x5c contains 0x100d7364; service+4 writer 0x104d4dc0 is proven."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11dc4",
-       "notes": "action dispatch table entry"
+       "address": "0x100d7364",
+       "notes": "For InstanceID zero, locks +0x938 and returns raw indicator 0 when byte +0x7ff is zero, otherwise byte(+0x801) XOR 1. It writes the byte to r5, optionally copies halfword +0x7e0 to nonnull r6, unlocks and returns 0. Nonzero InstanceID returns 702 without writing outputs. The SOAP wrapper passes r5=&sp+0x15 and r6=&sp+0x16 (formed by sthu), consumes only the byte and formats nonzero as 1. It does not call the virtual forwarder f_100d6610."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: mr r5,r4; addi r4,0; v+0xe0 bctr - pure tail-forward",
-       "function": "0x100d6610"
+       "address": "0x1073b04c",
+       "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b0b4",
+       "notes": "Wrapper output load and formatter are reached only on zero implementation status."
       }
      ],
      "notes": "Reading flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixed state; unverified which field backs it.",
-     "todo": [
-      "Established: dispatch to handler 0x1073afb8; flag +0x7ff elsewhere in the impl suggests +0xe0 returns the output-fixed state.",
-      "Residual: which field backs the returned value (unverified per the record's notes). (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: the +0xe0 read matches SetOutputFixed writer - the fixed-output flag byte.",
-      "Resolved: the +0xe0 read matches SetOutputFixed writer - the fixed-output flag byte."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x5c",
+      "function": "0x100d7364",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "GetRoomCalibrationStatus": {
      "description": "Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg & 0xffff, ...) - a sonar-calibration query helper - and fills the two outputs from the result.",
