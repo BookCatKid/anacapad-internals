@@ -154904,16 +154904,42 @@
      "type": "firmware",
      "address": "0x10fb2548",
      "notes": "expat"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c4a530",
+     "notes": "Native parser allocator and initialization."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3f81c",
+     "notes": "Common application creation wrapper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3f8b4",
+     "notes": "Namespace-aware parser creation branch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3fd30",
+     "notes": "One of five constructor-mediated creation sites."
     }
    ],
-   "todo": [
-    "Residual: the per-subsystem XML_ParserCreate call-site census (UPnP/SMAPI/muse consumers; the engine is shared)."
-   ],
+   "todo": "Residual: enumerate callers of the five native parser-constructor wrappers f_10c3fcd4/f_10c3fd88/f_10c3fe28/f_10c3fefc/f_10c3ffa8 and bind those callers plus direct creators f_1024b048/f_10bb99ac to subsystems. The common creator and all seven immediate creation call sites are now located.",
    "resolved_findings": [
-    "Resolved: parser instances = expat_2.5.0 with billion-laughs accounting + entropy /dev/urandom; consumers = every XML parse site (SCPD, ZGS, settings docs).",
-    "Parser binding: a single vendored expat 2.5.0 (expat_2.5.0 literal, xmlparse.c asserts, full XML_ErrorString table) serves all XML consumers; entity-amplification accounting is compiled in (expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f; XML_BLAP_MAX_AMP/XML_BLAP_ACT_THRES config names; EXPAT_ACCOUNTING_DEBUG/EXPAT_ENTITY_DEBUG/EXPAT_ENTROPY_DEBUG env vars; /dev/urandom entropy source). The per-subsystem parser instances are created at call sites - a census, not separate copies.",
-    "Resolved: the statically-linked expat is version expat_2.5.0 (literal 0x10fb2674) built with the billion-laughs accounting instrumentation compiled in: debug hooks emit \"expat: Entities(%p): Count %9d, depth %2d/%2d %*s%s%s; %s length %d (xmlparse.c:%d)\", \"expat: Accounting(%p): Direct %10llu, indirect %10llu, amplification %8.2f%s\", \"expat: Entropy: %s --> 0x%0*lx (%lu bytes)\" - so amplification tracking and entity-depth limits are active in this build.",
-    "Established: single expat 2.5.0 instance, billion-laughs accounting, debug env vars, /dev/urandom entropy."
+    "The constructor symbols are stripped, but native parser creation is recovered: f_10c4a8cc passes null memory-suite/namespace arguments to f_10c4a530, and f_10c4a8e4 supplies a one-byte namespace separator. f_10c4a530 allocates a 0x220-byte parser structure, stores allocator functions and allocates its subsidiary buffers at 0x10c4a56c-0x10c4a5dc. Its other callers are reset/external-parser machinery inside the same Expat implementation. No application literal XML_ParserCreate is required for this path to execute.",
+    "Both application creation variants funnel through f_10c3f81c: namespace separator zero calls f_10c4a8cc at 0x10c3f960; nonzero calls f_10c4a8e4 at 0x10c3f8b4. This wrapper validates callback combinations before allocation, allocates a twelve-byte wrapper, installs handlers through f_10c3f27c, and returns zero for invalid combinations or wrapper allocation failure at 0x10c3f920. The old claim of one parser instance is false: each call creates a separate parser around the shared engine.",
+    "Direct branch census for f_10c3f81c yields seven creation call sites: 0x1024b200 in f_1024b048, 0x10bb9a20 in f_10bb99ac, plus constructor wrappers 0x10c3fd30/0x10c3fde0/0x10c3fe94/0x10c3ff58/0x10c40024 in f_10c3fcd4/f_10c3fd88/f_10c3fe28/f_10c3fefc/f_10c3ffa8. Those five wrappers store the created instance at object+4 and explicitly handle zero creation results, for example 0x10c3fd34-0x10c3fd64. Counting only the two direct application calls misses all constructor-mediated consumers. Mapping those wrapper callers to UPnP/SMAPI/settings/muse requires the remaining caller census; every XML-looking string is not evidence of Expat use.",
+    "Version getter f_10c4c254 returns expat_2.5.0 at 0x10fb2674. Entity-amplification accounting and entropy diagnostics establish compiled support, not proof that every parser invocation enforces a particular caller-selected threshold. The shared engine and native creation paths are in the shipped ELF, so library provenance is not an obstacle to completing the consumer map."
    ]
   },
   "telemetry_client": {
