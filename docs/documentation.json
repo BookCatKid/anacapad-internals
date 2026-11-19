@@ -33910,7 +33910,7 @@
     }
    },
    "availability": {
-    "notes": "The ZonePlayer constructor initializes the wrapper unconditionally; the router's availability byte comes separately from ctx+0x571c XOR 1. Engine A is the base vtable, and the group-capable derived constructor replaces it with B. The presence of B is not itself a test for the zone's current topology; B's overrides make those tests per call.",
+    "notes": "The ZonePlayer constructor initializes the wrapper unconditionally; the router's availability byte comes separately from ctx+0x571c XOR 1. Engine A is the base vtable, and the group-capable derived constructor replaces it with B. The presence of B is not itself a test for the zone's current topology; B's overrides make those tests per call. At activation, the zone binds its allocated derived engine to wrapper+4 and its lifetime controller to wrapper+8. A null candidate in the binding call leaves this wrapper unchanged.",
     "evidence": [
      {
       "type": "firmware",
@@ -33958,6 +33958,38 @@
       "address": "0x102fa5c4",
       "notes": "The engine is read via wrapper+4 at dispatch; a matching action with that pointer still null returns 401 instead of entering the action handler.",
       "function": "0x102fa5c4"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018f114",
+      "notes": "Normal ZonePlayer construction passes the embedded SOAP aggregate as the sixth argument of the engine constructor chain (from 0x1018ef1c via stack +0xfc and r8). AVTransport is constructed at aggregate+0x0c at 0x1018fb70.",
+      "function": "0x1018d27c"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x103fb5d8",
+      "notes": "The 0xae38-byte allocation on the engine-creation path is passed to the derived AVTransport constructor. The result is kept in the owner at +0x1934 and its lifetime controller at +0x1938 (0x103fb680/0x103fb678). No base-only allocation or current group membership test selects the constructor at this site.",
+      "function": "0x103fa434"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x103fdd60",
+      "notes": "The activation routine passes obj+0x1934 as r6, and loads r3 from obj+0x220, the SOAP aggregate pointer saved by the owning constructor at 0x103fa75c.",
+      "function": "0x103fd65c"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x104d4b50",
+      "notes": "Copies the object from r6[0] to aggregate+0x10 (AVTransport wrapper+4). The lifetime controller is stored at aggregate+0x14 at 0x104d4ba4. If r6[0] is null, the binder skips this service; a raw nonnull pointer with no controller takes the 0x104d5830 store.",
+      "function": "0x104d49e8"
      }
     ],
     "enabled_source": {
@@ -33970,7 +34002,7 @@
     },
     "cap_flags": "0x2000",
     "todo": [
-     "Trace the engine-to-wrapper +4 assignment and its teardown in the zone lifecycle downstream of 0x103fb5d8. The wrapper constructor, routing bit, dispatch null gate and derived-vtable installation are independently verified."
+     "Identify the shutdown or exceptional-cleanup sites which release or clear the wrapper binding after activation."
     ]
    },
    "object": {
@@ -69845,6 +69877,38 @@
      "address": "0x102fa5c4",
      "notes": "The engine is read via wrapper+4 at dispatch; a matching action with that pointer still null returns 401 instead of entering the action handler.",
      "function": "0x102fa5c4"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018f114",
+     "notes": "Normal ZonePlayer construction passes the embedded SOAP aggregate as the sixth argument of the engine constructor chain (from 0x1018ef1c via stack +0xfc and r8). AVTransport is constructed at aggregate+0x0c at 0x1018fb70.",
+     "function": "0x1018d27c"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fb5d8",
+     "notes": "The 0xae38-byte allocation on the engine-creation path is passed to the derived AVTransport constructor. The result is kept in the owner at +0x1934 and its lifetime controller at +0x1938 (0x103fb680/0x103fb678). No base-only allocation or current group membership test selects the constructor at this site.",
+     "function": "0x103fa434"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fdd60",
+     "notes": "The activation routine passes obj+0x1934 as r6, and loads r3 from obj+0x220, the SOAP aggregate pointer saved by the owning constructor at 0x103fa75c.",
+     "function": "0x103fd65c"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104d4b50",
+     "notes": "Copies the object from r6[0] to aggregate+0x10 (AVTransport wrapper+4). The lifetime controller is stored at aggregate+0x14 at 0x104d4ba4. If r6[0] is null, the binder skips this service; a raw nonnull pointer with no controller takes the 0x104d5830 store.",
+     "function": "0x104d49e8"
     }
    ],
    "notes": [
@@ -69873,7 +69937,7 @@
     ]
    },
    "todo": [
-    "The two static engine tables and four SOAP overrides are verified. Remaining uncertainties are tracked on the specific action records; additionally locate the wrapper+4 lifecycle binding and prove when the derived constructor at 0x10511f34 is selected, rather than assuming live group membership controls it."
+    "Trace shutdown and exceptional cleanup of the confirmed wrapper+4 binding, and any construction path outside the verified zone startup that could expose the base-only implementation. Action-specific residuals are tracked on their own records."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
