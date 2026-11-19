@@ -76969,7 +76969,7 @@
      }
     },
     "ResetBasicEQ": {
-     "description": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers. f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading.",
+     "description": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers. f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading. On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful ResetBasicEQ still does not acknowledge physical audio completion.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073bf30",
@@ -77066,7 +77066,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         }
        ],
        "primitive": {
@@ -77108,7 +77108,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
@@ -77136,7 +77136,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
         },
         {
          "type": "firmware",
@@ -77184,7 +77184,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
@@ -77212,7 +77212,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
         },
         {
          "type": "firmware",
@@ -77260,7 +77260,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
@@ -77288,7 +77288,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
         },
         {
          "type": "firmware",
@@ -77336,7 +77336,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
@@ -77364,7 +77364,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
         },
         {
          "type": "firmware",
@@ -77412,7 +77412,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
@@ -77440,7 +77440,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
         },
         {
          "type": "firmware",
@@ -77510,7 +77510,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db6b0",
-        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
        }
       ]
      },
@@ -77557,16 +77557,16 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db6b0",
-        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
        }
       ]
      },
      "state_dependencies": {
-      "description": "Uses topology +0xbc8/+0x9c8, request manager +0x3c4, mutex +0x938, guard +0x7ff, profile +0xcc/+0xd0 and optional primary-member profile, bass/treble/loudness caches and dirty flags, channel volumes and dirty +0x7f0. Existing Master volume/mutes feed f_100d7f34; this action does not assign new Master volume/mute values.",
+      "description": "Uses topology +0xbc8/+0x9c8, request manager +0x3c4, mutex +0x938, guard +0x7ff, profile +0xcc/+0xd0 and optional primary-member profile, bass/treble/loudness caches and dirty flags, channel volumes and dirty +0x7f0. Existing Master volume/mutes feed f_100d7f34; this action does not assign new Master volume/mute values. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish.",
       "todo": [
-       "Established: Cached reset fields and the complete local/primary profile selection.",
-       "Unknown: Concrete backend observer and volume implementation dependencies.",
-       "Next: Bind DSP-manager +0x90..+0xe4 observer slots +0x30/+0x34/+0x38 and +0x3ac/+0x3b4 dependencies below f_100d7f34."
+       "Established: Direct cache/setup guards and concrete sound-device readiness, deferred state and LED-state dependencies.",
+       "Unknown: Concrete DSP/LED listener registrations.",
+       "Next: Bind DSP-manager +0x90..+0xe4 concrete tone/loudness listeners at +0x30/+0x34/+0x38, the gain/mute/volume listeners below f_10d8fdc8/f_10d8c304/f_10d8ca38, playback consumer f_10d54ca8 and optional LED attachment/subclass through media-player+0x274/+0x278."
       ],
       "evidence": [
        {
@@ -77574,7 +77574,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db6b0",
-        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
        },
        {
         "type": "firmware",
@@ -77602,7 +77602,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db864",
-        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
        },
        {
         "type": "firmware",
@@ -77610,16 +77610,30 @@
         "build": "86.10-80260",
         "address": "0x100d7f34",
         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful ResetBasicEQ still does not acknowledge physical audio completion."
        }
       ]
      },
      "side_effects": [
       {
-       "description": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. Deferred f_100d993c -> f_100d7d6c -> f_100d78a4 snapshots settings and attempts an EQ-key write through RC+0x3bc slot +0x14 before f_10167318; this is separate from SOAP completion.",
+       "description": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. Deferred f_100d993c -> f_100d7d6c -> f_100d78a4 snapshots settings and attempts an EQ-key write through RC+0x3bc slot +0x14 before f_10167318; this is separate from SOAP completion. Accepted local reset writes cache/output/dirty state and requests notifications; the traced final local apply cannot report 501. Deferred save clears pending state and changes its generation before an optional file-replacement attempt. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
        "todo": [
-        "Established: Peer requests, local/output cache writes, backend calls, dirty flags, event request and deferred save attempt.",
-        "Unknown: Concrete observer effects and final volume, session and durable save outcomes.",
-        "Next: Finish f_100d7f34 device/observer implementations, f_106ff898, and storage RC+0x3bc slot +0x14 / f_10167318."
+        "Established: Reset values/profile selection, proxy/local/output ordering, concrete audio/LED requests, constant-success final apply and conditional deferred EQ file replacement.",
+        "Unknown: Concrete DSP/LED listener effects, final remote-session outcomes and remaining settings sinks.",
+        "Next: Bind DSP-manager +0x90..+0xe4 concrete tone/loudness listeners at +0x30/+0x34/+0x38, the gain/mute/volume listeners below f_10d8fdc8/f_10d8c304/f_10d8ca38, playback consumer f_10d54ca8 and optional LED attachment/subclass through media-player+0x274/+0x278. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish f_106ff898."
        ],
        "evidence": [
         {
@@ -77655,7 +77669,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db6b0",
-         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+         "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
         },
         {
          "type": "firmware",
@@ -77683,7 +77697,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+         "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
         },
         {
          "type": "firmware",
@@ -77691,16 +77705,37 @@
          "build": "86.10-80260",
          "address": "0x100d7f34",
          "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f7078",
+         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful ResetBasicEQ still does not acknowledge physical audio completion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "After local guard success, f_1067c6ec(this+8) at 0x100db868 is requested even when the volume-application boolean is false and status 501 will follow. Dirty bytes +0x7f8/+0x7fc/+0x7fe/+0x7f0 are set.",
+      "description": "After local guard success, f_1067c6ec(this+8) at 0x100db868 is requested; the concrete volume-application helper does not report downstream failure. Dirty bytes +0x7f8/+0x7fc/+0x7fe/+0x7f0 are set. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
       "todo": [
-       "Established: Dirty fields and notification-request ordering, including failure-after-mutation.",
-       "Unknown: Payload, sender binding and eventual subscriber delivery.",
-       "Next: Trace RC this+8 metadata callback then f_1067c6ec -> f_1067c46c -> f_10678c50 concrete sender worker, separately from DSP observer emitters."
+       "Established: Conditional dirty/source request sites and generation-guarded deferred save with ignored storage booleans.",
+       "Unknown: Concrete subscriber delivery and completion of the separate zones-setting command/storage sink.",
+       "Next: Bind sender worker after f_10678c50; trace command 0x3f and zones-storage+0x5c virtual +0x14 receivers."
       ],
       "evidence": [
        {
@@ -77708,7 +77743,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db6b0",
-        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
        },
        {
         "type": "firmware",
@@ -77736,7 +77771,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db864",
-        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
        },
        {
         "type": "firmware",
@@ -77744,15 +77779,22 @@
         "build": "86.10-80260",
         "address": "0x100d7f34",
         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
        }
       ]
      },
      "state_transitions": {
-      "description": "Sets cached Bass/Treble=0, LeftVolume/RightVolume=100 and profile-derived Loudness, preserving cached Master volume/mutes. A later 501 does not undo those writes, dirty state, notifications or peer work.",
+      "description": "Sets cached Bass/Treble=0, LeftVolume/RightVolume=100 and profile-derived Loudness, preserving cached Master volume/mutes. The traced final local apply cannot return 501; earlier peer work is still not rolled back if a precondition fails. Accepted local reset writes cache/output/dirty state and requests notifications; the traced final local apply cannot report 501. Deferred save clears pending state and changes its generation before an optional file-replacement attempt. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
       "todo": [
-       "Established: Exact synchronous cache/output transitions and partial-failure ordering.",
-       "Unknown: Achieved audio state and completed durable save.",
-       "Next: Bind DSP and volume backends below f_100d7f34 plus storage RC+0x3bc slot +0x14 / f_10167318."
+       "Established: Accepted local reset writes cache/output/dirty state and requests notifications; the traced final local apply cannot report 501. Deferred save clears pending state and changes its generation before an optional file-replacement attempt.",
+       "Unknown: Final DSP/remote completion states and remaining settings receiver transitions.",
+       "Next: Bind DSP-manager +0x90..+0xe4 concrete tone/loudness listeners at +0x30/+0x34/+0x38, the gain/mute/volume listeners below f_10d8fdc8/f_10d8c304/f_10d8ca38, playback consumer f_10d54ca8 and optional LED attachment/subclass through media-player+0x274/+0x278. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish f_106ff898."
       ],
       "evidence": [
        {
@@ -77760,7 +77802,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db6b0",
-        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
        },
        {
         "type": "firmware",
@@ -77788,7 +77830,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db864",
-        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
        },
        {
         "type": "firmware",
@@ -77796,11 +77838,32 @@
         "build": "86.10-80260",
         "address": "0x100d7f34",
         "notes": "Reads existing Master/channel mute, volume and scaling fields, calls device +0x3ac bridges and optional +0x3b4 slot +0x0c, and records time at +0x898. Its result is a local application boolean, not an achieved-volume measurement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful ResetBasicEQ still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
        }
       ]
      },
      "return_behavior": {
-      "description": "Nonzero proxy status returns before local reset. Local preconditions return 702 or 501 without outputs. Otherwise the final local status is 0 for a nonzero f_100d7f34 boolean, 501 for zero, after cache/output/dirty/event/timer changes. SOAP serializes all five local reset outputs only on 0, not on fault. Endpoint setup can skip peers without making the action fail.",
+      "description": "Nonzero proxy status returns before local reset. Local preconditions return 702 or 501 without outputs. Once those guards pass, the concrete final f_100d7f34 returns one and the local reset returns zero after its cache/output/dirty/event/timer work. The late apply-zero 501 select is unreachable. SOAP serializes all five reset outputs only on zero. Endpoint setup can skip peers; success does not acknowledge physical audio completion or durable saving.",
       "evidence": [
        {
         "type": "firmware",
@@ -77842,7 +77905,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db6b0",
-        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+        "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
        },
        {
         "type": "firmware",
@@ -77870,7 +77933,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100db864",
-        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+        "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
        },
        {
         "type": "firmware",
@@ -77899,6 +77962,20 @@
         "build": "86.10-80260",
         "address": "0x1053c388",
         "notes": "Raw 0x7c6a4f9e selects true when snapshot word +0x288 is zero, not nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful ResetBasicEQ still does not acknowledge physical audio completion."
        }
       ]
      },
@@ -77966,18 +78043,18 @@
       },
       {
        "code": 501,
-       "meaning": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation.",
+       "meaning": "Local guard +0x7ff rejects reset before local cache/output writes. The separate apply-zero select is unreachable with the concrete shared worker.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation.",
+         "description": "Local guard +0x7ff rejects reset before local cache/output writes. The separate apply-zero select is unreachable with the concrete shared worker.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x100db864",
-           "notes": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation."
+           "notes": "Local guard +0x7ff rejects reset before local cache/output writes. The separate apply-zero select is unreachable with the concrete shared worker."
           }
          ]
         }
@@ -77988,7 +78065,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100db864",
-         "notes": "Local guard +0x7ff rejects reset, or final f_100d7f34 application boolean is zero after mutation."
+         "notes": "Local guard +0x7ff rejects reset before local cache/output writes. The separate apply-zero select is unreachable with the concrete shared worker."
         }
        ]
       },
@@ -78096,7 +78173,7 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100db6b0",
-       "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
+       "notes": "f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its caller selects 0 for nonzero or 501 for zero, but the concrete f_100d7f34 returns one on every traced normal-return path, making the late apply-zero 501 unreachable. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure."
       },
       {
        "type": "firmware",
@@ -78124,7 +78201,7 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100db864",
-       "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. f_100d7f34 return zero selects 501; nonzero selects 0. Dirty/event/timer calls execute for both results."
+       "notes": "Raw 0x7feabf9e is isel r31,r10,r23,30, with r10=501 and r23=0, after cmpwi cr7,r3,0. The raw select would fault on apply-zero, but the bound normal-return shared worker always returns one, so this late 501 is unreachable. Dirty/event/timer calls execute for both results."
       },
       {
        "type": "firmware",
@@ -78153,13 +78230,34 @@
        "build": "86.10-80260",
        "address": "0x1053c388",
        "notes": "Raw 0x7c6a4f9e selects true when snapshot word +0x288 is zero, not nonzero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f7078",
+       "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful ResetBasicEQ still does not acknowledge physical audio completion."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d78a4",
+       "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
       }
      ],
      "notes": "The proven primary slot is not the shared per-channel worker f_100d9d40. Outputs describe local reset values, not an aggregation of peer responses or a post-application hardware read.",
      "todo": [
-      "Established: Reset values, profile loudness decision, request/local ordering, output serialization and failure-after-mutation behavior.",
-      "Unknown: Concrete DSP/volume observers, deferred durability, final session producers and subscriber delivery.",
-      "Next: Bind DSP-manager observer +0x30/+0x34/+0x38; device bridges below f_100d7f34, optional RC+0x3b4 slot +0x0c; f_106ff898; storage RC+0x3bc slot +0x14 / f_10167318; RC event serializer and sender."
+      "Established: Reset values/profile selection, proxy/local/output ordering, concrete audio/LED requests, constant-success final apply and conditional deferred EQ file replacement.",
+      "Unknown: Concrete DSP/LED effects, final session/parser outcomes, remaining settings receivers and subscriber delivery.",
+      "Next: Bind DSP-manager +0x90..+0xe4 concrete tone/loudness listeners at +0x30/+0x34/+0x38, the gain/mute/volume listeners below f_10d8fdc8/f_10d8c304/f_10d8ca38, playback consumer f_10d54ca8 and optional LED attachment/subclass through media-player+0x274/+0x278. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish session f_106ff898 and sender after f_10678c50."
      ],
      "implementation_notes": {
       "primary_vptr": "0x10ed270c",
