@@ -218878,7 +218878,7 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10118710",
-     "notes": "apiKey postprocess: f_10542708 decode into <=0x400 field else clear key and log 'Could not extract API header'."
+     "notes": "apiKey postprocess: f_10542708 decode; decoded strlen <=0x400 assigns key field via f_10831bc0, else clears key and logs 'Could not extract API header' level 3 in 'svcmanifest'."
     },
     {
      "type": "firmware",
@@ -218896,7 +218896,7 @@
     "Established: the file object embeds at catalog+0x13ad0 with file mutex +0x10, observer pair +8/+0xc, source[25] +0xa4, revision +0xc0, busy byte +0xc4, 34-entry sid/version index +0xc8.. and a three-entry RCache at +0x1e0 with its own mutex +0x1f8 and clock at +0x1f0.",
     "Established: replication uses manifest vtable 0x10e8a688 slot+8 sender f_10118acc and slot+0xc acceptor f_1011a204; accept compares revisions with shared f_10660e58, parses, renames, commits metadata, clears all three cache slots and notifies kind 13.",
     "Established: account-side triggers are the SvcAccountMaint scheduled task f_100bbc80 -> reconcile f_101b869c (freshness + downloads) and removal paths f_1028c5f4/f_1028c680/f_1028ca40/f_1028ce44 -> f_1028c3b8 -> thunk f_100c6d14 -> delete f_1011b310 when the family scan finds no remaining user.",
-    "Established: apiKey.zp is postprocessed by f_10118710 after parse: f_10542708 decodes the value into a 0x400 field on success, otherwise clears the stored key and logs 'Could not extract API header' at level 3.",
+    "Established: apiKey.zp is postprocessed by f_10118710 after parse: f_10542708 decodes the raw string and a decoded length at most 0x400 replaces the stored key field; a longer result clears the key (first byte zeroed, capacity word +0xc4 zeroed) and logs 'Could not extract API header' at level 3 in 'svcmanifest'.",
     "Established: runtime consumers are playback selector f_1011caec/CQ builder f_1011c864 inside SetAVTransportURI handler f_102ceb40, reporting dispatcher f_104cbf1c -> executor f_104c9bd8 (endpoint type 2, LSE flag 0x200000), and request builders f_1038d17c/f_1038e588 emitting manifest-derived headers.",
     "Established: remaining questions are shared-framework boundaries, not manifest gaps: feed/lexer internals belong to json_parser, HTTP transport to the dataio client, replication peer behavior to the shared engine, and provider-side entitlement logic to consumers outside this subsystem; concurrent-state races are bounded by the +0x10 file and +0x1f8 cache mutexes as documented per record."
    ],
