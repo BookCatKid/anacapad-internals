@@ -49444,7 +49444,7 @@
       "todo": "Residual: follow deletion-specific session snapshot comparisons through f_102b5a1c/f_102b5658 to the AVTransport CurrentTrack, NumberOfTracks, URI and TransportState fields and their incremental latches, including current/last-track source transitions. Queue readiness polling and producer dispatch, common sender wakeup, AVTransport callback binding, and generic incremental latch gates are traced."
      },
      "state_transitions": {
-      "description": "Running active deletion uses f_10259f38 and f_103417dc. The latter computes the inclusive removal span, adjusts linked source indexes and shuffle mappings, detaches removed source nodes, returns their identity and flags removal of the list head. This flag is not merely a numeric CurrentTrack equality check. Head removal clears session+0x35184/+0x35188 and +0x327c8, marks changed and calls the track-play monitor with (1,0). Removing another identified source remaps the current index and invokes f_10259c1c; remapping failure sets +0x327d2. f_10259c1c resets saved identity words +0x327d8/+0x327dc to -1, queries session+0x60 slot +0x38, compares identities and either obtains the operation index through slot +0x40 and remaps queue indexes or calls slot +0x48 and stores its byte at +0x327e0. Stopped active deletion uses f_1014ed90 with current-index and removed-current outputs. If removed-current is true, 0x10268e7c clears the same source pair and +0x327c8, resets the source descriptor and notifies the monitor. Successful stopped postprocessing clears playback bookkeeping through f_10261a44 when +0x327c8 is false, refreshes selected-track metadata through f_10267560 when the queue remains nonempty, and publishes session metadata through f_102642d4. The monitor callback is f_104bf2e4, not a direct STOPPED-state setter. No transport state literal is written directly in f_102aa770; the final externally visible current/last-track transitions remain to be traced through session+0x60 and source consumption.",
+      "description": "Running active deletion uses f_10259f38 and f_103417dc. The latter computes the inclusive removal span, adjusts linked source indexes and shuffle mappings, detaches removed source nodes, returns their identity and flags removal of the list head. This flag is not merely a numeric CurrentTrack equality check. Head removal clears session+0x35184/+0x35188 and +0x327c8, marks changed and calls the track-play monitor with (1,0). Removing another identified source remaps the current index and invokes f_10259c1c; remapping failure sets +0x327d2. f_10259c1c resets saved identity words +0x327d8/+0x327dc to -1 and queries the NodeTX object at session+0x60. The factory passes a null override, so the session binds its embedded NodeTX at session+0x338, with vtable 0x10efb75c. Slot +0x38 is f_10636bc8, which scans packet/control-frame history for stream identity and returns packet/frame positions and identity through output pointers. Slot +0x40 is f_10270ce8, deriving the next packet identifier from NodeTX+0x120. Slot +0x48 is f_10636254, which reports crossfade state for a packet identifier. These methods do not directly assign TransportState. The deletion helper compares identities, saves the packet identifier at session+0x327d4, remaps queue indexes when needed, or saves the crossfade-state result at +0x327e0. Stopped active deletion uses f_1014ed90 with current-index and removed-current outputs. If removed-current is true, 0x10268e7c clears the same source pair and +0x327c8, resets the source descriptor and notifies the monitor. Successful stopped postprocessing clears playback bookkeeping through f_10261a44 when +0x327c8 is false, refreshes selected-track metadata through f_10267560 when the queue remains nonempty, and publishes session metadata through f_102642d4. The monitor callback is f_104bf2e4, not a direct STOPPED-state setter. No transport state literal is written directly in f_102aa770; final externally visible current/last-track transitions remain to be traced through detached-source consumption and empty-queue handling.",
       "evidence": [
        {
         "type": "firmware",
@@ -49489,7 +49489,7 @@
         "function": "0x10259c1c",
         "address": "0x10259ca4",
         "callsite": "0x10259ca4",
-        "notes": "Sets saved identity +0x327d8/+0x327dc=-1, queries session+0x60 slot+0x38 with identity and out-pointers. Compares returned identity; differing identity calls slot+0x40 (known implementation f_10270ce8 returns object+0x120+1), stores operation index at +0x327d4, remaps using f_10149e68 and f_1045f760. Alternate branch calls slot+0x48 at 0x10259d80 and stores result byte +0x327e0. Concrete session+0x60 binding remains open."
+        "notes": "Sets saved identity +0x327d8/+0x327dc=-1, queries session+0x60 slot+0x38 with identity and out-pointers. Compares returned identity; differing identity calls slot+0x40 (f_10270ce8 derives the next packet ID from object+0x120, with -1 yielding 1), stores packet ID at +0x327d4, remaps using f_10149e68 and f_1045f760. Alternate branch calls slot+0x48 at 0x10259d80 and stores crossfade-state byte +0x327e0. These are NodeTX packet-history methods, not transport-state setters."
        },
        {
         "type": "firmware",
@@ -49508,9 +49508,27 @@
         "address": "0x104c0b0c",
         "callsite": "0x104c0b0c",
         "notes": "Track-play monitor ctor installs vtable 0x10ed8134; slot+0x30 points to f_104bf2e4. Factory constructs it at 0x103faf80 and stores factory+0x1904; session ctor r9 from that field is stored at session+0x2590 (0x1025f598). f_104bf2e4 submits monitor event kind3 through f_104c6264, not a direct AVTransport state assignment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025f19c",
+        "address": "0x1025f244",
+        "callsite": "0x1025f260",
+        "notes": "Session+0x60 is initialized by f_1066e7d4 at 0x1066e8ac from its r5, but that argument is NOT the session constructor's incoming r5. Session ctor loads incoming stack+0xc at 0x1025f1b8; nonnull passes that override as r5 at 0x1025f244, null branches to 0x1025ffa8 to pass session+0x338. Factory initializes r19=0 at 0x103fbbd4 and stores it in outgoing stack+0xc at 0x103fbc20 before actual ctor call 0x103fbc3c, selecting the embedded object. Session constructs that embedded NodeTX with f_106366c4 at 0x1025f510; NodeTX ctor installs vtable 0x10efb75c at 0x10636724. Its slots +0x38/+0x40/+0x48 contain f_10636bc8/f_10270ce8/f_10636254. This resolves the factory-created session's concrete binding without assuming a runtime-injected source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10636bc8",
+        "address": "0x10636f4c",
+        "callsite": "0x10259ca4",
+        "notes": "NodeTX slot +0x38 scans packet records through f_10633e20 and control frames through f_1063311c. At 0x10636f50..0x10636f68 writes packet number, frame offset, frame payload word and stream identity to supplied outputs; analogous candidate outputs at 0x10636fc8..0x10636fec and 0x10636ffc..0x10637018. Invalid NodeTX packet bounds (+0x120/+0x11c == -1) branch to 0x106370dc and return false. Slot +0x48 f_10636254 looks up packet ID-1 at 0x10636274..0x10636294, parses control frames, returns false for absent/no control frames and tags 0xfa/0xfb (0x1063641c..0x10636460), true for other high-bit control tags (0x10636470..0x10636498). Diagnostic strings explicitly name crossfadeStateForPacketID. Slot +0x40 f_10270ce8 reads NodeTX+0x120, returning the next packet ID or 1 for -1."
        }
       ],
-      "todo": "Residual: identify concrete session+0x60 implementations of slots +0x38/+0x40/+0x48 used by f_10259c1c, then follow detached-head/source-consumption handling and empty-queue handling to externally visible CurrentTrack/TransportState values for current-track and last-track deletion. The named helper control flow, stopped refresh and track-play monitor binding are traced; the monitor call alone does not establish a transport-state change."
+      "todo": "Residual: follow detached-head/source-consumption handling, NodeTX packet-history results and empty-queue handling to externally visible CurrentTrack/TransportState values for current-track and last-track deletion. Concrete session+0x60 NodeTX binding, packet-ID/crossfade methods, named helper control flow, stopped refresh and track-play monitor binding are traced; neither packet queries nor the monitor call alone establish a transport-state change."
      },
      "return_behavior": {
       "description": "No output arguments. Wrapper commits success on implementation result 0 and faults verbatim on nonzero result. Complete normal implementation result domain is {0,718,1028,800}: 718 for nonzero InstanceID, 1028 for version mismatch, 800 for disallowed mode or false worker completion. Request construction/tagging does not contribute a return code. Stack-check failure aborts rather than returning a SOAP code.",
@@ -49790,7 +49808,7 @@
       }
      ],
      "notes": null,
-     "todo": "Residual: bind session+0x60 methods and source-consumption/empty-queue behavior to final observable current/last-track playback transitions; trace deletion-specific AVTransport snapshot changes and incremental latches. Alarm fallback deadline, ContentDirectory subscriber chain, Queue readiness/producer dispatch and AVTransport event callback binding are traced in the records below."
+     "todo": "Residual: trace detached-source consumption, NodeTX packet-history results and empty-queue behavior to final observable current/last-track playback transitions and deletion-specific AVTransport snapshot/latch changes. The concrete embedded NodeTX methods, alarm fallback deadline, ContentDirectory subscriber chain, Queue readiness/producer dispatch and AVTransport event callback binding are traced in the records below."
     },
     "RemoveTrackRangeFromQueue": {
      "description": "Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work (StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector \"0\" via snprintf(\"%u\") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match) selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.",
