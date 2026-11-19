@@ -59593,7 +59593,7 @@
          "notes": "li r3,0x2ce: no queue matched"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Required (402 if absent). Selects one of the session queues; an unknown QueueID returns 718.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -59635,7 +59635,7 @@
          "notes": "lwz job+0x14; zero skips; mismatch -> 0x404"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "0 skips the check. A nonzero value that differs from the queue's current UpdateID returns 1028.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -59709,7 +59709,7 @@
          "notes": "sid query parameter"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Empty: each entry is inserted on its own. Nonempty: a newline returns 800, and the URI is kept as the container of every entry. Container expansion checks whether it starts with 'x-sonosapi-rtrecent:' and reads its sid parameter.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerURI` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -59776,7 +59776,7 @@
          "notes": "DIDL parse of row+0x774"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Used only when ContainerURI is nonempty. A newline returns 800. Otherwise it is parsed as DIDL-Lite and gives the item metadata for entries written by the plain track writer.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerMetaData` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -59867,7 +59867,7 @@
          "notes": "playing-queue commit"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Only the low 16 bits are used. The insert position is min(value, old length + 1), so 0 or any value past the end appends. In an unshuffled queue a value from 1 to the old length inserts the new tracks at that 1-based position. In shuffle mode the play-order array is extended instead. It applies to the whole batch; the per-entry inserts do not see it.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -59982,7 +59982,7 @@
          "notes": "ZZ0153 import (libsonoscrypto.so.3 0x761c, ZZ0071 -> mbedtls_ctr_drbg_random)"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Only read for the playing queue in shuffle mode when the current track is not the last one. Set together with DesiredFirstTrackNumberEnqueued 0, it puts the new tracks right after the playing track in play order. Otherwise each new track gets a random play-order slot after the playing track. Unshuffled queues ignore it.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `EnqueueAsNext` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -60033,7 +60033,7 @@
          "notes": "li r29,0x192"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Must equal the number of entries parsed from EnqueuedURIsAndMetaData; zero parsed entries or a mismatch returns 402.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `NumberOfURIs` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -60083,7 +60083,7 @@
          "notes": "f_105615a8 sink"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Streamed into the track-list parser, which runs the insert once per URI and metadata pair. The first failing entry's code is returned, or 1000 when the list itself cannot be parsed.",
        "buf_cap": null,
        "todo": [
         "Established: the blob is streamed through the f_1014ce8c parser, which calls f_105116e0 per entry.",
@@ -60136,7 +60136,7 @@
          "notes": "stw r5,0xc(r3)"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Number of tracks the insert worker reports it added; one URI such as a container can add several. Written only on success.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: the per-entry insert workers f_1014f808/f_1014fb34 receive &job+0x1434 as their count accumulator (0x10511740 / 0x10511784); on success f_10511858 reads it as u16 (lhz r27 at 0x105119c8) and passes it as r5 of adapter->v[+0xc] (f_104641e4 stores r5 at adapter+0xc), which the wrapper emits at 0x10465024."
@@ -60222,7 +60222,7 @@
          "notes": "playing-queue commit"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Queue length after the commit: the old length plus the tracks added.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved (provenance): u16 out-param sp+0x26 of f_1032e368 (r10 at 0x10511a08), passed as r6 of adapter->v[+0xc], stored at adapter+0x10, emitted at 0x10465048.",
@@ -60261,7 +60261,7 @@
          "notes": "f_10149b24 post-commit read"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "The queue's UpdateID, read again after the insert has been committed.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: after the commit request is submitted (f_10255f64 at 0x10511a2c), f_10149b24(queue, &sp2c, &sp2a, 0) at 0x10511a40 re-reads the queue's update id; sp2c is passed as r7 of adapter->v[+0xc] and stored at adapter+0x14, emitted at 0x1046506c. In plain terms: the reply carries the queue's update id as it stands after the insert."
@@ -60350,7 +60350,7 @@
          "notes": "playing-queue commit"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "1-based position of the first new track: old length + 1 when appending, otherwise the clamped requested position. In shuffle mode it is the requested value, or old length + 1 for 0. Written only after the commit request succeeds.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved (provenance): u16 out-param sp+0x28 of f_1032e368 (r9 at 0x10511a10), passed as r4 of adapter->v[+0xc], stored at adapter+8 and emitted at 0x10465000.",
@@ -61104,7 +61104,7 @@
          "notes": "playing-queue commit"
         }
        ],
-       "notes": null,
+       "notes": "Only the low 16 bits are used. The insert position is min(value, old length + 1), so 0 or any value past the end appends. In an unshuffled queue a value from 1 to the old length inserts the new tracks at that 1-based position. In shuffle mode the play-order array is extended instead.",
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x104646b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
         "Resolved: bound as a u32 (f_105614e0 at 0x1046461c) and passed unchanged as r8 into f_102b6948, then r27 of f_102b674c, which stores it as the first stack argument of f_102b62e8 (0x102b6888). f_102b62e8 passes its low 16 bits (rlwinm r7 at 0x102b66c8) as the insert-position argument of the commit-request builder f_1032e368 (0x102b66d4); the entry insert f_1014f808 does not receive it. In plain terms: the value is a 16-bit 1-based track position handed to the session commit request; there is no range check on the Queue service side.",
@@ -61170,7 +61170,7 @@
          "notes": "ZZ0153 import (libsonoscrypto.so.3 0x761c, ZZ0071 -> mbedtls_ctr_drbg_random)"
         }
        ],
-       "notes": null,
+       "notes": "Only read for the playing queue in shuffle mode when the current track is not the last one. Set together with DesiredFirstTrackNumberEnqueued 0, it puts the new tracks right after the playing track in play order. Otherwise each new track gets a random play-order slot after the playing track. Unshuffled queues ignore it.",
        "resolved_findings": [
         "Consumer use: EnqueueAsNext only matters in the shuffled order-array mode of the playing queue. There, when the play index is not the last track, f_10144fd4(q, playidx, old_length, new_length, flag) at 0x1014e098 places the new tracks in play order. flag is 0 only when EnqueueAsNext is set and Desired is 0 (isel 0x1014def8): the new tracks then go right after the playing track (0x10145108..0x10145124). Otherwise each one gets a random slot after it, drawn by f_105a3b6c (0x10145170). f_105a3b6c calls libsonoscrypto ZZ0153, which does uniform rejection sampling over ZZ0071, and ZZ0071 calls mbedtls_ctr_drbg_random (lib 0x761c and 0x75ec). In unshuffled queues the flag is not read."
        ]
@@ -61280,7 +61280,7 @@
          "notes": "playing-queue commit"
         }
        ],
-       "notes": null,
+       "notes": "1-based position of the first new track: old length + 1 when appending, otherwise the clamped requested position. In shuffle mode it is the requested value, or old length + 1 for 0. Written only after the commit request succeeds.",
        "resolved_findings": [
         "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&First)=u16 sp+0x24, the r9 out-param of f_1032e368 (0x102b66bc). The pointer is the wrapper's sp+0x34 (r10 at 0x104646ac), emitted at 0x1046472c.",
         "Resolved: Position rule, from f_1014dc98: desired = min(Desired, old_length+1) (isel 0x7f8ae75e at 0x1014ddb0). In a queue without the order array (bit 0 of q+0x26dc clear), FirstTrackNumberEnqueued is old_length+1 (0x1014dfec). When 1 <= desired <= old_length, f_101463c8(q, desired-1, new_length-(desired-1), old_length-(desired-1)) rotates the new block to that position and FirstTrackNumberEnqueued becomes desired (0x1014e028). So 0 or any value past the end appends. In the shuffled order-array mode (bit 0 set), the order array is extended by f_101457e0 (0x1014e06c) and FirstTrackNumberEnqueued is desired, or old_length+1 when desired is 0 (0x1014df7c..0x1014df80). The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
@@ -61333,7 +61333,7 @@
          "notes": "stw r8(sp20),0(r28)"
         }
        ],
-       "notes": null,
+       "notes": "Number of tracks the insert worker reports it added; one URI such as a container can add several. Written only on success.",
        "resolved_findings": [
         "Resolved: f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&Num)=u16 sp+0x20, the count accumulator passed by address to the insert worker f_1014f808 (r7 at 0x102b65c8) and forwarded as r6 to f_1032e368. Pointer is wrapper sp+0x38, emitted at 0x10464750. In plain terms: the number of tracks the insert worker reports it added."
        ]
@@ -61426,7 +61426,7 @@
          "notes": "playing-queue commit"
         }
        ],
-       "notes": null,
+       "notes": "Queue length after the commit: the old length plus the tracks added.",
        "resolved_findings": [
         "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&Len)=u16 sp+0x26, the r10 out-param of f_1032e368 (0x102b6600). Pointer is wrapper sp+0x3c, emitted at 0x10464774.",
         "Resolved: NewQueueLength is the queue length after the insert, read from q+0x26c8 at 0x1014df9c inside the consumer. The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
@@ -61479,7 +61479,7 @@
          "notes": "stw r9,0(r22)"
         }
        ],
-       "notes": null,
+       "notes": "The queue's UpdateID, read again after the insert has been committed.",
        "resolved_findings": [
         "Resolved: after f_102b62e8 returns 0, f_102b674c calls f_10149b24(queue,&sp54,&sp4a,0) at 0x102b68c4 and stores sp54 through the NewUpdateID pointer (stw at 0x102b68cc). Pointer is wrapper sp+0x40, emitted at 0x10464798. In plain terms: the reply carries the queue's update id read after the insert committed."
        ]
@@ -63625,7 +63625,7 @@
          "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
         }
        ],
-       "notes": null,
+       "notes": "Copied into the default queue's owner field (at most 255 bytes). AttachQueue compares its argument with this value.",
        "buf_cap": 257,
        "resolved_findings": [
         "Resolved: post-parse handling of `QueueOwnerID` = verbatim forward to impl vfunc +20 (obj r5-in, call site 0x10464ccc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -63723,7 +63723,7 @@
          "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
         }
        ],
-       "notes": null,
+       "notes": "Copied into the default queue's context field (at most 1023 bytes). AttachQueue returns it.",
        "buf_cap": 1025,
        "resolved_findings": [
         "Resolved: post-parse handling of `QueueOwnerContext` = verbatim forward to impl vfunc +20 (obj r5-in, call site 0x10464ccc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -63797,7 +63797,7 @@
          "notes": "policy word stored at q+0x26e4 (persisted as key pol by f_1014614c)"
         }
        ],
-       "notes": null,
+       "notes": "Empty keeps the default policy flag word 0x0173c02e. Otherwise it is parsed into policy flags, and text that cannot be parsed returns 402.",
        "buf_cap": 1025,
        "todo": [
         "Established: the flag word default and the bit each parsed boolean controls are decoded.",
@@ -66997,7 +66997,7 @@
          "notes": "li 0x2ce no queue matched"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Required (402 if absent). Selects one of the session queues; an unknown QueueID returns 718.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -67039,7 +67039,7 @@
          "notes": "lwz job+0x14; mismatch -> 0x404"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "0 skips the check. A nonzero value that differs from the queue's current UpdateID returns 1028.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -67113,7 +67113,7 @@
          "notes": "sid query parameter"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Empty: each entry is inserted on its own. Nonempty: a newline returns 800, and the URI is kept as the container of every entry. Container expansion checks whether it starts with 'x-sonosapi-rtrecent:' and reads its sid parameter.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerURI` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -67180,7 +67180,7 @@
          "notes": "DIDL parse of row+0x774"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Used only when ContainerURI is nonempty. A newline returns 800. Otherwise it is parsed as DIDL-Lite and gives the item metadata for entries written by the plain track writer.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -67223,7 +67223,7 @@
          "notes": "lwz r8,0x141c(r31) then snprintf"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Formatted as decimal text and passed to the replace-commit request.",
        "buf_cap": null,
        "todo": [
         "Established: CurrentTrackIndex reaches the commit request f_1032e398 as decimal text.",
@@ -67331,7 +67331,7 @@
          "notes": "f_1032e47c clear request"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Must equal the number of entries parsed from EnqueuedURIsAndMetaData; zero parsed entries or a mismatch returns 402.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `NumberOfURIs` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -67373,7 +67373,7 @@
          "notes": "f_1014ce8c(parser,job)"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "Streamed into the track-list parser, which runs the insert once per URI and metadata pair. The first failing entry's code is returned, or 1000 when the list itself cannot be parsed.",
        "buf_cap": null,
        "todo": [
         "Established: entries stream through the f_1014ce8c parser into f_102f7a50.",
