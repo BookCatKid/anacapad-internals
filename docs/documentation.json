@@ -154366,16 +154366,24 @@
      "type": "firmware",
      "address": "0x10f25c3c",
      "notes": "tv processor block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107dcc10",
+     "notes": "Constructor installs0x10f270dc; destructor0x107dc978 reinstalls it. Wrapper0x10d733ac compares virtual154 to null-return stub107dd03c before returned-interface dispatch, not poll/select timeout loading."
     }
    ],
    "chaos_params": "fault injection {stream_underflow(\"Inducing stream underflow\"/\"Inducing %ums processing stall to trigger underflow\"/\"Invalid stall time. Valid range is 0-1000\"),stream_error,signal_lost,rate_change,signal_discontinuity,decoder_error,sync_tap_playback,latency_change(\"Simulating latency change\"),out_loud(\"HT swap out loud override %s\"),set_timeout(\"Setting report timeout to %d secs\"),perf2(\"Setting perf2 to %s\")}; \"Synchronize SPDIF tap playback with output tap (%s)\"",
    "todo": [
-    "Residual: the wait-interval values the shared monitor/idle body passes to its poll/select - the timeout arg is loaded through globals (addis 0x107e slots), so the numeric timeout is a member value set at init, not a literal in the handler. Per-state gain tables live in the DSP config path, not the FSM handlers."
+    "Established: object constructor/destructor vtable installation and null-aware nested interface wrappers; old state-order table and global-timeout premise disproved. Remaining: locate the actual state variable and dispatch in the processing loop, bind concrete implementations of receiver virtual+0x154 and the returned interface slots, then follow real wait/read/poll calls and deadline producers for intervals and units. Start with constructor f_107dcba8, table0x10f270dc and wrappers f_10d733ac/f_10d7340c/f_10d73478. Revalidate read-size/parse-bound claims against actual handlers rather than vtable ordinal. This is actionable static reverse engineering."
    ],
    "resolved_findings": [
     "Resolved: decoder selections + FSM = the state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING,WAITING,INPUT_ERROR,RECORDING,MONITOR_IDLING,MONITORING} + tv_block_descriptor + chaos_params; <TVProc> dump carries the full state.",
     "Decoder selection proven via htaudio pipeline decode: ActiveDecoder enum {None, PCM, Dolby, DTS, UDC} - the SPDIFParser IEC-61937 burst-type drives selection; unknown Dolby databurst falls back to UDC (Unknown Dolby Databurst Type; choosing UDC); decoder set {dlbdec, dts, dolbyOAR, dlbdmx, udcdecoder, evo/DDPI}. The FSM {READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING, MONITORING} drives input->parse->decode->mix->write with NSD silence detection and monitor-idle states.",
-    "FSM dispatch table recovered at rodata 0x10f270dc - 13 handler pointers bound to the state enum order {READING=f_107dc950, PARSING=f_107dca04, DECODING=f_10d72dac, DECODER_DSP=f_10d72f9c, NOISE_SILENCE_DETECTION=f_10d73334, WRITING=f_10d73008, WAITING=f_10d733ac, INPUT_ERROR=f_10d73558, RECORDING=f_107dac20, MONITOR_IDLING=f_10d7340c, MONITORING=f_10d73478, +2 trailing={f_10d7362c,f_107dad14}}. Literal constants recovered: READING passes read-block size 0x3380 (13184 bytes); PARSING loads 0x6e (110) into r31 as a per-parse bound; the last handler uses 0x4ad (1197). WAITING/MONITOR_IDLING/MONITORING share a common code body at 0x10d733ac+ (monitor path is one implementation with per-entry selection)."
+    "Table0x10f270dc is a concrete object vtable, not the claimed13-entry state-handler dispatch. Constructor f_107dcba8 installs it at receiver+0 and subsidiary tables at+4/+8; f_107dc950 reinstalls these tables during destruction and destroys members. The pointer run continues past the alleged13-row boundary. Therefore assigning state names to its successive method pointers was invalid.",
+    "f_10d733ac, f_10d7340c and f_10d73478 are distinct nested virtual wrappers: they compare receiver virtual+0x154 against default f_107dd03c, whose body returns null, then dispatch returned interface slots+0x18/+0x24/+0x28 when nonnull. The 0x107e address formation constructs a function pointer for comparison, not a global timeout load. The checked wrappers contain no poll/select timeout argument."
    ]
   },
   "htaudio_chproc": {
