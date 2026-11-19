@@ -13047,7 +13047,7 @@
        ]
       },
       "Options": {
-       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options.",
+       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options. Value handling: 'volume' defaults to 50 when absent and is clamped to 35..70 (isel at 0x103646e0 and 0x103646f0, logged when clipped). 'polarity' is true only when it equals 1; that boolean goes to the impl+0x1a8c audio object through f_102a5124 -> f_107f6c24 -> f_10d8e348, and internal event 4 is then posted to impl+0x11c through f_105d24f8. 'tone_duration' defaults to 90 when absent or 0 and is passed to f_102b4638 on the impl+0x1a88 audio object, before f_1035d7e8 starts x-rincon-configmode:sonar-calibrate-tone through that object's slot +0x08 and sets mode 'NORMAL' through slot +0x40.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13261,6 +13261,48 @@
          "build": "86.10-80260",
          "address": "0x10363de0",
          "notes": "tone path format"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103646c8",
+         "notes": "volume default 0x32"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103646dc",
+         "notes": "lower clamp 35"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103646e8",
+         "notes": "upper clamp 70"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364654",
+         "notes": "polarity == 1 test"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364804",
+         "notes": "tone_duration default 0x5a"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035d854",
+         "notes": "f_102b4638 receives the duration"
         }
        ],
        "notes": null,
@@ -13269,9 +13311,9 @@
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ],
        "todo": [
-        "Established: every key, its parse site and its consumer is traced, as are the accepted characters for ver and tone and the force reload.",
-        "Unknown: the ranges accepted for polarity (forwarded to f_107f6c24 through f_102a5124), tone_duration (forwarded to f_105d22a4 through f_105d24f8) and the volume clip bounds, all checked in audio code outside DeviceProperties.",
-        "Close it by tracing the comparisons in f_107f6c24, f_105d22a4 and the clip at 0x10364700."
+        "Established: every Options key, its default, the clamp and boolean rules, and the consumer of each value are traced.",
+        "Unknown: the unit of tone_duration, which the binary does not name; f_102b4638 stores it on the audio object at impl+0x1a88 for the tone player.",
+        "Close it by tracing the field f_102b4638 writes into the tone player's timing code."
        ]
       }
      },
@@ -24933,7 +24975,7 @@
       }
      ],
      "events_triggered": {
-      "description": "No publisher is called from the override or the base worker. The GENA property set for this service is rendered by f_105b5fe4 (ZoneName, Icon, Configuration, Invisible, WirelessMode, ConnectionType, ChannelFreq, BehindWifiExtender, WifiEnabled, EthLink, SettingsReplicationState, SecureRegState, IsIdle, MoreInfo), reached through runtime slot +0xac (f_1035dd84) and dpZoneImpl slot +0xac (f_105b643c), and it reads ZoneName, Icon and Configuration back through impl+0x950. So the new values appear in the next event, but what schedules that event after this write is not in DeviceProperties code.",
+      "description": "No publisher is called from the override or the base worker. The GENA property set for this service is rendered by f_105b5fe4 (ZoneName, Icon, Configuration, Invisible, WirelessMode, ConnectionType, ChannelFreq, BehindWifiExtender, WifiEnabled, EthLink, SettingsReplicationState, SecureRegState, IsIdle, MoreInfo), reached through runtime slot +0xac (f_1035dd84) and dpZoneImpl slot +0xac (f_105b643c), and it reads ZoneName, Icon and Configuration back through impl+0x950. So the new values appear in the next event, but what schedules that event after this write is not in DeviceProperties code. The service is evented through the secondary interface at object +0x8 (offset-to-top -8): in runtime vtable 0x10ebc630 that interface table starts at 0x10ebc728. Its slot +0x14 is the thunk f_1035de9c ('addi r3,-8' then f_1035dd84), and its slot +0x18 is the UPnP framework method f_1067ab54, which tail-calls slot +0x14 of the same interface. The eleven indirect calls through primary vtable offset 0xac elsewhere belong to other classes: volume clamping on the zone-player object at +0x1924 (0x101813c8, 0x103f748c), a button handler (0x103ca214, 0x103ca3cc, 0x103ca748), a configuration store (0x1064cc7c, 0x1064d9cc, 0x1064da04), a status dump (0x10695838) and the mixer (0x107f2ad4, 0x107f2af8). None of them reaches DeviceProperties.",
       "evidence": [
        {
         "type": "firmware",
@@ -24962,12 +25004,33 @@
         "build": "86.10-80260",
         "address": "0x10ef3024",
         "notes": "f_105b643c at dpZoneImpl slot +0xac"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ebc73c",
+        "notes": "interface slot +0x14 = f_1035de9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035de9c",
+        "notes": "thunk to f_1035dd84"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067ab54",
+        "notes": "framework method dispatching through slot +0x14"
        }
       ],
       "todo": [
-       "Established: the evented values written here are exactly those f_105b5fe4 renders into the GENA property set.",
-       "Unknown: what invokes slot +0xac after a write. No call through that slot exists in the DeviceProperties code; elsewhere indirect calls through vtable offset 0xac exist at 0x101813c8, 0x103ca214, 0x103ca3cc, 0x103ca748, 0x103f748c, 0x1064cc7c, 0x1064d9cc, 0x1064da04, 0x10695838, 0x107f2ad4 and 0x107f2af8. None loads the DeviceProperties object visibly; 0x103f748c (object at +0x1924 of the zone-player core) is the most likely.",
-       "Close it by identifying the receiver object of those call sites (for 0x103f748c, what f_103fa434 stores at +0x1924) and the class of the impl+0x950 object that f_103fa434 passes as r8."
+       "Established: the property-set generator, the interface it is reached through, and the framework dispatcher f_1067ab54 are traced, and the slot +0xac call sites elsewhere are ruled out.",
+       "Unknown: which framework code calls interface slot +0x18 (f_1067ab54) or +0x14 after a state change, and so whether a SetZoneAttributes write is followed by a NOTIFY.",
+       "Close it by finding the callers of the evented-service interface methods in the UPnP library around 0x10676000-0x1067b000 (the same library as the property-set helper f_1067693c)."
       ]
      },
      "state_transitions": {
@@ -26317,9 +26380,9 @@
      }
     ],
     "todo": [
-     "Established: the GENA property set is built by f_105b5fe4 under the impl+0x268 lock through runtime slot +0xac (f_1035dd84 -> f_105b643c), and includes ZoneName, Icon, Configuration, Invisible, WirelessMode, ConnectionType, ChannelFreq, BehindWifiExtender, WifiEnabled, EthLink, SettingsReplicationState, SecureRegState, IsIdle and MoreInfo. The WSS name 'deviceProperties' is registered in the name table at 0x10099150.",
-     "Unknown: which framework call site invokes slot +0xac for subscribe and change notification; indirect calls through vtable offset 0xac exist at 0x101813c8, 0x103ca214, 0x103ca3cc, 0x103ca748, 0x103f748c, 0x1064cc7c, 0x1064d9cc, 0x1064da04, 0x10695838, 0x107f2ad4 and 0x107f2af8. None loads the DeviceProperties object visibly; 0x103f748c (object at +0x1924 of the zone-player core) is the most likely.",
-     "Close it by locating the indirect call through vtable offset 0xac in the UPnP service framework and the consumer of the 0x10099150 name table entry."
+     "Established: the GENA property set is built by f_105b5fe4 under the impl+0x268 lock through runtime slot +0xac (f_1035dd84 -> f_105b643c), and includes ZoneName, Icon, Configuration, Invisible, WirelessMode, ConnectionType, ChannelFreq, BehindWifiExtender, WifiEnabled, EthLink, SettingsReplicationState, SecureRegState, IsIdle and MoreInfo. The WSS name 'deviceProperties' is registered in the name table at 0x10099150. The service is evented through the secondary interface at object +0x8 (offset-to-top -8): in runtime vtable 0x10ebc630 that interface table starts at 0x10ebc728. Its slot +0x14 is the thunk f_1035de9c ('addi r3,-8' then f_1035dd84), and its slot +0x18 is the UPnP framework method f_1067ab54, which tail-calls slot +0x14 of the same interface. The eleven indirect calls through primary vtable offset 0xac elsewhere belong to other classes: volume clamping on the zone-player object at +0x1924 (0x101813c8, 0x103f748c), a button handler (0x103ca214, 0x103ca3cc, 0x103ca748), a configuration store (0x1064cc7c, 0x1064d9cc, 0x1064da04), a status dump (0x10695838) and the mixer (0x107f2ad4, 0x107f2af8). None of them reaches DeviceProperties.",
+     "Unknown: which UPnP library code calls interface slot +0x18 (f_1067ab54) or +0x14 on subscribe and on change, and which code feeds the WSS deviceProperties event.",
+     "Close it by finding callers of the evented-service interface methods in the library around 0x10676000-0x1067b000 and the consumer of the 0x10099150 name-table entry."
     ],
     "resolved_findings": [
      "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
