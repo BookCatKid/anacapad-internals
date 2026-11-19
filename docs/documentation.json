@@ -78983,7 +78983,7 @@
      }
     },
     "RestoreVolumePriorToRamp": {
-     "description": "CLASS-A implemented, class-B absent: vtable A slot +0x70 = f_100dee74 (real function) while vtable B shows 0xfffffff8 terminator. The mirror image of RampToVolume's gating - restoring volume is base-class behavior while ramping is derived-class.",
+     "description": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation. Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests. The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073a9f4",
@@ -79019,7 +79019,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Unsigned32 instance forwarded unchanged; local restore requires zero.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -79031,32 +79031,53 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer",
-       "range": "unconstrained at impl level",
+       "accepted_values": "Parsed unsigned32; zero locally",
+       "range": "ui4 parser result",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Nonzero returns local 702 after possible peer work.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073aa34",
-         "notes": "in-arg access site"
+         "address": "0x10ed277c",
+         "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x104712ec",
+         "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dba7c",
+         "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dbb60",
+         "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073aaa4",
+         "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
         }
        ],
        "notes": null
       },
       "Channel": {
-       "description": "channel token for restore",
+       "description": "Channel token forwarded unchanged; only exact Master is restored locally.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -79068,26 +79089,47 @@
        "semantic_type": "channel token",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "parsed token",
-       "range": "max 1023 chars",
+       "accepted_values": "Master locally",
+       "range": "exact string",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Other local tokens return 402 before the pending-restore check.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073aa58",
-         "notes": "in-arg access site"
+         "address": "0x10ed277c",
+         "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x104712ec",
+         "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dba7c",
+         "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dbb60",
+         "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073aaa4",
+         "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
         }
        ],
        "notes": null,
@@ -79095,30 +79137,308 @@
       }
      },
      "outputs": {},
-     "validation": "Request-layer parse.",
-     "requirements": "impl class A slot implemented",
-     "state_dependencies": "The wrapper restores state through impl vfunc +0x70 on a deeper vtable; concrete stored-field dependencies unresolved.",
+     "validation": {
+      "description": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed277c",
+        "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104712ec",
+        "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dba7c",
+        "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dbb60",
+        "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073aaa4",
+        "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Parsed required InstanceID and Channel; local zero/exact Master and a nonzero pending-restore flag. Peer processing occurs first. No local saved-volume range or fixed-mode check.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed277c",
+        "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104712ec",
+        "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dba7c",
+        "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dbb60",
+        "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073aaa4",
+        "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Topology snapshot/session statuses, mutex +0x938, restore flag +0x3d4, saved volume +0x3d6, target +0x3c8 and cached Master +0x7da.",
+      "todo": [
+       "Established: All direct guards and cache dependencies.",
+       "Unknown: Concrete backend result/completion semantics.",
+       "Next: Bind renderer +0x3ac/+0x3b4 delegates below f_100d7f34 and their result semantics; trace final remote-session completion through f_106ff898, deferred provider +0x3bc slot +0x14/f_10167318 and concrete RC sender delivery after f_10678c50."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed277c",
+        "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104712ec",
+        "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dba7c",
+        "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dbb60",
+        "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073aaa4",
+        "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x70] (call-derived member-method semantics)",
+       "description": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests. The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs.",
+       "todo": [
+        "Established: Peer requests, cached Master/target writes and dirty/notification/deferred-settings requests, even on local 501.",
+        "Unknown: Completed audio effect and durable storage.",
+        "Next: Bind renderer +0x3ac/+0x3b4 delegates below f_100d7f34 and their result semantics; trace final remote-session completion through f_106ff898, deferred provider +0x3bc slot +0x14/f_10167318 and concrete RC sender delivery after f_10678c50."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1073a9f4",
-         "notes": "delegate map ['r30 v[+0x70]']; notify-family calls []"
+         "address": "0x10ed277c",
+         "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104712ec",
+         "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dba7c",
+         "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dbb60",
+         "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073aaa4",
+         "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x70] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying MasterVolume restored (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists MasterVolume restored into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": {
+      "description": "The accepted local restore marks +0x7f0 and requests the RC source and deferred-settings timer regardless of the backend result. Guard failures do not perform those local writes; prior peer requests remain possible.",
+      "todo": [
+       "Established: Conditional local request sites and absence of condition +0x358 signaling.",
+       "Unknown: Subscriber delivery and deferred storage completion.",
+       "Next: Bind f_1067c6ec -> f_1067c46c -> f_10678c50 sender and +0x3bc provider slot +0x14/f_10167318."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed277c",
+        "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104712ec",
+        "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dba7c",
+        "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dbb60",
+        "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073aaa4",
+        "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Peers precede local validation. A pending local restore copies the saved volume before apply, then requests notifications/settings work before returning 501 or zero. Restore flag remains set and no rollback is present.",
+      "todo": [
+       "Established: Local ordering, repeatability and error-after-mutation.",
+       "Unknown: Final backend/remote completion states.",
+       "Next: Bind renderer +0x3ac/+0x3b4 delegates below f_100d7f34 and their result semantics; trace final remote-session completion through f_106ff898, deferred provider +0x3bc slot +0x14/f_10167318 and concrete RC sender delivery after f_10678c50."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed277c",
+        "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104712ec",
+        "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dba7c",
+        "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dbb60",
+        "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073aaa4",
+        "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "No outputs. Local 702/402/800 guards, then 501 if f_100d7f34 returns zero, otherwise zero. The proxy can instead return its last nonzero session status before local execution. SOAP commits only on numeric zero; success is not a completion or persistence acknowledgment.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed277c",
+        "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104712ec",
+        "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dba7c",
+        "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dbb60",
+        "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073aaa4",
+        "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073aab8",
@@ -79129,21 +79449,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -79153,43 +79472,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Request parsing fails or local Channel is not exact Master.",
        "fault_sites": [
-        "0x1073aa9c",
         "0x1073aab8"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request parsing fails or local Channel is not exact Master.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073aa9c"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073aab8"
+           "address": "0x1073aaec",
+           "notes": "Request parsing fails or local Channel is not exact Master."
           }
          ]
         }
@@ -79199,19 +79502,133 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073aa9c"
-        },
+         "address": "0x1073aaec",
+         "notes": "Request parsing fails or local Channel is not exact Master."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Local InstanceID is nonzero.",
+       "fault_sites": [
+        "0x1073aab8"
+       ],
+       "conditions": [
+        {
+         "description": "Local InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dba7c",
+           "notes": "Local InstanceID is nonzero."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073aab8"
+         "address": "0x100dba7c",
+         "notes": "Local InstanceID is nonzero."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "No pending local restore flag.",
+       "fault_sites": [
+        "0x1073aab8"
+       ],
+       "conditions": [
+        {
+         "description": "No pending local restore flag.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dbb14",
+           "notes": "No pending local restore flag."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dbb14",
+         "notes": "No pending local restore flag."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Local apply helper returned zero after cached Master/target writes; dirty/notification/settings requests still occur.",
+       "fault_sites": [
+        "0x1073aab8"
+       ],
+       "conditions": [
+        {
+         "description": "Local apply helper returned zero after cached Master/target writes; dirty/notification/settings requests still occur.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dbb60",
+           "notes": "Local apply helper returned zero after cached Master/target writes; dirty/notification/settings requests still occur."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dbb60",
+         "notes": "Local apply helper returned zero after cached Master/target writes; dirty/notification/settings requests still occur."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Last nonzero prepared-session status prevents local restore; endpoint preparation failure skips the recipient.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Last nonzero prepared-session status prevents local restore; endpoint preparation failure skips the recipient.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10471748",
+           "notes": "Last nonzero prepared-session status prevents local restore; endpoint preparation failure skips the recipient."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10471748",
+         "notes": "Last nonzero prepared-session status prevents local restore; endpoint preparation failure skips the recipient."
+        }
+       ],
+       "todo": [
+        "Established: Bounded wait and retained nonzero session-status propagation.",
+        "Unknown: Complete remote status inventory.",
+        "Next: Trace f_106fb998/f_106ff898 concrete completion/status producers for RestoreVolumePriorToRamp sessions prepared at 0x10471450."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -79220,55 +79637,50 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073a9f4",
-       "address": "0x1073a9f4",
-       "notes": "action wrapper handler"
+       "address": "0x10ed277c",
+       "notes": "Bound primary RC slot +0x70 contains 0x104712ec."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e3c",
-       "notes": "action dispatch table entry"
+       "address": "0x104712ec",
+       "notes": "Proven primary +0x70 -> f_104712ec obtains the topology snapshot through f_10759984. When snapshot/gating helpers f_1053ce34/f_1053c370 permit forwarding, it allocates at most 32 session records and enumerates remote entries from index 1. Filter f_10472690 returns true; capture f_1046b664 copies the InstanceID/Channel pair and f_1046aef4 writes those original arguments to the request. A zero endpoint-preparation result at 0x10471658 skips that recipient. Prepared requests are queued through f_106fcf50, waited via f_106fb998 against a two-second deadline and inspected at session+0x2722. The last nonzero status is retained and skips local restore. Earlier peer work is not undone. f_104726a0 manages capture pointers; session vptr 0x10ed26e0 begins with destructors, not the operation implementation."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable A slot +0x70 = 0x100dee74",
-       "address": "0x10e872f0"
+       "address": "0x100dba7c",
+       "notes": "Local f_100dba7c locks +0x938 and returns 702 for nonzero InstanceID, 402 for any Channel except exact Master, and 800 when restore flag +0x3d4 is zero. With a pending restore it copies saved volume +0x3d6 into both target +0x3c8 and cached Master +0x7da before calling f_100d7f34. It marks +0x7f0 and requests f_1067c6ec(this+8)/f_100d993c regardless of the apply result. Raw 0x7fe9df9e at 0x100dbb60 is isel r31,r9,r27,30: after comparing the apply result with zero, r9=501 and r27=0 select status 501 for apply-zero, otherwise success. Thus a fault can follow cached changes and requests."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable B slot +0x70 = 0xfffffff8",
-       "address": "0x10ed279c"
+       "address": "0x100dbb60",
+       "notes": "Raw 0x7fe9df9e: isel destination r31, true source r9, false source r27, condition bit 30; apply-zero selects 501."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x100dee74",
-       "notes": "base vtable 0x10e872f0 +0x70"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "function": "0x100de178",
-       "notes": "re-init body writes sub-vptrs into this+0x08..+0x28c"
+       "address": "0x1073aaa4",
+       "notes": "The path does not clear restore flag +0x3d4, revalidate saved volume, apply a fixed-mode guard or signal condition +0x358. Repeated calls can repeat restoration. Setting both cached Master and target equal is not proof of cancel/join or completed device application; the separate f_100da4cc ramp loop observes its fields when it next runs. SOAP freshly tests status at 0x1073aaa4: nonzero faults through request+0x14 at 0x1073aab8, zero commits an empty response via request+0x0c. There are no outputs."
       }
      ],
-     "notes": "Inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.",
+     "notes": "Replaces the obsolete unconditional-success/missing-slot attribution. Restore flag remains set; local 501 does not undo cache mutation.",
      "todo": [
-      "Established: dispatch to handler 0x1073a9f4; inverse class-gating vs RampToVolume/SetRoomCalibrationStatus.",
-      "Residual: the gating predicate and how it pairs with RampToVolume's ramp state. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: Concrete proxy/local implementations, guards, saved-volume writes, result select and SOAP empty-response behavior.",
+      "Unknown: Concrete application/completion, final peer status inventory, durable saving and delivery.",
+      "Next: Bind renderer +0x3ac/+0x3b4 delegates below f_100d7f34 and their result semantics; trace final remote-session completion through f_106ff898, deferred provider +0x3bc slot +0x14/f_10167318 and concrete RC sender delivery after f_10678c50."
      ],
-     "resolved_findings": [
-      "Resolved: gate = same impl class as RampToVolume; restores the pre-ramp volume snapshot when no ramp is active.",
-      "Resolved: gate = same impl class as RampToVolume; restores the pre-ramp volume snapshot when no ramp is active."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x70",
+      "function": "0x104712ec",
+      "local": "0x100dba7c"
+     }
     },
     "SetBass": {
      "description": "Primary slot 0x34 -> 0x10470b54 performs topology forwarding through 0x1046eab0 before local bass application through 0x100dc110. 0x1046eab0 snapshots topology through f_10759984 using RC+0xbc8/+0x9c8. No forwarding occurs if snapshot byte +0 is zero, its word +0x288 is nonzero, or f_1053cad8 returns true. The latter requires count>1 and every member descriptor pair to be (0,1) or (1,0). Otherwise the public flags r6=1,r7=0 select all entries at indices 1..count-1 via a constant-true filter and prepare RenderingControl SetBass sessions with original InstanceID and signed DesiredBass, before local validation or clamping. Endpoint setup failure stops new preparations with 1034. Already prepared requests still enter f_106fb998 with a 2000-ms deadline; the last nonzero session halfword +0x2722 replaces the returned status. Zero proxy status permits local work, including when forwarding is skipped or there are no remote entries. 0x100dc110 locks mutex +0x938, rejects nonzero InstanceID with 702, then rejects nonzero byte +0x7ff with 501. Otherwise it clamps the signed input to -10..10, stores halfword 0x7f6, calls 0x102a534c with port byte +0x3a8 and device pointer +0x3ac, sets dirty byte 0x7f8=1, requests notification through f_1067c6ec(this+8), and schedules follow-up through f_100d993c. Backend results are ignored; repeated values still perform these operations. After optional diagnostic logging the mutex is released and 0 returned.",
