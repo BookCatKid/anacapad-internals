@@ -5811,7 +5811,7 @@
      "notes": "The earlier assertion that f_10273280 was merely li r3,0; blr omitted its lookup and formatting body. Its return domain is indeed {0}, but it reads the timezone table before returning. No static index-range fault exists."
     },
     "ListAlarms": {
-     "description": "Lists all alarms via impl->v[+0x8].",
+     "description": "Returns persisted alarms as reconstructed XML plus the cached alarm-list version. Service+0xc is engine+4, whose secondary vtable +8 thunk reaches f_10273538. That method holds the engine lock across binding the file-backed serializer, emitting version and committing the response; it is not a generic return-code delegate.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734b8c",
@@ -5826,9 +5826,9 @@
       "calls": [
        {
         "site": "0x10734c18",
-        "obj": "*(*(sp-0x20+0x18)+0xc)",
+        "obj": "*(service+0xc) = engine+4",
         "slot": 8,
-        "arg4": "*(sp-0x20+0x1c)"
+        "arg4": "request"
        }
       ],
       "req_vcalls": [
@@ -5842,222 +5842,335 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10273538",
+      "impl_vfunc": "secondary vtable 0x10eaaa14 slot +0x08 -> f_10273664 adjustor -> f_10273538",
+      "description": "Service+0xc points to engine+4; secondary slot+8 subtracts 4. Builds XML serializer 0x10eaab1c and commits response directly under engine+0x170."
      },
      "inputs": {},
      "outputs": {
       "CurrentAlarmList": {
-       "description": "serialized XML list of all registered alarms, emitted via req->v[+0x24] inside the alarm-list serializer",
+       "description": "XML text rooted at Alarms, reconstructed by reading alarmclock.xml. Contains complete persisted Alarm records in file order, including disabled alarms and alarms for other rooms. Not a snapshot of the in-memory schedule vector.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the parser/emitter",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string 'out' loaded at 0x102735bc inside f_10273538",
+       "semantic_type": "serialized alarm-list XML text",
+       "format": "<Alarms><Alarm .../>...</Alarms>, with optional Content child per Alarm",
+       "unit": "n/a",
+       "accepted_values": "Eleven Alarm attributes: ID, StartTime, Duration, Recurrence, Enabled, RoomUUID, ProgramURI, ProgramMetaData, PlayMode, Volume, IncludeLinkedZones; optional Content attributes type, serviceId, accountId, objectId.",
+       "range": "variable length streamed from persisted document; no action-level list-size check",
+       "special_values": "No complete alarms or unreadable/missing source yields <Alarms></Alarms>. Incomplete alarm records are skipped; parse error is not surfaced as SOAP.",
+       "required": true,
+       "default": "empty Alarms root when no records emitted",
+       "validation": "f_1027dfe4 checks captured required-field presence before f_10282d20 emits a record.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102735bc",
-         "notes": "arg-name string load in f_10273538"
+         "function": "0x1018d27c",
+         "address": "0x1018e964",
+         "callsite": "0x1018e9a8",
+         "notes": "Engine allocated 0x8118 bytes at 0x1018e808, constructed f_10276048 at 0x1018e8a4, stored in shared handle -0x5590(r30). At 0x1018e950..0x1018e968 engine+4 goes into stack+0x180 (r17). Passed as r5 at 0x1018e9a0 to service ctor f_10735460; copied to service+0xc at 0x107354b8. Engine ctor sets engine+4 secondary vptr 0x10eaaa14 at 0x10276204, slot +8 entry 0x10eaaa1c = f_10273664. Thunk subtracts 4 then branches f_10273538. Not primary vtable+0x38 (CreateAlarm) nor the stale f_1027b134 (DestroyAlarm) attribution."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "f_10273538",
-         "notes": "worker function"
+         "function": "0x10273538",
+         "address": "0x10273578",
+         "callsite": "0x10273664",
+         "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102846dc",
+         "address": "0x1028474c",
+         "callsite": "0x10563f20",
+         "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10282d20",
+         "address": "0x10282df4",
+         "callsite": "0x1027e254",
+         "notes": "Reader callback forwards parsed alarm to vptr 0x10eaaaec +0x18 -> f_10282d20. Emits eleven attributes ID, StartTime, Duration, Recurrence, Enabled, RoomUUID, ProgramURI, ProgramMetaData, PlayMode, Volume, IncludeLinkedZones. ID is decimal unsigned; Volume is decimal u16; boolean attributes normalized to 0/1. XML writer f_10578490 makes a self-closing Alarm if optional Content data absent, else f_105784a4 opens Alarm, f_10273c10 emits Content with nonempty type/serviceId/accountId/objectId attributes, then f_10578514 closes Alarm. XML writer escapes attributes; output omits TimeZone/TimeSource/Format and other non-Alarm settings. No Enabled or room filter in the forwarding path."
         }
        ],
-       "notes": "producer binding: handler calls *(req+0xc)->v[+0x08] twice; f_10273538 is one of the two binary producers of this arg name: exact variant not resolved",
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentAlarmList`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "CurrentAlarmList is an XML-valued string; it excludes unrelated AlarmClock settings."
       },
       "CurrentAlarmListVersion": {
-       "description": "version tag emitted right after CurrentAlarmList by the same serializer",
+       "description": "Cached alarm-list identity and unsigned revision, formatted with %s:%u from engine+0x7ec0 and engine+0x7edc under lock. This getter neither increments the revision nor extracts it from the file.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
-       "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the parser/emitter",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string 'out' loaded at 0x102735e0 inside f_10273538",
+       "semantic_type": "opaque identity:revision token",
+       "format": "%s:%u in a 56-byte snprintf buffer",
+       "unit": "version token",
+       "accepted_values": "cached identity text, colon, unsigned decimal revision",
+       "range": "at most 55 bytes plus NUL; revision is u32",
+       "special_values": "No special sentinel or error condition is tested.",
+       "required": true,
+       "default": "current cached pair; no independent fallback",
+       "validation": "formatted directly by snprintf, emitted as text",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102735e0",
-         "notes": "arg-name string load in f_10273538"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "f_10273538",
-         "notes": "worker function"
+         "function": "0x10273538",
+         "address": "0x10273578",
+         "callsite": "0x10273664",
+         "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
         }
        ],
-       "notes": "emitted via req->v[+0x24] at 0x102735e8 inside f_10273538",
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentAlarmListVersion`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Use as an opaque change token. External file changes are not reconciled by this getter."
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No action inputs. Canonical request hook is a no-op and zero-input validator returns true. Wrapper validation-false arm merely returns; it does not emit 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10734b8c",
-        "notes": "wrapper family decode"
+        "function": "0x10734b8c",
+        "address": "0x10734c18",
+        "callsite": "0x10734bcc",
+        "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (validate×1); member delegates: r4 v[+0x3c], *(r30+0xc) v[+0x8]",
+      "description": "No action arguments, coordinator gate, running-alarm prerequisite or enabled-alarm filter. Reads persisted XML during response serialization; file read success is not a prerequisite for emitting a response.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10734b8c",
-        "notes": "req-vfunc call map: {'0x8': 1}"
+        "address": "0x10734c18",
+        "callsite": "0x10734bcc",
+        "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273538",
+        "address": "0x10273578",
+        "callsite": "0x10273664",
+        "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102846dc",
+        "address": "0x1028474c",
+        "callsite": "0x10563f20",
+        "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (validate×1); member delegates: r4 v[+0x3c], *(r30+0xc) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+0xc) v[+0x8]",
+      "description": "Service+0xc points to engine+4 secondary interface. Worker uses engine mutex+0x170, cached identity+0x7ec0/revision+0x7edc, and file-backed alarmclock.xml serializer. Does not enumerate the in-memory alarm schedule.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10734b8c",
-        "notes": "member vfunc calls: ['r4 v[+0x3c]', '*(r30+0xc) v[+0x8]']"
+        "function": "0x1018d27c",
+        "address": "0x1018e964",
+        "callsite": "0x1018e9a8",
+        "notes": "Engine allocated 0x8118 bytes at 0x1018e808, constructed f_10276048 at 0x1018e8a4, stored in shared handle -0x5590(r30). At 0x1018e950..0x1018e968 engine+4 goes into stack+0x180 (r17). Passed as r5 at 0x1018e9a0 to service ctor f_10735460; copied to service+0xc at 0x107354b8. Engine ctor sets engine+4 secondary vptr 0x10eaaa14 at 0x10276204, slot +8 entry 0x10eaaa1c = f_10273664. Thunk subtracts 4 then branches f_10273538. Not primary vtable+0x38 (CreateAlarm) nor the stale f_1027b134 (DestroyAlarm) attribution."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273538",
+        "address": "0x10273578",
+        "callsite": "0x10273664",
+        "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102846dc",
+        "address": "0x1028474c",
+        "callsite": "0x10563f20",
+        "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x3c], *(r30+0xc) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on alarm-store member (*(impl+0xc)->v[+0x08] (alarm-store member serialize)); result emitted via out-arg; no state mutation in impl path",
+       "description": "Acquires engine lock, opens/reads/parses/closes alarmclock.xml, writes temporary serializer/version buffers and SOAP response. No file write, alarm mutation, shared-version increment or scheduling update.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734b8c",
-         "notes": "impl vfunc delegate path: *(impl+0xc)->v[+0x08] (alarm-store member serialize) (call-derived member-method semantics)"
+         "function": "0x10273538",
+         "address": "0x10273578",
+         "callsite": "0x10273664",
+         "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102846dc",
+         "address": "0x1028474c",
+         "callsite": "0x10563f20",
+         "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10282d20",
+         "address": "0x10282df4",
+         "callsite": "0x1027e254",
+         "notes": "Reader callback forwards parsed alarm to vptr 0x10eaaaec +0x18 -> f_10282d20. Emits eleven attributes ID, StartTime, Duration, Recurrence, Enabled, RoomUUID, ProgramURI, ProgramMetaData, PlayMode, Volume, IncludeLinkedZones. ID is decimal unsigned; Volume is decimal u16; boolean attributes normalized to 0/1. XML writer f_10578490 makes a self-closing Alarm if optional Content data absent, else f_105784a4 opens Alarm, f_10273c10 emits Content with nonempty type/serviceId/accountId/objectId attributes, then f_10578514 closes Alarm. XML writer escapes attributes; output omits TimeZone/TimeSource/Format and other non-Alarm settings. No Enabled or room filter in the forwarding path."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on alarm-store member (*(impl+0xc)->v[+0x08] (alarm-store member serialize)); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None from this query: worker and file serializer do not call notify or observer methods and do not dirty state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10734b8c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10273538",
+        "address": "0x10273578",
+        "callsite": "0x10273664",
+        "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102846dc",
+        "address": "0x1028474c",
+        "callsite": "0x10563f20",
+        "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+0xc) v[+0x8]",
+      "description": "No alarm/clock/settings state transition. Persisted alarms are serialized, cached version emitted and response committed without updating either.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10734b8c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x3c]', '*(r30+0xc) v[+0x8]']"
+        "function": "0x10273538",
+        "address": "0x10273578",
+        "callsite": "0x10273664",
+        "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102846dc",
+        "address": "0x1028474c",
+        "callsite": "0x10563f20",
+        "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c], *(r30+0xc) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Concrete worker owns response emission and commit at 0x10273618, not a 0/nonzero SOAP-status return protocol. Wrapper tail-calls it without inspecting return value. No action-level fault emitter exists. File parse/open result is ignored; partial/empty reconstructed data remains a success response path. Stack guard abort is not a SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10734b8c",
-        "notes": "commit/fault slot usage: {'0x8': 1}"
+        "address": "0x10734c18",
+        "callsite": "0x10734bcc",
+        "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10273538",
+        "address": "0x10273578",
+        "callsite": "0x10273664",
+        "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102846dc",
+        "address": "0x1028474c",
+        "callsite": "0x10563f20",
+        "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": null,
-       "code_expr": "vret",
-       "meaning": "nonzero impl rc forwarded verbatim as the fault code (CR-return convention); recovered impl-side constants {402 impl-internal fault sites observed}",
-       "fault_sites": [
-        "0x10734b8c"
-       ],
+       "code_expr": "no action-level fault emitter",
+       "meaning": "No delegated SOAP fault return channel: concrete worker commits response itself.",
+       "fault_sites": [],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "All normal worker paths reach commit; file-reader return is ignored. No 402 or other literal SOAP failure is loaded in this worker. Stack guards abort, not SOAP.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734b8c",
-           "notes": "impl rc passthrough"
+           "function": "0x1018d27c",
+           "address": "0x1018e964",
+           "callsite": "0x1018e9a8",
+           "notes": "Engine allocated 0x8118 bytes at 0x1018e808, constructed f_10276048 at 0x1018e8a4, stored in shared handle -0x5590(r30). At 0x1018e950..0x1018e968 engine+4 goes into stack+0x180 (r17). Passed as r5 at 0x1018e9a0 to service ctor f_10735460; copied to service+0xc at 0x107354b8. Engine ctor sets engine+4 secondary vptr 0x10eaaa14 at 0x10276204, slot +8 entry 0x10eaaa1c = f_10273664. Thunk subtracts 4 then branches f_10273538. Not primary vtable+0x38 (CreateAlarm) nor the stale f_1027b134 (DestroyAlarm) attribution."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "rc convention site"
+           "function": "0x10734b8c",
+           "address": "0x10734c18",
+           "callsite": "0x10734bcc",
+           "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10273538",
+           "address": "0x10273578",
+           "callsite": "0x10273664",
+           "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102846dc",
+           "address": "0x1028474c",
+           "callsite": "0x10563f20",
+           "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
           }
          ]
         }
@@ -6067,39 +6180,58 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734b8c",
-         "notes": "impl rc passthrough site"
+         "function": "0x1018d27c",
+         "address": "0x1018e964",
+         "callsite": "0x1018e9a8",
+         "notes": "Engine allocated 0x8118 bytes at 0x1018e808, constructed f_10276048 at 0x1018e8a4, stored in shared handle -0x5590(r30). At 0x1018e950..0x1018e968 engine+4 goes into stack+0x180 (r17). Passed as r5 at 0x1018e9a0 to service ctor f_10735460; copied to service+0xc at 0x107354b8. Engine ctor sets engine+4 secondary vptr 0x10eaaa14 at 0x10276204, slot +8 entry 0x10eaaa1c = f_10273664. Thunk subtracts 4 then branches f_10273538. Not primary vtable+0x38 (CreateAlarm) nor the stale f_1027b134 (DestroyAlarm) attribution."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
+         "function": "0x10734b8c",
+         "address": "0x10734c18",
+         "callsite": "0x10734bcc",
+         "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10273538",
+         "address": "0x10273578",
+         "callsite": "0x10273664",
+         "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102846dc",
+         "address": "0x1028474c",
+         "callsite": "0x10563f20",
+         "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x1027b134 (alarm-store vtable 0x10eaa9d0 slot +0x08) exits=[16, 520]; impl vfunc rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734b8c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "The previous f_1027b134 association was DestroyAlarm, not this secondary-interface call."
       },
       {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10734b8c"
-       ],
+       "code": null,
+       "code_expr": "validation-false arm returns without fault",
+       "meaning": "Wrapper validation rejection has no SOAP fault call or literal 402 here.",
+       "fault_sites": [],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "If a noncanonical request validator returns false, wrapper returns directly. Canonical fresh zero-input request always validates true, so this is not a reachable missing-argument fault.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10734b8c",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10734b8c",
+           "address": "0x10734c18",
+           "callsite": "0x10734bcc",
+           "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
           }
          ]
         }
@@ -6109,8 +6241,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734b8c",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10734b8c",
+         "address": "0x10734c18",
+         "callsite": "0x10734bcc",
+         "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
         }
        ]
       }
@@ -6121,30 +6255,50 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x1018d27c",
+       "address": "0x1018e964",
+       "callsite": "0x1018e9a8",
+       "notes": "Engine allocated 0x8118 bytes at 0x1018e808, constructed f_10276048 at 0x1018e8a4, stored in shared handle -0x5590(r30). At 0x1018e950..0x1018e968 engine+4 goes into stack+0x180 (r17). Passed as r5 at 0x1018e9a0 to service ctor f_10735460; copied to service+0xc at 0x107354b8. Engine ctor sets engine+4 secondary vptr 0x10eaaa14 at 0x10276204, slot +8 entry 0x10eaaa1c = f_10273664. Thunk subtracts 4 then branches f_10273538. Not primary vtable+0x38 (CreateAlarm) nor the stale f_1027b134 (DestroyAlarm) attribution."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x10734b8c",
-       "address": "0x10734b8c",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f115f8",
-       "notes": "action dispatch table entry"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
        "address": "0x10734c18",
-       "notes": "impl dispatch site: *(*(req+0xc))->v[+0x08]"
+       "callsite": "0x10734bcc",
+       "notes": "Request +0x3c at 0x10734bb8 is canonical no-op f_10731670, not engine dispatch. Request +8 validates at 0x10734bcc; false returns directly at 0x10734bd8..0x10734bec, with no literal 402 load or fault call. True tail-dispatches *(service+0xc)->v[+8] at 0x10734c18 with request r4. No worker status test. f_10730414 returns true directly at 0x1073051c for zero registered input count. No input records are allocated here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10273538",
+       "address": "0x10273578",
+       "callsite": "0x10273664",
+       "notes": "Locks engine+0x170 at 0x1027356c. Formats version using engine+0x7ec0 string and unsigned word +0x7edc via snprintf 56-byte buffer, literal %s:%u at 0x10ed646c, call 0x102735b0. Builds stack serializer with vptr 0x10eaab1c at 0x102735a8; binds it to CurrentAlarmList with f_105605c8 (tag 7) at 0x102735d4. Emits CurrentAlarmListVersion via text slot +0x10 at 0x10273604, then request commit +0xc at 0x10273618 while still holding lock. Unlocks at 0x10273620. No explicit worker error status or fault emitter, persistence, version mutation or notify call. Stack guard abort at 0x10273660 is not SOAP."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102846dc",
+       "address": "0x1028474c",
+       "callsite": "0x10563f20",
+       "notes": "f_105605c8 tag 7 serialization reaches serializer slot +0xc through f_10563bc0 at 0x10563f20; vptr 0x10eaab1c +0xc = f_102846dc. It streams <Alarms> (0x10eab9d0), calls f_1027e818, then streams </Alarms> (0x10eab9dc). f_1027e818 resolves alarmclock.xml with f_1068ab6c then calls f_10c4015c at 0x1027e9fc; opens read-only via open64, returns zero on open failure at 0x10c401c8. Serializer ignores parse return, so missing/unreadable file emits <Alarms></Alarms>; parser failure can leave records already emitted, not a SOAP fault. XML is reconstructed, not raw source file or in-memory alarm vector. Callback f_1027dfe4 only forwards Alarm with all required captured fields present (0x1027e134..0x1027e190), in file order. Closing </Alarms> callback +0x1c is no-op f_1027d528. Serializer +8 f_102847d0 is separate length producer using same parse, not a different alarm-list variant."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10282d20",
+       "address": "0x10282df4",
+       "callsite": "0x1027e254",
+       "notes": "Reader callback forwards parsed alarm to vptr 0x10eaaaec +0x18 -> f_10282d20. Emits eleven attributes ID, StartTime, Duration, Recurrence, Enabled, RoomUUID, ProgramURI, ProgramMetaData, PlayMode, Volume, IncludeLinkedZones. ID is decimal unsigned; Volume is decimal u16; boolean attributes normalized to 0/1. XML writer f_10578490 makes a self-closing Alarm if optional Content data absent, else f_105784a4 opens Alarm, f_10273c10 emits Content with nonempty type/serviceId/accountId/objectId attributes, then f_10578514 closes Alarm. XML writer escapes attributes; output omits TimeZone/TimeSource/Format and other non-Alarm settings. No Enabled or room filter in the forwarding path."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734b8c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Both output allocation and commit belong to f_10273538. Query does not update cached version, and file/parse failure is not translated to a persistence fault.",
+     "args_verified_empty": true
     },
     "SetDailyIndexRefreshTime": {
      "description": "Sets or clears the persisted DailyIndexRefreshTime. Wrapper f_107340dc parses DesiredDailyIndexRefreshTime and dispatches ac_impl vtable 0x10eaa99c slot +0x40 -> f_1027d0c4. Empty string clears the value; nonempty input must parse as HH:MM:SS via f_10c3d2c4. The value is committed to alarmclock.xml as the literal DailyIndexRefresh element, reloaded into engine+0x7ee8..+0x7eeb, then the AlarmClock change/version observer path runs.",
