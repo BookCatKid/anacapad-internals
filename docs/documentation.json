@@ -10799,7 +10799,7 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /AudioIn/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "The /AudioIn/Event route enters shared GENA handling. The AudioIn event-source registration is separately gated by the audio-input capability and is not performed by the SOAP action stub.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -10812,12 +10812,26 @@
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "address": "0x11090ebc",
+      "notes": "The AudioIn event route binds /AudioIn/Event at 0x10e761c4 to f_105e8290."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10189ad8",
+      "notes": "If zp+0x5704 is nonzero, f_10189a10 passes the embedded source at (*(zp+0xaa64))+8, or null if the parent is absent, to f_106795b4. The SOAP stub is a distinct pointer at zp+0xaa6c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10189cd8",
+      "notes": "The later HTControl registration uses a separate pointer at zp+0x3d508; its event-source slot +0x14 reaches f_10243170. That HTControl binding does not identify the AudioIn renderer."
      }
     ],
-    "notify_path": "f_10243170 e:property dump {TOSLinkConnected, IRRepeaterState} -> f_10676a44",
-    "payload_model": "e:property doc via f_10676a44 writer family",
+    "notify_path": "Capability-gated source registration at 0x10189ad8; no AudioIn-specific render or send target established.",
+    "payload_model": null,
     "wss_registry": [
      {
       "idx": 9,
@@ -10833,11 +10847,10 @@
      }
     ],
     "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `audioInput`, `lineInStatus`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "Residual: identify the concrete event-source implementation behind zp+0xaa64 on a model with the capability enabled, and trace its notification renderer and delivery. No AudioIn emission follows from route registration alone. The WSS names audioInput and lineInStatus are registry entries, not publisher evidence."
     ],
     "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "The event source and the reject-all SOAP object are separate. The optical-input and IR-repeater renderer is bound to HTControl, not to the AudioIn SOAP stub."
     ]
    },
    "errors": [
