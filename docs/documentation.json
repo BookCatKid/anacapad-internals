@@ -62319,7 +62319,7 @@
      ]
     },
     "Browse": {
-     "description": "Browses a queue's contents. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x28](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+     "description": "Lists the tracks of a queue as DIDL-Lite. The queue is exposed as ContentDirectory object 'Q:<QueueID>' in the object tree held at qm+0x12c, and Browse is a BrowseDirectChildren on that object through the same browse engine ContentDirectory uses. Chain: wrapper f_10464200 calls req->v[+0x3c](req) at 0x10464228 (result discarded; r4 is preserved with SPE evstdd/evldd at 0x10464220/0x10464238) and tail-calls qm->v[+0x28](qm, req) at 0x10464250; qm vtable 0x10ed1bcc slot +0x28 is f_10466280. f_10466280 parses QueueID, StartingIndex and RequestedCount as u32 (f_105614e0 at 0x104662cc/0x104662f0/0x10466314), faults 402 if req->v[+0x8] reports a parse failure (0x104663e0), then calls f_104661fc(qm, QueueID) (0x104663a8), which formats the object ID 'Q:%u' (0x1046623c) and calls f_103042f0(*(qm+0x12c), 'Q:<QueueID>', 'BrowseDirectChildren') (0x10466250). f_103042f0 looks the object up with f_1034a224(cd+0x168, id) (0x10304314) and returns 701 when it does not exist (li r31,0x2bd at 0x1030430c), else 0. On 0 the four outputs are registered as lazy writers (f_10560608 at 0x10466488/0x104664ac/0x104664d0/0x104664f4) over a stack context (vptr 0x10ed1bb8) holding qm, QueueID, StartingIndex and RequestedCount, and the response is committed with req->v[+0x10](req, strbuf) at 0x1046650c. Serialising Result runs f_10513580 -> ctx->v[+8] = f_10466618 -> f_10466520, which calls the shared ContentDirectory browse f_10305a98(*(qm+0x12c), 'Q:<QueueID>', 'BrowseDirectChildren', filter '' (0x10ea6a2c), writer, StartingIndex, RequestedCount, 0, &NumberReturned, &TotalMatches, &UpdateID) at 0x104665d0; NumberReturned, TotalMatches and UpdateID are then printed with '%d' from ctx+8/+0xc/+0x10 (f_10513598, f_1051362c, f_105136c0).",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10464200",
@@ -62602,7 +62602,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (none); member delegates: r4 v[+0x3c]",
+      "description": "args parse; ContentDirectory object 'Q:<QueueID>' exists",
       "evidence": [
        {
         "type": "firmware",
@@ -62610,15 +62610,26 @@
         "build": "86.10-80260",
         "function": "0x10464200",
         "notes": "req-vfunc call map: {}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466280",
+        "address": "0x104663e0",
+        "notes": "li r4,0x192 fault"
        }
       ],
       "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (none); member delegates: r4 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: Browse delegates to the shared ContentDirectory browse f_10305a98 on object 'Q:<QueueID>' with StartingIndex/RequestedCount as the window.",
+       "Residual: how f_10305a98 applies StartingIndex/RequestedCount (zero-count meaning, out-of-range start), where it takes the UpdateID it returns, and what it does on a failure during lazy Result serialisation are not traced; next step is to disassemble f_10305a98's BrowseDirectChildren branch (from 0x10305b34)."
+      ],
+      "resolved_findings": [
+       "Resolved (front end): all three args must parse (else 402 at 0x104663e0) and object 'Q:<QueueID>' must exist in *(qm+0x12c) (else 701 from f_103042f0). There is no transport-mode gate and no engine lock on this path; qm slot +0x28 never touches the engine at qm+0x128."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x3c]",
+      "description": "ContentDirectory object tree at qm+0x12c, object 'Q:<QueueID>'",
       "evidence": [
        {
         "type": "firmware",
@@ -62626,16 +62637,27 @@
         "build": "86.10-80260",
         "function": "0x10464200",
         "notes": "member vfunc calls: ['r4 v[+0x3c]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104661fc",
+        "address": "0x10466240",
+        "notes": "lwz r3,0x12c(r31)"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: Browse delegates to the shared ContentDirectory browse f_10305a98 on object 'Q:<QueueID>' with StartingIndex/RequestedCount as the window.",
+       "Residual: how f_10305a98 applies StartingIndex/RequestedCount (zero-count meaning, out-of-range start), where it takes the UpdateID it returns, and what it does on a failure during lazy Result serialisation are not traced; next step is to disassemble f_10305a98's BrowseDirectChildren branch (from 0x10305b34)."
+      ],
+      "resolved_findings": [
+       "Resolved (front end): reads the ContentDirectory object tree at *(qm+0x12c) (stored by the qm ctor f_10465fac at 0x104660c8 from its r6 argument, r20 at the call site 0x103fb6dc), looking up 'Q:<QueueID>' via f_1034a224 on cd+0x168."
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query delegate: r4 v[+0x3c] (call-derived member-method semantics)",
+       "description": "none (read-only query)",
        "evidence": [
         {
          "type": "firmware",
@@ -62643,16 +62665,27 @@
          "build": "86.10-80260",
          "function": "0x10464200",
          "notes": "delegate map ['r4 v[+0x3c]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103042f0",
+         "address": "0x1030434c",
+         "notes": "node->v[+0x28]"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x3c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the Queue front end writes no queue or engine state.",
+        "Residual: the effect of node->v[+0x28] called by f_103042f0 after the lookup (expected to release the lookup reference) is not traced; next step is to resolve the node class vtable returned by f_1034a224 and read its slot +0x28."
+       ],
+       "resolved_findings": [
+        "Resolved: read-only. f_10466280, f_104661fc and f_10466520 write only stack objects and the response; f_103042f0 calls node->v[+0x28](node) on the looked-up node (0x1030434c) and returns."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -62660,15 +62693,25 @@
         "build": "86.10-80260",
         "function": "0x10464200",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466280",
+        "notes": "bl scan of the chain"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the front end emits no event.",
+       "Residual: f_10305a98 is not yet scanned for event emission; next step is its bl list (it only showed log calls f_109b6fe4/f_109b72ac in a first pass)."
+      ],
+      "resolved_findings": [
+       "Resolved: none on the Queue front end; no notify or request-submit call exists in f_10464200, f_10466280, f_104661fc, f_103042f0, f_10466618 or f_10466520."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c]",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -62676,15 +62719,22 @@
         "build": "86.10-80260",
         "function": "0x10464200",
         "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x3c]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466280",
+        "address": "0x10466280",
+        "notes": "no state stores"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x3c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: none; Browse is a query and nothing on the traced path stores to queue, engine or transport state."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 on parse failure, 701 when 'Q:<QueueID>' does not exist, else lazy DIDL Result plus counts",
       "evidence": [
        {
         "type": "firmware",
@@ -62692,11 +62742,22 @@
         "build": "86.10-80260",
         "function": "0x10464200",
         "notes": "commit/fault slot usage: {}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466280",
+        "address": "0x104663ac",
+        "notes": "mr. r4,r3; beq -> outputs"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: Browse delegates to the shared ContentDirectory browse f_10305a98 on object 'Q:<QueueID>' with StartingIndex/RequestedCount as the window.",
+       "Residual: how f_10305a98 applies StartingIndex/RequestedCount (zero-count meaning, out-of-range start), where it takes the UpdateID it returns, and what it does on a failure during lazy Result serialisation are not traced; next step is to disassemble f_10305a98's BrowseDirectChildren branch (from 0x10305b34)."
+      ],
+      "resolved_findings": [
+       "Resolved (front end): parse failure -> req->v[+0x14](req, 402) at 0x104663ec; f_104661fc rc nonzero (701 unknown object) -> req->v[+0x14](req, rc) at 0x104663c8; rc 0 -> four lazy output writers registered and req->v[+0x10](req, strbuf) at 0x1046650c. The output values are produced during serialisation, after the fault/commit decision."
       ]
      },
      "fault_sites": [],
@@ -62704,7 +62765,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 402 on arg-record failures; browse-op rc forwarded (DIDL emission path)",
+       "meaning": "rc of f_104661fc/f_103042f0: 701 when ContentDirectory object 'Q:<QueueID>' does not exist (f_103042f0 can also return 402 for a bad browse flag, unreachable here because the flag is the constant 'BrowseDirectChildren')",
        "fault_sites": [
         "0x10464200"
        ],
@@ -62743,6 +62804,14 @@
          "build": "86.10-80260",
          "function": "0x10466280",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103042f0",
+         "address": "0x10304388",
+         "notes": "isel 402 for unknown flag"
         }
        ],
        "unresolved": {
@@ -62762,8 +62831,11 @@
         4096
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10464200).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the pre-serialisation fault domain is {402 parse, 701 unknown object}.",
+        "Residual: errors raised by f_10305a98 during lazy Result serialisation (e.g. 'Children failed %d' at 0x10305d80) and how they reach the client are not traced; next step is to follow f_10305a98's error exits and the f_10560608 writer contract."
+       ],
+       "resolved_findings": [
+        "Resolved: f_103042f0 returns 701 (0x1030430c) when f_1034a224 finds no node, 0 for 'BrowseDirectChildren'/'BrowseMetadata', and 402 (isel at 0x10304388) for any other flag; f_104661fc always passes 'BrowseDirectChildren' (0x10466248), so only 0 or 701 reach the fault at 0x104663c8."
        ]
       },
       {
@@ -62814,13 +62886,44 @@
        "build": "86.10-80260",
        "address": "0x10ed1a1c",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10464200",
+       "address": "0x10464250",
+       "notes": "tail qm->v[+0x28](qm,req)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104661fc",
+       "address": "0x1046623c",
+       "notes": "snprintf 'Q:%u'"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103042f0",
+       "address": "0x1030430c",
+       "notes": "701 default when f_1034a224 finds no object"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10466520",
+       "address": "0x104665d0",
+       "notes": "bl f_10305a98 shared CD browse"
       }
      ],
      "notes": null,
      "implementation_notes": "table entry is a trampoline; real chain: req v[+0x3c] then impl v[+0x28] -> f_104661fc -> shared executor f_103042f0 (BrowseFlag strcmp -> 402, resolver -> 701)",
-     "todo": [
-      "Established: direct dispatch to handler 0x10464200; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "Resolved: the impl chain is fully static. wrapper f_10464200 calls req->v[+0x3c](req) at 0x10464228 (result discarded; r4 is preserved with SPE evstdd/evldd at 0x10464220/0x10464238) and tail-calls qm->v[+0x28](qm, req) at 0x10464250; qm vtable 0x10ed1bcc slot +0x28 is f_10466280. f_10466280 parses QueueID, StartingIndex and RequestedCount as u32 (f_105614e0 at 0x104662cc/0x104662f0/0x10466314), faults 402 if req->v[+0x8] reports a parse failure (0x104663e0), then calls f_104661fc(qm, QueueID) (0x104663a8), which formats the object ID 'Q:%u' (0x1046623c) and calls f_103042f0(*(qm+0x12c), 'Q:<QueueID>', 'BrowseDirectChildren') (0x10466250). f_103042f0 looks the object up with f_1034a224(cd+0x168, id) (0x10304314) and returns 701 when it does not exist (li r31,0x2bd at 0x1030430c), else 0. On 0 the four outputs are registered as lazy writers (f_10560608 at 0x10466488/0x104664ac/0x104664d0/0x104664f4) over a stack context (vptr 0x10ed1bb8) holding qm, QueueID, StartingIndex and RequestedCount, and the response is committed with req->v[+0x10](req, strbuf) at 0x1046650c. Serialising Result runs f_10513580 -> ctx->v[+8] = f_10466618 -> f_10466520, which calls the shared ContentDirectory browse f_10305a98(*(qm+0x12c), 'Q:<QueueID>', 'BrowseDirectChildren', filter '' (0x10ea6a2c), writer, StartingIndex, RequestedCount, 0, &NumberReturned, &TotalMatches, &UpdateID) at 0x104665d0; NumberReturned, TotalMatches and UpdateID are then printed with '%d' from ctx+8/+0xc/+0x10 (f_10513598, f_1051362c, f_105136c0). In plain terms: Queue.Browse checks that 'Q:<QueueID>' exists (fault 701 if not) and then streams the queue's children as a ContentDirectory BrowseDirectChildren with an empty filter, using StartingIndex and RequestedCount as the paging window."
      ]
     },
     "CreateQueue": {
