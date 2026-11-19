@@ -57135,7 +57135,7 @@
      ]
     },
     "SnoozeAlarm": {
-     "description": "Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero (the ringing-alarm flag (else 701). It then logs \"upnp\"/\"snooze\", submits a transport op via f_102d0ac8(impl,0,0,...)) the same submission helper as the Pause fallback: calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.",
+     "description": "Schedules a temporary snooze in AVTransport, attempts a pause-family operation and arranges replay of saved alarm program at the computed deadline. Both inputs required; only InstanceID zero. Worker normal return domain {0,718,402,800,701}. No AlarmClock service dispatch or alarm-definition persistence.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f9990",
@@ -57167,11 +57167,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x102d1fc4",
+      "impl_vfunc": "AVTransport vtables 0x10eaf2ec/0x10edfbb8 slot +0xa4 -> f_102d1fc4 -> f_102d1d5c",
+      "description": "Adapter returns u16 result+4; result+0 alarm ID is not a SOAP output. Playback and scheduler return values are ignored."
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Required instance index. Resulting unsigned value must be zero.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -57181,34 +57184,38 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text",
+       "format": "decimal prefix, strtoul(text,NULL,10)",
        "unit": "none - dimensionless",
-       "accepted_values": "0 only - nonzero faults 718",
+       "accepted_values": "Zero after permissive strtoul conversion",
        "range": "0",
-       "special_values": "none observed in this build",
+       "special_values": "Present empty/nonnumeric -> zero; missing -> 402.",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Presence then unsigned conversion then zero guard.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f99d0",
-         "notes": "in-arg access site"
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102f99d8",
+         "notes": "InstanceID tag 4 uses strtoul(text,NULL,10), bounded to 23 bytes before conversion; no end-pointer, errno or range check. Empty/nonnumeric present text becomes zero. Missing either required input makes f_10730414 validation return false."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
         }
        ],
        "notes": null
       },
       "Duration": {
-       "description": "Snooze duration parsed by shared parser f_10c3d2c4: the same routine ConfigureSleepTimer uses.",
+       "description": "Required snooze interval, parsed as hours:minutes:seconds with the shared sscanf parser. Empty text fails here, unlike an absent optional duration elsewhere.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -57217,44 +57224,46 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosDurationArg",
-       "format": "utf-8 text, buffer cap 64 bytes (63 chars + NUL)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "Text that f_10c3d2c4 parses: unparseable text faults 402",
-       "range": "max 63 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "bounded hour/minute/second duration",
+       "format": "sscanf %02hu:%02hu:%02hu; valid prefix sufficient",
+       "unit": "hours:minutes:seconds",
+       "accepted_values": "Three conversions with hour<=23, minute<=59, second<=59.",
+       "range": "00:00:00..23:59:59 component bounds",
+       "special_values": "00:00:00 schedules an immediately eligible deadline. Empty -> 402. Trailing text after a valid prefix accepted.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Snooze duration parsed by shared parser f_10c3d2c4: the same routine ConfigureSleepTimer uses.",
+       "validation": "No end-of-input or positive-duration check. At most 63 input bytes retained; longer text truncates.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f99f4",
-         "notes": "in-arg access site"
+         "function": "0x10c3d2c4",
+         "address": "0x10ec661e",
+         "callsite": "0x102d1e90",
+         "notes": "Duration is first bounded to 63 bytes plus NUL by type-tag-7 request finalization f_10560a58; present empty text passes presence validation. Worker always calls duration parser on InstanceID zero. f_10c3d2c4 calls sscanf at 0x10c3d318 with %02hu:%02hu:%02hu (literal 0x10ec661e), requires three conversions and bounds hours<=23, minutes/seconds<=59. Does not require end of input or exactly two digits; trailing bytes are accepted after a valid prefix. Empty/malformed/out-of-range duration returns false. 00:00:00 is valid; no positive-duration check."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ed989c",
-         "notes": "argument name string"
+         "function": "0x102f9990",
+         "address": "0x102f9a54",
+         "callsite": "0x102f9a38",
+         "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d1fc4",
-         "notes": "impl head"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
         }
        ],
-       "notes": null,
+       "notes": "This action always calls the duration parser after the InstanceID gate, including for present empty text.",
        "buf_cap": 64,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Duration` is parsed then forwarded verbatim to r5-in vfunc +164 (site 0x102f9a38) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Duration` = verbatim forward to impl vfunc +164 (obj r5-in, call site 0x102f9a38); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -57274,128 +57283,235 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xa4]",
+      "description": "InstanceID zero, valid duration prefix, transport mode +0x4654 in {1,2}, then ringing flag +0x5a86 nonzero, in that order. Missing required input fails in wrapper. No persistent alarm-record lookup or coordinator/clock-generation gate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102f9990",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9a54",
+        "callsite": "0x102f9a38",
+        "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3d2c4",
+        "address": "0x10ec661e",
+        "callsite": "0x102d1e90",
+        "notes": "Duration is first bounded to 63 bytes plus NUL by type-tag-7 request finalization f_10560a58; present empty text passes presence validation. Worker always calls duration parser on InstanceID zero. f_10c3d2c4 calls sscanf at 0x10c3d318 with %02hu:%02hu:%02hu (literal 0x10ec661e), requires three conversions and bounds hours<=23, minutes/seconds<=59. Does not require end of input or exactly two digits; trailing bytes are accepted after a valid prefix. Empty/malformed/out-of-range duration returns false. 00:00:00 is valid; no positive-duration check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d1d5c",
+        "address": "0x102d1e14",
+        "callsite": "0x102d1fec",
+        "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: r30 v[+0xa4].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0xa4]",
+      "description": "AVTransport command lock +0x458, transport mode +0x4654, ringing +0x5a86, current alarm ID +0x5a88, snooze deadline +0x6ecc, active/dirty +0x6ed0/+0x6ed1, scheduler pointer +0xad2c and clock ID 1. Expiry consumes saved program state. No AlarmClock service/engine call in snooze worker or timer callback.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9990",
-        "notes": "member vfunc calls: ['r30 v[+0xa4]']"
+        "function": "0x102d1d5c",
+        "address": "0x102d1e14",
+        "callsite": "0x102d1fec",
+        "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d1d5c",
+        "address": "0x102d1f58",
+        "callsite": "0x102d1f14",
+        "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102dbb00",
+        "address": "0x102dbb94",
+        "callsite": "0x102dbc1c",
+        "notes": "Registered callback f_102dbc14 tails to f_102dbb00. Under impl+0x458 it returns saved +0x6ecc deadline through callback output while current clock-ID-1 seconds are earlier. At/after deadline, if +0x5a86 still nonzero it invokes f_102da774 using saved URI/metadata/mode/volume/duration. Then clears snooze active +0x6ed0, sets dirty +0x6ed1 and calls f_1067c6ec(impl+0x10) at 0x102dbbf4. Inactive/expired returns 0x7fffffff scheduling sentinel. No AlarmClock service dispatch in this callback."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0xa4].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0xa4] (call-derived member-method semantics)",
+       "description": "Attempts pause-family transport operation (return ignored), stores deadline, activates snooze, marks event dirty on inactive-to-active, registers callback. Repeated snooze resets deadline. No alarm-definition save or alarm-list version change. Playback/scheduler success is not guaranteed by SOAP success.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f9990",
-         "notes": "delegate map ['r30 v[+0xa4]']; notify-family calls []"
+         "function": "0x102d1d5c",
+         "address": "0x102d1f58",
+         "callsite": "0x102d1f14",
+         "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102dbb00",
+         "address": "0x102dbb94",
+         "callsite": "0x102dbc1c",
+         "notes": "Registered callback f_102dbc14 tails to f_102dbb00. Under impl+0x458 it returns saved +0x6ecc deadline through callback output while current clock-ID-1 seconds are earlier. At/after deadline, if +0x5a86 still nonzero it invokes f_102da774 using saved URI/metadata/mode/volume/duration. Then clears snooze active +0x6ed0, sets dirty +0x6ed1 and calls f_1067c6ec(impl+0x10) at 0x102dbbf4. Inactive/expired returns 0x7fffffff scheduling sentinel. No AlarmClock service dispatch in this callback."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0xa4] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "First activation marks +0x6ed1 and enqueues AVTransport event source impl+0x10. LastChange carries r:SnoozeRunning from +0x6ed0. Repeated activation only changes deadline; timer expiry clears active and enqueues another update. Lower-level transport changes may also enqueue events.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9990",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x102d1d5c",
+        "address": "0x102d1f58",
+        "callsite": "0x102d1f14",
+        "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102dbb00",
+        "address": "0x102dbb94",
+        "callsite": "0x102dbc1c",
+        "notes": "Registered callback f_102dbc14 tails to f_102dbb00. Under impl+0x458 it returns saved +0x6ecc deadline through callback output while current clock-ID-1 seconds are earlier. At/after deadline, if +0x5a86 still nonzero it invokes f_102da774 using saved URI/metadata/mode/volume/duration. Then clears snooze active +0x6ed0, sets dirty +0x6ed1 and calls f_1067c6ec(impl+0x10) at 0x102dbbf4. Inactive/expired returns 0x7fffffff scheduling sentinel. No AlarmClock service dispatch in this callback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e41a0",
+        "address": "0x102e50a4",
+        "callsite": "0x102d1fb8",
+        "notes": "AVTransport event producer f_102e41a0 builds LastChange with AVT/rincon namespaces at 0x102e4798..0x102e47d0. It writes r:SnoozeRunning from impl+0x6ed0 at 0x102e50a4..0x102e50b8 alongside r:AlarmRunning from +0x5a86. Worker enqueue marks +0x6ed1 on first activation; callback marks it on expiry. This documents scheduling/payload, not guaranteed network delivery or synchronous playback completion."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xa4]",
+      "description": "Ringing alarm with allowed mode -> snooze active and future/immediate deadline; ringing flag itself is not cleared by this worker. Repeated calls move deadline. Expiry replays saved program only if still ringing, then clears snooze active regardless. Reject branches perform no snooze mutation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f9990",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0xa4]']"
+        "function": "0x102d1d5c",
+        "address": "0x102d1e14",
+        "callsite": "0x102d1fec",
+        "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d1d5c",
+        "address": "0x102d1f58",
+        "callsite": "0x102d1f14",
+        "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102dbb00",
+        "address": "0x102dbb94",
+        "callsite": "0x102dbc1c",
+        "notes": "Registered callback f_102dbc14 tails to f_102dbb00. Under impl+0x458 it returns saved +0x6ecc deadline through callback output while current clock-ID-1 seconds are earlier. At/after deadline, if +0x5a86 still nonzero it invokes f_102da774 using saved URI/metadata/mode/volume/duration. Then clears snooze active +0x6ed0, sets dirty +0x6ed1 and calls f_1067c6ec(impl+0x10) at 0x102dbbf4. Inactive/expired returns 0x7fffffff scheduling sentinel. No AlarmClock service dispatch in this callback."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xa4].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Worker locks and returns result record; adapter surfaces only u16 code in {0,718,402,800,701}. Zero commits no SOAP outputs. Nonzero and missing-input 402 share fault 0x102f9a54. Pause/scheduler return values are ignored, so their downstream error domains are not SOAP errors here.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x102fa5c4",
+        "address": "0x10eaf390",
+        "callsite": "0x102f9a38",
+        "notes": "AVTransport dispatcher loads service+4 at 0x102fa6c8, passes implementation as r5 to wrapper f_102f9990. Wrapper calls implementation slot +0xa4 at 0x102f9a38. Tables 0x10eaf2ec and 0x10edfbb8 both contain f_102d1fc4 at +0xa4 (0x10eaf390/0x10edfc5c). Adapter 0x102d1fc4..0x102d201c passes a local result record to f_102d1d5c at 0x102d1fec and returns its u16 result+4 at 0x102d1ff0. This is not the AlarmClock service object."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x102f9990",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102f9a54",
+        "callsite": "0x102f9a38",
+        "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d1d5c",
+        "address": "0x102d1e14",
+        "callsite": "0x102d1fec",
+        "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d1d5c",
+        "address": "0x102d1f58",
+        "callsite": "0x102d1f14",
+        "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x102f9a54",
        "code": null,
-       "code_expr": "vret(r5-in,+0xa4)"
+       "code_expr": "validation false ? 402 : result+4 in {718,402,800,701}"
       }
      ],
      "errors": [
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0xa4)",
-       "meaning": "Nonzero InstanceID: worker gate on the parsed int.",
+       "meaning": "Parsed InstanceID is nonzero; first worker gate after locking.",
        "fault_sites": [
         "0x102f9a54"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "Worker compares parsed InstanceID at 0x102d1e14 and writes 718 at 0x102d1e24 before duration parsing.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d1d5c",
-           "notes": "cmpwi at 0x102d1da8 -> 0x102d1f9c"
+           "function": "0x102d1d5c",
+           "address": "0x102d1e14",
+           "callsite": "0x102d1fec",
+           "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10560a58",
+           "address": "0x10560b50",
+           "callsite": "0x102f99d8",
+           "notes": "InstanceID tag 4 uses strtoul(text,NULL,10), bounded to 23 bytes before conversion; no end-pointer, errno or range check. Empty/nonnumeric present text becomes zero. Missing either required input makes f_10730414 validation return false."
           }
          ]
         }
@@ -57405,40 +57521,59 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d1d5c",
-         "notes": "cmpwi at 0x102d1da8 -> 0x102d1f9c"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f9990",
+         "address": "0x102f9a54",
+         "callsite": "0x102f9a38",
+         "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
         }
        ]
       },
       {
        "code": 402,
        "code_expr": "vret(r5-in,+0xa4)",
-       "meaning": "Duration fails the shared f_10c3d2c4 parse.",
+       "meaning": "Missing required input or invalid snooze-duration prefix.",
        "fault_sites": [
         "0x102f9a54"
        ],
        "conditions": [
         {
-         "description": "f_10c3d2c4 returns 0",
+         "description": "Wrapper required input absent -> literal 402 at 0x102f9a88; or InstanceID zero and f_10c3d2c4 returns false -> 402 at 0x102d1f8c. Present empty Duration fails parser.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d1d5c",
-           "notes": "bc at 0x102d1e94 -> sth 0x192 at 0x102d1f8c"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
-         "evidence": [
+           "function": "0x102f9990",
+           "address": "0x102f9a54",
+           "callsite": "0x102f9a38",
+           "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f9990",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "function": "0x10c3d2c4",
+           "address": "0x10ec661e",
+           "callsite": "0x102d1e90",
+           "notes": "Duration is first bounded to 63 bytes plus NUL by type-tag-7 request finalization f_10560a58; present empty text passes presence validation. Worker always calls duration parser on InstanceID zero. f_10c3d2c4 calls sscanf at 0x10c3d318 with %02hu:%02hu:%02hu (literal 0x10ec661e), requires three conversions and bounds hours<=23, minutes/seconds<=59. Does not require end of input or exactly two digits; trailing bytes are accepted after a valid prefix. Empty/malformed/out-of-range duration returns false. 00:00:00 is valid; no positive-duration check."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102d1d5c",
+           "address": "0x102d1e14",
+           "callsite": "0x102d1fec",
+           "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
           }
          ]
         }
@@ -57448,35 +57583,50 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d1d5c",
-         "notes": "bc at 0x102d1e94 -> sth 0x192 at 0x102d1f8c"
+         "function": "0x102f9990",
+         "address": "0x102f9a54",
+         "callsite": "0x102f9a38",
+         "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9990",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10c3d2c4",
+         "address": "0x10ec661e",
+         "callsite": "0x102d1e90",
+         "notes": "Duration is first bounded to 63 bytes plus NUL by type-tag-7 request finalization f_10560a58; present empty text passes presence validation. Worker always calls duration parser on InstanceID zero. f_10c3d2c4 calls sscanf at 0x10c3d318 with %02hu:%02hu:%02hu (literal 0x10ec661e), requires three conversions and bounds hours<=23, minutes/seconds<=59. Does not require end of input or exactly two digits; trailing bytes are accepted after a valid prefix. Empty/malformed/out-of-range duration returns false. 00:00:00 is valid; no positive-duration check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
         }
        ]
       },
       {
        "code": 800,
        "code_expr": "vret(r5-in,+0xa4)",
-       "meaning": "engine+0x4654 is neither 1 nor 2: snooze requires an active non-idle transport mode.",
+       "meaning": "Valid duration but transport mode +0x4654 is neither 1 nor 2.",
        "fault_sites": [
         "0x102f9a54"
        ],
        "conditions": [
         {
-         "description": "(impl+0x4654 - 1) unsigned > 1",
+         "description": "After InstanceID/duration checks, unsigned (mode-1)>1 returns 800 before ringing test.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d1d5c",
-           "notes": "cmplwi 0x1 at 0x102d1ea8 -> sth 0x320"
+           "function": "0x102d1d5c",
+           "address": "0x102d1e14",
+           "callsite": "0x102d1fec",
+           "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
           }
          ]
         }
@@ -57486,28 +57636,41 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d1d5c",
-         "notes": "cmplwi 0x1 at 0x102d1ea8 -> sth 0x320"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f9990",
+         "address": "0x102f9a54",
+         "callsite": "0x102f9a38",
+         "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
         }
        ]
       },
       {
        "code": 701,
        "code_expr": "vret(r5-in,+0xa4)",
-       "meaning": "byte impl+0x5a86 is 0: no alarm is ringing, nothing to snooze.",
+       "meaning": "Valid instance/duration and allowed transport mode, but no alarm marked ringing.",
        "fault_sites": [
         "0x102f9a54"
        ],
        "conditions": [
         {
-         "description": "lbz impl+0x5a86 == 0",
+         "description": "Ringing byte impl+0x5a86 is zero at 0x102d1ec0; writes 701, not 723.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d1d5c",
-           "notes": "cmpwi at 0x102d1ec8 -> r10=0x2bd"
+           "function": "0x102d1d5c",
+           "address": "0x102d1e14",
+           "callsite": "0x102d1fec",
+           "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
           }
          ]
         }
@@ -57517,33 +57680,48 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d1d5c",
-         "notes": "cmpwi at 0x102d1ec8 -> r10=0x2bd"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f9990",
+         "address": "0x102f9a54",
+         "callsite": "0x102f9a38",
+         "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0xa4)",
-       "meaning": "rec+4 u16 is returned; codes 718/402/800/701 enumerated.",
+       "meaning": "No additional adapter error domain: all result codes are enumerated above.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "worker wrote a code not in the enumerated set",
+         "description": "Unreachable additional-code arm: complete worker writes only {0,718,402,800,701} and adapter reads only result+4.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d1f14",
-           "notes": "passthrough path"
+           "function": "0x102fa5c4",
+           "address": "0x10eaf390",
+           "callsite": "0x102f9a38",
+           "notes": "AVTransport dispatcher loads service+4 at 0x102fa6c8, passes implementation as r5 to wrapper f_102f9990. Wrapper calls implementation slot +0xa4 at 0x102f9a38. Tables 0x10eaf2ec and 0x10edfbb8 both contain f_102d1fc4 at +0xa4 (0x10eaf390/0x10edfc5c). Adapter 0x102d1fc4..0x102d201c passes a local result record to f_102d1d5c at 0x102d1fec and returns its u16 result+4 at 0x102d1ff0. This is not the AlarmClock service object."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102d1fc4",
-           "notes": "impl return path examined"
+           "function": "0x102d1d5c",
+           "address": "0x102d1e14",
+           "callsite": "0x102d1fec",
+           "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
           }
          ]
         }
@@ -57553,61 +57731,73 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f9a54",
-         "notes": "impl vret passthrough site"
+         "function": "0x102fa5c4",
+         "address": "0x10eaf390",
+         "callsite": "0x102f9a38",
+         "notes": "AVTransport dispatcher loads service+4 at 0x102fa6c8, passes implementation as r5 to wrapper f_102f9990. Wrapper calls implementation slot +0xa4 at 0x102f9a38. Tables 0x10eaf2ec and 0x10edfbb8 both contain f_102d1fc4 at +0xa4 (0x10eaf390/0x10edfc5c). Adapter 0x102d1fc4..0x102d201c passes a local result record to f_102d1d5c at 0x102d1fec and returns its u16 result+4 at 0x102d1ff0. This is not the AlarmClock service object."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d1fc4",
-         "notes": "impl rc-return semantics as documented; wrapper forwards nonzero rc verbatim"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x102d1fc4 exits=[19, 20, 36, 52]; rec+4 u16 is returned; codes 718/402/800/701 enumerated.",
-       "literal_bound": [
-        0
-       ],
-       "resolved_note": "RESOLVED via FUN_102d1fc4 (vtable+0xa4): pure forwarder -> FUN_102d1d5c(this,args,0) fills u16 rc; domain = snooze-worker rc.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0xa4); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Complete normal result domain {0,718,402,800,701}; no unknown delegated codes.",
+       "resolved_note": "Result+0 alarm ID is not an error code."
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "code_expr": "unreachable store/session passthrough",
+       "meaning": "No store-save or session-error passthrough exists on this SOAP return path.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "function": "0x102d1d5c",
+         "address": "0x102d1e14",
+         "callsite": "0x102d1fec",
+         "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d1d5c",
+         "address": "0x102d1f58",
+         "callsite": "0x102d1f14",
+         "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Unreachable: f_102d0ac8 return and scheduler return are discarded, then result code is explicitly set to zero. Worker contains no backing-store save.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "function": "0x102d1d5c",
+           "address": "0x102d1e14",
+           "callsite": "0x102d1fec",
+           "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102d1d5c",
+           "address": "0x102d1f58",
+           "callsite": "0x102d1f14",
+           "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -57617,30 +57807,58 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x102fa5c4",
+       "address": "0x10eaf390",
+       "callsite": "0x102f9a38",
+       "notes": "AVTransport dispatcher loads service+4 at 0x102fa6c8, passes implementation as r5 to wrapper f_102f9990. Wrapper calls implementation slot +0xa4 at 0x102f9a38. Tables 0x10eaf2ec and 0x10edfbb8 both contain f_102d1fc4 at +0xa4 (0x10eaf390/0x10edfc5c). Adapter 0x102d1fc4..0x102d201c passes a local result record to f_102d1d5c at 0x102d1fec and returns its u16 result+4 at 0x102d1ff0. This is not the AlarmClock service object."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x102f9990",
-       "address": "0x102f9990",
-       "notes": "action wrapper handler"
+       "address": "0x102f9a54",
+       "callsite": "0x102f9a38",
+       "notes": "Required InstanceID f_105614e0 at 0x102f99d8 and Duration f_1056157c capacity 64 at 0x102f9a00. Validation false loads 402 at 0x102f9a88. Shared sole fault call 0x102f9a54 handles validation and worker nonzero return. Zero return commits an output-free response at 0x102f9a9c. Stack guard abort is not a SOAP fault."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb31ec",
-       "notes": "action dispatch table entry"
+       "function": "0x10c3d2c4",
+       "address": "0x10ec661e",
+       "callsite": "0x102d1e90",
+       "notes": "Duration is first bounded to 63 bytes plus NUL by type-tag-7 request finalization f_10560a58; present empty text passes presence validation. Worker always calls duration parser on InstanceID zero. f_10c3d2c4 calls sscanf at 0x10c3d318 with %02hu:%02hu:%02hu (literal 0x10ec661e), requires three conversions and bounds hours<=23, minutes/seconds<=59. Does not require end of input or exactly two digits; trailing bytes are accepted after a valid prefix. Empty/malformed/out-of-range duration returns false. 00:00:00 is valid; no positive-duration check."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102d1fc4",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0xa4 entry"
+       "function": "0x102d1d5c",
+       "address": "0x102d1e14",
+       "callsite": "0x102d1fec",
+       "notes": "Worker locks impl+0x458 via f_10557cac at 0x102d1df8. Precedence: nonzero InstanceID -> 718 at 0x102d1e20; duration parse false -> 402 at 0x102d1f8c; unsigned (impl+0x4654 - 1)>1 -> 800 at 0x102d1ea0; ringing byte impl+0x5a86 zero -> 701 at 0x102d1ec4; otherwise success. Every result writes current alarm ID to result+0 and u16 code to result+4, releases lock. Success sets code zero at 0x102d1f80 after callback registration. No other return code, store-save call or delegated return-code propagation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102d1d5c",
+       "address": "0x102d1f58",
+       "callsite": "0x102d1f14",
+       "notes": "Success logs upnp/snooze via f_102b8c44, invokes f_102d0ac8(impl,0,0,...,-1,-1), ignores its return. f_102d0ac8 is transport-operation machinery and clears +0x777c/+0x7778 before its source precondition; successful snooze therefore does not prove pause succeeded. Reads sonosClockGetTime clock ID 1 at 0x102d1f20 and writes seconds + hours*3600 + minutes*60 + seconds to impl+0x6ecc (32-bit arithmetic). On first snooze sets +0x6ed0 active and +0x6ed1 dirty, calls f_1067c6ec(impl+0x10) at 0x102d1fb8. Repeated snooze overwrites deadline without that active-flag notification. Calls scheduler object *(impl+0xad2c) slot +8 at 0x102d1f7c with callback f_102dbc14 and impl context. Callback registration result ignored. No AlarmClock configuration write."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102dbb00",
+       "address": "0x102dbb94",
+       "callsite": "0x102dbc1c",
+       "notes": "Registered callback f_102dbc14 tails to f_102dbb00. Under impl+0x458 it returns saved +0x6ecc deadline through callback output while current clock-ID-1 seconds are earlier. At/after deadline, if +0x5a86 still nonzero it invokes f_102da774 using saved URI/metadata/mode/volume/duration. Then clears snooze active +0x6ed0, sets dirty +0x6ed1 and calls f_1067c6ec(impl+0x10) at 0x102dbbf4. Inactive/expired returns 0x7fffffff scheduling sentinel. No AlarmClock service dispatch in this callback."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f9990; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Snooze uses AVTransport saved alarm state. The pause-family helper may fail while the action still succeeds and schedules snooze. Clock-ID-1 deadline arithmetic is 32-bit; no explicit overflow check."
     },
     "StartAutoplay": {
      "description": "Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0: sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.",
