@@ -95905,6 +95905,14 @@
        "address": "0x104b1ed4",
        "function": "0x104b1e48",
        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1090b4f0",
+       "function": "0x1090b418",
+       "notes": "Raw rotation/record-bit audit: word552906fe at1090b4f0 is rlwinm r9,r9,0,27,31, retaining low5 flag bits and clearing the upper3, not shifting by5. Numeric fallback still sets major86,minor10,build80260.1090c444 word5529067e retains low7 flags before setting diagnostic bit7; beta/manufacturing masks clear bits6/5 respectively. Caller ignores all flags;104b0e18/104b0e28 explicitly compare unsigned major/minor bytes.104b0da8 word7d20579e and104b0e74 word7d20559e are isel onCR7.EQ/CR5.EQ, not record-form rotations; build-only updates remain skipped."
       }
      ],
      "notes": "Despite the name, concrete work is promo-version marker processing plus conditional settings callbacks. A build-only change does not rewrite a valid same-major/minor marker. Do not treat empty SOAP success as proof of completed update tasks or persistence.",
@@ -97387,7 +97395,7 @@
        ],
        "conditions": [
         {
-         "description": "Main106c6118 writer reportsfalse: temporary-file open/write, XML/root construction, final size/tell, close or rename failure; final XML must be<=32768 bytes. Missing/invalid source can instead recover successfully. Secondary recovery metadata failure, fflush/fsync failures ignored by close, and asynchronous notification/replication failure do not produce800.",
+         "description": "Main106c6118 writer reportsfalse: temporary-file open/write, XML/root construction, final size/tell, close or rename failure; final XML must be<=32768 bytes. Source-open failure also produces800 before creating a temporary file; an opened malformed source can instead rewrite successfully with a fresh root or preserved parsed prefix. Secondary recovery metadata failure, fflush/fsync failures ignored by close, and asynchronous notification/replication failure do not produce800.",
          "evidence": [
           {
            "type": "firmware",
@@ -97549,6 +97557,14 @@
        "address": "0x104b1ed4",
        "function": "0x104b1e48",
        "notes": "R_RDM success calls10121518: reads R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), caches+11cd/+11ce; changes clear server-description cache10760d48, notify that service1067c6ec, optionally refresh external servers10741ac4. Then10110ee0 reads R_BrowseByFolderSort: Tracknum/Title/File map global110953e0 to2/0/1; missing/unknown seeds Tracknum using SetString, potentially another settings write/callback. Changed sort refreshes10107dc4, increments share-store+b8 and sends known update backend10117654.103c79b8 is empty leaf. Fixed R_RDM skips RadioLocation/VolNormMode/CrossfadeDuration/AirplayIncludeLinked-specific updates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560bc8",
+       "function": "0x10560a58",
+       "notes": "Raw rotation/record-bit audit: tag1 uses cntlzw followed by rotate-left27/mask5..31 at10560bc8 to form strcmp==0, not a low-byte right shift. Writer106c6400 word5463063e is rlwinm r3,r3,0,24,31: (writeResult^1)&0xff, then explicit cmpwi/cr7 at106c6404 branches on failure. Rc is0. Notification1067c4b4 word5529063e preserves the dirty byte with mask0xff before its explicit zero test; it does not shift it away."
       }
      ],
      "notes": "Concrete delegate is installed by104b0e84 at10ed75c4; handler10732e94 receives it at1018e594, slot+3c targets104b0760 and SetString slot+8 targets1066aa24. Observers and replication are asynchronous backend endpoints, not proof of remote delivery or activation of diagnostic access."
@@ -98003,6 +98019,14 @@
        "address": "0x1055fc20",
        "function": "0x1055fc08",
        "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b0c68",
+       "function": "0x104b0b8c",
+       "notes": "Raw rotation/record-bit audit: paranoid_atoui result is explicitly compared before the initialized parsed word is tested for nonzero; output is a boolean, not a shifted numeric byte. In libsonosminiutils.so.1,73e0/73e8 load/compare the high32 word and73ec rejects it if nonzero, with no rotate/shift implementing the range test.72fc minus rejection and736c/7378/7388 errno/empty/suffix branches use explicit comparisons or mr. CR0, preserving the documented unsigned lexical domain."
       }
      ],
      "notes": "No inputs, no normal SOAP error codes and no direct settings-file write. Receiver+ec slot+14 is statically resolved to10652074, not an unknown recovery implementation. Asynchronous replication/backend events do not imply remote delivery or immediate repair.",
@@ -98693,6 +98717,14 @@
        "address": "0x1019911c",
        "function": "0x10198e54",
        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105c9a84",
+       "function": "0x105c99c8",
+       "notes": "Raw rotation/record-bit audit: UMTracking compares exact true via strcmp at105c9a6c, cntlzw then rlwinm r3,r3,27,5,31 at105c9a84 yields equality0/1; this is a genuine rotate/mask boolean idiom, not a shift of the string value. The R_ForceReIndex raw4 predicate and XML found/valid predicates use explicit comparisons; no dropped rotation Rc changes their branch polarity."
       }
      ],
      "notes": "A query, not a generic reindex trigger. The lexical bounds are byte counts, not character counts. Runtime root overrides and remote delivery are not observed.",
@@ -99270,6 +99302,14 @@
        "address": "0x10560b50",
        "function": "0x10560a58",
        "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560b50",
+       "function": "0x10560a58",
+       "notes": "Raw rotation/record-bit audit: tag4 calls strtoul(buffer,NULL,10) then stw at10560b54, not a shifted or narrowed conversion. Request validation10730414 explicitly tests materialization; delegate104b0500 directly returns800. No rotation-derived value restriction or CR0 record-bit predicate changes this action."
       }
      ],
      "notes": "The concrete delegate is statically recoverable, not a runtime-injected unknown. The success-only WebCode writer remains in the wrapper but cannot execute with the constructed delegate."
@@ -100653,6 +100693,14 @@
        "address": "0x1066ab30",
        "function": "0x1066aa24",
        "notes": "UMTracking402 exists only in SetString branch1066ab30..1066ab68, bypassed by Remove1066abb8. Removing UMTracking operates on SystemSettings XML, not household userMetricsTracking JSON. GetString10669db4 compares UMTracking and calls105c99c8 ->household category2/key userMetricsTracking via105c94f0/105c9358, returning Report/NoReport independently of this XML deletion. No userMetricsTracking household-file write is reachable from Remove UMTracking."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106c6400",
+       "function": "0x106c6118",
+       "notes": "Raw rotation/record-bit audit: writer word5463063e at106c6400 masks (writeResult^1) with0xff, not right-shift8; explicit cmpwi at106c6404 preserves the documented failure path. NULL omission and the source-open failure precede this footer test and do not depend on an inferred rotation alias. Notification dirty-byte mask1067c4b4 preserves the byte rather than clearing it."
       }
      ],
      "notes": "Removes XML entries, not a file or household JSON field. Empty-valued SetString differs from this NULL value. Successful response does not guarantee selected key remains absent after refresh/recovery.",
@@ -103220,6 +103268,14 @@
        "address": "0x104b1e98",
        "function": "0x104b1e48",
        "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106c6400",
+       "function": "0x106c6118",
+       "notes": "Raw rotation/record-bit audit: word5463063e has SH0,MB24,ME31,Rc0 and means low-byte mask0xff, not right-shift8. It preserves (writeResult^1), stored as transaction failure byte+3d and explicitly compared at106c6404; a failed footer write follows106c6334. Validator1066a898 uses unsigned <=1 after paranoid_atoi, so negative ContentFiltering values are rejected. The success notification dirty-byte mask1067c4b4 likewise preserves0/1 before its explicit comparison."
       }
      ],
      "notes": "No output arguments. Boolean/value validators do not canonicalize stored spelling, except URL slash insertion. Return0 proves main transaction success, not fsync success, asynchronous delivery or arbitrary feature activation.",
