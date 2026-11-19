@@ -155251,26 +155251,55 @@
   },
   "queue_schema": {
    "name": "track-queue status XML",
-   "summary": "<Queue Name='%s'><EntriesMax>%d</EntriesMax><EntriesUsed>%d</EntriesUsed><EntriesHighWater>%d</EntriesHighWater><StringTableSize>%d</StringTableSize><StringTableUsed>%d</StringTableUsed><StringTableHighWater>%d</StringTableHighWater><UpdateID>%u</UpdateID><ObjectID>%s</ObjectID><OwnerID>%s</OwnerID><Policy>%d</Policy><CloudQueueHost>%s</CloudQueueHost></Queue>; <TrackQueueSummary>Shared/Private</TrackQueueSummary>; GPM {com.google.RemoteSonosReceiver,Google Play Music}; metadata pipeline ladder: 'Md incomplete. Getting cached metadata' -> 'Md still incomplete. Loading from CSV extra md' -> 'Md is now complete from cache. Calling pmd.initFromTrackMd'; 'Updated duration for track %s at index %d to %lld','Updated extra MD for track %s at index %d','metadata cache unable to load %s','metadata load timed out for %s','Fetching metadata for tracks %u - %u. Fetch type %d'; stream open ladder 'Unable to open stream %s: max redirects(%d)','Failed to open %s (%d)','Failed to open %s (%d) Trying MMS,RTSP next'; trueroom tone injection 'x-rincon-configmode:speaker-detect{.mp3}','Adding Trueroom tone track URI to the queue','trueroom_config_mode'; browse 'browse aborted (r:%d c:%d l:%u nr:%u nxt:%u tot:%u)','could not find service for SID=%d'; muse post errors 'failed to set HTTP headers for trackQueueAdditions','sending %s to %s','MUSE POST error: %s','MUSE POST: unable to parse response','unable to base64 decode response'",
+   "summary": "The Queue status XML reports constructor-selected item and string-pool capacities. All three direct calls to the concrete queue constructor are recovered: unnamed queue 200 entries/98304 bytes, Q:0 64900 entries/5439488 bytes, Q:1 250 entries/344064 bytes. Pool allocation and insertion bounds use those byte capacities; there is no additional global StringTableSize cap on these paths. Status-field offsets distinguish the full queue from its embedded state at+0x5c. The Policy field is a flag word, not the previously claimed shared/private enum; its complete bit semantics remain unfinished.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ea9620",
      "notes": "queue schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1014d000 queue constructor / startup direct callers",
+     "address": "0x1014d000",
+     "callsite": "0x1014d15c / 0x1014d164 / 0x1025f664",
+     "notes": "Constructor saves r8->r29 and r9->r26, then stores item capacity at full queue+26bc and pool byte capacity+26cc. Three direct callers: empty-name200/18000hex at0x1025f630; Q:0 fd84hex/530000hex at0x1025f664; Q:1 fahex/54000hex at0x1025f6a0. Raw0x6108fd84 at0x1025f64c is ori r8,r8,0xfd84 after zero, so capacity64900. No literal constructor pointers found in rodata/data/got2 and xref found no address-forming references."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1014d000 allocation / f_10806f84 / f_10809f0c",
+     "address": "0x1014d1e4",
+     "callsite": "0x1014d18c / 0x1014d1e8 / 0x10809f54",
+     "notes": "Item slot allocation uses shift3+4 header; u16 index-array size uses shift1 raw0x5503083c, not a mask/right shift. Pool allocation passes capacity directly from+26cc; stores pointer+26d0. Allocator normalizes zero byte allocation to1 and calls malloc, with new-handler/exception failure path. Logical pool capacity remains unchanged."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10265164 emitter / string insertion",
+     "address": "0x1026524c",
+     "callsite": "0x10265258 / 0x10146498 / 0x101464b4",
+     "notes": "Emitter adjusts original queue pointer by5c before capacity/status loads; original full-object offsets are+26bc/+26c8/+26ca/+26cc/+26d4/+26d8. String insertion uses unsigned required versus capacity-used and returns0 if required exceeds remaining, before copy/update. Zero required bypasses copy. This binds both static capacities and the runtime cap predicate."
     }
    ],
-   "todo": [
-    "Residual: the per-queue EntriesMax argument values at each TrackQueue ctor call site (caller data) and the StringTableSize cap"
-   ],
    "resolved_findings": [
-    "Resolved: string-table dedup = <Queue> dump fields {EntriesMax/Used/HighWater, StringTableSize/Used/HighWater}; capacity = EntriesMax constant.",
-    "Structure proven: the <Queue> status XML exposes the internal bookkeeping - {EntriesMax, EntriesUsed, EntriesHighWater} for the item array and {StringTableSize, StringTableUsed, StringTableHighWater} for the dedup string pool (queue item URIs/metadata share one string table; high-water marks track peak usage). Policy field is the shared/private enum (protocolInfo http-get:*:%s:* with shared/private items). Enqueue bounds: cannot enqueue item; %s queue is full (%zu items added, %zu items enqueued) at EntriesMax, plus a separate item.id tracking bound (item.id tracking is out of memory). UpdateID/ObjectID/OwnerID/CloudQueueHost carry ownership and the cloud-queue endpoint. Adjacent: the enqueue metadata parser consumes /containerType, /containerName, /name, /explicit, /durationMs, /artist, /imageUrl, /releaseDate, /mimetype paths (Unable to parse metadata: guard).",
+    "Capacity is fixed per queue by constructor arguments, not one universal EntriesMax. Concrete constructor f_1014d000 takes EntriesMax in r8 and StringTableSize in r9 and stores them at full queue+0x26bc/+0x26cc. Its three direct call sites are in startup f_1025... at0x1025f630,0x1025f664 and0x1025f6a0; no literal function-pointer references or other address-forming xrefs to this constructor were found in the checked image.",
+    "The <Queue> status XML exposes EntriesMax/Used/HighWater for items and StringTableSize/Used/HighWater for the shared text pool. Policy is the full queue+26e4 flag word, initialized from constructor r10: the three calls supply0x0173802f,0x0173c02f and0x0173c02e. It is not a shared/private enum. UpdateID/ObjectID/OwnerID/CloudQueueHost carry version, identity, ownership and cloud endpoint data. The separate Muse queue-full and item.id-tracking messages do not establish these TrackQueue constructor limits or Policy meanings. Adjacent metadata-parser path literals identify candidate fields, not a complete typed schema.",
     "Resolved: the enqueue bounds (0x104488b0, muse domain) - the item.id-tracking cap is a literal bound cmplwi 0x13 at 0x1044891c: item.id tracking is out of memory fires when the tracking count exceeds 0x13 (20 entries). The 'queue is full' predicate compares live fields *(q+0x10) vs *(q+0xc) - EntriesMax is a per-queue runtime field set at queue construction, not a global constant. A type field *(q+4) is checked (0,1,2 branches) before the bounds.",
-    "Resolved: the <Queue> emit site (0x1026527c) maps the queue object fields - Name=str arg, EntriesMax=u32 @+0x2660, EntriesUsed=u16 @+0x266c, EntriesHighWater=u16 @+0x266e, StringTableSize=u32 @+0x2670, StringTableUsed=u32 @+0x2678, StringTableHighWater=u32 @+0x267c, UpdateID=u32 @+0x70, ObjectID=str @+0x5c, OwnerID=str, Policy=u32 @+0x26e4, CloudQueueHost=str. EntriesUse/HighWater are u16 (<=65535) while EntriesMax is u32 - the cap is wider than the counter width.",
+    "The <Queue> emitter0x1026527c first adds0x5c to its queue pointer at0x1026524c. Relative to that embedded state: EntriesMax+2660(u32), EntriesUsed+266c(u16), EntriesHighWater+266e(u16), StringTableSize+2670(u32), StringTableUsed+2678(u32), StringTableHighWater+267c(u32). Relative to the original full queue these are +26bc/+26c8/+26ca/+26cc/+26d4/+26d8. Policy is loaded from full queue+26e4 and UpdateID from full queue+70 before pointer adjustment. The previous full-object+2660 claim caused the false no-writer conclusion.",
     "Queue-op enum at 0x10f99c8c: {REPLACE=1, APPEND=2, INSERT=3, INSERT_NEXT=4, PLAY_NOW=5}; content-type enum at 0x10f996b0 {ALBUM=1, ARTIST=2, AUDIOBOOK=3, CHAPTER=4, SMAPI_CONTAINER=5, EPISODE=6, ...}.",
     "Full content-type enum at 0x10f996b0: {ALBUM=1, ARTIST=2, AUDIOBOOK=3, CHAPTER=4, SMAPI_CONTAINER=5, EPISODE=6, PLAYLIST=7, PODCAST=8, PROGRAM=9, STREAM=10, TRACK=11}.",
-    "Lowercase content-type ids at 0x10ed9520: {album=0, artist=1, audiobook=2, chapter=3, container=4, episode=5, playlist=6, podcast=7, program=8, stream=9, track=10, unknown=11} - the wire-level companion to the ALBUM..TRACK enum at 0x10f996b0.",
-    "Established: full queue-object field map from the <Queue> emitter; EntriesMax @+0x2660 has NO literal writers in .text (only stack-slot coincidences) so each queue's capacity arrives via ctor arg."
+    "Lowercase content-type ids at0x10ed9520: {album=0, artist=1, audiobook=2, chapter=3, container=4, episode=5, playlist=6, podcast=7, program=8, stream=9, track=10, unknown=11}. This is a separate vocabulary from the ALBUM..TRACK enum at0x10f996b0; matching names with different numeric bases alone does not certify a wire-value conversion.",
+    "All direct constructor arguments are recovered from raw startup words:0x1025f630 uses empty name at0x10ea6a2c, r8=0xc8=200 and r9=0x18000=98304 bytes;0x1025f664 uses Q:0 at0x10ea9390, r8=0xfd84=64900 and r9=0x530000=5439488 bytes;0x1025f6a0 uses Q:1 at0x10ea9394, r8=0xfa=250 and r9=0x54000=344064 bytes. The fd84 value comes from ori on a zero base, not a signed addi; it is not negative or truncated. These concrete entry maxima fit the u16 live counters.",
+    "Constructor allocation:0x1014d148 forms EntriesMax*8 with raw0x57a31838 and adds4 for a count header; entries are zeroed in stride8 and pointer stored at full queue+26c0. A separate two-byte-per-entry array is allocated/stored at+26c4. At0x1014d1e4 it loads StringTableSize from+26cc, passes that exact byte count through allocator f_10806f84 and stores the returned pointer at+26d0. No extra constant cap is applied to the string-pool allocation. Allocator f_10809f0c calls malloc, normalizes a zero-size request to one byte and handles allocation failure through the new-handler/exception path; that does not enlarge the recorded logical capacity.",
+    "String insertion checks at0x10146498-0x101464b4 load capacity+26cc and used+26d4, compute remaining=capacity-used, and compare the prospective byte requirement unsigned. If required>remaining the function returns0 through0x101467e0 before writing; zero requirement skips the copy path. Successful insertion updates used/high-water fields before later queue work. Thus the cap for each pool is the recovered constructor byte argument, separately from item count. The status XML displays this capacity and its live usage; a literal in a different Muse item-ID tracking path does not define the TrackQueue capacity."
+   ],
+   "todo": [
+    "Established: all three concrete constructor capacities, byte-pool allocation and insertion cap, corrected full/embedded status offsets, and Policy initialized as a flag word. The original EntriesMax/StringTableSize residual is resolved. Remaining: recover the Policy bit meanings and behavior from loads at0x10145dc0-0x10145e34,0x10148048-0x101480ac and other consumers of full queue+26e4, joining changes to their writers; bind consumers of content-type tables0x10ed9520/0x10f996b0 before claiming a numeric wire conversion. The old shared/private-enum and automatic wire-companion assertions are withdrawn. These are actionable static joins."
    ]
   },
   "accounts_replication": {
