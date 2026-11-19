@@ -220279,15 +220279,74 @@
      "build": "86.10-80260",
      "address": "0x1058b138",
      "notes": "Counter wrap substitutes one, not a stage-list restart."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10180b90",
+     "address": "0x10180c08",
+     "notes": "Third trigger: 'cert update event' callback reaches f_1058b664 only when f_1064b98c()==3 at 0x10180bac."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1058a574",
+     "address": "0x1058a6b4",
+     "notes": "Ctor seeds manager+0xd8=1 and stores caller settings delegate into +0xdc; name 'BootSequenceManager' built at +0x8 and +0x28."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x109bda4c",
+     "address": "0x109bdb28",
+     "notes": "Settings delegate vfunc+0x14 open64s '<vardir>/app/settings', writes 0xf-byte record, temp-renames via snprintf path. BootSeq persists to the local settings file."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10bbb834",
+     "address": "0x10bbb8a4",
+     "notes": "Composite subject key = src string + '_' + event name; for this producer 'BootSequenceManager_BootSequenceEvent'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10bbcebc",
+     "address": "0x10bbcf18",
+     "notes": "Subscribe entry builds the same composite key then inserts an observer node into registry *(bus+0x30)+0x1d0; no call site can form the BootSequenceEvent key."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1058a2bc",
+     "address": "0x1058a2e8",
+     "notes": "Manager vfunc+0x08 getter returns counter +0xd8 under the +0x48 guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x101bd51c",
+     "address": "0x101bd558",
+     "notes": "Wifi-provider commit hook pushes caller-supplied seqnum to WifiFuncsSetBootSeqnum for ath0 and ath1 under +0x420 lock."
     }
-   ],
-   "todo": [
-    "Residual: trace the BootSequenceEvent subscriber registrations and concrete consumer callbacks, including which settings/actions each consumer applies. The producer is now bound to the boot counter update and event-dispatch path; absence of a static stage table does not establish the consumer list or prove a settings re-evaluation pass."
    ],
    "resolved_findings": [
     "boot_sequence_mgr.cxx reads boot-time settings {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey} and re-triggers on connectivity events (updating boot sequence due to wifi connection event). Separately, bootseq %u is a per-member monotonic counter in the topology layer (Adding member %s with bootseq %u failed - out-of-sync GM; %s ZP %s (bootseq %u); new bootseq) used to reject stale group members, and appears in mdns/topology notify records (bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}).",
     "Producer call path recovered, beyond literal re-trigger strings: registration callback f_1017fec0 loads manager pointer from owner+0x5730 and calls f_1058b664 at 0x1017ff10. Wi-Fi callback f_1058b6cc logs its reason then tail-calls the same function at 0x1058b730. f_1058b664 acquires/releases a guard for manager+0x48 around direct invocation of f_1058aa44 at 0x1058b694. Thus those callback paths reach the same manager implementation, rather than proving a separate fixed stage recorder from their log messages alone.",
-    "f_1058aa44 increments the 32-bit word at manager+0xd8 (0x1058aaa4-0x1058aab0); the zero result on wrap is replaced by one at 0x1058b138-0x1058b150. It formats that value as %u and invokes the object at manager+0xdc through virtual slot +0x14 with key BootSeq at 0x1058aacc-0x1058ab04. Later it constructs/queues an event named BootSequenceEvent; the log path at 0x1058aef4-0x1058af40 uses Queued %s(%u) from \"%s\" : { %s }. An independent no-wrap path and explicit wrap fallback show that +0xd8 is a nonzero sequence counter, not a stage-array index. No component-stage table is consumed in this examined producer. Consumer registrations are not established by that observation and still need reverse engineering; the previous ordered-init-milestones interpretation and asserted settings re-evaluation semantics are withdrawn."
+    "f_1058aa44 increments the 32-bit word at manager+0xd8 (0x1058aaa4-0x1058aab0); the zero result on wrap is replaced by one at 0x1058b138-0x1058b150. It formats that value as %u and invokes the object at manager+0xdc through virtual slot +0x14 with key BootSeq at 0x1058aacc-0x1058ab04. Later it constructs/queues an event named BootSequenceEvent; the log path at 0x1058aef4-0x1058af40 uses Queued %s(%u) from \"%s\" : { %s }. An independent no-wrap path and explicit wrap fallback show that +0xd8 is a nonzero sequence counter, not a stage-array index. No component-stage table is consumed in this examined producer. Consumer registrations are not established by that observation and still need reverse engineering; the previous ordered-init-milestones interpretation and asserted settings re-evaluation semantics are withdrawn.",
+    "Producer trigger census: exactly three paths reach the guarded dispatcher f_1058b664 (which locks manager+0x48 then calls f_1058aa44): the registration-machine callback f_1017fec0 ('updating boot sequence due to registration event', manager fetched from owner+0x5730), the manager's own observer vfunc f_1058b6cc at vtable 0x10ef0a18 slot +0x00 ('updating boot sequence due to wifi connection event', log domain 'bootseq' 0x10f13e58), and f_10180b90 ('updating boot sequence due to cert update event', gated on f_1064b98c returning 3).",
+    "Manager object layout from ctor f_1058a574: primary vtable 0x10ef09f8, observer secondary vtable 0x10ef0a18 at +0x4, name string 'BootSequenceManager' at +0x8, embedded event-source subobject (vtable 0x10ef09d8, destructors only) at +0x24 carrying a second 'BootSequenceManager' name string at +0x28, guard at +0x48, counter +0xd8 seeded to 1, and +0xdc = caller-supplied settings delegate (owner+0x5724).",
+    "The settings delegate at owner+0x5724 is a named file-backed settings record built by f_109bcfc8: {vtable 0x1108a230, strdup'd path, fnptr}. Its path is '<vardir>/app/settings' (base from .bss 0x110a950c plus 'app/settings' suffix via f_1068aeac). The 'BootSeq' write runs vfunc +0x14 (f_109bdefc -> f_109bda4c), which open64s the path, writes, and commits through a 6-digit temp-name snprintf/rename. So the counter is persisted to the local settings file, not broadcast or re-evaluated.",
+    "BootSequenceEvent dispatch: the bus composite subject key is srcname + '_' + eventname (f_10bbb834 builds tmp(src), inserts one '_' at end via f_10831a28, appends event name via f_10831ea8), giving 'BootSequenceManager_BootSequenceEvent'. f_10bbca78 looks it up in the subject map under *(bus+8)+0x190 and also touches the ie-cache map at *(bus+0x20); f_10bbd280 is the 4-arg post variant (arg4=4). The event is then scheduled onto the ie-schd delivery queue via f_100f14ec with cancel thunk f_1058bc6c ('Delivery of %s(%u) event cancelled').",
+    "Subscriber census: the subject key can only be formed from literal 'BootSequenceEvent' (0x10e9ba2c), which the producer f_1058aa44 is the sole reference for, and 'BootSequenceManager' (0x10ef0a44), used only by the manager ctor. The subscribe entry f_10bbcebc builds the identical key form and inserts observer nodes into registry *(bus+0x30)+0x1d0; across its ~80 call sites none can construct this key. Established: the shipped image registers zero in-process observers for BootSequenceEvent, so delivery iterates an empty observer list; the only local effect is the queued-event log 'Queued %s(%u) from \"%s\" : { %s }'.",
+    "Concrete counter consumers: vfunc +0x08 (f_1058a2bc) is the seqnum getter returning manager+0xd8 under the +0x48 guard; vfunc +0x0c (f_10582890) formats a delegated object's vfunc+0x08 result as '%u'. The wifi-provider object (vtable 0x10e9b9e4, owner+0x48, built in the same init f_1018d27c) exposes the commit hook f_101bd51c which calls imported WifiFuncsSetBootSeqnum('ath0', seq) and ('ath1', seq) under its +0x420 lock, the caller supplying &seqnum. 'GCBootSeq' serializers (f_1026a0bc, f_1036907c, f_104ca970) report a separate group-coordinator bootseq in status dumps, unrelated to this manager's counter."
    ]
   },
   "cloud": {
