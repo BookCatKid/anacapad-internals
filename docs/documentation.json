@@ -85216,7 +85216,7 @@
    },
    "actions": {
     "Browse": {
-     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below.",
+     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306b3c",
@@ -85273,6 +85273,22 @@
         "function": "0x10305a98",
         "address": "0x10305b40",
         "notes": "Deferred Result callback f_10305dd0 invokes this executor. Re-resolves ObjectID, constructs f_1054adc0 DIDL writer, turns RequestedCount=0 into 0xffffffff at 0x10305b4c, passes Filter/start/count/sort to object+0xc or overridden +0x10. No outer count clamp or sort rejection. Metadata at 0x10305c8c ignores start/count/sort."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037c5e8",
+        "address": "0x1037c710",
+        "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037b9ac",
+        "address": "0x1037bd28",
+        "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
        }
       ]
      },
@@ -85354,7 +85370,7 @@
        }
       },
       "Filter": {
-       "description": "Required text passed to selected metadata or child enumeration method; root passes it to each child metadata method.",
+       "description": "Required text passed to selected metadata or child enumeration method; root passes it to each child metadata method. R/FV metadata and children ignore this argument; named ObjectID category selectors are separate native content-class filters.",
        "direction": "in",
        "semantic_type": "string",
        "format": "NUL-terminated text in 1024-byte request buffer",
@@ -85389,6 +85405,14 @@
          "function": "0x10346cec",
          "address": "0x10346d2c",
          "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037b9ac",
+         "address": "0x1037bd28",
+         "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
         }
        ],
        "primitive": {
@@ -85508,7 +85532,7 @@
        }
       },
       "SortCriteria": {
-       "description": "Required text passed to direct-child enumeration; ignored by metadata and root-child enumeration.",
+       "description": "Required text passed to direct-child enumeration; ignored by metadata and root-child enumeration. R/FV children ignore it without a sort error and retain stored SAX order.",
        "direction": "in",
        "semantic_type": "string",
        "format": "NUL-terminated text in 1024-byte request buffer",
@@ -85543,6 +85567,14 @@
          "function": "0x10346cec",
          "address": "0x10346d2c",
          "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037c5e8",
+         "address": "0x1037c710",
+         "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
         }
        ],
        "primitive": {
@@ -85642,7 +85674,7 @@
        }
       },
       "TotalMatches": {
-       "description": "Direct children: output pointer passed to selected enumerator. Root: directory+0x374. Metadata: 1 on success.",
+       "description": "Direct children: output pointer passed to selected enumerator. Root: directory+0x374. Metadata: 1 on success. R/FV category children count eligible entries independently of the requested page; compatibility-suppressed entries are excluded before that counter.",
        "direction": "out",
        "semantic_type": "32-bit word rendered signed decimal",
        "format": "%d",
@@ -85685,7 +85717,7 @@
        }
       },
       "UpdateID": {
-       "description": "Initialized zero, then output pointer passed to concrete metadata/enumeration. Root: cd_impl SystemUpdateID from directory+4 primary+0x10, not a universal direct read for all nodes.",
+       "description": "Initialized zero, then output pointer passed to concrete metadata/enumeration. Root: cd_impl SystemUpdateID from directory+4 primary+0x10, not a universal direct read for all nodes. R/FV children and category metadata snapshot provider+0x128 under mutex+0x30; individual R/FV item metadata uses zero.",
        "direction": "out",
        "semantic_type": "32-bit word rendered signed decimal",
        "format": "%d",
@@ -85795,7 +85827,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific.",
+      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific. R/FV reads userradio.xml with 4096-byte reads and a 10-second deadline; its provider version is not the global SystemUpdateID. Malformed stored XML can yield partial output because the existing-file SAX status is ignored.",
       "evidence": [
        {
         "type": "firmware",
@@ -85851,7 +85883,7 @@
         "build": "86.10-80260",
         "function": "0x1037b904",
         "address": "0x1037b958",
-        "notes": "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (sort argument zero), streaming children1037c92c ->1037c5e8 preserving sort. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. Remaining sort comparator, SAX and DIDL accounting are not established by these gates."
+        "notes": "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (NULL client descriptor), streaming children1037c92c ->1037c5e8 supplying client descriptor. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. The complete R/FV read-worker evidence below establishes ignored SortCriteria, stored SAX ordering, paging and DIDL accounting."
        },
        {
         "type": "firmware",
@@ -85868,16 +85900,31 @@
         "function": "0x10348d58",
         "address": "0x10348de0",
         "notes": "AI: entry10348d58 is resolver, not metadata serializer. Missing provider at+4 ->NULL; exact AI: ->provider+0x11c. Other suffix uses10208ff0 on ObjectID+2, requires resolved zone byte+0xa0c nonzero, returns zone+0x9a4. Returned interfaces still require constructor/vptr and serializer/enumerator binding; no runtime-only indirect target is assumed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037c5e8",
+        "address": "0x1037c710",
+        "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037b9ac",
+        "address": "0x1037bd28",
+        "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
        }
       ],
       "todo": [
-       "Established: outer validation/dispatch/paging conventions and deferred layout, A root seven entries/UpdateID0, Q root two entries/version source, FV root one category/provider counter, S indexed/remote split, SQ fixed interfaces, R/FV blocking pool and AI resolver gates.",
-       "Remaining after inspecting the named adapters and fixed vtables: A attribute node graph from102a3b74/102a3c80; indexed share enumeration100fe0e4 and remote104634c4/receiver10ebb678; real Q worker1014a70c; SQ root10478e04, playlist10348560 ->10478618 and track103476d8; R/FV1037c5e8/1037c1a8 with existing-file SAX1037b0d0; AI returned provider+0x11c/zone+0x9a4 interfaces from10348d58. Next follow these concrete callbacks and outputs to complete per-container Filter/Sort, caps, DIDL, NumberReturned/TotalMatches/UpdateID and lazy cache/resource behavior. The call chains were inspected but not fully traced; this is unfinished static work, not a demonstrated runtime-only boundary."
+       "Remaining static work: Q worker1014a70c and serializer10146ee0 minimal/full Filter metadata paths; AI resolver10348d58 provider constructor and live zone vptr binding; S indexed100fe0e4 and playlist-format104634c4 workers/receiver10ebb678 accounting; SQ root10478e04, playlist10348560 ->10478618 and track103476d8 callbacks; A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
       ]
      },
      "side_effects": [
       {
-       "description": "Outer path resolves/locks/releases objects and writes streamed response, without requesting content mutation. R/FV resolution borrows a pooled node and can block until one is released; release wakes pool waiters. Root enumeration reads counters and calls child metadata. Backend lazy resource/cache behavior remains separately bounded below.",
+       "description": "Outer path resolves/locks/releases objects and writes streamed response, without requesting content mutation. R/FV resolution borrows a pooled node and can block until one is released; release wakes pool waiters. Root enumeration reads counters and calls child metadata. Backend lazy resource/cache behavior remains separately bounded below. Concrete R/FV storage-read and SAX serialization callbacks do not persist content or invoke a native content-change publisher.",
        "evidence": [
         {
          "type": "firmware",
@@ -85910,15 +85957,31 @@
          "function": "0x1037cba4",
          "address": "0x1037cc2c",
          "notes": "R/FV resolvers1037ccb4/1037d250 borrow nodes from provider free-list+0x124 through1037cba4 under mutex+0x30. Empty pool waits on condition+0xc0; release1037cc8c ->1037cc2c returns node and wakes waiters. Identifier copy capacity0x40. This is pooled blocking acquisition, not fresh heap node allocation on every Browse and not itself a native content-change publisher."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037c5e8",
+         "address": "0x1037c710",
+         "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037b9ac",
+         "address": "0x1037bd28",
+         "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
         }
        ],
        "todo": [
-        "Established: R/FV pool wait/release1037cba4/1037cc2c is traced, without a native mutation publisher there. Remaining: backend lazy-cache/resource audit along100fe0e4/104634c4,1014a70c,10478e04/10478618 and1037c5e8 callbacks. These concrete adapters were inspected but all subordinate resource callbacks were not followed. Next enumerate callback targets and their writes/publishers rather than inferring purity from the outer coordinator."
+        "Remaining: Q1014a70c metadata/cache helpers, S100fe0e4 and104634c4/receiver10ebb678, SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
        ]
       }
      ],
      "events_triggered": {
-      "description": "No notifier or SystemUpdateID increment in preflight, deferred coordinator or root enumeration. Those routines only resolve, enumerate, serialize and release.",
+      "description": "No notifier or SystemUpdateID increment in preflight, deferred coordinator or root enumeration. Those routines only resolve, enumerate, serialize and release. Concrete R/FV snapshot reads and Station/Show/Favorite read callbacks contain no native content-change publisher; pool synchronization is not content notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -85943,10 +86006,26 @@
         "function": "0x10346cec",
         "address": "0x10346d2c",
         "notes": "Root vtable 0x10ebb598 (installed by f_10349980), slot +0xc. TotalMatches=directory+0x374; calls cd_impl primary+0x10 through directory+4 to obtain SystemUpdateID. Unsigned start must be below child count and count nonzero; emits child+8 metadata from directory+0x358 array until next index equals wrapping start+count or reaches child count. Ignores SortCriteria, passes Filter to each child. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037c5e8",
+        "address": "0x1037c710",
+        "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037b9ac",
+        "address": "0x1037bd28",
+        "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
        }
       ],
       "todo": [
-       "Established: no notification in outer coordinator/root path or R/FV pool wait/release; service-level native notification receiver chain is now traced. Remaining: callback-side lazy/resource events along100fe0e4/104634c4,1014a70c,10478e04/10478618 and1037c5e8. Their adapters/vtables were inspected but full callback-side-effect closure was not finished. Next cross-reference subordinate callbacks to10117654/1067c6ec and concrete cache writes; absence from adapters is not proof of backend purity."
+       "Remaining: Q1014a70c metadata/cache helpers, S100fe0e4 and104634c4/receiver10ebb678, SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
       ]
      },
      "state_transitions": {
@@ -85979,7 +86058,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults.",
+      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults. R/FV deferred backend statuses include 710 for invalid classification, 720 for snapshot-open failure and 701 for missing individual metadata; these are not new early SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
@@ -86012,6 +86091,14 @@
         "function": "0x10304390",
         "address": "0x10304664",
         "notes": "Deferred descriptors emit Result, NumberReturned, TotalMatches, UpdateID in that order. Context+8/+0xc/+0x10 initialize zero at 0x10304534/0x1030454c/0x10304560. NumberReturned thunk f_10306098 -> f_10513598 reads +8, TotalMatches f_10306088 -> f_1051362c reads +0xc, UpdateID f_103060a8 -> f_105136c0 reads +0x10. All three use %d, not %u."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037c5e8",
+        "address": "0x1037c710",
+        "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
        }
       ]
      },
@@ -86236,7 +86323,7 @@
        "build": "86.10-80260",
        "function": "0x1037b904",
        "address": "0x1037b958",
-       "notes": "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (sort argument zero), streaming children1037c92c ->1037c5e8 preserving sort. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. Remaining sort comparator, SAX and DIDL accounting are not established by these gates."
+       "notes": "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (NULL client descriptor), streaming children1037c92c ->1037c5e8 supplying client descriptor. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. The complete R/FV read-worker evidence below establishes ignored SortCriteria, stored SAX ordering, paging and DIDL accounting."
       },
       {
        "type": "firmware",
@@ -86253,20 +86340,35 @@
        "function": "0x10348d58",
        "address": "0x10348de0",
        "notes": "AI: entry10348d58 is resolver, not metadata serializer. Missing provider at+4 ->NULL; exact AI: ->provider+0x11c. Other suffix uses10208ff0 on ObjectID+2, requires resolved zone byte+0xa0c nonzero, returns zone+0x9a4. Returned interfaces still require constructor/vptr and serializer/enumerator binding; no runtime-only indirect target is assumed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037c5e8",
+       "address": "0x1037c710",
+       "notes": "Concrete vptr10ec0ad4 children+0xc1037c938 and streaming+0x10 1037c92c share1037c5e8. IMPORTANT: nonstream adapter inserts NULL CLIENT DESCRIPTOR at r8, not NULL SortCriteria. SortCriteria r7 and Filter r4 are unused by this worker. Streaming10305d98 passes client descriptor r8, writer r9, UpdateID r10, TotalMatches stack+8; nonstream shifts writer/update/total accordingly. Previous preserved-sort interpretation of that adapter is incorrect. Worker locks provider+0x30, parses ObjectID1037b9ac, reads userradio.xml via1037b0d0 (4096 reads,10s deadline). Invalid classification ->710; snapshot open ->720. Children root R:0 emits two category containers R:0/0 and R:0/1 with unsigned paging; category traversal preserves stored SAX order, no independent cap/clamp or sort error. Existing-file SAX status is ignored, so counters can be partial for malformed stored XML, not a new XML SOAP fault. TotalMatches is eligible-entry counter+0x18, incremented even outside the requested page; page start+0x10/count+0x14 select serialization. UpdateID is provider+0x128 under lock. The writer item count supplies NumberReturned separately. Metadata1037c1a8 ignores Filter; category metadata1037b758 returns provider version, individual item metadata matches string ID and returns UpdateID0. Missing item ->701, open failure720, unsupported classification710. None of these deferred backend statuses is automatically an early SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037b9ac",
+       "address": "0x1037bd28",
+       "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
       }
      ],
      "notes": null,
      "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Concrete per-container limits/sort/filter/item serialization are still named residuals, not inferred from standard UPnP semantics.",
      "todo": [
-      "Established: outer validation/dispatch/paging conventions and deferred layout, A root seven entries/UpdateID0, Q root two entries/version source, FV root one category/provider counter, S indexed/remote split, SQ fixed interfaces, R/FV blocking pool and AI resolver gates.",
-      "Remaining after inspecting the named adapters and fixed vtables: A attribute node graph from102a3b74/102a3c80; indexed share enumeration100fe0e4 and remote104634c4/receiver10ebb678; real Q worker1014a70c; SQ root10478e04, playlist10348560 ->10478618 and track103476d8; R/FV1037c5e8/1037c1a8 with existing-file SAX1037b0d0; AI returned provider+0x11c/zone+0x9a4 interfaces from10348d58. Next follow these concrete callbacks and outputs to complete per-container Filter/Sort, caps, DIDL, NumberReturned/TotalMatches/UpdateID and lazy cache/resource behavior. The call chains were inspected but not fully traced; this is unfinished static work, not a demonstrated runtime-only boundary."
+      "Remaining static work: Q worker1014a70c and serializer10146ee0 minimal/full Filter metadata paths; AI resolver10348d58 provider constructor and live zone vptr binding; S indexed100fe0e4 and playlist-format104634c4 workers/receiver10ebb678 accounting; SQ root10478e04, playlist10348560 ->10478618 and track103476d8 callbacks; A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
      ],
      "resolved_findings": [
       "A: root is fixed seven-entry enumeration, not the complete attribute backend. IDs use A:%s and table10eaded0: ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS,PLAYLISTS. Applies unsigned start/count checks, total counts all seven independently of page, UpdateID zero. DIDL container serializer102a1f18; Filter/Sort not consulted at this root. Attribute node construction/resolution102a3b74/102a3c80 must be followed for deeper library behavior.",
       "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Nonzero remote enumeration result normalized720. Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter.",
       "Q: root reads queue version text10146cc0 ->decimal strtol, reports total2, pages Q:0/Q:1 via10349424 and metadata serializer103474d8. Q child10347688 is only a tail adapter to1014a70c with node+0x198 manager and node+0x17a queue name, NOT the large following103476d8 SQ-track method. Q metadata adapter103476ac ->1015036c. Real Q paging/filter/caps worker is1014a70c.",
       "SQ provider installs fixed root vptr10ebb7f4, playlist node at provider+8 vptr10ebb7ac, track node at provider+0xa8 vptr10ebb778. Root metadata103483b4/children10348244 ->10478e04; playlist metadata103480bc/children10348560; track metadata103476d8. Prior residual10476690 is only SQ:%d sscanf parser, and10349c40 is resolver selecting these fixed nodes, not enumeration. Playlist children compare exact dc:title,res and call10478618; deeper saved-queue streaming/accounting remains to trace.",
-      "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (sort argument zero), streaming children1037c92c ->1037c5e8 preserving sort. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. Remaining sort comparator, SAX and DIDL accounting are not established by these gates.",
+      "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (NULL client descriptor), streaming children1037c92c ->1037c5e8 supplying client descriptor. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. The complete R/FV read-worker evidence below establishes ignored SortCriteria, stored SAX ordering, paging and DIDL accounting.",
       "R/FV resolvers1037ccb4/1037d250 borrow nodes from provider free-list+0x124 through1037cba4 under mutex+0x30. Empty pool waits on condition+0xc0; release1037cc8c ->1037cc2c returns node and wakes waiters. Identifier copy capacity0x40. This is pooled blocking acquisition, not fresh heap node allocation on every Browse and not itself a native content-change publisher.",
       "AI: entry10348d58 is resolver, not metadata serializer. Missing provider at+4 ->NULL; exact AI: ->provider+0x11c. Other suffix uses10208ff0 on ObjectID+2, requires resolved zone byte+0xa0c nonzero, returns zone+0x9a4. Returned interfaces still require constructor/vptr and serializer/enumerator binding; no runtime-only indirect target is assumed."
      ]
