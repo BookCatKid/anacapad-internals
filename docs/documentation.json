@@ -16022,7 +16022,7 @@
      "implementation_notes": "Concrete DeviceProperties binding supersedes the older f_1018a20c/delegate attribution. RZPDevicePropertiesStP vtable 0x10ebd214 maps slot +0x44 to f_1035a704, a direct byte getter at +0x1abe. Source is required and echoed by the wrapper but is not read by the getter worker."
     },
     "GetZoneAttributes": {
-     "description": "Returns zone attributes via impl->v[+0x8].",
+     "description": "Returns the four zone attributes. After TRequest validation the wrapper tail-calls f_10737c18, which calls slot +0x0c of runtime vtable 0x10ebc630, f_105b4490 (the same function in all three DeviceProperties vtables). f_105b4490 performs one batched read through the generic property backend at impl+0x950 (vtable +0x24) using selector table 0x10ef3134 = {0x40000 zone name, 0x40001 icon, 0x40002 configuration, 0x40003 target room name}, copying the name into a 0x400-byte buffer, the icon into a 0x400-byte buffer and the target room name into a 0x41-byte buffer, and formats the configuration integer into a 16-byte buffer with snprintf '%x'. It always returns 0; the wrapper then emits CurrentZoneName, CurrentIcon, CurrentConfiguration and CurrentTargetRoomName in that order and commits.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737d90",
@@ -16034,34 +16034,89 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "base_vtable_same_slot": "0x10ebd214",
+      "worker": "0x105b4490",
+      "worker_slot": "0x0c",
+      "body": "0x10737c18",
+      "backend": "impl+0x950 generic property backend, vtable +0x24 batched read",
+      "selectors": {
+       "CurrentZoneName": "0x40000",
+       "CurrentIcon": "0x40001",
+       "CurrentConfiguration": "0x40002",
+       "CurrentTargetRoomName": "0x40003"
+      },
       "calls": [
        {
         "site": "0x10737dbc",
-        "obj": "r4-in",
+        "obj": "TRequest (r4-in)",
         "slot": 8,
-        "arg4": "r4-in"
+        "purpose": "validate (no inputs); 0 leads to 402 at 0x10737df4"
+       },
+       {
+        "site": "0x10737c70",
+        "obj": "DeviceProperties impl",
+        "slot": 12,
+        "target": "0x105b4490",
+        "purpose": "read the four attributes into stack buffers"
+       },
+       {
+        "site": "0x10737d84",
+        "obj": "TRequest",
+        "slot": 20,
+        "purpose": "fault for nonzero rc (unreachable, worker returns 0)"
+       },
+       {
+        "site": "0x10737c94",
+        "obj": "TRequest",
+        "slot": 36,
+        "purpose": "CurrentZoneName record, set at 0x10737ca8"
+       },
+       {
+        "site": "0x10737cc4",
+        "obj": "TRequest",
+        "slot": 36,
+        "purpose": "CurrentIcon record, set at 0x10737cd8"
+       },
+       {
+        "site": "0x10737cf4",
+        "obj": "TRequest",
+        "slot": 36,
+        "purpose": "CurrentConfiguration record, set at 0x10737d08"
+       },
+       {
+        "site": "0x10737d24",
+        "obj": "TRequest",
+        "slot": 36,
+        "purpose": "CurrentTargetRoomName record, set at 0x10737d38"
+       },
+       {
+        "site": "0x10737d4c",
+        "obj": "TRequest",
+        "slot": 12,
+        "purpose": "commit success"
        }
-      ],
-      "req_vcalls": []
+      ]
      },
      "inputs": {},
      "outputs": {
       "CurrentZoneName": {
-       "description": "configured room name emitted by impl 0x10737c18",
+       "description": "Value of selector 0x40000 from the impl+0x950 property backend: zone (room) name, written by SetZoneAttributes after trimming and truncation to 64 characters. Buffer sp+0x6c, capacity 0x400 bytes.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "string",
+       "format": "utf-8 text",
        "unit": "none",
-       "accepted_values": "impl-produced",
+       "accepted_values": "whatever the backend holds",
        "range": "per the response writer",
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10737c88 inside impl 0x10737c18; emitted via the response writer",
+       "validation": "read verbatim",
        "evidence": [
         {
          "type": "firmware",
@@ -16076,26 +16131,40 @@
          "build": "86.10-80260",
          "address": "0x10737c18",
          "notes": "impl emits this output"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737c18",
+         "notes": "buffer and capacity setup in f_10737c18"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4518",
+         "notes": "batched backend read with selector table 0x10ef3134"
         }
        ],
        "notes": null
       },
       "CurrentIcon": {
-       "description": "configured zone icon identifier emitted by impl 0x10737c18",
+       "description": "Value of selector 0x40001 from the impl+0x950 property backend: icon identifier string, written by SetZoneAttributes after trimming and truncation to 128 characters. Buffer sp+0x46c, capacity 0x400 bytes.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "string",
+       "format": "utf-8 text",
        "unit": "none",
-       "accepted_values": "impl-produced",
+       "accepted_values": "whatever the backend holds",
        "range": "per the response writer",
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10737cb4 inside impl 0x10737c18; emitted via the response writer",
+       "validation": "read verbatim",
        "evidence": [
         {
          "type": "firmware",
@@ -16110,26 +16179,40 @@
          "build": "86.10-80260",
          "address": "0x10737c18",
          "notes": "impl emits this output"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737c18",
+         "notes": "buffer and capacity setup in f_10737c18"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4518",
+         "notes": "batched backend read with selector table 0x10ef3134"
         }
        ],
        "notes": null
       },
       "CurrentConfiguration": {
-       "description": "zone configuration descriptor emitted by impl 0x10737c18",
+       "description": "Value of selector 0x40002 from the impl+0x950 property backend: configuration integer formatted as lowercase hexadecimal without prefix (snprintf '%x' at 0x105b453c). Buffer sp+0x18, capacity 0x10 bytes.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "string",
+       "format": "hex digits",
        "unit": "none",
-       "accepted_values": "impl-produced",
+       "accepted_values": "whatever the backend holds",
        "range": "per the response writer",
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10737ce4 inside impl 0x10737c18; emitted via the response writer",
+       "validation": "read verbatim",
        "evidence": [
         {
          "type": "firmware",
@@ -16144,26 +16227,40 @@
          "build": "86.10-80260",
          "address": "0x10737c18",
          "notes": "impl emits this output"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737c18",
+         "notes": "buffer and capacity setup in f_10737c18"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4518",
+         "notes": "batched backend read with selector table 0x10ef3134"
         }
        ],
        "notes": null
       },
       "CurrentTargetRoomName": {
-       "description": "target room name emitted by impl 0x10737c18",
+       "description": "Value of selector 0x40003 from the impl+0x950 property backend: target room name, written by SetZoneAttributes; empty after any SetZoneAttributes call that did not supply one. Buffer sp+0x28, capacity 0x41 bytes.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "string",
+       "format": "utf-8 text",
        "unit": "none",
-       "accepted_values": "impl-produced",
+       "accepted_values": "whatever the backend holds",
        "range": "per the response writer",
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10737d14 inside impl 0x10737c18; emitted via the response writer",
+       "validation": "read verbatim",
        "evidence": [
         {
          "type": "firmware",
@@ -16178,6 +16275,20 @@
          "build": "86.10-80260",
          "address": "0x10737c18",
          "notes": "impl emits this output"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737c18",
+         "notes": "buffer and capacity setup in f_10737c18"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4518",
+         "notes": "batched backend read with selector table 0x10ef3134"
         }
        ],
        "notes": null
@@ -16196,101 +16307,119 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]",
+      "description": "None beyond TRequest validation; the action has no inputs and the worker cannot fail.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737d90",
-        "notes": "req-vfunc call map: {'0x14': 1}"
+        "address": "0x10737dbc",
+        "notes": "validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4558",
+        "notes": "worker r3=0"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8]",
+      "description": "Reads the four persisted attributes from the generic property backend object at impl+0x950 (selector table 0x10ef3134 = {0x40000 zone name, 0x40001 icon, 0x40002 configuration, 0x40003 target room name}).",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737d90",
-        "notes": "member vfunc calls: ['r4 v[+0x8]']"
+        "address": "0x105b44c8",
+        "notes": "impl+0x950 backend"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b44e4",
+        "notes": "selector table address"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4510",
+        "notes": "backend vtable +0x24"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only; no delegate (inline member read; out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10737d90",
-         "notes": "impl vfunc delegate path: inline member read; out-arg (call-derived member-method semantics)"
+         "function": "0x105b4490",
+         "notes": "only the backend read and snprintf"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only; no delegate (inline member read; out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737d90",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x105b4490",
+        "notes": "no publisher calls"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10737c18",
+        "notes": "TRequest calls only"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]",
+      "description": "None; read-only getter.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737d90",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']"
+        "function": "0x105b4490",
+        "notes": "no stores to impl"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_105b4490 always returns 0, so the four outputs are always emitted and committed. The only reachable fault is TRequest validation 402; the backend read result is not checked.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737d90",
-        "notes": "commit/fault slot usage: {'0x14': 1}"
+        "address": "0x105b4558",
+        "notes": "r3=0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737df4",
+        "notes": "402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737d4c",
+        "notes": "commit"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -16303,33 +16432,21 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "literal 0x192 at 0x10737df4",
+       "meaning": "TRequest validation (+0x08) failed before the worker ran.",
        "fault_sites": [
         "0x10737e10"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "req->v[+0x08] returns 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737d90",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10737d90",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10737dc4",
+           "notes": "beq to 0x10737de8"
           }
          ]
         }
@@ -16339,36 +16456,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737d90",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737d90",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10737e10",
+         "notes": "tail-call to TRequest +0x14 with 402"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x10737c18",
-         "lits": [
-          1
-         ],
-         "passthrough_exits": 3
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10737e10).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -16398,11 +16488,7 @@
       }
      ],
      "notes": null,
-     "implementation_notes": "Outputs recovered from arg-name string loads inside the impl function (extractor missed them).",
-     "todo": [
-      "Established: direct dispatch to handler 0x10737d90; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), most-derived vtable 0x10ebc630; 0x10ebd214 is its direct base vtable. The previous description of this action as dispatching through impl->v[+0x8] was wrong: +0x08 is the TRequest validation call and the implementation slot is +0x0c."
     },
     "GetZoneInfo": {
      "description": "Returns the player identity/status tuple used by DeviceProperties GetZoneInfo. Wrapper 0x10737750 validates the no-input TRequest and tail-dispatches to f_10737470; the body calls the statically bound RZPDevicePropertiesStP implementation at primary-vtable slot +0x5c (f_1035ac84), which fills all ten outputs via f_105b4cf8 plus the live TV-input-format field.",
@@ -18002,7 +18088,7 @@
      ]
     },
     "RoomDetectionStartChirping": {
-     "description": "Starts room-detection chirping: Channel/DurationMilliseconds/ChirpIfPlayingSwappableAudio -> impl->v[+0x50], returning PlayId.",
+     "description": "Plays a room-detection chirp through the speaker and returns the identifier of the resulting playback. The wrapper parses Channel (u16), DurationMilliseconds (u32) and ChirpIfPlayingSwappableAudio (boolean) and calls slot +0x50 of runtime vtable 0x10ebc630, f_1035b390. When ChirpIfPlayingSwappableAudio is false the worker first asks the audio-source layer through f_104ad918 whether current playback may be interrupted and returns 0 with PlayId 0xffffffff when it may not. It then requires the room-detection object at impl+0x1ac0 and calls f_104f669c with the channel and the duration converted to whole seconds (multiply-high by 0x10624dd3 then shift right 6, which is unsigned division by 1000) and multiplied back by 1000 inside f_104f669c, finally reading the assigned play id from the object through f_104f6634.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073730c",
@@ -18014,31 +18100,83 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "base_vtable_same_slot": "0x10ebd214",
+      "worker": "0x1035b390",
+      "worker_slot": "0x50",
+      "room_detection_member": "impl+0x1ac0 (room-detection sender object; play id cached at object+0x98, audio source at object+0x9c)",
       "calls": [
        {
+        "site": "0x1073734c",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate Channel input record"
+       },
+       {
+        "site": "0x10737354",
+        "purpose": "parse Channel through f_10561478 into the u16 at sp+0x12"
+       },
+       {
+        "site": "0x10737370",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate DurationMilliseconds input record"
+       },
+       {
+        "site": "0x10737378",
+        "purpose": "parse DurationMilliseconds through f_105614e0 into the u32 at sp+0x14"
+       },
+       {
+        "site": "0x10737394",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate ChirpIfPlayingSwappableAudio input record"
+       },
+       {
+        "site": "0x1073739c",
+        "purpose": "parse the flag through f_10561444 into sp+0x11"
+       },
+       {
+        "site": "0x107373b0",
+        "obj": "TRequest (r4-in)",
+        "slot": 8,
+        "purpose": "validate; 0 leads to 402 at 0x1073742c"
+       },
+       {
         "site": "0x107373dc",
-        "obj": "r5-in",
+        "obj": "DeviceProperties impl (r5-in)",
         "slot": 80,
-        "arg4": "*(sp-0x30+0x12)"
+        "target": "0x1035b390",
+        "purpose": "start chirp; r4=Channel, r5=DurationMilliseconds, r6=&PlayId, r7=flag"
+       },
+       {
+        "site": "0x107373f8",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "emit fault with the worker rc or 402"
+       },
+       {
+        "site": "0x10737448",
+        "obj": "TRequest (r4-in)",
+        "slot": 36,
+        "purpose": "allocate PlayId output record"
+       },
+       {
+        "site": "0x10737450",
+        "purpose": "format PlayId through f_1055fcbc"
        },
        {
         "site": "0x10737464",
-        "obj": "*(sp-0x30+0x2c)",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "arg4": "?"
-       }
-      ],
-      "req_vcalls": [
-       {
-        "site": "0x107373b0",
-        "slot": 8,
-        "purpose": "parse"
+        "purpose": "commit success"
        }
       ]
      },
      "inputs": {
       "Channel": {
-       "description": "Chirp channel selector",
+       "description": "Channel selector passed straight to the chirp sender as its second argument. f_1035b390 loads it with lhz from the wrapper's 16-bit slot, so only the low 16 bits reach f_104f669c, which logs it as 'Start chirping with unique device value:%d' and forwards it into the chirp stream setup f_104f55e8.",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -18047,15 +18185,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "numeric argument (type-tag-2, 24-byte record)",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
+       "semantic_type": "u16 channel/device selector",
+       "format": "decimal integer, truncated to 16 bits",
        "unit": "n/a - text",
-       "accepted_values": "decimal integer parsed into the argument record",
-       "range": "full width of the parsed integer; impl-side domain applies",
+       "accepted_values": "any value; neither the worker nor f_104f669c rejects a channel number",
+       "range": "0..65535 after truncation",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "numeric value consumed by the impl vfunc",
+       "validation": "none beyond the numeric parse",
        "evidence": [
         {
          "type": "firmware",
@@ -18077,19 +18215,36 @@
          "build": "86.10-80260",
          "function": 269236820,
          "notes": "chirp member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107373c4",
+         "notes": "lhz of the parsed value into r4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f66fc",
+         "notes": "chirp log format string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f6800",
+         "notes": "value forwarded to f_104f55e8"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561478) and declared constraints are documented.",
-        "Residual: `Channel` is parsed then forwarded verbatim to r5-in vfunc +80 (site 0x107373dc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `Channel` = verbatim forward to impl vfunc +80 (obj r5-in, call site 0x107373dc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "DurationMilliseconds": {
-       "description": "Chirp duration in milliseconds",
+       "description": "Requested chirp length in milliseconds. f_1035b390 divides it by 1000 with the reciprocal sequence mulhwu by 0x10624dd3 followed by rlwinm r5,r5,26,6,31 (shift right 6), and f_104f669c multiplies the quotient back by 1000 (mulli 0x3e8) before building the stream, so the length actually requested is rounded down to whole seconds; values below 1000 become 0.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -18098,15 +18253,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "numeric argument (type-tag-4, 24-byte record)",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "semantic_type": "u32 duration",
+       "format": "decimal integer",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "decimal integer parsed into the argument record",
-       "range": "full width of the parsed integer; impl-side domain applies",
+       "accepted_values": "any u32; no range check exists",
+       "range": "0..4294967295",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "numeric value consumed by the impl vfunc",
+       "validation": "none beyond the numeric parse",
        "evidence": [
         {
          "type": "firmware",
@@ -18128,19 +18283,36 @@
          "build": "86.10-80260",
          "function": 269236820,
          "notes": "impl member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b3d4",
+         "notes": "0x10624dd3 reciprocal constant for division by 1000"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b3e4",
+         "notes": "rlwinm completes the unsigned divide by 1000"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f67bc",
+         "notes": "mulli r28,0x3e8 restores milliseconds in whole seconds"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `DurationMilliseconds` is parsed then forwarded verbatim to r5-in vfunc +80 (site 0x107373dc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
+       "notes": "Rounding down to a multiple of 1000 ms is statically certain; how the stream layer treats a zero length is outside f_104f669c.",
        "resolved_findings": [
         "Resolved: post-parse handling of `DurationMilliseconds` = verbatim forward to impl vfunc +80 (obj r5-in, call site 0x107373dc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "ChirpIfPlayingSwappableAudio": {
-       "description": "Allow chirp while swappable audio plays",
+       "description": "When true (nonzero) the chirp starts without consulting current playback. When false the worker calls f_104ad918, which asks the swappable-audio owner (f_104ad4f8 under log category sound_swap) whether the current stream may be swapped out; if the returned byte at sp+0x1b is zero the action returns success with PlayId 0xffffffff and no chirp is played.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -18149,15 +18321,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "boolean/numeric flag (type-tag-1, 24-byte record)",
+       "semantic_type": "boolean",
        "format": "utf-8 text (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
-       "accepted_values": "nonzero = true; 0 = false (byte-width flag)",
+       "accepted_values": "0 or 1",
        "range": "0/1",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "flag consumed by the impl vfunc",
+       "validation": "boolean parse only",
        "evidence": [
         {
          "type": "firmware",
@@ -18179,13 +18351,37 @@
          "build": "86.10-80260",
          "function": 269236820,
          "notes": "flag consumed by impl"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b3c4",
+         "notes": "r7==0 branches to the swappable-audio check at 0x1035b45c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b46c",
+         "notes": "f_104ad918 call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b47c",
+         "notes": "result byte tested"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b490",
+         "notes": "PlayId set to -1 and rc 0 when the check refuses"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `ChirpIfPlayingSwappableAudio` is parsed then forwarded verbatim to r5-in vfunc +80 (site 0x107373dc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ChirpIfPlayingSwappableAudio` = verbatim forward to impl vfunc +80 (obj r5-in, call site 0x107373dc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -18193,21 +18389,21 @@
      },
      "outputs": {
       "PlayId": {
-       "description": "Play/session id assigned to the chirp",
+       "description": "Identifier of the started chirp, read back from the room-detection object by f_104f6634 (object+0x98) after a successful start, or 0xffffffff when the swappable-audio check refused to interrupt playback. RoomDetectionStopChirping takes this value back.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": "unsigned int32",
-       "format": "%u decimal",
+       "semantic_type": "u32 chirp play id",
+       "format": "decimal u32 via f_1055fcbc",
        "unit": "n/a - text",
-       "accepted_values": "u32 session id assigned by the chirp member",
-       "range": "per the response writer",
+       "accepted_values": "object-assigned id, or 4294967295 for 'not started'",
+       "range": "full u32",
        "special_values": "none identified",
        "required": false,
        "default": "none; written on success",
-       "validation": "emitted via the response object vfuncs",
+       "validation": "written only on the two success paths",
        "evidence": [
         {
          "type": "firmware",
@@ -18229,13 +18425,37 @@
          "build": "86.10-80260",
          "function": 269236820,
          "notes": "written by impl member path"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b400",
+         "notes": "f_104f6634 read after rc 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b404",
+         "notes": "stored into the caller's out word"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b494",
+         "notes": "0xffffffff on the refused path"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f68f4",
+         "notes": "f_104f669c stores the new id at object+0x98"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `PlayId`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
@@ -18251,101 +18471,229 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x50]",
+      "description": "Beyond TRequest validation: with the flag false the swappable-audio query f_104ad918 must succeed (otherwise 501) and allow interruption (otherwise success with no chirp). The room-detection member at impl+0x1ac0 must be non-null (otherwise 501). Inside f_104f669c the external chirp audio source at object+0x9c must exist, the chirp volume must be calibrated (f_1090ad44 / f_10908d4c), no chirp may already be playing, and the chirp payload must be supported.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073730c",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x1035b474",
+        "notes": "f_104ad918 failure leads to 501"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035b3c8",
+        "notes": "impl+0x1ac0 null test"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f671c",
+        "notes": "object+0x9c presence"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6728",
+        "notes": "calibration result"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f67b4",
+        "notes": "already-playing test"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6818",
+        "notes": "payload type 81 unsupported test"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x50].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x50]",
+      "description": "Reads the room-detection object pointer at impl+0x1ac0 and, for the gated case, the zone-player context at impl+0x25c. f_104f669c reads the audio source at object+0x9c and the current play id at object+0x98 under the object+0x8 mutex.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073730c",
-        "notes": "member vfunc calls: ['r30 v[+0x50]']"
+        "address": "0x1035b3c8",
+        "notes": "impl+0x1ac0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035b460",
+        "notes": "impl+0x25c passed to f_104ad918"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6710",
+        "notes": "object+0x9c audio source"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f68cc",
+        "notes": "object+0x8 lock before storing the new id"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x50].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to impl->v[+0x50]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Creates a chirp audio stream through f_104f55e8 and starts it on the external chirp source, then stores its play id at room-detection-object+0x98 under the object mutex. Audible output on the speaker is the observable effect.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1073730c",
-         "notes": "impl vfunc delegate path: impl->v[+0x50] (call-derived member-method semantics)"
+         "address": "0x104f6800",
+         "notes": "f_104f55e8 builds the chirp stream"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f68f0",
+         "notes": "start call through the audio source vtable +0x1c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f68f4",
+         "notes": "play id stored"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to impl->v[+0x50]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "description": "Diagnostic logs under category room_detection_send: the start line, 'Chirp volume not yet calibrated', 'ChirpExtAudioSrc does not exist!', 'A chirp signal is already playing with playId %d' and 'Chirp payload %s not supported.'",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f66c8",
+         "notes": "log category string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f6838",
+         "notes": "chirp stream creation failure text"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f68ac",
+         "notes": "already-playing text"
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. Neither wrapper nor worker calls a GENA or in-process event publisher; the chirp state is not exposed as a state variable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073730c",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1035b390",
+        "notes": "no publisher calls"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104f669c",
+        "notes": "only log helpers f_109b6fe4/f_109b72ac"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x50]",
+      "description": "On success the room-detection object moves from idle to chirping with the new play id stored at object+0x98; the refused-interruption path leaves it unchanged. The object returns to idle only through RoomDetectionStopChirping.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073730c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x50]']"
+        "address": "0x104f68f4",
+        "notes": "play id stored on start"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f65e4",
+        "notes": "stop clears object+0x98 back to 0"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x50].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The worker maps f_104f669c results: 0 to success, 1 to 402, 3 to 1049, any other value to 501. f_104f669c returns 1 for an unsupported chirp payload, 2 for a missing chirp audio source, an uncalibrated chirp volume or a failed stream creation, and 3 when a chirp is already playing. A missing room-detection object or a failed swappable-audio query is 501; a refused interruption is success with PlayId 0xffffffff. TRequest validation failure is 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073730c",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x1035b414",
+        "notes": "rc 1 maps to 0x192"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035b420",
+        "notes": "rc 3 maps to 0x419"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035b428",
+        "notes": "default 0x1f5"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6918",
+        "notes": "rc 1 for unsupported payload"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6884",
+        "notes": "rc 2 paths"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6898",
+        "notes": "rc 3 already playing"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073742c",
+        "notes": "wrapper validation 402"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -18358,33 +18706,47 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x50); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | impl is a lwz *(r3+0x10000-0x55d0) -> real worker member accessor | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 at 0x1035b414 or at 0x1073742c",
+       "meaning": "TRequest validation failed, or f_104f669c returned 1 because the generated chirp payload type (stream field +0x3c == 81) is not supported.",
        "fault_sites": [
         "0x107373f8"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "f_104f669c logs 'Chirp payload %s not supported.' and returns 1",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073730c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
+           "address": "0x104f6818",
+           "notes": "payload type 81 test"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f692c",
+           "notes": "log text"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6918",
+           "notes": "r30=1"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073730c",
-           "notes": "parse vcalls then fault path"
+           "address": "0x1073742c",
+           "notes": "addi r4,0x192"
           }
          ]
         }
@@ -18394,56 +18756,130 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073730c",
-         "notes": "0x192 fault constant in handler"
-        },
+         "address": "0x107373f8",
+         "notes": "fault emit"
+        }
+       ]
+      },
+      {
+       "code": 1049,
+       "code_expr": "0x419 at 0x1035b420",
+       "meaning": "A chirp is already playing: the chirp audio source reports a nonzero current play id through its vtable +0x30.",
+       "fault_sites": [
+        "0x107373f8"
+       ],
+       "conditions": [
         {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100c3a54",
-         "notes": "impl resolves to member accessor (lwz *(r3+0x10000-0x55d0))"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1073730c",
-         "notes": "wrapper parse + fault path"
+         "description": "source vtable +0x30 returns nonzero; f_104f669c logs 'A chirp signal is already playing with playId %d' and returns 3",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f67b4",
+           "notes": "nonzero test"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f68ac",
+           "notes": "log text"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6898",
+           "notes": "r30=3"
+          }
+         ]
         }
        ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x100c3a54",
-         "lits": [
-          -936,
-          0,
-          28
-         ],
-         "passthrough_exits": 12
-        },
-        "delegated_sources": {
-         "f_100b434c": {
-          "lits": [
-           0,
-           24,
-           140
-          ],
-          "pt": 12
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b41c",
+         "notes": "cmplwi rc,3"
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "code_expr": "0x1f5 at 0x1035b428",
+       "meaning": "The swappable-audio query failed, no room-detection object exists at impl+0x1ac0, or f_104f669c returned 2 (no external chirp audio source, chirp volume not calibrated, or the chirp audio stream could not be created).",
+       "fault_sites": [
+        "0x107373f8"
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x50); parse/req-layer; sites: 0x107373f8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "conditions": [
+        {
+         "description": "f_104ad918 returns 0, for example when f_104ad808 logs 'Failed to acquire gc.'",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1035b478",
+           "notes": "beq to 0x1035b428"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104ad8a4",
+           "notes": "log text"
+          }
+         ]
+        },
+        {
+         "description": "impl+0x1ac0 is null",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1035b3cc",
+           "notes": "null test"
+          }
+         ]
+        },
+        {
+         "description": "f_104f669c returns 2",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6870",
+           "notes": "'ChirpExtAudioSrc does not exist!'"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6748",
+           "notes": "'Chirp volume not yet calibrated'"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f683c",
+           "notes": "\"Couldn't create a chirp audio stream.\""
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b428",
+         "notes": "default mapping"
+        }
        ]
       }
      ],
@@ -18473,13 +18909,10 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x1073730c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), most-derived vtable 0x10ebc630. 0x10ebd214 is its direct base vtable and holds the same function at this slot. The older note that the implementation is an accessor load was wrong: slot +0x50 is f_1035b390 and the chirp itself runs in f_104f669c (log category room_detection_send)."
     },
     "RoomDetectionStopChirping": {
-     "description": "Stops chirping for PlayId via impl->v[+0x54].",
+     "description": "Stops a chirp previously started by RoomDetectionStartChirping. The wrapper parses PlayId (u32) and calls slot +0x54 of runtime vtable 0x10ebc630, f_1035a760, which requires the room-detection object at impl+0x1ac0 and forwards the id to f_104f6414. That function refuses the null id 0, checks the id against the one it currently holds at object+0x98, stops the chirp through the audio source and clears the stored id.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737220",
@@ -18491,31 +18924,53 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "base_vtable_same_slot": "0x10ebd214",
+      "worker": "0x1035a760",
+      "worker_slot": "0x54",
+      "room_detection_member": "impl+0x1ac0; current play id at object+0x98, audio source at object+0x9c",
       "calls": [
        {
+        "site": "0x10737260",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate PlayId input record"
+       },
+       {
+        "site": "0x10737268",
+        "purpose": "parse PlayId through f_105614e0"
+       },
+       {
+        "site": "0x1073727c",
+        "obj": "TRequest (r4-in)",
+        "slot": 8,
+        "purpose": "validate; 0 leads to 402 at 0x107372ec"
+       },
+       {
         "site": "0x1073729c",
-        "obj": "r5-in",
+        "obj": "DeviceProperties impl (r5-in)",
         "slot": 84,
-        "arg4": "*(sp-0x30+0x18)"
+        "target": "0x1035a760",
+        "purpose": "stop the chirp with the parsed id"
+       },
+       {
+        "site": "0x107372b8",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "emit fault with the mapped code or 402"
        },
        {
         "site": "0x10737300",
-        "obj": "*(sp-0x30+0x2c)",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "arg4": 402
-       }
-      ],
-      "req_vcalls": [
-       {
-        "site": "0x1073727c",
-        "slot": 8,
-        "purpose": "parse"
+        "purpose": "commit success"
        }
       ]
      },
      "inputs": {
       "PlayId": {
-       "description": "Play/session id returned by RoomDetectionStartChirping",
+       "description": "The identifier returned by RoomDetectionStartChirping. f_104f6414 rejects 0 (logged as \"playId can't be REA_PLAY_ID_NULL.\") and, when the id does not match the one it holds at object+0x98, logs 'Stop chirp playId %d differ than m_chirpPlayId %d' and reports failure without stopping anything.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -18524,15 +18979,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "numeric argument (type-tag-4, 24-byte record)",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "semantic_type": "u32 chirp play id",
+       "format": "decimal u32",
        "unit": "n/a - text",
-       "accepted_values": "decimal integer parsed into the argument record",
-       "range": "full width of the parsed integer; impl-side domain applies",
-       "special_values": "none identified",
+       "accepted_values": "the live play id; 0 is always rejected",
+       "range": "full u32",
+       "special_values": "0 is the null id",
        "required": true,
        "default": "none; required input",
-       "validation": "numeric value consumed by the impl vfunc",
+       "validation": "compared against the stored current id",
        "evidence": [
         {
          "type": "firmware",
@@ -18554,13 +19009,37 @@
          "build": "86.10-80260",
          "function": 269238000,
          "notes": "impl writes out-record from *(this+0x5b58/+0x5b5c)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f6420",
+         "notes": "r4==0 goes to the null-id path"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f656c",
+         "notes": "null-id log text"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f64f0",
+         "notes": "comparison with object+0x98"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f6524",
+         "notes": "mismatch log text"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `PlayId` is parsed then forwarded verbatim to r5-in vfunc +84 (site 0x1073729c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `PlayId` = verbatim forward to impl vfunc +84 (obj r5-in, call site 0x1073729c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -18580,101 +19059,201 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x54]",
+      "description": "The room-detection object at impl+0x1ac0 must exist, PlayId must be nonzero and must equal the currently playing chirp id, and the external chirp audio source at object+0x9c must still be present.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737220",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x1035a764",
+        "notes": "impl+0x1ac0 null test"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6420",
+        "notes": "nonzero id"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f64f0",
+        "notes": "id match"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6450",
+        "notes": "audio source presence"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x54].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x54]",
+      "description": "Reads impl+0x1ac0, then under the object+0x8 mutex reads the stored play id at object+0x98 and the audio source at object+0x9c.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737220",
-        "notes": "member vfunc calls: ['r30 v[+0x54]']"
+        "address": "0x1035a760",
+        "notes": "impl+0x1ac0 load"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f64e8",
+        "notes": "f_10988564 lock on object+0x8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f64ec",
+        "notes": "object+0x98 read"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f65c0",
+        "notes": "object+0x9c audio source"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x54].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to impl->v[+0x54]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Calls the audio source's stop entry (vtable +0x20) and, when it succeeds, clears the stored play id at object+0x98 to 0 so a new chirp may start.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10737220",
-         "notes": "impl vfunc delegate path: impl->v[+0x54] (call-derived member-method semantics)"
+         "address": "0x104f65d0",
+         "notes": "stop call through the audio source vtable"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f65e4",
+         "notes": "object+0x98 cleared"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to impl->v[+0x54]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "description": "Diagnostic logs under category room_detection_send for the null id, the mismatched id, a missing audio source and a failed stop.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f6550",
+         "notes": "category string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f6494",
+         "notes": "'Failed to stop chirp with playId %d'"
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None; no event publisher is reached from the wrapper, the worker or f_104f6414.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737220",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1035a760",
+        "notes": "no publisher calls"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104f6414",
+        "notes": "only log helpers"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x54]",
+      "description": "On success the room-detection object returns to idle with its play id cleared; every failure path leaves the chirp and the stored id untouched.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737220",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x54]']"
+        "address": "0x104f65e4",
+        "notes": "id cleared on success"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104f6538",
+        "notes": "failure paths only unlock"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x54].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "f_1035a760 maps the f_104f6414 result: 4 to success, 3 to 1050, 0 and 2 to 402, 1 and any other value to 501. f_104f6414 returns 0 for the null id, 1 when the chirp audio source is missing or the stop call fails, 2 when PlayId differs from the stored id, 3 when no chirp is playing and 4 after a successful stop. A missing room-detection object is 501 before the call; TRequest validation failure is 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737220",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x1035a784",
+        "notes": "rc 2 to 0x192 at 0x1035a7dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035a7c0",
+        "notes": "rc 0 to 0x192"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035a790",
+        "notes": "rc 3 to 0x41a"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035a79c",
+        "notes": "rc 4 to 0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035a7c8",
+        "notes": "other rc to 0x1f5"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035a7b4",
+        "notes": "null object 0x1f5"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107372ec",
+        "notes": "wrapper validation 402"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -18687,33 +19266,59 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x54); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | impl is a lwz pair into out -> real worker shared_ptr copy accessor | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 at 0x1035a7dc or at 0x107372ec",
+       "meaning": "TRequest validation failed, PlayId was the null id 0, or PlayId differs from the chirp id the room-detection object holds.",
        "fault_sites": [
         "0x107372b8"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737220",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
+           "address": "0x107372ec",
+           "notes": "addi r4,0x192"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "f_104f6414 returns 0 after logging \"playId can't be REA_PLAY_ID_NULL.\"",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737220",
-           "notes": "parse vcalls then fault path"
+           "address": "0x104f6554",
+           "notes": "r31=0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f656c",
+           "notes": "log text"
+          }
+         ]
+        },
+        {
+         "description": "f_104f6414 returns 2 after logging 'Stop chirp playId %d differ than m_chirpPlayId %d'",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6508",
+           "notes": "r30=2"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6524",
+           "notes": "log text"
           }
          ]
         }
@@ -18723,41 +19328,97 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737220",
-         "notes": "0x192 fault constant in handler"
-        },
+         "address": "0x107372b8",
+         "notes": "fault emit"
+        }
+       ]
+      },
+      {
+       "code": 1050,
+       "code_expr": "0x41a at 0x1035a790",
+       "meaning": "No chirp is playing: the chirp audio source's vtable +0x30 reports no current play id, so f_104f6414 logs 'Failed to stop chirp with playId %d' and returns 3.",
+       "fault_sites": [
+        "0x107372b8"
+       ],
+       "conditions": [
+        {
+         "description": "source vtable +0x30 returns 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6468",
+           "notes": "zero result path"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f647c",
+           "notes": "r31=3"
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x100c3ef0",
-         "notes": "impl resolves to shared_ptr copy accessor (lwz pair into out)"
+         "address": "0x1035a78c",
+         "notes": "cmplwi rc,3"
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "code_expr": "0x1f5 at 0x1035a7b4 and 0x1035a7c8",
+       "meaning": "No room-detection object at impl+0x1ac0, the external chirp audio source is missing, or the stop call on it failed.",
+       "fault_sites": [
+        "0x107372b8"
+       ],
+       "conditions": [
+        {
+         "description": "impl+0x1ac0 is null",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1035a764",
+           "notes": "null test"
+          }
+         ]
         },
+        {
+         "description": "f_104f6414 returns 1: 'ChirpExtAudioSrc does not exist!' or the source stop call (vtable +0x20) returned 0",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f6590",
+           "notes": "rc 1 missing source"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f65fc",
+           "notes": "rc 1 failed stop"
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737220",
-         "notes": "wrapper parse + fault path"
+         "address": "0x1035a7c8",
+         "notes": "default mapping"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x100c3ef0",
-         "lits": [],
-         "passthrough_exits": 6
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x54); parse/req-layer; sites: 0x107372b8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -18787,10 +19448,7 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10737220; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), most-derived vtable 0x10ebc630. 0x10ebd214 is its direct base vtable and holds the same function at this slot. The older note describing this slot as a shared_ptr accessor was wrong. f_1035a760 is a short mapper in front of f_104f6414; f_1035a7ec at the next address is the unrelated button-history formatter and is not part of this path."
     },
     "SeparateStereoPair": {
      "description": "Parses inputs, then calls impl->v[+0x24] = null stub f_1019d288. In this build, separating a stereo pair is a binary-proven no-op: the request is accepted and success emitted without any operation or state change.",
@@ -21683,7 +22341,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274) whose most-derived vtable is 0x10ebc630. 0x10ebd214 is the vtable of its direct base (constructor f_1035e5ac) and is not the runtime dispatch table. Slot +0x40 is not overridden by the most-derived class. Unlike SetAutoplayLinkedZones this worker emits no log line."
     },
     "SetZoneAttributes": {
-     "description": "Sets DesiredZoneName/DesiredIcon/DesiredConfiguration/DesiredTargetRoomName via impl->v[+0x8].",
+     "description": "Sets the zone name, icon, configuration and target room name. The wrapper parses the four strings (caps 1024, 1024, 16 and 65) and calls slot +0x08 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x10356df4. That override parses the bonded channel map stored at impl+0xe60 and, when this player is entry 0 (the primary) of that map, first forwards a SetZoneAttributes request carrying DesiredZoneName, DesiredIcon, DesiredConfiguration and an empty DesiredTargetRoomName to every other bonded member through f_10359898. It then applies the values locally with the base worker f_105b4574 and returns that worker's result; the forwarding result is discarded. Afterwards, when f_104d82ac reports the sonar flag of the object at impl+0x1368 and f_1075c4d0 confirms the local UUID in the topology object at impl+0x968, it calls f_10356c14, which logs 'Clearing sonar configuration on restickBondedSecondary'.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10736450",
@@ -21695,31 +22353,66 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "override": "0x10356df4",
+      "base_worker": "0x105b4574 (slot +0x08 of 0x10ebd214 and 0x10ef2f78)",
+      "worker_slot": "0x08",
+      "backend": "impl+0x950 generic property backend, vtable +0x28 batched write",
+      "selectors": {
+       "DesiredZoneName": "0x40000",
+       "DesiredIcon": "0x40001",
+       "DesiredConfiguration": "0x40002",
+       "DesiredTargetRoomName": "0x40003"
+      },
+      "forwarding": "f_10359898 with argument writer f_10351538 (DesiredZoneName, DesiredIcon, DesiredConfiguration, DesiredTargetRoomName='') to bonded members 1..n-1, at most 32 SOAP clients of 0x2740 bytes",
       "calls": [
        {
-        "site": "0x1073658c",
-        "obj": "r5-in",
+        "site": "0x107364b8",
+        "purpose": "parse DesiredZoneName, cap 0x400"
+       },
+       {
+        "site": "0x107364e0",
+        "purpose": "parse DesiredIcon, cap 0x400"
+       },
+       {
+        "site": "0x10736510",
+        "purpose": "parse DesiredConfiguration, cap 0x10"
+       },
+       {
+        "site": "0x10736548",
+        "purpose": "parse DesiredTargetRoomName, cap 0x41"
+       },
+       {
+        "site": "0x10736560",
+        "obj": "TRequest",
         "slot": 8,
-        "arg4": "sp-0x824"
+        "purpose": "validate; 0 leads to 402 at 0x107365ec"
+       },
+       {
+        "site": "0x1073658c",
+        "obj": "DeviceProperties impl",
+        "slot": 8,
+        "target": "0x10356df4",
+        "purpose": "apply"
+       },
+       {
+        "site": "0x107365a8",
+        "obj": "TRequest",
+        "slot": 20,
+        "purpose": "fault with nonzero rc or 402"
        },
        {
         "site": "0x10736600",
-        "obj": "*(sp-0x890+0x88c)",
+        "obj": "TRequest",
         "slot": 12,
-        "arg4": 402
-       }
-      ],
-      "req_vcalls": [
-       {
-        "site": "0x10736560",
-        "slot": 8,
-        "purpose": "parse"
+        "purpose": "commit"
        }
       ]
      },
      "inputs": {
       "DesiredZoneName": {
-       "description": "Zone-attribute string field (DesiredZoneName)",
+       "description": "Room name. f_105b4574 copies it with f_10906304 into a 0x41-byte buffer (64 characters), trims surrounding whitespace with sonosTrimWhitespace and writes it to selector 0x40000 only when the result is non-empty, so an empty or all-blank value leaves the name unchanged.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21731,12 +22424,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
+       "accepted_values": "any text; longer than 64 characters is truncated",
        "range": "max 1023 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "trim and truncate; empty means no change",
        "evidence": [
         {
          "type": "firmware",
@@ -21758,20 +22451,44 @@
          "build": "86.10-80260",
          "function": "0x101935f0",
          "notes": "impl member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4738",
+         "notes": "copy cap 0x41"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4748",
+         "notes": "trim"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4754",
+         "notes": "empty result skips the write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4758",
+         "notes": "selector 0x40000"
         }
        ],
        "notes": null,
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredZoneName` is parsed then forwarded verbatim to r5-in vfunc +8 (site 0x1073658c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredZoneName` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x1073658c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "DesiredIcon": {
-       "description": "Zone-attribute string field (DesiredIcon)",
+       "description": "Icon identifier. Copied into a 0x81-byte buffer (128 characters), trimmed, and written to selector 0x40001 only when non-empty.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21783,12 +22500,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
+       "accepted_values": "any text; longer than 128 characters is truncated",
        "range": "max 1023 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "trim and truncate; empty means no change",
        "evidence": [
         {
          "type": "firmware",
@@ -21810,20 +22527,44 @@
          "build": "86.10-80260",
          "function": "0x101935f0",
          "notes": "impl member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4800",
+         "notes": "copy cap 0x81"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4814",
+         "notes": "trim"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4820",
+         "notes": "empty result skips"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4838",
+         "notes": "selector 0x40001"
         }
        ],
        "notes": null,
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredIcon` is parsed then forwarded verbatim to r5-in vfunc +8 (site 0x1073658c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredIcon` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x1073658c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "DesiredConfiguration": {
-       "description": "Zone-attribute string field (DesiredConfiguration)",
+       "description": "Configuration number parsed by paranoid_atoui_ex in base 16. When parsing succeeds it is written to selector 0x40002 with value type 0x1f6 (0x1d6 when the parsed value has bit 31 set); when parsing fails the configuration is left unchanged without an error.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21832,15 +22573,15 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string argument (type-tag-7 record)",
+       "semantic_type": "hexadecimal u32 text",
        "format": "utf-8 text, buffer cap 16 bytes (15 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
+       "accepted_values": "hex digits fitting the 16-byte parse buffer",
        "range": "max 15 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "base-16 parse; failure means no change",
        "evidence": [
         {
          "type": "firmware",
@@ -21862,20 +22603,44 @@
          "build": "86.10-80260",
          "function": "0x101935f0",
          "notes": "impl member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4614",
+         "notes": "paranoid_atoui_ex base 16"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4620",
+         "notes": "failure skips the write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b464c",
+         "notes": "isel selects type 0x1d6 or 0x1f6"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4660",
+         "notes": "selector 0x40002"
         }
        ],
        "notes": null,
        "buf_cap": 16,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredConfiguration` is parsed then forwarded verbatim to r5-in vfunc +8 (site 0x1073658c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredConfiguration` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x1073658c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "DesiredTargetRoomName": {
-       "description": "Zone-attribute string field (DesiredTargetRoomName)",
+       "description": "Target room name. Copied into a 0x41-byte buffer and trimmed; unlike the other three it is always written to selector 0x40003, so an empty or blank value clears the stored target room name. Bonded members always receive it empty because the forwarding writer f_10351538 passes ''.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -21887,12 +22652,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 65 bytes (64 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
+       "accepted_values": "any text up to 64 characters",
        "range": "max 64 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "trim and truncate; empty clears",
        "evidence": [
         {
          "type": "firmware",
@@ -21914,14 +22679,38 @@
          "build": "86.10-80260",
          "function": "0x101935f0",
          "notes": "impl member write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4788",
+         "notes": "copy cap 0x41"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b47b0",
+         "notes": "blank result still writes the empty string at 0x105b4690"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b46bc",
+         "notes": "empty string literal 0x10ea6a2c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10351604",
+         "notes": "forwarded value is the empty string"
         }
        ],
        "notes": null,
        "buf_cap": 65,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `DesiredTargetRoomName` is parsed then forwarded verbatim to r5-in vfunc +8 (site 0x1073658c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredTargetRoomName` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x1073658c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -21941,101 +22730,197 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r26 v[+0x8]",
+      "description": "TRequest validation of the four strings. The local write requires the impl+0x950 backend batch write to return 0; nothing else is checked. Forwarding happens only when the channel map at impl+0xe60 parses and lists this player's UUID (impl+0x25c) exactly once as entry 0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736450",
-        "notes": "req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x10736560",
+        "notes": "validation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b46e8",
+        "notes": "backend write call"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356e80",
+        "notes": "f_1053c234 parse of impl+0xe60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356e98",
+        "notes": "local index tested for 0"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r26 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r26 v[+0x8]",
+      "description": "Reads the bonded channel map string at impl+0xe60 and the local UUID at impl+0x25c under the impl+0x268 mutex, the SOAP context at impl+0xbb0 for forwarding, the sonar object at impl+0x1368 and the topology object at impl+0x968.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736450",
-        "notes": "member vfunc calls: ['r26 v[+0x8]']"
+        "address": "0x10356e6c",
+        "notes": "mutex"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356e78",
+        "notes": "impl+0xe60"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356f5c",
+        "notes": "impl+0xbb0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356ec0",
+        "notes": "impl+0x1368"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356f38",
+        "notes": "impl+0x968"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r26 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r26 v[+0x8] (call-derived member-method semantics)",
+       "description": "Writes the selected attributes through the impl+0x950 property backend (vtable +0x28) in one batch.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10736450",
-         "notes": "delegate map ['r26 v[+0x8]']; notify-family calls []"
+         "address": "0x105b46e8",
+         "notes": "batched write"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r26 v[+0x8] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "description": "When this player is the primary of a bonded set, sends SetZoneAttributes SOAP requests to each other member with the same name, icon and configuration and an empty target room name; per-member results are only logged ('forwarded %s to %s, rc=%d').",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10357088",
+         "notes": "f_10359898 fan-out"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10351538",
+         "notes": "argument writer"
+        }
+       ]
+      },
+      {
+       "description": "Conditionally runs f_10356c14 to clear the sonar (room calibration) configuration of a re-attached bonded secondary.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10356f4c",
+         "notes": "f_10356c14 call"
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct GENA call in the override or the base worker. Any ZoneName or Icon event propagation happens inside the property backend after the write; the backend's notification path is not part of this record.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736450",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10356df4",
+        "notes": "no publisher calls"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x105b4574",
+        "notes": "no publisher calls"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the action writes selectors 0x40000..0x40003 through impl+0x950 vtable +0x28 and has no direct event call.",
+       "Unknown: whether and how the backend behind impl+0x950 vtable +0x28 raises ZoneName/Icon/Configuration change events.",
+       "Close by resolving the concrete class of the impl+0x950 backend object and tracing its vtable +0x28 write path to any GENA or in-process publisher."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r26 v[+0x8]",
+      "description": "Name and icon change only for non-blank inputs, configuration only for a parseable hex value, and the target room name is always overwritten (cleared when blank). Bonded members receive the same name, icon and configuration and have their target room name cleared.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736450",
-        "notes": "no transition-literal/store pattern; member delegates: ['r26 v[+0x8]']"
+        "address": "0x105b4754",
+        "notes": "name skip"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4690",
+        "notes": "target always written"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r26 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Returns the base worker result: 0 when the backend write returns 0, otherwise 402 (isel at 0x105b4704). The forwarding and sonar steps never change the result. TRequest validation failure is also 402.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10736450",
-        "notes": "commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x105b46ec",
+        "notes": "402 candidate"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105b4704",
+        "notes": "isel r3,0,402 on backend rc==0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10356ebc",
+        "notes": "override keeps the base rc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107365ec",
+        "notes": "wrapper 402"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -22048,33 +22933,40 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x8); parse/req-layer",
-       "meaning": "worker f_101931a8 (1096 insns): apply chain f_10186870/f_1040e4cc/f_10740ce8/f_10749a28/f_10749b34/f_10690d44 + f_109b6fe4/f_109b72ac log pair; exit r3=r27 (call-derived); r28 toggles {0,1} as state flag; rc forwarded to req v[+0x14] under nonzero-fault convention | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 from f_105b4574 or literal at 0x107365ec",
+       "meaning": "TRequest validation failed, or the property backend rejected the batched attribute write.",
        "fault_sites": [
         "0x107365a8"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10736450",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
+           "address": "0x107365ec",
+           "notes": "addi r4,0x192"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "impl+0x950 vtable +0x28 returned nonzero",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10736450",
-           "notes": "parse vcalls then fault path"
+           "address": "0x105b46f0",
+           "notes": "cmpwi rc,0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x105b4704",
+           "notes": "isel selects 402"
           }
          ]
         }
@@ -22084,86 +22976,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10736450",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x101935f0",
-         "notes": "impl resolves to f_101931a8 (adjuster r3-0x3a8)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1019321c",
-         "notes": "bl f_10186870"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10193294",
-         "notes": "bl f_10740ce8 + f_10749a28/f_10749b34"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x101932b0",
-         "notes": "bl f_10690d44"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10736450",
-         "notes": "wrapper parse + fault path"
+         "address": "0x107365a8",
+         "notes": "fault emit"
         }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "domain_note": "domain fully bounded: impl 0x101935f0 exits=[936, 1240]; impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x8); parse/req-layer; sites: 0x107365a8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103619c8",
-         "notes": "dp_zpimpl impl {821,822,824}"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103619c8",
-           "notes": "dp_zpimpl impl {821,822,824}"
-          }
-         ]
-        }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x103619c8 emits constant set {616, 800} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -22193,10 +23008,7 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10736450; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), most-derived vtable 0x10ebc630; 0x10ebd214 is its direct base vtable. The older error entries naming worker f_101931a8 and a dp_zpimpl {821,822,824} domain were wrong for this action: 0x10356df4 and f_105b4574 return only 0 or 402, and f_103619c8 (the source of 821/822/824) is reached only from f_10362190 and f_10363050, not from this path."
     }
    },
    "state_variables": {
