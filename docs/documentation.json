@@ -227992,7 +227992,7 @@
   },
   "esdk_callbacks": {
    "name": "eSDK callback signatures",
-   "summary": "playback cb {on_notify,on_seek,on_apply_volume} \"Successfully registered playback callbacks: %s, %s, %s\"+removed; stream cb {on_data,on_start,on_end,on_flush,on_pos} \"Successfully registered delivery callbacks: %s, %s, %s, %s, %s, %s\"+removed; signatures {cb_stream_on_start(id=%u, size=%u),cb_stream_on_end(id=%u),cb_stream_get_position(id=%u) = %u,cb_stream_on_seek_position(id=%u, pos=%u),cb_stream_on_flush() = (id=%u, pos=%u)} + connection {on_message,on_new_credentials} registered×3; aliases {on_selected_device_alias_changed,on_device_aliases_update_done}×2; dns {dns_lookup_callback}; socket {set_opt,rd_from,wr_to,readable,writable,local_addresses,...}×17; TLS/debug/error registered; base64 alphabet; registration audit strings: connection callbacks x3, device alias callbacks x2, dns_lookup_callback, socket callbacks x17, TLS callbacks, debug callback, error callback; source path esdk/src/ap_send.c (TeamCity workdir e48167fe44483028); play-end telemetry 'no track ID: played:%zu, ms:%zu' / 'no file ID for internal track: played:%zu, ms:%zu'",
+   "summary": "eSDK host-callback registry at 0x110bf65c with per-callback guarded invokers: playback {on_notify,on_seek,on_apply_volume}+ctx, stream six-pack {on_start,on_data,on_end,get_position,on_seek_position,on_flush}+ctx, connection {on_notify,on_message,on_new_credentials}+ctx, device-alias pair+ctx, dns_lookup+ctx, seventeen socket ops, two TLS op tables. Stream order proven in mod_media_out.c: deferred-position on_seek_position may precede on_start (state 0xe); on_data loops with <=4096-byte chunks; a pending seek logs and calls on_seek_position then 'start seek' flush; abort/stop orders flush -> position set -> on_end, while natural delivery orders on_end -> DLBUFFER CLEAR. on_notify is a pervasive activity hook; on_new_credentials is registered but has no static invoker call site.",
    "evidence": [
     {
      "type": "firmware",
@@ -228026,14 +228026,59 @@
      "build": "86.10-80260",
      "address": "0x10d101e4",
      "notes": "Pump dispatches stream data and consumes returned progress."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0fe48",
+     "notes": "Deferred initial-position seek calls on_seek_position before on_start."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d1044c",
+     "notes": "on_start dispatched only when pump state == 0xe."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0f040",
+     "notes": "Flush helper invokes on_flush (+0x24) then logs returned position."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d11128",
+     "notes": "Stop path order: flush, set position, then on_end."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d3af9c",
+     "notes": "Connection registrar installs {on_notify,on_message,on_new_credentials} at +0x2c..+0x34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d3bdbc",
+     "notes": "on_new_credentials invoker exists but has no static caller."
     }
    ],
-   "todo": "Residual: trace the remaining pump/event branches for seek, flush, end and connection/playback notifications, including abort/restart cases, to establish the conditional callback order. Playback and six-member stream registration, null/partial removal and guarded start/data dispatch are now recovered.",
    "resolved_findings": [
     "Registration is concrete native state, not a lifecycle inferred from SMAPI. f_10d3a638 copies playback callbacks {on_notify,on_seek,on_apply_volume} from input offsets 0/4/8 into global 0x110bf65c, and stores caller context at +0xc (0x10d3a6d0-0x10d3a6f4). Null/all-null low-level input clears the three pointers but retains the newly supplied context. This low-level removal path must not be confused with public f_10cfc0f8, which rejects a null callback struct with status 4 before calling the installer.",
     "f_10d3a800 installs six stream pointers into that global at +0x10/+0x14/+0x18/+0x1c/+0x20/+0x24 and context at +0x28 (0x10d3a8e4-0x10d3a920). Every stream pointer is required by the low-level installer: a null struct or any missing pointer branches to a block clearing all six, returning zero (0x10d3a93c-0x10d3a990). Thus a partial stream registration is not partial enablement. The earlier five-callback stream description omitted on_seek.",
     "Actual dispatch is guarded by the stored pointers: stream-start helper f_10d3a9c0 reads global+0x10 and invokes it with incoming arguments plus saved context at 0x10d3aa24-0x10d3aa40; null skips dispatch. Stream-data helper f_10d3aad4 reads global+0x14, invokes it at 0x10d3ab28-0x10d3ab44 and preserves its result. The playback pump f_10d0fc5c reaches start at 0x10d1044c and data at 0x10d101e4. The data call bounds a chunk by 4096 and advances track position by the returned quantity at 0x10d10214-0x10d1022c. Start is therefore not the data callback, and callback return values participate in progress rather than merely logging.",
-    "Those two call sites lie in distinct event/state branches of the same pump. They do not prove one universal sequence across start, seek, flush, pause and end, nor any ordering with application connection notifications. The previous SMAPI-lifecycle assertion did not establish Spotify SDK event ordering and is withdrawn. Remaining event branches are in the shipped SDK and can be traced directly."
+    "Those two call sites lie in distinct event/state branches of the same pump. They do not prove one universal sequence across start, seek, flush, pause and end, nor any ordering with application connection notifications. The previous SMAPI-lifecycle assertion did not establish Spotify SDK event ordering and is withdrawn. Remaining event branches are in the shipped SDK and can be traced directly.",
+    "Complete callback-invoker map: every registered slot in global 0x110bf65c has a guarded dispatcher that takes a named lock (sp_* GUID strings) and skips when the pointer is null. Playback {+0 on_notify, +4 on_seek, +8 on_apply_volume}: invokers at 0x10d3bb18 region, f_10d3bb94 (fired from seek handler f_10d1eb48 at 0x10d1f1c4) and f_10d3bc14 (fired inside API orchestrator f_10cfa318 at 0x10cfaf70). Stream {+0x10 on_start f_10d3a9c4, +0x14 on_data f_10d3aad4, +0x18 on_end f_10d3aba4, +0x1c get_position f_10d3ac74, +0x20 on_seek_position f_10d3ad3c, +0x24 on_flush f_10d3ae24}. Connection {+0x2c on_notify f_10d3bca8, +0x30 on_message f_10d3bd28, +0x34 on_new_credentials f_10d3bdbc}+ctx (registrar f_10d3aee8 logs 'Successfully registered connection callbacks: %s, %s, %s'). Device aliases {+0x3c on_selected_device_alias_changed, +0x40 on_device_aliases_update_done}+ctx (registrar f_10d3b0b8). dns_lookup_callback at +0x48+ctx (f_10d3bf3c, fired from f_10d0cc98 and f_10d0e018). Seventeen socket ops at +0x50..+0x94, TLS ops (two tables of four) at +0x98..+0xb4+ctx.",
+    "Conditional stream order in mod_media_out.c (path 0x10fd8d40): track start (pump state 0xe) optionally replays a deferred position first - when the pending seek field (pump+0x48) is not -1 the pump logs 'Asking integration to seek to the initial starting position %u' and calls on_seek_position at 0x10d0fe48, then calls on_start at 0x10d1044c (guarded by state == 0xe and the 'No track to call cb_stream_on_start' assert). During streaming, on_data is called with chunks bounded at 4096 bytes (0x10d101e4) and track position advances by the returned count. A mid-stream pending seek logs 'Asking integration to seek: %u' and calls on_seek_position (0x10d10140 in the pump, 0x10d13938 in track handler f_10d12414), followed by 'start seek' flush helper f_10d0eff8.",
+    "Flush and end ordering: f_10d0eff8 is the flush helper - it invokes on_flush (+0x24) first, then reports 'Flushed integration (%s). Got track %u playback position: %lu'. It is reached on 'seek request' (0x10d12ed8), on 'start seek' (0x10d13954) and at the head of the stop path (0x10d110d4). The stop/abort path in f_10d10f04 therefore orders flush -> 'stop_audio_out setting pos to %u' -> on_end (0x10d11128). Natural completion takes a different branch: 'Track fully delivered' routes to f_10d0f504 which calls on_end at 0x10d0f538 then 'DLBUFFER CLEAR' plus buffer teardown (f_10d0a08c/f_10d3e59c). End can also fire inside track handler f_10d12414 at 0x10d12ea0 when the end-notify predicate (f_10d23580) requires it. get_position (+0x1c) is queried by position reporter f_10d0f1ac, which logs 'track_id %u, provided_to_integration %d, is_seeking %d'.",
+    "Connection notification plumbing: on_notify (+0x2c) is a generic activity hook fired pervasively, including inside the socket write shim (0x10d0dbb4), socket ops f_10d0dccc (0x10d0dd90), the API orchestrator f_10cfa318 (four sites) and connection handlers f_10cfe62c/f_10cfeb60/f_10cff768/f_10cff980/f_10cffa8c/f_10d00dec. on_message (+0x30) fires from message dispatchers f_10cf9f00 and f_10cfa318. The on_new_credentials invoker f_10d3bdbc has no static call site in .text: it is registered and dispatched by the same guarded pattern but is only reachable via indirect dispatch (or unfired) in this build."
    ]
   },
   "esdk_crypto": {
