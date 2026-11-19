@@ -223937,7 +223937,7 @@
      "todo": "Established: poll-interest completion criterion, exact deadline-selector bytes, timeout code and callback/event order are decoded. Remaining: reverse f_10539c64/f_10538998/f_10538918 and callback implementations, census phase-state writers, trace connect/TLS/send/receive/EOF/error transitions, poll-error handling through object state, gzip/length/redirect handling and higher-level retry scheduling."
     },
     "soap_result_acceptance": {
-     "description": "Response-input callback f_106fd260 forwards through request+0xa40 to f_10562cac. A zero-length chunk returns true without calling the XML engine. Nonzero input is fed to f_10c3fc68 through parser+0x14; that boolean is returned and a false parse prints diagnostics. This wrapper alone does not finalize the parser on EOF. Result helper f_10562e6c first returns a nonzero unsigned halfword at parser+0x2e2. If that halfword is zero but byte+0x2e4 is nonzero, it returns1000. Otherwise it calls f_1055f358. That scans descriptors in collection order through virtual slot+8, accepting a descriptor when byte+0x31 or byte+0x30 is nonzero; if both are zero it returns1000 immediately. Empty collections and a complete scan return0. Flag writers, nested propagation, required/optional meaning and whole-document completion must be traced before describing this as full schema validation. In particular neither a zero I/O-loop result nor a zero-length feed independently proves a complete accepted SOAP response.",
+     "description": "Response-input callback f_106fd260 forwards through request+0xa40 to f_10562cac. A zero-length chunk returns true without calling the XML engine. Nonzero input is fed to expat-style engine f_10c3fc68 through the SAX context embedded at parser+0x14 (ctor f_10562830, vtable 0x10eec0a0). A false parse prints a multi-line diagnostic ending 'error parsing XML returned from SOAP request' and '(utf8 issue?)' and propagates false; body-sink callers f_1053ae94 (Content-Length path) and f_1053af0c (chunked path) translate a false feed into the same f_10538a88 body-done transition as a completed body, so a lexical error ends the body phase without storing any result code and the parser state alone decides the outcome. SAX context fields: +8 parser object, +0xc suffix-selector byte (1 for this request class), +0xd fault-logging flag, +0x10 aux fault object, +0x14/+0x15 Envelope/Body open, +0x16 response-element seen, +0x17 inside a response child element, +0x18 depth below a matched descriptor element, +0x1c active descriptor index (-1 none), +0x128 secure-parameter verification stack (f_1054e824), +0x148..0x14d open flags for Fault/detail/UPnPError/errorCode/faultcode/faultstring, +0x14e/+0x1ce/+0x24e three 0x80 text accumulators, +0x2ce result halfword (parser+0x2e2), +0x2d0 abort byte (parser+0x2e4). Registered handlers start f_1055f8fc, end f_105612ac and chardata f_10560a38 all test +0x2d0 first and no-op once abort latches. Start handler f_1055f41c receives names as 'nsURI|local'. The first element must be 'http://schemas.xmlsoap.org/soap/envelope/|Envelope' or +0x2d0 aborts; inside Envelope only '|Body' opens Body while other elements are ignored; inside Body the literal envelope-Fault name opens Fault and stores 1000 at +0x2ce, otherwise the name must equal expectedNs|expectedName plus a suffix ('Response' when ctx+0xc is nonzero, alternate string 0x10ea6a2c when zero). Response children are matched against bound descriptors by name (desc+0x34 via desc vfunc+0xc) storing the index at +0x1c and setting +0x17; unmatched children set +0x17 with +0x1c=-1 and their subtrees are skipped through the depth counter. A child opening under +0x17 requires the active descriptor type to be 9 (nested) and delegates to desc vfunc+0xc, else aborts. Inside Fault only detail, faultcode and faultstring open; inside detail only 'urn:schemas-upnp-org:control-1-0|UPnPError'; inside UPnPError only 'urn:schemas-upnp-org:control-1-0|errorCode'; each opener clears its accumulator, and detail children are additionally offered to aux vfunc+8 unless default f_10564a34. An element arriving while errorCode, faultcode or faultstring is open aborts. Chardata f_105607e0 appends to the open accumulator capped at 0x7f bytes with silent truncation; with an active descriptor a type9 delegates to the desc+8 object vfunc+0x10, a secure descriptor (+0x32) pushes the text through the ctx+0x128 stack in 0x400 chunks (f_1054ea08) before f_10560708 applies it, and other descriptors append through f_10560708 into the descriptor buffer (24-byte inline buffer for leaf types, caller-supplied buffer for type7 binds). End handler f_10560d60: at depth>0 it decrements depth and forwards the close to the active descriptor vfunc+0x14; at depth 0 under +0x17 it clears +0x17, resets +0x1c and finalizes the descriptor: secure descriptors pop the ctx+0x128 stack (f_1054ea68), apply f_10560708 and verify with f_1054e97c, logging 'Invalid secure param %s' at 'soap' level 3 on mismatch; plain descriptors run f_10560a58 which sets desc+0x31 then converts by type (strtol to halfword, strtol to word, strtoul to word, strtoul to halfword, case-insensitive '1'/'true'/'yes' to byte, paranoid_strtoll; type7 needs no conversion since text already landed in the caller buffer; type8 calls the desc+8 object vfunc+8; type9 calls its vfunc+0x18 unless default f_10564a58). Fault children close by clearing their flags; errorCode close writes strtol(ctx+0x14e,0,10)&0xffff to +0x2ce then normalizes: <=999 plus 1001, 1028 and 1034 pass unchanged, 1042-1045 pass via f_10c3ba54, 1010-1019/1036/8000-8999 pass via f_10c3ba14, and anything else (including a zero or empty errorCode) becomes 1000. On Fault close, ctx+0xd selects an extra 'soap' level-4 log '<name> faultcode: <x>, faultstring: <y>', then aux vfunc+0x14(faultcode text, faultstring text) supplies +0x2ce; when that result is 1000 and the previously recorded code passes f_10c3ba14 the prior code is restored. A close arriving after Envelope has closed sets +0x2d0. Result helper f_10562e6c, and the identical triage at the end of chunked driver f_10562d64 (which pulls a source object through its vfunc+8 in 0x1000-byte reads and feeds each through f_10562cac), first return a nonzero halfword at parser+0x2e2, else return1000 when parser+0x2e4 is set, else call f_1055f358. That scans parser+4 bound descriptors through vfunc+8 and returns1000 on the first descriptor whose byte+0x31 (element seen; set unconditionally by f_10560a58) and byte+0x30 are both zero, returning0 for empty collections and clean scans. Descriptor +0x30 is written by action binding code immediately after each successful name bind through f_10563384 (e.g. the stb 1,0x30(desc) sites around0x10725f3c-0x107386d4), so it marks optional response fields; required bound descriptors absent from the document fail the scan. The parser itself never writes +0x30. Net acceptance: unknown or duplicated response children are tolerated, oversized text truncates into each field capacity, a lexical error or truncated body stops feeding but keeps every already-converted value, and a document that satisfied all non-optional descriptors before the failure still returns0. The check is post-parse required-field presence plus the fault/errorCode conversion; there is no value-domain validation beyond the fixed numeric and boolean conversions.",
      "evidence": [
       {
        "type": "firmware",
@@ -223959,9 +223959,96 @@
        "build": "86.10-80260",
        "address": "0x1055f358",
        "notes": "Collection scan and bytes+0x31/+0x30; missing-both returns1000 at0x1055f3e0, scan success/empty returns0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10562830",
+       "function": "0x10562830",
+       "notes": "SAX ctx ctor: f_10c3fe28(ctx,ctx,0x7c,f_10560a38,f_1055f8fc,f_105612ac) registers handlers; ctx+8=arg2(parser),+0xc=arg3,+0xd=arg4,+0x10=arg5; +0x1c=-1 at0x105628b0; +0x2ce sth0 at0x10562924; +0x2d0 stb0 at0x10562928; env/body/resp flags and0x148..0x14d zeroed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055f41c",
+       "function": "0x1055f41c",
+       "notes": "Start grammar: Envelope-required abort0x1055f5cc via0x1055f88c; Body match0x1055f854; Fault opens with sth 1000 at+0x2ce (0x1055f824); response suffix 'Response'0x10eebc84 vs alt0x10ea6a2c gated by ctx+0xc at0x1055f8c8; desc name-match loop0x1055f604-0x1055f66c; type9 delegate0x1055f75c/0x1055f790; detail/UPnPError/errorCode opens0x1055f85c/0x1055f714/0x1055f754; text-element nesting abort0x1055f5c8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560d60",
+       "function": "0x10560d60",
+       "notes": "End dispatch: depth>0 desc vfunc+0x14 at0x10560df0; depth0 desc finalize secure-chain0x10560e90 or f_10560a58 at0x10561018; errorCode strtol&0xffff at0x10560fb4, 0/invalid->1000 at0x10561094, pass sets0x10560fe8; Fault close aux vfunc+0x14 at0x105611bc result->+0x2ce at0x105611d0, prior-code restore via f_10c3ba14 at0x105611d8-0x105611e8; ctx+0xd fault log '%s faultcode: %s, faultstring: %s' 'soap' lvl4 at0x10561258-0x10561298; post-Envelope close +0x2d0 at0x1056124c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105607e0",
+       "function": "0x105607e0",
+       "notes": "Chardata: accumulator select0x1056080c(+0x14b->+0x14e)/0x10560974(+0x14c->+0x1ce)/0x10560984(+0x14d->+0x24e), append cap0x7f at0x10560834; desc type9->vfunc+0x10 nested at0x105609d4; +0x32 secure->0x400 chunk feed f_1054ea08 then f_10560708 at0x105608e4; plain f_10560708 at0x10560a0c; detail aux vfunc+0x10 override0x10560858."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560a58",
+       "function": "0x10560a58",
+       "notes": "desc+0x31=1 at0x10560a74 before conversion; type8->desc+8 obj vfunc+8 at0x10560bf8; type9->vfunc+0x18 skip default f_10564a58 at0x10560c30; type0 returns; jtable0x10eebbdc cases1-6: strtol>sth0x10560adc, strtol>stw0x10560b24, strtoul>stw0x10560b40, strtoul>sth0x10560b5c, bool '1'/'true'/'yes'0x10560b78-0x10560bcc, paranoid_strtoll0x10560bd4; type7 no conversion (text already in caller buf)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055f8fc",
+       "function": "0x1055f8fc",
+       "notes": "Abort gate: all three registered handlers lbz +0x2d0 and no-op when set (start0x1055f900, end0x105612b0, chardata0x10560a3c); parse continues lexically but no semantic state changes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053ae94",
+       "function": "0x1053ae94",
+       "notes": "Feed-false -> done: f_1053ae3c result0 at0x1053aed8 (identity) and0x1053af64 (chunked f_1053af0c) both branch to f_10538a88 body-done transition; consumed counters advance regardless, so malformed/truncated XML ends the body phase like a clean EOF."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10563384",
+       "function": "0x10563384",
+       "notes": "Nested-matcher name bind: count at this+0x2a4 cap0xb overflow reuses last slot0x105633f0; stores name at element+0x38 (=desc+0x34) inline when sub-obj setter==f_1055eb4c else calls it; returns &desc. Caller stb 1,0x30(desc) sites e.g.0x10725f3c mark bound response fields optional."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10562d64",
+       "function": "0x10562d64",
+       "notes": "Chunked driver: source->vfunc+8 pulls min(remain,0x1000) into0x1000 stack buf, feeds f_10562cac, loops while pull==request and feed true; falls into same triage at0x10562e08 (+0x2e2 else +0x2e4->1000 else f_1055f358)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10c3ba14",
+       "function": "0x10c3ba14",
+       "notes": "Code validator: returns1 iff code in1010-1019 or==1036 or in8000-8999 (addi -0x3f2/0x9, xori0x40c, addi -0x1f40/0x3e8, isel at0x10c3ba3c). f_10c3ba54 returns1 iff code in1042-1045."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10561414",
+       "function": "0x10561414",
+       "notes": "Descriptor ctor: +0x30/+0x31/+0x32 all cleared at0x10561428-0x10561434; +0x30 is never written by parser code, only by action binds, so it encodes optionality."
       }
-     ],
-     "todo": "Established: response feed zero-length behavior, numeric-result precedence and descriptor-byte scan are decoded. Remaining: census parser+0x2e2/+0x2e4 and descriptor+0x30/+0x31 writers, recover SOAP fault/code conversion and field requirement policy, trace nested and unknown/duplicate/oversized responses, XML finalization/lexical errors, malformed-tail partial outputs and caller-visible failure translation."
+     ]
     }
    }
   },
