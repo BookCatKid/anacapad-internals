@@ -217566,7 +217566,7 @@
      "function": "f_107f675c formatter / f_107f6574 input reader",
      "address": "0x107f676c",
      "callsite": "0x107f6898 / 0x107f69d4 / 0x107f65b0 / 0x107f65c8",
-     "notes": "Explicit low/high status masks select strings. No model selector in formatter; concrete caller registration not certified. Input success mask3dff000f is separate from printed vocabulary."
+     "notes": "Explicit low/high status masks select strings. No model selector in formatter. Input success mask3dff000f is separate from printed vocabulary."
     },
     {
      "type": "firmware",
@@ -217575,17 +217575,101 @@
      "function": "hal_thermal_get_status",
      "address": "0x1fa4",
      "callsite": "0x1fdc / 0x203c / 0x2050",
-     "notes": "Export bounds and raw PPC objdump: kind13/state0, ioctl4004fc2c, andis2c07 gives mask2c070000, success-only output write. Driver/board producer join remains open."
+     "notes": "Export bounds and raw PPC objdump: kind13/state0, ioctl4004fc2c, andis2c07 gives mask2c070000, success-only output write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10185398 evaluator entry / f_101850d4 evaluator / f_102a4f14 member thunk",
+     "address": "0x10185398",
+     "callsite": "0x1018517c",
+     "notes": "f_10185398 is zp vtable0x10e97d80 slot+0x5c; it takes the scoped lock at zp+0x3f710 and calls f_101850d4, which calls formatter f_107f675c through member thunk f_102a4f14 (this=*(obj+0x34)+0xe0). Sibling slot+0x58 f_10184eac reaches clearer f_10184d44. This binds the previously uncertified formatter registration/call chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10184fac warn-test / f_10184fd4 fault-test",
+     "address": "0x10184fb4",
+     "notes": "Both load lwz -0x860(r3+0x40000) (zp+0x3f7a0 accumulator word0) and AND-test: warn mask 0x290a000a (addis0x290a/ori0xa), fault mask 0x14f50005 (addis0x14f5/ori0x5). Union equals 0x3dff000f exactly, the input-reader mask; warn bits {1,3,17,19,24,27,29}, fault bits {0,2,16,18,20,21,22,23,26,28}. Accumulator ops: f_10184f30 andc-clear, f_10184f58 or-set, f_10184f80 mask-test, f_10184ffc notifier posting {0x49|0xf,3|4} via f_1040e4cc+f_10181298."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_101850d4 evaluator",
+     "address": "0x101850d4",
+     "notes": "Dedups (new&stored)==0, merges into u64 at -0x860/-0x85c and emits '0x%08x' 'status' 'hw:st' 'hardware' event via emitter vfunc+0x20; always formats stored u64 via f_107f675c and logs 'Warning/Fault Code(s):%s'; warn latch -0xd20 emits param0x40 'Entering hardware warning state', fault latch -0xd1f emits param0x80 'Entering hardware fault state'; clearer f_10184d44 unlatches and emits 'Leaving hardware warning/fault state' via *(zp+0x57f0) vfunc+0xc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107f6574 input reader",
+     "address": "0x107f65b0",
+     "callsite": "0x10186e20",
+     "notes": "Calls hal_inputs_get_status, applies mask0x3dff000f in caller, then opens hal_detect and calls hal_detect_get_cable_states; flag_out = (cable word==4), forced 1 on any syslib error; status_out = masked word. Only caller is f_10186e20 (linein/demo task, this=*(zp+0x5738)) via member thunk f_102a5948 (+0x34/+0xe0); f_10186e20 reached through trampoline f_100b93c0 loading zp singleton 0x11095f88."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "audioctl_device_ioctl jump table",
+     "address": "0x4c0c",
+     "callsite": "0x4924",
+     "notes": "Jump table .rodata+0x1b4 holds R_PPC_REL32 entries; dispatcher indexes with lwzx (XO23) on table base then adds stored+table_base, so effective target = reloc addend - idx*4, idx=(cmd&0xff)-6. nr44 (ioctl0x4004fc2c) -> 0x4c0c: *out = priv+0x128 | priv+0x12c | priv+0xc4 composite cached status; nr44 arg unused. nr30 -> 0x4994 two thermalSensor_GetTemperature reads; nr24 -> fpga_ReadRegCmd (arg = register index <0x30); nr25 fpga_WriteRegCmd."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "audioctl_PollThread / audioctl_process_fault",
+     "address": "0x428c",
+     "callsite": "0x4504 / 0x450c / 0x452c",
+     "notes": "Poll thread periodically stores tas5708_ReadStatus()->priv+0x128 (0x4508) and thermalsensor_GetStatus()->priv+0x12c (0x4514); when either is nonzero calls audioctl_process_fault which latches priv+0xc4 |= arg & 0x50004 (fault-class bits only), cleared at 0x3ea0 on amp power init. Same loop runs mma8453_orient_poll, fpga_HandleInterrupt (FPGA reg40 interrupt cause), fpga_CheckSpdif, fpga_PostDebounceEvents, fpga_SetIrLed."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "tas5708_ReadStatus",
+     "address": "0xb39c",
+     "callsite": "0x4504",
+     "notes": "Iterates five 64-byte amp records at .bss+0x8f4 only when tas5708_amp_power is 3 or 4; per record issues tas5708_readReg(reg2 error status, 1 byte), merges sticky status byte at record+12, counts per-bit hits into record+36..+60, calls tas5708_LogErrors, and ORs emitted amp condition bits (at least 0x4, folded from reg2 bit tests via rlwinm) into the return word accumulated across amps."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "thermalsensor_GetStatus / LimelightThermalSensors",
+     "address": "0x8ea4",
+     "callsite": "0x450c",
+     "notes": "Walks a runtime table of 88-byte sensor descriptors, calls thermalSensor_GetTemperature and compares against warn(+32)/fault(+28) thresholds, emitting the descriptor's assigned warn(+44)/fault(+40) bits. Shipped .data+0x400 LimelightThermalSensors names 'AMP Thermal Sensor' (warn95/fault99C -> 0x80000/0x40000) and 'CPU Thermal Sensor' (warn98/fault105C -> 0x20000/0x10000): in-image board setup data."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103cacec hwmsg conn poller / f_1018261c temps reader",
+     "address": "0x103cacec",
+     "callsite": "0x101981f0",
+     "notes": "f_103cacec (this=*(zp+0xaa30), reached from f_101981f0 via secondary-base thunk f_1019d06c this-0x3a8) opens hal_orient and hal_thermal, delivers hal_thermal_get_status word to owner *(conn+0x9c) vfunc+0x80. f_1018261c reads hal_thermal_get_temps into the sounddev member via f_102a5704 and logs 'cpu:%d, amp:%d, soc:%d' via f_101823b0/f_10182310."
     }
-   ],
-   "todo": [
-    "Established: concrete status-bit-to-name formatter, successful input-reader mask0x3dff000f and shipped thermal ioctl/mask0x2c070000 boundary. Remaining: bind f_107f675c registration/callers, trace every status producer including thermal/input ioctls into shipped driver implementations and board/model setup, and distinguish supported bits from asserted faults on S9. Start at f_107f6574, libsyslib_hal hal_inputs_get_status/hal_thermal_get_status and ioctl0x4004fc2c. Do not derive sensor presence or absence from the shared enum, unrelated capability rows or MOTION spelling. The outside-image/model-9 limitation is withdrawn; this is actionable static work."
    ],
    "resolved_findings": [
     "The old model-9 live-flag/capability assertion is withdrawn. S9 identity has previously been corrected to ordinal10 in model_sku_vocabulary; neither that ordinal nor soundbar feature names prove individual health sensors. Per-board health producers still need actual driver joins.",
     "f_107f675c formats bits from its incoming status word, not a model selector: low0x2 AMP_CURRENT_WARN,0x8 AMP_FAULT_WARN,0x1 AMP_CURRENT_FAULT and0x4 AMP_FAULT; high0x00020000 AUDIO_WARN_TEMPERATURE,0x00080000 CPU_WARN_TEMPERATURE,0x00100000 PS36_FAULT,0x00200000 UV36_FAULT and0x00400000 UV14_FAULT. Motion temperature strings are real compiled branches on0x40000000/0x80000000, not proof of portable-motion detection or sensor absence on S9. No model gate occurs in this formatter; its concrete registration/call reachability remains to be bound.",
     "A separate actual input-status reader f_107f6574 invokes imported hal_inputs_get_status at0x107f65b0, tests its return value, and masks successful output with0x3dff000f before storing it to its output argument. Error branches do not use that successful status value. The shared string vocabulary is therefore not interchangeable with every reader mask; the complete health producer path is not certified by this one input method.",
-    "Shipped libsyslib_hal.so.1 hal_thermal_get_status at0x1fa4 checks for a nonnull handle, handle kind13 and state0. Its successful path issues ioctl0x4004fc2c with a4-byte buffer and masks the returned word with0x2c070000 before storing it. Invalid handle/kind/state or ioctl failure returns a nonzero code without the success store. This provides an in-corpus driver boundary to trace, disproving the old assertion that all per-model health information is necessarily outside the image. This thermal method is not yet joined to the formatter."
+    "Shipped libsyslib_hal.so.1 hal_thermal_get_status at0x1fa4 checks for a nonnull handle, handle kind13 and state0. Its successful path issues ioctl0x4004fc2c with a4-byte buffer and masks the returned word with0x2c070000 before storing it. Invalid handle/kind/state or ioctl failure returns a nonzero code without the success store. This provides an in-corpus driver boundary to trace, disproving the old assertion that all per-model health information is necessarily outside the image. This thermal method is not yet joined to the formatter.",
+    "Formatter registration/call chain bound: f_107f675c is invoked through sound_device member thunk f_102a4f14 (this=*(obj+0x34)+0xe0) by evaluator f_101850d4, entered as slot+0x5c (f_10185398) of the zp vtable 0x10e97d80 under the scoped lock at zp+0x3f710; sibling slot+0x58 (f_10184eac) reaches clearer f_10184d44.",
+    "The health accumulator is a u64 at zp+0x3f7a0/+0x3f7a4 with explicit ops (f_10184f30 andc-clear, f_10184f58 or-set, f_10184f80 mask-test, f_10184ffc notifier posting {0x49|0xf,3|4}); warn-class test mask 0x290a000a (bits 1,3,17,19,24,27,29) and fault-class mask 0x14f50005 (bits 0,2,16,18,20,21,22,23,26,28) union to exactly 0x3dff000f, the input-reader mask, so the reader admits precisely the classifier-visible vocabulary.",
+    "Evaluator f_101850d4 dedups new bits, merges them into the accumulator, emits a 'hw:st'/'hardware' 'status' event ('0x%08x') via emitter vfunc+0x20, formats the stored u64 for the 'Warning/Fault Code(s):%s' log, and latches warn (-0xd20)/fault (-0xd1f) states that emit 'Entering hardware warning state' (param 0x40) and 'Entering hardware fault state' (param 0x80); clearer f_10184d44 unlatches and emits the matching 'Leaving' events via *(zp+0x57f0) vfunc+0xc.",
+    "Reader f_107f6574 semantics: hal_inputs_get_status word masked 0x3dff000f into status_out, then hal_detect_get_cable_states with flag_out = (raw cable word == 4), forced 1 on any syslib error; its only caller is f_10186e20 (linein/demo task on sound_device member zp+0x5738), reached via trampoline f_100b93c0 on zp singleton 0x11095f88.",
+    "Kernel producer boundary resolved: audiodev.ko ioctl 0x4004fc2c is nr44 and its case at 0x4c0c returns the composite cached status priv+0x128 | priv+0x12c | priv+0xc4 (jump-table entries are R_PPC_REL32 indexed by lwzx, effective target = addend - idx*4; fpga_ReadRegCmd is nr24, not nr44). audioctl_PollThread fills priv+0x128 from tas5708_ReadStatus (per-amp TAS5708 reg2 reads over i2c, gated on amp_power 3/4, sticky per-amp byte plus per-bit hit counters) and priv+0x12c from thermalsensor_GetStatus (descriptor-table threshold comparison), and latches fault-class bits priv+0xc4 |= arg & 0x50004 via audioctl_process_fault.",
+    "Board setup is shipped in-image: LimelightThermalSensors at audiodev.ko .data+0x400 carries 88-byte descriptors naming 'AMP Thermal Sensor' (warn 95C / fault 99C -> bits 0x80000/0x40000) and 'CPU Thermal Sensor' (warn 98C / fault 105C -> bits 0x20000/0x10000), so thermal emit bits {16,17,18,19} are produced by this board's driver.",
+    "Supported vs asserted on this build: producers that feed the composite word emit amp bits (tas5708), thermal bits {16,17,18,19} (sensors), and latched fault bits {2,16,18} (process_fault); the formatter's MOTION branches (bits 30/31) and the power-named bits (20,21,22) have no producer anywhere in the shipped userspace/kernel chain, so they are compiled vocabulary that shipped paths cannot assert. Other board builds may ship different sensor tables; that is a build-data boundary, not a userspace gap.",
+    "Additional producers: hwmsg connection poller f_103cacec (zp+0xaa30) opens hal_orient and hal_thermal and pushes the hal_thermal_get_status word to owner vfunc+0x80; f_1018261c reads hal_thermal_get_temps into the sound_device member and logs 'cpu:%d, amp:%d, soc:%d'."
    ]
   },
   "rendering_control": {
