@@ -144170,6 +144170,34 @@
      "type": "firmware",
      "address": "0x10ec1f8c",
      "notes": "cq window block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1038d640",
+     "notes": "Compiled null-itemId 0/20 and nonnull-itemId 9/10 window policy; e500 isel operands decoded."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1038da64",
+     "notes": "Boolean selects version resource with or without literal updateToken=true; not an opaque token TTL field."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1038c2d0",
+     "notes": "Updated authorization header value copied separately from Retry-After parsing."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10550a4c",
+     "notes": "Equals-sign URI parameter writer, correcting previous JSON-setter attribution."
     }
    ],
    "work_ops": "ops {int_enterState,internalCQSkipToNextTrack,internalCQSkipToPreviousTrack,internalStartCloudQueue,internalRefreshCloudQueue,pauseTransition,commitReplaceWhilePlaying,prepareToBeDelegationTarget,setStateSSGoal,internalRateItem,notifyCQError,internalSkipToItem,internalCQSkipToFirstTrack,int_resumeFromPauseWhenPausedAtEndEnabled,int_internalSuspend,switchState,loadCloudQueueFromReq,handleWorkRequestWhileRunning,queueCompletionRoutine,handleWorkRequestWhileStopped,pauseRoutine,stopRoutine,notifyFrame,runQueue,internalNotifyTransportError}",
@@ -144231,16 +144259,15 @@
     ],
     "provenance": "literal cluster .rodata 0x10ec1e64-0x10ec2288: the CQ HTTP request builder + item/report field names"
    },
-   "todo": [
-    "Residual: the concrete window-size values are request params (previousWindowSize/upcomingWindowSize) set by client policy, and updateToken TTL/rotation is a cloud-contract term - no fixed bound constant exists in the image"
-   ],
    "resolved_findings": [
-    "Resolved: window protocol decoded - client requests the itemWindow? resource with params {previousWindowSize,upcomingWindowSize,heardItemId} naming the currently heard item; the server returns an opaque itemWindow token that MUST be threaded back into skipToItemWithWindow/loadCloudQueueWithWindow (the literal errors enforce this); windows are server-side cursors, not client offsets. Concurrency: the version?updateToken=true& resource issues an updateToken for optimistic queue-mutation. Rating rides item/%s/rating.",
-    "Window semantics + updateToken contract closed: the window is a server-side cursor - itemWindow? takes {isExplicit,previousWindowSize,upcomingWindowSize,heardItemId} and the returned opaque span must be threaded back into skipToItemWithWindow/loadCloudQueueWithWindow (WINDOW_MISSING_ITEM_ID boundary error; Abort window request because desired itemId is unknown edge case). version?updateToken=true issues the optimistic-concurrency token; revision tracking via CloudQueueVersion/CloudQueueHistory stamped per track entry. cqfsm fully enumerated: states {PENDING,ERROR_RETRY,SUCCESS,MEDIA_ERROR,RESET} + request states {GET_VERSION,GET_CONTEXT,SCHEDULE_WINDOW,SCHEDULE_CONTEXT,GET_WINDOW,POST_RATE}; verbs {requestVersion,requestContext,requestWindow,refreshWindow,refreshContext,getWindow,skipToFirstWindow,rateItem,skipNext,skipPrevious,getItemWindow}; events {queueVersionChanged,contextVersionChanged,authTokenChanged,authTokenRefreshed,heard,abort-request-window,window-edge-condition}. Retry-After honored with bounded retries + adaptive poll; queueBaseUrl must end in a SemVer-2.0 API version. Ops locally served: /cloudqueue (f_100babc0), /cloudqueuepoll (f_100b8260), plus the 12-verb lechmere delta. Item schema {itemId,actions,mediaUrl,mediaFormat,sampleRate,bitDepth,bitRate,numChannels,dolbyAtmos,reportId,privateData,positionMillisAtSegmentStart,policies}; error enum ERROR_CLOUD_QUEUE_{SERVER=27,SERVICE_ERROR=60,ACCESS_DENIED=61,STREAM_LIMIT=62,SERVICE_UNRESPONSIVE=63,CANT_REACH_SERVER=64}.",
     "Merge rule and op set proven: internalRefreshCloudQueue merges by itemId against a windowed fetch (CloudQueueWindow init: %s) - itemId is not found in the provided window rejects out-of-window ids, itemId is unknown; waiting for skipToItem defers unknown ids until the server designates them. Cache path: itemId %s to cache / itemId %s using cached trackURI (resolved stream URIs persist per itemId). Position tracking: itemId: %s ptvWhen %d.%06d ptvTrackPos %ld.%06ld (play-time-validated timestamps); resume state itemId='%s', positionMillis=%d, queueVersion='%s'. Full internal op set: {internalStartCloudQueue, internalRefreshCloudQueue, internalCQSkipToNextTrack, internalCQSkipToPreviousTrack, internalCQSkipToFirstTrack, internalSkipToItem, internalRateItem, notifyCQError, pauseTransition, commitReplaceWhilePlaying, prepareToBeDelegationTarget, setStateSSGoal, int_resumeFromPauseWhenPausedAtEndEnabled, int_internalSuspend} riding routines {recordCurrentState, switchState, loadCloudQueueFromReq, handleWorkRequestWhileRunning, handleWorkRequestWhileStopped, pauseRoutine, stopRoutine, notifyFrame, runQueue, queueCompletionRoutine, internalNotifyTransportError}.",
-    "Established: the itemWindow report schema is decoded at 0x10ec1f8c: fields {itemWindow?, isExplicit, previousWindowSize, upcomingWindowSize, heardItemId, context?, version?updateToken=true&, final, transport, actions, sampleRate, bitDepth, bitRate, numChannels, mediaFormat, dolbyAtmos, reportId, privateData, mediaUrl} - the report writer at 0x1038d6e0 emits positionMillis, queueVersion, contextVersion, previousWindowSize, upcomingWindowSize, heardItemId (f_10550c1c/f_105509f4 JSON field setters), and 'Truncated item window resource: %s'/'Truncated context resource: %s'/'Truncated version resource: %s' mark per-resource cap enforcement.",
+    "Established: the itemWindow request parameter vocabulary is decoded at 0x10ec1f8c: fields {itemWindow?, isExplicit, previousWindowSize, upcomingWindowSize, heardItemId, context?, version?updateToken=true&, final, transport, actions, sampleRate, bitDepth, bitRate, numChannels, mediaFormat, dolbyAtmos, reportId, privateData, mediaUrl} - the URI query writer at 0x1038d6e0 emits positionMillis, queueVersion, contextVersion, previousWindowSize, upcomingWindowSize, heardItemId (f_10550c1c/f_105509f4 URI query parameter writers), and 'Truncated item window resource: %s'/'Truncated context resource: %s'/'Truncated version resource: %s' mark per-resource cap enforcement.",
     "Resolved: the cloud-queue request URI grammar is literal @0x10ec1f8c+: resources {itemWindow?, context?, version?updateToken=true&} with params {isExplicit, previousWindowSize, upcomingWindowSize, heardItemId} and truncation guards (\"Truncated item window resource\"/\"Truncated context resource\"/\"Truncated version resource\"). Item/report field names {sampleRate, bitDepth, bitRate, numChannels, mediaFormat, dolbyAtmos, reportId, privateData, mediaUrl, positionMillisAtSegmentStart, timePlayed, items, durationPlayedMillis, timeSincePlayback}; request side {queueType, errorId, cloudQueue, requestVersion, requestContext, abort-request-window, skipsRemaining, skipLimitReached, jumpToItemId, WINDOW_MISSING_ITEM_ID} and a state machine {PENDING, ERROR_RETRY, SUCCESS, MEDIA_ERROR, GET_VERSION} (0x10eb9614-0x10eb9934).",
-    "Established: request URI grammar, item/report field names, state machine, truncation guards."
+    "Established: request URI grammar, item/report field names, state machine, truncation guards.",
+    "Concrete window sizes recovered, disproving the no-image-constants residual: constructor f_1038d540 loads its itemId pointer into r27 at 0x1038d5a4, compares it to null into cr4 at 0x1038d5b4, and chooses the sizes at 0x1038d634-0x1038d654. GNU e500 decoding shows isel r29,r10,r9,18 after r9=10 and r10=20, then isel r31,0,r9,18 after r9=9. Therefore nonnull itemId selects previousWindowSize=9 and upcomingWindowSize=10; null itemId selects 0 and 20. The same r27 is emitted as itemId at 0x1038d6c0-0x1038d6d4, with null mapped to the empty string. Selection is pointer presence, not strlen, so a nonnull empty itemId still selects 9/10. f_10550c1c formats unsigned decimal using %u, and the two values are emitted at 0x1038d72c-0x1038d750. These are compiled request-policy values, not documented maximum response sizes or caller-supplied numeric windows.",
+    "updateToken premise corrected and residual closed: in version-request constructor f_1038d9d8 a caller boolean at incoming stack+0x77 is loaded/tested at 0x1038da64-0x1038da6c. False selects literal version? at 0x1038da74; true selects version?updateToken=true& at 0x1038db20-0x1038db30. It is a request flag, not a locally parsed opaque updateToken value whose TTL needs to be decoded. Both paths then append queueVersion and contextVersion strings at 0x1038daa8-0x1038dadc. The prior assertion that this literal proves an expiring optimistic-concurrency token or a server-side itemWindow cursor is withdrawn. No cloud credential lifetime or server rotation guarantee follows from this boolean builder.",
+    "Actual credential replacement is a separate response-header operation: f_1038c244 recognizes X-Updated-Authorization and X-Goog-Updated-Authorization case-insensitively at 0x1038c274/0x1038c298, sets the updated flag at 0x1038c2b4, skips whitespace, and strlcpy-copies the supplied header value with bound 0x1401 to owner+0x7210 at 0x1038c2d0-0x1038c2dc. The adjacent Retry-After header is separately parsed to an integer at 0x1038c30c-0x1038c334; it must not be interpreted as token TTL. These paths establish where an actual replacement credential enters without guessing its cloud-side expiry rules.",
+    "Normal, empty and truncation request behavior: itemWindow resource has a 0x200-byte buffer; version resource has a 0x100-byte buffer. Empty/null optional version/context strings are substituted with the empty literal (0x1038d828-0x1038d83c and 0x1038db7c-0x1038db90). The parameter helper f_105509f4 appends the key, equals sign and encoded value, not JSON fields (0x10550a34-0x10550a68). Constructors check resource copy lengths and the writer error byte before emitting Truncated item window resource or Truncated version resource diagnostics (0x1038d770-0x1038d808 and 0x1038dae0-0x1038db74)."
    ]
   },
   "dsp_ht_engine": {
