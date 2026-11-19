@@ -71374,7 +71374,7 @@
      }
     },
     "GetEQ": {
-     "description": "Reads an EQ parameter via the shared audio-context path: f_10118278 ctx init + f_1011fdd0 acquisition on impl+0x3c4/+0x9c8, lock impl+0x938, ctx-worker f_100e382c(this,&ctx), unlock, release - byte-identical control flow to GetTreble with a different worker.",
+     "description": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073bcb0",
@@ -71410,7 +71410,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric instance selector. Read but unconsumed by the impl (dead compare or never read). ",
+       "description": "Required rendering-instance selector; only zero is supported.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -71422,32 +71422,25 @@
        "semantic_type": "instance selector (integer)",
        "format": "type-tag-4 decimal integer record",
        "unit": "none",
-       "accepted_values": "any parsed integer - ignored by impl",
-       "range": "unconstrained at impl level",
+       "accepted_values": "0",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Nonzero returns 702 before selector validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bcf0",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d6d80",
+         "notes": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called."
         }
        ],
-       "notes": null
+       "notes": "No fallback instance."
       },
       "EQType": {
-       "description": "EQ band/type selector; parsed but not consumed by the visible impl body (f_100e4188 reads only this - the EQType value dies in registers; the ctx worker may recover it via the context object, unresolved).",
+       "description": "Required cached setting selector. See the exact 19-name field map; only VolumeScalingFactor is case-insensitive.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -71459,101 +71452,215 @@
        "semantic_type": "EQ band selector",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "parsed token",
-       "range": "max 1023 chars",
+       "accepted_values": [
+        "SpeakerSize",
+        "SubGain",
+        "SubCrossover",
+        "SubPolarity",
+        "SubEnable",
+        "BondedState",
+        "VolumeScalingFactor",
+        "HeightChannelLevel",
+        "DialogLevel",
+        "SpeechEnhanceEnabled",
+        "SupportsMaxDialogLevel",
+        "SurroundLevel",
+        "MusicSurroundLevel",
+        "SurroundEnable",
+        "SurroundMode",
+        "AudioDelay",
+        "AudioDelayLeftRear",
+        "AudioDelayRightRear",
+        "NightMode"
+       ],
+       "range": "request buffer capacity 1024; selectors listed above",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "default": "none: required argument",
+       "validation": "Unknown selector returns 402 when InstanceID is zero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bd14",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aae8",
-         "notes": "argument name string"
+         "address": "0x100d6d80",
+         "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
         }
        ],
-       "notes": "impl f_100e4188 uses no incoming arg registers - identical shape to GetTreble.",
+       "notes": "No numeric selector or general case folding.",
        "buf_cap": 1024
       }
      },
      "outputs": {
       "CurrentValue": {
-       "description": "EQ value returned through the ctx worker f_100e382c (same worker the GetVolume 'spatial' branch invokes); out-write path unresolved.",
+       "description": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc84",
         "fmt": null
        },
-       "semantic_type": "signed int16",
-       "format": "%d decimal",
-       "unit": "none",
-       "accepted_values": "worker-produced",
-       "range": "unconstrained",
+       "semantic_type": "i2",
+       "format": "signed 16-bit decimal",
+       "unit": "none: raw cached setting value",
+       "accepted_values": "raw cached setting integer",
+       "range": "-32768..32767 serialization",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Only emitted on status zero; output formatter normalizes a mute byte by zero/nonzero, or formats the copied halfword.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bdc8",
-         "notes": "out-arg access site"
+         "address": "0x100d6d80",
+         "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0aff8",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e4188",
-         "address": "0x100e4188",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x1073bdcc",
+         "notes": "Success-only output load and formatter."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentValue`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "No output is returned for invalid InstanceID or selector."
       }
      },
-     "validation": "Request-layer parse; impl consumes no argument registers.",
-     "requirements": "ctx objects impl+0x3c4/+0x9c8 must support acquisition (f_1011fdd0).",
-     "state_dependencies": "requires audio ctx object chain",
+     "validation": {
+      "description": "Required inputs must pass request-layer validation. InstanceID must be zero; otherwise 702 takes precedence over selector validation. EQType must match one of the documented names; unknown names return 402. InstanceID is checked before mutex acquisition.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed274c",
+        "notes": "Primary 0x10ed270c slot 0x40 contains 0x100d6d80; binding store 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required inputs must pass request-layer validation. InstanceID must be zero; otherwise 702 takes precedence over selector validation. EQType must match one of the documented names; unknown names return 402. InstanceID is checked before mutex acquisition.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed274c",
+        "notes": "Primary 0x10ed270c slot 0x40 contains 0x100d6d80; binding store 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements. Protected by mutex +0x938.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Builds query ctx via f_10118278 + f_1011fdd0(impl+0x3c4,impl+0x9c8), locks +0x938, calls reader f_100e382c(this,ctx) to fetch EQ state, unlocks and destroys ctx.",
+       "description": "Acquires/releases mutex +0x938 and writes caller-owned output storage only on a valid selector. No renderer setting, dirty byte, event source or member request is changed. After unlocking, optional level-6 logging emits EQType and the caller output slot even on unknown-name failure; that log is not a successful SOAP output.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e4188",
-         "address": "0x100e41d4",
-         "notes": "bl f_100e382c at 0x100e41d4 inside +0x938 guard"
+         "address": "0x100d6d80",
+         "notes": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called."
         }
        ]
       }
      ],
-     "events_triggered": "none",
-     "state_transitions": "none",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": "none: no event-source, observer or scheduler call in the complete getter path.",
+     "state_transitions": "none: cached settings and renderer operation state are unchanged.",
+     "return_behavior": {
+      "description": "Implementation returns 0 for a valid cached read, 702 for nonzero InstanceID, or 402 for invalid selector. The wrapper emits output only on 0 and forwards numeric failures. Request validation separately selects 402; dispatcher null service+4 or unknown action selects 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed274c",
+        "notes": "Primary 0x10ed270c slot 0x40 contains 0x100d6d80; binding store 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d80",
+        "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bd64",
+        "notes": "Wrapper uses fresh mr. r4,r3 to test numeric status; nonzero faults and zero emits output."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bdcc",
+        "notes": "Output load and formatter on the success branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6f48",
+        "notes": "Raw 0x7d29479e is isel r9,r9,r8,30 after r8=r9|2 and cmpwi byte(+0x80c),0: zero selects unmodified +0x804, nonzero selects OR2."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d714c",
+        "notes": "Raw branch 0x40befcc4 has BO5 BI30: nonzero strcmp result for NightMode takes the 402 unlock/logging path. Full selector chain ends at 0x100d715c."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073bd78",
@@ -71564,21 +71671,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -71588,43 +71694,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported.",
        "fault_sites": [
-        "0x1073bce4",
         "0x1073bd78"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073bce4"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073bd78"
+           "address": "0x1073bd78",
+           "notes": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported."
           }
          ]
         }
@@ -71634,19 +71724,38 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073bce4"
-        },
+         "address": "0x1073bd78",
+         "notes": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero; checked before selector validation.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero; checked before selector validation.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d6d80",
+           "notes": "InstanceID is nonzero; checked before selector validation."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073bd78"
+         "address": "0x100d6d80",
+         "notes": "InstanceID is nonzero; checked before selector validation."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       }
      ],
      "firmware_differences": [],
@@ -71655,41 +71764,59 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073bcb0",
-       "address": "0x1073bcb0",
-       "notes": "action wrapper handler"
+       "address": "0x10ed274c",
+       "notes": "Primary 0x10ed270c slot 0x40 contains 0x100d6d80; binding store 0x104d4dc0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11d94",
-       "notes": "action dispatch table entry"
+       "address": "0x100d6d80",
+       "notes": "Primary slot +0x40 is f_100d6d80. It rejects nonzero InstanceID with 702 before locking, then locks +0x938 and compares EQType against 19 supported names. Each match copies an existing field into the low 16 bits of CurrentValue and returns 0; an unknown name returns 402 without writing CurrentValue. All names are case-sensitive except VolumeScalingFactor, which uses strcasecmp. The wrapper emits signed 16-bit decimal only on status zero. No EQ context is acquired and f_100e382c is not called."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl: ctx acquire + lock + f_100e382c + unlock + release; zero arg reads",
-       "function": "0x100e4188"
+       "address": "0x100d6d80",
+       "notes": "Field map: SpeakerSize u32 +0x810 (low16); SubGain u16 +0x814; SubCrossover +0x816; SubPolarity +0x818; SubEnable u8 +0x802; BondedState u8 +0x804 with bit 0x2 ORed when byte +0x80c is nonzero; VolumeScalingFactor u16 +0x7e2; HeightChannelLevel +0x844; DialogLevel +0x830; SpeechEnhanceEnabled u8 +0x832; SupportsMaxDialogLevel u8 +0x833; SurroundLevel u16 +0x834; MusicSurroundLevel +0x836; SurroundEnable +0x838; SurroundMode +0x840; AudioDelay +0x83a; AudioDelayLeftRear +0x83c; AudioDelayRightRear +0x83e; NightMode u8 +0x842. Unqualified numeric fields in this map are halfwords. These are raw cached setting integers, not converted physical measurements."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "shared ctx EQ worker (also GetVolume 'spatial' path)",
-       "function": "0x100e382c"
+       "address": "0x1073bd64",
+       "notes": "Wrapper uses fresh mr. r4,r3 to test numeric status; nonzero faults and zero emits output."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073bdcc",
+       "notes": "Output load and formatter on the success branch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d6f48",
+       "notes": "Raw 0x7d29479e is isel r9,r9,r8,30 after r8=r9|2 and cmpwi byte(+0x80c),0: zero selects unmodified +0x804, nonzero selects OR2."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d714c",
+       "notes": "Raw branch 0x40befcc4 has BO5 BI30: nonzero strcmp result for NightMode takes the 402 unlock/logging path. Full selector chain ends at 0x100d715c."
       }
      ],
-     "notes": "f_100e382c is the shared EQ-read worker - GetEQ, GetTreble's f_100e1fec sibling, and the GetVolume 'spatial' branch all funnel into EQ-context reads.",
-     "todo": [
-      "Established: dispatch to handler 0x1073bcb0; f_100e382c is the shared EQ-read worker for GetEQ/GetTreble/GetVolume's spatial branch.",
-      "Residual: the EQ-context record layout the worker reads. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: EQ storage = the EQ-context record {bass,treble,loudness,+balance} in the audio-context object behind +0x3c4/+0x9c8.",
-      "Resolved: EQ storage = the EQ-context record {bass,treble,loudness,+balance} in the audio-context object behind +0x3c4/+0x9c8."
-     ]
+     "notes": "The cached read does not establish that an earlier setter completed downstream audio application.",
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x40",
+      "function": "0x100d6d80",
+      "worker": "0x100d6d80"
+     }
     },
     "GetHeadphoneConnected": {
      "description": "The proven SOAP slot is a four-instruction function that returns literal 401. It ignores InstanceID, writes no out argument and calls no helper. The wrapper explicitly tests the returned status and therefore never formats CurrentHeadphoneConnected after a validated implementation call. State-record builder f_100d66cc is a different primary slot (+0xf0), not this action.",
