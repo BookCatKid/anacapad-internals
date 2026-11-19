@@ -151623,6 +151623,14 @@
      "address": "0x103b85fc",
      "callsite": "0x103b8630 / 0x103b8688 / 0x103bd1bc / 0x103bd43c / 0x10482e80",
      "notes": "Upgrade first requires f_103bcf04 to report a nonzero bucket index. It loads E from owner+0x81ec at 0x103b85fc and uses SPE efdcfui, efdmul and efdctuiz (raw 0x108022f0/0x10844ae8/0x108022f8 at 0x103b8614/0x103b8624/0x103b862c) with the 0.9 double at 0x10ec4f70, then tail-calls f_103bcf24 at 0x103b8630 with r4=trunc_unsigned(0.9*E). The helper moves at least one bucket toward index zero, then can continue while the threshold reaches the next higher bucket; raw unsigned cmpl 0x7f9e3840 and branch 0x419c0078 at 0x103bcfa0-0x103bcfa4 stop before a next bucket above the threshold. A zero threshold takes the first-step exit at 0x103bcf90. Downgrade wrapper f_103b8634 instead supplies literal r4=0 at 0x103b867c, so f_103bcd64 takes its first-step exit at 0x103bcdec and does not seek an estimator-selected bandwidth. Both other direct downgrade callers also set r4=0: f_103bd098 at 0x103bd1a4 and f_103bd1f4 at 0x103bd434. The source-switch worker calls virtual +0x68 at 0x10482e80, bound to f_103b84a4 by 0x10ec4f30. That wrapper always passes r4=0 to f_103bd098 at 0x103b84f8: counts above one cycle within the current bucket, while count <=1 returns false at 0x103bd194-0x103bd19c. Its downgrade tail-call is reachable only for other callers supplying a nonzero fallback flag. Thus the observed source-switch selection does not consume E or compare bandwidth estimates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10481b30 / f_103bc6c0 / f_103bca4c / f_10804120",
+     "address": "0x10481c5c",
+     "notes": "Raw rotate audit with corrected decoder: 0x56d6063e at 0x10481c5c has SH=0,MB=24,ME=31,Rc=0 and keeps the low byte; similarly 0x10481ca0/0x10481cac keep boolean bytes, 0x10481e7c keeps six bits and 0x10481ed4 four. None divides the estimator. Valid-context raw 0x546307fe at 0x1080412c keeps bit 0, without shifting. S=1000*seconds/elapsed uses SPE efdmul/efddiv at 0x10481be0/0x10481be4, mean division uses efddiv at 0x10481f88, and upgrade scaling uses efdmul/efdctuiz at 0x103b8624/0x103b862c. Bucket count/strides use literal 16 at 0x103bca54, cmplwi 3 at 0x103bcadc, mulli 0x2068 at 0x103bcae4 and literal 0x81a8 memcpy sizes 0x103bc734/0x103bc748/0x103bc75c. Corrected disassembly therefore leaves the documented estimator, bucket ordering and source-switch distinction unchanged."
     }
    ],
    "resolved_findings": [
@@ -152073,6 +152081,14 @@
      "address": "0x10facac4",
      "callsite": "0x10a2ca2c / 0x10a3dfcc / 0x10a42348 / 0x10a78628",
      "notes": "Raw words 0x5469103a (index<<2), 0x54632036 (index<<4), 0x7c691850 (subtract), 0x3929cac4 (table base low part), 0x7c69182e (lwzx, not update) establish stride 12 and name lookup in f_10b9afc0. Reverse converter compares strlen at 0x10b9b04c and calls strncasecmp at 0x10b9b060; 0x10b9b080/84 writes row code to output. Caller census scanned all relative branch instructions to both true entry points (not erroneous function-map starts 0x10b9afc4/0x10b9afec). Serializer sites explicitly open capabilities at 0x10a2ca0c, 0x10a3dfac, 0x10a42328, 0x10a78608, call name conversion, then JSON array-string writer f_109d1868. Parser f_10a2cd48 selects capabilities at 0x10a2cfc4, converts at 0x10a2d04c and skips zero at 0x10a2d05c/60. Thus the presumed interrupt arbitration consumer was disproved by actual reachable serialization/parsing consumers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10b9afc0",
+     "address": "0x10b9afc0",
+     "notes": "Rotate audit: raw 0x5469103a at 0x10b9afc0 is SH=2,MB=0,ME=29 (index*4), while 0x54632036 at 0x10b9afc8 is SH=4,MB=0,ME=27 (index*16); subtraction forms stride 12. Parser boolean-result operations 0x57bd063e at 0x10a2d0d8/0x10a2d0f4 retain low bytes and do not divide a reason code. The documented conversion table/capabilities bindings are unchanged."
     }
    ],
    "resolved_findings": [
@@ -153363,6 +153379,14 @@
      "address": "0x10447a78",
      "callsite": "0x1011989c / 0x1059982c / 0x109e6d30 / 0x109ecc80 / 0x109d061c",
      "notes": "Direct PPC branch-target scanning identifies custom-reader calls at 0x1011989c, 0x1059982c, 0x109e6d30 and 0x109ecc80. The concrete nonce DOM reader f_10447a78 has external direct calls at 0x10442e04, 0x104d00d8, 0x1058fc48, 0x106635bc, 0x10663de0, 0x109d061c, 0x109d3120, 0x109f55fc, 0x109f588c and 0x10bde6f8, plus intra-function calls at 0x10447e84 and 0x1044806c. This inventory establishes target entrypoints, not each caller's schema/options or all possible inlined reader implementations."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104463c8 / f_109ce584 / f_109c36c0",
+     "address": "0x104463f0",
+     "notes": "Rotate audit: raw 0x5529063e at 0x104463f0 has SH=0,MB=24,ME=31 and implements (byte-9)&0xff, not a right shift. Bitmap 0x00800013 shifted by that masked index plus unsigned index<=23 admits precisely tab/LF/CR/space. Raw 0x5529077e at 0x109ce800 retains three low type bits, not a shift by 3. Error-table indexing 0x54a5103a at 0x109c36f4 is a genuine left shift by 2. These agree with the recorded whitespace, value-tag and error-number contracts; no parser-size limit follows from the low-bit masks."
     }
    ],
    "todo": [
@@ -155429,6 +155453,14 @@
      "function": "f_109f86bc",
      "address": "0x109f89f0",
      "notes": "Explicit RS256 header at 0x109f879c. Time-provider optional reads at 0x109f89c8/0x109f8a1c; 3600 additions at 0x109f89f0/0x109f8a74, serializer virtual calls at 0x109f8a44/0x109f8a8c. Signing call at 0x109f8b10 reaches SHA-256 and signing-provider virtual +0x14 at 0x109f3d24. Provider setup 0x1019abcc -> f_109f7d30 stores +0xb0/+0xb8; concrete clock implementations and claim units remain residual."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_100271c8 / f_10026f58",
+     "address": "0x100271c8",
+     "notes": "Corrected-disassembly audit of persistent hex-key decoding: f_10026f58 calls f_100271c8 at 0x10026fa8 and requires decoded length 32 at 0x10026fb8. The pair reader rejects odd encoded length and consumes two validated hex characters per output byte; it does not derive a byte value by shifting away its low eight bits. Anacapad IPC length assembly at 0x1064bc5c/0x1064bc60/0x1064bc6c uses genuine SH=24/16/8 left shifts. The hex persistence and big-endian length contracts remain unchanged."
     }
    ],
    "todo": [
@@ -157049,6 +157081,14 @@
      "function": "f_10d0964c",
      "address": "0x10d0969c",
      "notes": "Shutdown wrapper 0x10d0a1a0 passes saved table/count 6. Reverse stride-12 descriptor walk reads shutdown word +4, skips null pointers, calls with matching reverse stride-20 runtime entry at 0x10d096b8. SocketManager shutdown 0x10d0e60c and Streamer 0x10d2c484 return zero; API 0x10d0346c clears 0x110bb7a8. Init failure cleanup call at 0x10d000e4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d08d64 / f_10d08534",
+     "address": "0x10d08e5c",
+     "notes": "Rotate audit: allocation sizing at 0x10d08e5c/0x10d08e64 and entry indexing at 0x10d08f40/0x10d08f44 use genuine SH=2/4 left shifts, added to form count*20. Alignment 0x54890038 at 0x10d08df8 has SH=0,MB=0,ME=28 and clears three low bits; it is not a divide by eight. Descriptor stride 12 and runtime-entry stride 20 remain supported independently of the former low-bit-mask pseudo-decode."
     }
    ],
    "resolved_findings": [
@@ -168713,6 +168753,14 @@
      "address": ".text+0x8168",
      "callsite": ".text+0x11504",
      "notes": "Cmd 0x13 target +0x114fc. Count tests at +0x8170/+0x8184/+0x818c/+0x824c select masks 1/3/7/15. Negative path +0x8270..+0x8288 negates, masks low byte, compares <=15. Driver mask/count bytes updated at +0x81c0..+0x81dc before optional HAL callback +0x8200; failure +0x828c returns -22."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl_set_nchains",
+     "address": "0x827c",
+     "notes": "Rotate audit of .text+0x827c: raw 0x549e063e has SH=0,MB=24,ME=31,Rc=0: r30=(-input)&0xff after neg at +0x8278, not (-input)>>8. Unsigned compare <=15 at +0x8280 follows this byte mask. The previously documented negative-input contract already describes low-byte truncation and remains unchanged."
     }
    ]
   },
