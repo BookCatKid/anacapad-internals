@@ -92918,7 +92918,7 @@
      "implementation_notes": "Primary slot +0x40 is statically bound to the constant-800 stub. The integer parser is permissive: do not describe malformed numeric text as a 402 condition. No successful commit or browseability mutation is reachable."
     },
     "UpdateObject": {
-     "description": "Updates ObjectID: CurrentTagValue -> NewTagValue via impl->v[+0x24].",
+     "description": "Updates a concrete object backend, not arbitrary metadata. Saved-queue items implement title rename from dc:title fragments; favorites items implement conditional per-property update against a stored snapshot. Missing strings return402, unknown object701 and base unsupported update711. R radio item updates do not pass the favorites-only override gate.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306d28",
@@ -92950,11 +92950,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10302e2c; saved-queue item0x1034a294; FV item0x1038094c",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x24; resolved object+0x20"
      },
      "inputs": {
       "ObjectID": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302e2c",
+       "description": "Existing saved-queue item or favorites category2 item for the traced writable overrides.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -92963,36 +92965,46 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302e2c",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "Resolved SQ: item with vtable0x10ebb7ac; FV:2/item accepted by1037b9ac.",
+       "range": "1024-byte request buffer including NUL",
+       "special_values": "NULL resolver701; default unsupported method711; pooled R/FV method rejecting node/category710.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required bounded string; selected backend parses fragments after object resolution.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306d68",
-         "notes": "in-arg access site"
+         "function": "0x10302e2c",
+         "address": "0x10302e58",
+         "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb32f8",
-         "notes": "argument name string"
+         "function": "0x1034a294",
+         "address": "0x1034a2cc",
+         "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x103809b8",
+         "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
         }
        ],
        "notes": null,
        "buf_cap": 1024
       },
       "CurrentTagValue": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302e2c",
+       "description": "Current tag fragments. Saved-queue rename extracts dc:title; favorites uses provided values as optimistic preconditions for each requested updated property.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -93001,36 +93013,54 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "utf-8 text, buffer cap 4096 bytes (4095 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "unrestricted/impl-validated per 0x10302e2c",
-       "range": "max 4095 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "Backend-recognized comma-separated XML fragments.",
+       "range": "4096-byte request buffer including NUL",
+       "special_values": "Saved-queue missing dc:title705; favorites mismatch against snapshot702.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required bounded string; selected backend parses fragments after object resolution.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306d90",
-         "notes": "in-arg access site"
+         "function": "0x10306d28",
+         "address": "0x10306dd8",
+         "notes": "Registers required ObjectID cap0x400,CurrentTagValue cap0x1000,NewTagValue cap0x1000 via bounded-string type7 f_1056157c. Missing ->402 at10306e50. Primary+0x24 called10306e00 with all three strings. Nonzero forwarded10306e1c; zero commits10306e64 with no outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb433c",
-         "notes": "argument name string"
+         "function": "0x1034a294",
+         "address": "0x1034a2cc",
+         "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10347ad8",
+         "address": "0x10347bc4",
+         "notes": "Reads comma-separated fragments via10c39f14 with0x800 scratch. For each builds SAX parser with callbacks1034afb4/1034b01c/1034b164, seeks literal dc:title into0x400 output. Found-flag returns success; exhaustion without required title returns false. It is not strict generic XML equality or arbitrary tag replacement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380df8",
+         "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
         }
        ],
        "notes": null,
        "buf_cap": 4096
       },
       "NewTagValue": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302e2c",
+       "description": "Replacement tag fragments. Saved queues only rename dc:title; favorites requires recognized fields and performs per-property comparisons before write.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -93039,29 +93069,47 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "utf-8 text, buffer cap 4096 bytes (4095 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "unrestricted/impl-validated per 0x10302e2c",
-       "range": "max 4095 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "dc:title for saved-queue rename; recognized favorite property fragments.",
+       "range": "4096-byte request buffer including NUL",
+       "special_values": "Saved-queue empty/CR/LF title402. Favorite no recognized update fields712.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required bounded string; selected backend parses fragments after object resolution.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306db8",
-         "notes": "in-arg access site"
+         "function": "0x1034a294",
+         "address": "0x1034a2cc",
+         "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb434c",
-         "notes": "argument name string"
+         "function": "0x10347ad8",
+         "address": "0x10347bc4",
+         "notes": "Reads comma-separated fragments via10c39f14 with0x800 scratch. For each builds SAX parser with callbacks1034afb4/1034b01c/1034b164, seeks literal dc:title into0x400 output. Found-flag returns success; exhaustion without required title returns false. It is not strict generic XML equality or arbitrary tag replacement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x103809b8",
+         "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380df8",
+         "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
         }
        ],
        "notes": null,
@@ -93070,152 +93118,401 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Required bounded strings first. Resolver701 and default-method711 checks precede tag parsing. SQ extracts both titles705, trims only new title and rejects empty/CRLF402. FV must be category2 item710, then recognized new fields, snapshot existence/schema and current-value comparisons are checked before atomic update.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10306d28",
-        "notes": "wrapper family decode"
+        "function": "0x10306d28",
+        "address": "0x10306dd8",
+        "notes": "Registers required ObjectID cap0x400,CurrentTagValue cap0x1000,NewTagValue cap0x1000 via bounded-string type7 f_1056157c. Missing ->402 at10306e50. Primary+0x24 called10306e00 with all three strings. Nonzero forwarded10306e1c; zero commits10306e64 with no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302e2c",
+        "address": "0x10302e58",
+        "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034a294",
+        "address": "0x1034a2cc",
+        "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10347ad8",
+        "address": "0x10347bc4",
+        "notes": "Reads comma-separated fragments via10c39f14 with0x800 scratch. For each builds SAX parser with callbacks1034afb4/1034b01c/1034b164, seeks literal dc:title into0x400 output. Found-flag returns success; exhaustion without required title returns false. It is not strict generic XML equality or arbitrary tag replacement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x103809b8",
+        "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380c8c",
+        "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380df8",
+        "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0x24]",
+      "description": "Non-default update method. SQ item supports title rename; FV category2 item supports conditional properties. A:/S:/Q: base unsupported methods return711, not a generic store800. Radio items reaching pooled override fail710. Persistence and snapshot stores must be accessible.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306d28",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "function": "0x10302e2c",
+        "address": "0x10302e58",
+        "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034a294",
+        "address": "0x1034a2cc",
+        "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x103809b8",
+        "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380c8c",
+        "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x24]",
+      "description": "Saved-queue manager11096770, savedqueues.rsq, object ID+0x98 and manager revision+0xec under mutex+0x20. Favorites provider+4, mutex+0x30, current userradio.xml snapshot, identity/version+0x14c and collector flags. Current property values are observable preconditions, not ignored input.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306d28",
-        "notes": "member vfunc calls: ['r30 v[+0x24]']"
+        "function": "0x1034a294",
+        "address": "0x1034a2cc",
+        "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479930",
+        "address": "0x10479ad0",
+        "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x103809b8",
+        "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380c8c",
+        "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380df8",
+        "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380f7c",
+        "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x24] (call-derived member-method semantics)",
+       "description": "Successful SQ transaction rewrites savedqueues.rsq, increments manager revision and dispatches callbacks. Successful FV update rewrites userradio.xml atomically and calls replication/notification helper. No output arguments; outer worker supplies no rollback or direct global-update increment.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302e2c",
+         "address": "0x10302e58",
+         "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479930",
+         "address": "0x10479ad0",
+         "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380f7c",
+         "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037e554",
+         "address": "0x1037e5e0",
+         "notes": "Provider callback+0x110 non-NULL gate precedes +0x14c increment and callback+0x14 dispatch; then replication notification FV:category or R:0. Concrete callback receiver/event scheduling not yet bound in this mutation trace."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "SQ successful persistence calls saved-queue callbacks at10479b28/10479b44. FV successful persistence calls1037e554. No direct GENA notifier in wrapper/cd_impl; concrete callback-to-ContentDirectory delivery remains narrowed.",
+      "todo": "Residual: bind SQ manager+0xc0 callback and virtual+0x14 at10479b28/10479b44 and favorites provider+0x110 at1037e5e0 to concrete ContentDirectory receivers; then document emitted state variable/scheduling without assuming all callbacks are GENA.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302e2c",
+        "address": "0x10302e58",
+        "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479930",
+        "address": "0x10479ad0",
+        "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380f7c",
+        "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037e554",
+        "address": "0x1037e5e0",
+        "notes": "Provider callback+0x110 non-NULL gate precedes +0x14c increment and callback+0x14 dispatch; then replication notification FV:category or R:0. Concrete callback receiver/event scheduling not yet bound in this mutation trace."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "SQ revision+0xec advances only on transaction rc0. FV update uses atomic-commit phase3 and then provider notify/replication only on rc0. Optimistic mismatch702 returns without invoking final update transaction. Detailed SAX field/phase transitions remain the narrow action residual.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479930",
+        "address": "0x10479ad0",
+        "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380df8",
+        "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380f7c",
+        "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Zero rc commits empty success. Validator402, resolver701, default unsupported711, otherwise override rc returned unchanged after release. SQ rename and FV conditional-update faults are distinct; old accumulator/literal vocabulary is not a wire-code proof.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10306d28",
+        "address": "0x10306dd8",
+        "notes": "Registers required ObjectID cap0x400,CurrentTagValue cap0x1000,NewTagValue cap0x1000 via bounded-string type7 f_1056157c. Missing ->402 at10306e50. Primary+0x24 called10306e00 with all three strings. Nonzero forwarded10306e1c; zero commits10306e64 with no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302e2c",
+        "address": "0x10302e58",
+        "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034a294",
+        "address": "0x1034a2cc",
+        "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x103809b8",
+        "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380c8c",
+        "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380df8",
+        "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1038094c",
+        "address": "0x10380f7c",
+        "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
+       }
+      ]
+     },
+     "fault_sites": [],
+     "errors": [
+      {
+       "code": 402,
+       "meaning": "Required input missing, or SQ new title trims empty or contains CR/LF.",
+       "fault_sites": [
+        "0x10306e50",
+        "0x1034a330",
+        "0x1034a34c"
+       ],
+       "conditions": [
+        {
+         "description": "Required input missing, or SQ new title trims empty or contains CR/LF.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10306d28",
+           "address": "0x10306dd8",
+           "notes": "Registers required ObjectID cap0x400,CurrentTagValue cap0x1000,NewTagValue cap0x1000 via bounded-string type7 f_1056157c. Missing ->402 at10306e50. Primary+0x24 called10306e00 with all three strings. Nonzero forwarded10306e1c; zero commits10306e64 with no outputs."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1034a294",
+           "address": "0x1034a2cc",
+           "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10306d28",
-         "notes": "delegate map ['r30 v[+0x24]']; notify-family calls []"
+         "address": "0x10306dd8",
+         "notes": "Registers required ObjectID cap0x400,CurrentTagValue cap0x1000,NewTagValue cap0x1000 via bounded-string type7 f_1056157c. Missing ->402 at10306e50. Primary+0x24 called10306e00 with all three strings. Nonzero forwarded10306e1c; zero commits10306e64 with no outputs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034a294",
+         "address": "0x1034a2cc",
+         "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x24] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306d28",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x24]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306d28",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x24]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306d28",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [
+      },
       {
-       "site": "0x10306e1c",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x24)"
-      }
-     ],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "vret(r5-in,+0x24); parse/req-layer",
-       "meaning": "impl accumulator r30: {711 literal (0x10302e88), 701 resolver fail (0x10302ef0), arg r5-seeded, call/lwz-derived}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
+       "code": 701,
+       "meaning": "Resolver NULL, or favorite item not found in stored snapshot.",
        "fault_sites": [
-        "0x10306e1c"
+        "0x10302ef0",
+        "0x10380d20"
        ],
        "conditions": [
         {
-         "description": "req or impl gate failed",
+         "description": "Resolver NULL, or favorite item not found in stored snapshot.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302e2c",
-           "notes": "impl"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10302e2c",
+           "address": "0x10302e58",
+           "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10306d28",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1038094c",
+           "address": "0x10380c8c",
+           "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
           }
          ]
         }
@@ -93225,175 +93522,309 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302e2c",
-         "notes": "rc path"
+         "function": "0x10302e2c",
+         "address": "0x10302e58",
+         "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302e88",
-         "notes": "li r30,0x2c7=711"
-        },
+         "function": "0x1038094c",
+         "address": "0x10380c8c",
+         "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+        }
+       ]
+      },
+      {
+       "code": 711,
+       "meaning": "Resolved object uses default unsupported UpdateObject method.",
+       "fault_sites": [
+        "0x10302e88"
+       ],
+       "conditions": [
         {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302ef0",
-         "notes": "li r30,0x2bd=701"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10306d28",
-         "notes": "wrapper parse + fault path"
+         "description": "Resolved object uses default unsupported UpdateObject method.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302e2c",
+           "address": "0x10302e58",
+           "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+          }
+         ]
         }
        ],
-       "unresolved": {
-        "proven": "literal exit paths bounded by accumulator scan",
-        "unknown": "call-derived rc values from worker/delegate chain | resolver f_1034a224 -> f_10349d00 path-walk (ptr/NULL)",
-        "return_path": "URI/'0' sentinel dispatch into scheme resolver; x-rincon object-ID scheme resolver (A:/S:/Q: prefixes) - content-resolution rc domain",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_1034a224": {
-          "lits": [
-           1056
-          ],
-          "pt": 2
-         },
-         "f_10349d00": {
-          "lits": [
-           8,
-           496
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "function": "0x10302e2c",
-         "lits": [
-          0,
-          1,
-          360,
-          1024
-         ],
-         "passthrough_exits": 2
-        },
-        "delegated_sources": {
-         "f_103031e4": {
-          "lits": [
-           24
-          ],
-          "pt": 4
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [
-        0,
-        402,
-        701,
-        711
+         "address": "0x10302e58",
+         "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+        }
+       ]
+      },
+      {
+       "code": 710,
+       "meaning": "Pooled R/FV update target is not an FV category2 item.",
+       "fault_sites": [
+        "0x103809c0"
        ],
-       "resolved_note": "CD impl: Browse/search -> {402 invalid-args, 701 no-such-content, 711 no-such-object, browse-engine rc}. verified via impl return-scan.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x24); parse/req-layer; sites: 0x10306e1c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "conditions": [
+        {
+         "description": "Pooled R/FV update target is not an FV category2 item.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1038094c",
+           "address": "0x103809b8",
+           "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x103809b8",
+         "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+        }
+       ]
+      },
+      {
+       "code": 705,
+       "meaning": "Saved-queue current or new tag list contains no extractable dc:title.",
+       "fault_sites": [
+        "0x1034a2d8"
+       ],
+       "conditions": [
+        {
+         "description": "Saved-queue current or new tag list contains no extractable dc:title.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1034a294",
+           "address": "0x1034a2cc",
+           "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10347ad8",
+           "address": "0x10347bc4",
+           "notes": "Reads comma-separated fragments via10c39f14 with0x800 scratch. For each builds SAX parser with callbacks1034afb4/1034b01c/1034b164, seeks literal dc:title into0x400 output. Found-flag returns success; exhaustion without required title returns false. It is not strict generic XML equality or arbitrary tag replacement."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034a294",
+         "address": "0x1034a2cc",
+         "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10347ad8",
+         "address": "0x10347bc4",
+         "notes": "Reads comma-separated fragments via10c39f14 with0x800 scratch. For each builds SAX parser with callbacks1034afb4/1034b01c/1034b164, seeks literal dc:title into0x400 output. Found-flag returns success; exhaustion without required title returns false. It is not strict generic XML equality or arbitrary tag replacement."
+        }
+       ]
+      },
+      {
+       "code": 712,
+       "meaning": "Favorite update has no recognized new fields, or snapshot XML feed/finalize/item-count checks fail.",
+       "fault_sites": [
+        "0x10380b38",
+        "0x10380d90"
+       ],
+       "conditions": [
+        {
+         "description": "Favorite update has no recognized new fields, or snapshot XML feed/finalize/item-count checks fail.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1038094c",
+           "address": "0x103809b8",
+           "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1038094c",
+           "address": "0x10380c8c",
+           "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x103809b8",
+         "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380c8c",
+         "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+        }
+       ]
+      },
+      {
+       "code": 720,
+       "meaning": "Favorite snapshot open64(userradio.xml) fails.",
+       "fault_sites": [
+        "0x10380cb8"
+       ],
+       "conditions": [
+        {
+         "description": "Favorite snapshot open64(userradio.xml) fails.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1038094c",
+           "address": "0x10380c8c",
+           "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380c8c",
+         "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Requested favorite property current value does not match stored snapshot.",
+       "fault_sites": [
+        "0x10381008"
+       ],
+       "conditions": [
+        {
+         "description": "Requested favorite property current value does not match stored snapshot.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1038094c",
+           "address": "0x10380df8",
+           "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380df8",
+         "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
+        }
        ]
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field *(ctx+0x20)>=70 (favorites cap); 806 = ftell()>0x20000 (serialized XML >128KiB); 807 = phase *(ctx+0x1c)>=6 with flag +0x30; 803 = phase *(ctx+0x1c)<2; 702 = flag *(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10384490",
-         "notes": "userradio.xml .tmp+fsync+rename atomic save; full literal exit set {402,501,701,702,803,805,806,807}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847a4",
-         "notes": "li r31,0x325 (805) gated on *(ctx+0x20)>=0x46"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847d8",
-         "notes": "806 selected when ftell>0x20000"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847f0",
-         "notes": "807 late-phase guard"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10ec0af8",
-         "notes": "dirObj vtable slot -> f_1037f4a0 (favorites mutation fns 0x1037fxxx call f_10384490 at 0x1037f6ec/0x1037f860/0x1037fa00)"
-        }
+       "meaning": "Residual: persisted SQ rename status from1047ee0c and FV phase3 atomic-store semantic status after mutation-specific SAX callbacks. These are not proven to share every generic favorites fault code.",
+       "fault_sites": [
+        "0x10479ad0",
+        "0x103849a8"
        ],
-       "notes": "indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability",
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Only reached after writable target and local tag/snapshot/precondition gates; transaction status forwarded unchanged.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10384490",
-           "notes": "userradio.xml .tmp+fsync+rename atomic save; full literal exit set {402,501,701,702,803,805,806,807}"
+           "function": "0x1034a294",
+           "address": "0x1034a2cc",
+           "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847a4",
-           "notes": "li r31,0x325 (805) gated on *(ctx+0x20)>=0x46"
+           "function": "0x10479930",
+           "address": "0x10479ad0",
+           "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847d8",
-           "notes": "806 selected when ftell>0x20000"
+           "function": "0x1038094c",
+           "address": "0x10380df8",
+           "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847f0",
-           "notes": "807 late-phase guard"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10ec0af8",
-           "notes": "dirObj vtable slot -> f_1037f4a0 (favorites mutation fns 0x1037fxxx call f_10384490 at 0x1037f6ec/0x1037f860/0x1037fa00)"
+           "function": "0x1038094c",
+           "address": "0x10380f7c",
+           "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ec0af8 emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "todo": "Trace savedqueues.rsq transaction1047ee0c and FV phase3 callback transitions1038163c/10382c00 inside10384490 before enumerating remaining transaction fault codes.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479930",
+         "address": "0x10479ad0",
+         "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038094c",
+         "address": "0x10380f7c",
+         "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
+        }
        ]
       }
      ],
@@ -93413,13 +93844,91 @@
        "build": "86.10-80260",
        "address": "0x10eb4318",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10306d28",
+       "address": "0x10306dd8",
+       "notes": "Registers required ObjectID cap0x400,CurrentTagValue cap0x1000,NewTagValue cap0x1000 via bounded-string type7 f_1056157c. Missing ->402 at10306e50. Primary+0x24 called10306e00 with all three strings. Nonzero forwarded10306e1c; zero commits10306e64 with no outputs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302e2c",
+       "address": "0x10302e58",
+       "notes": "Proven service cd_impl binding. Resolver impl+0x168/f_1034a224 NULL ->701 at10302ef0. Default object+0x20==10113dc4 ->711 at10302e88 and release; otherwise override at10302f28, then release+0x28 at10302f40. Logging does not change result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1034a294",
+       "address": "0x1034a2cc",
+       "notes": "Saved-queue ITEM vtable0x10ebb7ac +0x20=1034a294; not a share override. Parses CurrentTagValue then NewTagValue with10347ad8; either extraction false ->705 at1034a2d8. New title trimmed; empty or CR/LF ->402 at1034a330/1034a34c. Then10479930(global11096770,node+0x98,currentTitle,newTitle); rc unchanged."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10347ad8",
+       "address": "0x10347bc4",
+       "notes": "Reads comma-separated fragments via10c39f14 with0x800 scratch. For each builds SAX parser with callbacks1034afb4/1034b01c/1034b164, seeks literal dc:title into0x400 output. Found-flag returns success; exhaustion without required title returns false. It is not strict generic XML equality or arbitrary tag replacement."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10479930",
+       "address": "0x10479ad0",
+       "notes": "Locks saved-queue manager+0x20, constructs savedqueues.rsq transaction and invokes1047ee0c. On rc0: increments manager+0xec, copies identity into+0xd0, invokes callback manager+0xc0 v+0x14 with type2,identity,version and virtual manager+0x14. Nonzero returns without these notifications. File-format transaction details remain narrowed at1047ee0c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1038094c",
+       "address": "0x103809b8",
+       "notes": "R/FV pooled node update override. Classifies ID with1037b9ac; requires type2, R-flagfalse, category exactly2. Thus accepts FV item, NOT R radio item; invalid type/category ->710. Parses current/new fragments through106fab08/106fabb8 with collectors initialized103849f8. No recognized new-field flags ->712 at10380b38."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1038094c",
+       "address": "0x10380c8c",
+       "notes": "Under provider mutex+0x30 reads userradio.xml and serializes selected item into0x2000 snapshot DIDL buffer. open64 failure ->720 at10380cb8 (not501). Parsed lookup flag false ->701 at10380d20. Snapshot parse/finalize/item-count!=1 ->712 at10380d90. Streaming reader1037b0d0 uses callbacks1038163c/10382c00."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1038094c",
+       "address": "0x10380df8",
+       "notes": "For requested new-property flags compares supplied current-property values against stored snapshot via strcmp at10380df8/e1c/e40/e64/e88 or metadata comparator1037c968 at10380eac; mismatch ->702 at10381008. Not a blind unconditional replace. Exact property/flag mapping remains narrowed to collector10381428/10381440."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1038094c",
+       "address": "0x10380f7c",
+       "notes": "Builds transaction1038395c then update helper103848ec. Helper sets phase3 and category2, parses item ID with strtol, invokes atomic rewrite10384490. .tmp/flush/fsync/close/rename traced separately; exact phase3 SAX semantic faults require callbacks. Only transaction rc0 calls1037e554 at10381000; no top-level rollback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037e554",
+       "address": "0x1037e5e0",
+       "notes": "Provider callback+0x110 non-NULL gate precedes +0x14c increment and callback+0x14 dispatch; then replication notification FV:category or R:0. Concrete callback receiver/event scheduling not yet bound in this mutation trace."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10306d28; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "todo": "Established: binding, required inputs/bounds, resolver/default gates, SQ title extraction and new-title validation, FV-only item gate, stored snapshot/read faults, optimistic mismatch702, transaction dispatch and success callback sites. Residual sub-areas: SQ file transaction1047ee0c including compare-current-title/persistence status; FV property flags/schema at10381428/10381440 and phase3 SAX mutation semantics at1038163c/10382c00. Concrete notification receiver binding remains in events_triggered.",
+     "implementation_notes": "Saved-queue rename1034a294 is proven by vtable0x10ebb7ac, not assigned to share nodes. Favorites override explicitly rejects radio IDs; generic favorites fault inventory is not assumed reachable."
     }
    },
    "state_variables": {
