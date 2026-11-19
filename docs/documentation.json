@@ -50199,6 +50199,20 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10255b8c",
+       "notes": "On the nonzero input+0x86 branch, f_10255af0 initializes the source word to 0x1173e4a8 if the supplied category matches audiobook (case-insensitive with end of string or a dot boundary), otherwise 0x1173eca8. It then applies (word & ~input[+0x8c]) | input[+0x90] through f_10145dc0. At 0x102576c8 the same helper clears bit 0x400 for a noncurrent source that had it; at 0x1026bdc0/0x1026cdcc it replaces bit 0x40000000 according to whether the preceding callback returned 1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014a1e4",
+       "notes": "f_1014a190 zeroes all four override words and fetches the selected track reference. If source bit 0x2000 is clear and the URI passes f_101477e4 it calls f_1045f890 directly. That helper extracts the URI's flags field using f_1071af38, which passes base 10 and a null end pointer to strtol. If the field is found, both override words receive the mapped 0x02000000 bit, if any (rotate left 11 and retain that bit); flags bit 0x8000 additionally puts X_DLNA_SeekTime in the clear word. A missing field leaves both words zero. On the other branch f_10146a38 supplies an optional string to f_10424870, whose callback table 0x10eccbc0 includes f_104257e4; it copies two supplied words to the override when the callback context byte +5 and output pointer +0x170 are nonzero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "address": "0x10258924",
        "notes": "With no entries (source halfword +0x26c8 is zero), mask 0xfe8c7fff clears all published indexed actions before the outer Set bit is applied. It re-adds original X_DLNA_SeekTrackNr only if source bit 0x400 is set, and original Play only if either source bit 0x400 or 0x1000 is set. f_10148044 and f_10148058 extract those two flags respectively.",
        "function": "0x102587b4"
@@ -50274,7 +50288,7 @@
      "notes": null,
      "todo": [
       "Established: the published mask includes the mode baselines, indexed boundary and override rules, and Spotify type 2's per-action restriction tests. The registration table is initialized empty; Spotify is its only direct registration caller in this build.",
-      "Trace the writers of source+0x26e4 and the per-track override words returned by f_1014a190, and identify the enclosing writes that set session+0x4b3e/+0x4b3f. Decode the source update fields that feed source-entry+0x82c and the writers that fill the SpotifyAudioInput restriction block at +0x4e58."
+      "Trace the remaining source+0x26e4 assignments, the producers of masks supplied to f_10255af0, and the parser inputs supplying the two words to callback f_104257e4. Identify the enclosing writes that set session+0x4b3e/+0x4b3f. Decode the source update fields that feed source-entry+0x82c and the writers that fill the SpotifyAudioInput restriction block at +0x4e58."
      ]
     },
     "GetDeviceCapabilities": {
