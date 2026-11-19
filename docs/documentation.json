@@ -156106,15 +156106,41 @@
      "type": "firmware",
      "address": "0x10fe2824",
      "notes": "login crypto"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0baac",
+     "notes": "Reachable AP-pump call to hello construction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d429dc",
+     "notes": "96-byte modular-exponentiation result feeds the KDF."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d429e8",
+     "notes": "Five transcript-plus-counter keyed-hash rounds."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d460b4",
+     "notes": "HMAC inner/outer pad constants."
     }
    ],
-   "todo": [
-    "Residual: hello-field byte layout and kdf details (Spotify crypto internals; framing proven)."
-   ],
+   "todo": "Residual: recover the serialized hello field/tag layout and bind the two 32-byte derived-key destinations to their transport directions. The 96-byte shared-result KDF, five transcript/counter HMAC-SHA1 rounds, challenge MAC and signature comparison are traced.",
    "resolved_findings": [
-    "Resolved: login packet = the send_buf field accesses {hello.data, gen/genctx/s, work_buf, MODPO} bounded by RSA-2048 bignum asserts.",
-    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect.",
-    "Established: the RSA-2048/SHA1+dual-signature login proof from bignum asserts, and the login error paths."
+    "Native login reachability: AP connection pump f_10d0b3f8 invokes hello construction f_10d42270 at 0x10d0baac and response processing f_10d42658 at 0x10d0bbc0. These are executable handshake paths, not just login4.c strings. The generic modular exponentiation helper f_10d3d5e0 receives a 0x100-byte modulus/result for the signature operation at 0x10d42998, followed by a 0x100-byte comparison at 0x10d429a8; a mismatch takes the failure exit 0x10d4274c. The next exponentiation uses 0x60-byte operands/output at 0x10d429b4-0x10d429dc. The 2048-bit signature workspace therefore must not be used to label every handshake operand RSA-2048 or to assert an SRP protocol from the filename.",
+    "KDF dataflow recovered in f_10d42658: 0x10d429dc writes a 96-byte shared result at work base r31. For counter bytes 1 through 5, 0x10d429e8-0x10d42a44 initializes keyed hashing with those 96 bytes, updates with hello base r28 and length *(r28+0xa4), then response base r26/length r25, then one counter byte, and writes a twenty-byte digest at work+0x60+20*(counter-1). The five iterations generate 100 contiguous bytes. f_10d46050 is HMAC setup: its 64-byte block/key handling and xor 0x36363636/0x5c5c5c5c at 0x10d460b4-0x10d460c0 identify inner/outer pads. Update/final are f_10d46570/f_10d4660c; twenty-byte results and the native SHA1 digest-size assertions support HMAC-SHA1 rather than a generic unspecified KDF.",
+    "The first twenty derived bytes key another HMAC over the same hello/response transcript at 0x10d42a48-0x10d42a80. The next thirty-two bytes at work+0x74 initialize context r28+8 through f_10d4682c, and the following thirty-two at work+0x94 initialize r28+0xd8 at 0x10d42a84-0x10d42aa0. These are proven key slices and destination offsets; naming send/receive direction requires tracing the cipher consumers. The previous SHA1+dual-signature/SRP description from assertions alone is withdrawn. Hello serialization fields and direction names remain native analysis work, not unavailable vendor information."
    ]
   },
   "esdk_events": {
