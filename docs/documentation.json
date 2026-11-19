@@ -20175,7 +20175,7 @@
      },
      "inputs": {
       "SatRoomUUID": {
-       "description": "The target room UUID, read by f_1034e5c8. If no member of the current HT map matches, the worker returns zero without removal. The calibration lookup log refers to remaining satellites, not necessarily this input UUID.",
+       "description": "The target room UUID, read by f_1034e5c8. If no member of the current HT map matches, the worker returns zero without removal. The calibration lookup log refers to satellite entries in the original map, not necessarily this input UUID.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -20325,7 +20325,7 @@
      },
      "side_effects": [
       {
-       "description": "Removes the satellite from the home-theater set, sends the removal to it and clears its room calibration; each step logs its own failure ('RemoveHTSat: error %d sending to Sat %s', 'failed to clear RoomCalibration on satellites').",
+       "description": "An absent target in the current map returns success and skips removal. On the primary path, local removal can update the map and attempt to send the removal to the target; lookup or send failures are logged and do not prove that the satellite received it. When the room-calibration clearing path runs, it iterates the original map's satellite entries starting at index 1, not just the requested UUID.",
        "evidence": [
         {
          "type": "firmware",
@@ -20333,6 +20333,62 @@
          "build": "86.10-80260",
          "function": "0x1034e5c8",
          "notes": "removal, notification and calibration literals"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034e76c",
+         "notes": "Absent target skips removal with zero preset"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034e78c",
+         "notes": "Local removal"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034e8c0",
+         "notes": "Remote removal call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034e8fc",
+         "notes": "Log remote failure without replacing the local result"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034e948",
+         "notes": "Initialize loop at index 1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034ea08",
+         "notes": "Load the original map's entry count"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034ea1c",
+         "notes": "Read the original map entry by index"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034eb3c",
+         "notes": "Calibration clearing call"
         }
        ]
       },
