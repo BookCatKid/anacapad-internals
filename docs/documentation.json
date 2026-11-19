@@ -149942,12 +149942,13 @@
   },
   "datatap": {
    "detail": "\"Datatap snapshot failed after %zu\" (snapshot bound); ZoneDevDiscThread",
-   "todo": "Residual: clock-provider timestamp units/domain and semantic meanings of the 24 cached status bytes copied by f_107dede8 to per-packet metadata+0x0f, shared with audio_tap/audio_taps. The format is forty-eight-byte little-endian packet metadata followed by count*8 audio bytes inside a compressed snapshot, not a fixed-head/big-endian-trailer blob.",
+   "todo": "Established: compressed snapshots contain forty-eight-byte little-endian packet headers followed by count*8 audio bytes; f_10343228 evicts a header and its associated audio, not a fixed file head/trailer. Unknown: timestamp units/clock domain and the semantic meanings of the 24 cached status bytes, consistently with audio_tap/audio_taps. Next: resolve the provider at owner+0x8d0 and its virtual slot +0xc called at 0x107d8754, following the returned eight-byte pair to metadata; enumerate writers/readers of the processor+0x1a68 block copied by f_107dede8 into metadata+0x0f and join each byte to its actual consumer.",
    "resolved_findings": [
     "Snapshot and export boundaries corrected consistently with audio_tap/audio_taps. Snapshot f_10343368 reads the ring at owner+0x98 in chunks capped at 0x1000 (0x103433cc-0x103433dc), writes each chunk through f_103d16e0, consumes it only after a successful write via f_1053ed84, and counts consumed bytes (0x103433ec-0x1034342c). Write failure logs Datatap snapshot failed after the successfully written byte count and stops; an empty ring takes the finish path without emitting a data chunk. Compression setup f_103d1ca8 receives flags 0x241 and the staged filename, so raw ring bytes and the exported file must not be conflated.",
     "The XML path f_1034308c emits <SPDIFTap>, opens the staged snapshot, constructs a generic file reader with buffer size 0x4000 at 0x103430fc-0x10343114, sets a ten-second read deadline, and streams file bytes through sonosBase64EncUpdate/Finalize. It then closes and unlinks the staged file before emitting </SPDIFTap> (0x10343160-0x103431a4). Open failure skips the streaming loop and still emits the closing tag. The 0x4000 is reader buffering, not an on-disk metadata head, and base64 wraps the snapshot file, not an assumed uncompressed PCM structure.",
     "The forty-eight-byte item is a per-packet HEADER, not a big-endian EOF trailer. Space-making routine f_10343228 compares requested bytes with ring free space, rejects requests larger than capacity, then repeatedly reads 0x30 metadata bytes through f_10342f78 (0x103432e8-0x103432f8), decodes the little-endian u16 at metadata+9 and discards count*8 audio bytes (0x10343300-0x10343324). A short metadata read logs Error: failed to read metadata from buffer and fails. A zero count still consumes the header and continues. This matches audio_tap/audio_taps framing rather than the earlier {0x4000 head, PCM, 0x30 BE trailer} assertion.",
-    "Shared semantic provenance retained precisely: native producer f_107d8624 initializes version 1 in forty-eight bytes, obtains the eight-byte timestamp pair from clock-provider virtual +0xc, stores sample count and sample rate, and copies 24 cached status bytes from processor+0x1a68 through f_107dede8. Reader f_107e1264 reverses the scalar fields and handles metadata+0x27 bit 0x80 as signal loss; its fields agree with the ring eviction count. The reader/producer linkage resolves format and sample rate, but not clock units/domain or every cached status-byte meaning. Those are the same genuine semantic residuals retained in both audio tap records."
+    "Shared semantic provenance retained precisely: native producer f_107d8624 initializes version 1 in forty-eight bytes, obtains the eight-byte timestamp pair from clock-provider virtual +0xc, stores sample count and sample rate, and copies 24 cached status bytes from processor+0x1a68 through f_107dede8. Reader f_107e1264 reverses the scalar fields and handles metadata+0x27 bit 0x80 as signal loss; its fields agree with the ring eviction count. The reader/producer linkage resolves format and sample rate, but not clock units/domain or every cached status-byte meaning. Those are the same genuine semantic residuals retained in both audio tap records.",
+    "The clock provenance is an indirect call, not a unit conversion inferred from packet framing: 0x107d8738 loads owner+0x8d0, 0x107d874c selects virtual +0xc and 0x107d8754 invokes it with stack output storage. Subsequent byte copies preserve the returned pair. f_107dede8 requires a destination capacity greater than 23 before copying the cached block; neither copy names the provider clock domain or status semantics."
    ],
    "evidence": [
     {
@@ -149977,6 +149978,20 @@
      "build": "86.10-80260",
      "address": "0x10343304",
      "notes": "e500 scalar decode obtains little-endian sample count at packet metadata+9."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107d8754",
+     "notes": "Indirect provider +0xc returns the timestamp pair; copying its output does not identify units/domain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107dede8",
+     "notes": "Capacity must exceed 23 for the cached 24-byte status copy; follow processor+0x1a68 writers/readers for meanings."
     }
    ]
   },
