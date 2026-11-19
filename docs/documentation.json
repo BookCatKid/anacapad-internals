@@ -226064,50 +226064,678 @@
   },
   "muse_events": {
    "name": "muse event-type registry",
-   "summary": "Muse event names are selected through a bounded 73-row topic registry, distinct from schema/type indices and typed payload producers. Output supports already-built raw bodies and producer-based bodies, with a format-dependent common metadata wrapper. The complete topic-to-producer and body-field mapping remains unfinished.",
+   "summary": "Muse event registry: 73 runtime-built 20-byte rows at 0x110b8ce8 initialized by f_10098d34. Row layout {+0 descriptive tag u32 (quirks: row56 stores 3, row60 stores 60 via ctr), +4 event-name ptr, +8 schema/type id u32 <=0x142, +0xc producer sub-index u16, +0xe selector s8 (all 0 = sub-index valid), +0x10 format-class u32}. Accessors: f_109e12f8 topic->type (bound 0x48), f_109e1370 topic->name, f_109e13b0 type->topic via reverse map 0x10f95bc0 (bound 0x147, sentinel 0x4a), f_109e1334 type->converted. Schema-name table 0x10f97094 indexed by type: 12 types share 'versionChanged' ({0x18,0x22,0x6a,0x73,0x8d,0xc3,0xfc,0x139} etc.), 17 share 'upnpEvent', rest have dedicated names (battery, bluetooth, wirelessNetworkStatus, cloudRegistrationStatus, settingsChanged, metadataStatus, sessionError/sessionInfo, playerSettingsEvent, positioning*Info, speakerPresence*, trueroom*). Format classes at +0x10: 0 = simple/version-changed style, 2 = playback family {extendedPlaybackStatus, groupVolume, playbackMetadataStatus, playbackStatus, playbackError, sleepTimerStatus} (f_109e12b4 tests +0x10==2), 3 = session pair {sessionError, sessionInfo}, 4 = UPnP/status family (most topics), 5 = {householdUpdateStatus, upgradeManager}, 6 = entitlementsVersionChanged, 8 = groupCoordinatorChanged. +0xc is the per-class producer sub-index: UPnP topics carry 0x3f..0x52 service indices, device-status topics share 0xf, trueroom share 0x3e, speakerPresence share 0x3d, positioning share 0x23, cloudRegistration 0x3c; +0xe always 0 (f_109e1044 resolves {-1 no-sub, 0/1 use row +0xc}; f_109e10d8 reverse-matches the pair). Construction: shared ctor f_10677b94 (r5=topic) -> generic event f_10677970 (vtable 0x10e87040, producer +4=0, raw +8/+0xc=0, header +0x20, sub-id +0x20 u16/+0x22 s8) with type assigned by f_109e8780; 27 literal-topic call sites bind 25 topics (see evidence). Header fill f_1067cff4 has many more callers for header-only construction. Send: f_106c2818 -> f_109e98c4 tests event+0xc; nonzero -> raw writer f_109f6d7c copies event+8 bytes of exact length event+0xc through writer vfunc+8 (null ptr + nonzero len -> basic_string exception); zero -> typed f_109f6fb0/f_109f6f0c which calls producer vfunc+8 with writer+flag when event+4 is non-null, else emits an empty object; formats 4/5 wrap either body in the shared envelope f_109f6d2c/f_109f6bc4 (namespace, response, success, type, cmdId, async, apiVersion, event name).",
    "evidence": [
     {
      "type": "firmware",
-     "address": "0x10f960df",
-     "notes": "muse event types"
-    },
-    {
-     "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "function": "f_10098d34 and topic registry accessors",
+     "function": "registry initializer f_10098d34",
      "address": "0x110b8ce8",
-     "callsite": "0x10098e78 / 0x10098e98 / 0x109e131c",
-     "notes": "Construction stores alarmVersionChange at row6+4 and type0x18 at row6+8, areasVersionChange at row7+4 with type0x22. f_109e12f8 compares unsigned topic to0x48 and returns row+8 using (index<<2)+(index<<4); invalid topic returns0 at 0x109e1328. f_109e1370 uses the same bound/stride and returns row+4. Big-endian pointer words 0x10f970f4 and 0x10f9711c both point to versionChanged literal0x10f976a4. Reverse lookup f_109e13b0 bounds type<=0x147 then indexes table0x10f95bc0; it is not another topic-name array."
+     "callsite": "stores at 0x10098dd8 + scattered",
+     "notes": "Writes 73 x 20-byte records {tag,name,type,subIdx u16,selector s8,fmtClass u32}. Type/subIdx values 0x3c for row17 and row21 arrive through mfctr (one mtctr of 0x3c at the initializer head). Tag quirks: row56 stores 3, row60 stores 60."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "function": "f_106c2818 / f_109e98c4 / f_109f6fb0 / f_109f6f0c",
-     "address": "0x106c2888",
-     "callsite": "0x109e98dc / 0x109e98fc / 0x109f6f64",
-     "notes": "Dispatch compares event+0xc at 0x109e98d0; zero calls0x109f6fb0, nonzero0x109f6d7c. Typed adapter at 0x109f6fb4-0x109f6fc4 passes event+20 header, event+cc metadata and producer loaded from event+4 to f_109f6f0c. f_109f6f40 starts object; null-producer gate0x109f6f44-0x109f6f48 skips callback; otherwise invokes its vtable+8 at0x109f6f64, writer flag loaded at0x109f6f54. End-object0x109f6f6c and writer completion0x109f6f90 follow."
+     "function": "topic/type accessors",
+     "address": "0x109e12f8 / 0x109e1370 / 0x109e13b0",
+     "notes": "f_109e12f8 topic<=0x48 -> row+8 type; f_109e1370 -> row+4 name; f_109e13b0 type<=0x147 -> reverse map 0x10f95bc0 (sentinel 0x4a); f_109e1334 = row+8 then converter f_109ecb5c."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "function": "f_109f6d7c / f_109f6bc4",
-     "address": "0x109f6dd0",
-     "callsite": "0x109f6e30 / 0x109f6efc / 0x109f6dc4",
-     "notes": "Raw pointer/length loaded event+8/+c at0x109f6dd0/0x109f6dd8. Nonzero null length/pointer guard at0x109f6eec-0x109f6efc throws basic_string construction error; non-null data copied then writer virtual+8 at0x109f6e30. Format4/5 detection uses unsigned (format-4)<=1 at0x109f6db0-0x109f6dc4; analogous typed gate0x109f6f28-0x109f6f38. Common envelope field bindings include namespace0x109f6c0c, response0x109f6c40, success0x109f6c54, type0x109f6c70, cmdId0x109f6c8c, async0x109f6cac, apiVersion0x109f6cf0 and event name0x109f6d18."
+     "function": "sub-index pair resolver / reverse match",
+     "address": "0x109e1044 / 0x109e10d8",
+     "callsite": "0x10677a88 / 0x1068e65c / 0x1068e904 / 0x1068ec54",
+     "notes": "f_109e1044: selector +0xe == -1 -> out sub = -1; else out = {row+0xc u16, +0xe s8}. f_109e10d8 scans all 73 rows matching a (u16,s8) pair back to a topic. All rows ship +0xe = 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "format-class predicate",
+     "address": "0x109e12b4",
+     "notes": "Returns row+0x10 == 2; the playback family topics carry format class 2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "generic event ctor f_10677970 / shared wrapper f_10677b94",
+     "address": "0x10677970",
+     "callsite": "0x10677bd4 plus 27 subsystem sites",
+     "notes": "Event object: vtable 0x10e87040, producer +4 = 0, raw ptr/len +8/+0xc = 0, flag +0x10, header type via f_109e8780(obj+0x20,topic), sub-id pair +0x20 u16/+0x22 s8 resolved from the registry row, metadata sub-blocks +0x3c.., +0xcc, +0xdc/+0xf4 strings via f_1067758c, +0x12c = 0x34. Caller's r5 is the literal topic."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "bound typed-construction sites",
+     "address": "27 call sites of f_10677b94",
+     "notes": "playerVolume@0x100e3208, settingsVersionChanged@0x100f9540, availableSoftwareUpdate@0x1012a3dc+0x1074da80, householdUpdateStatus@0x1015c878, wirelessNetworkStatus@0x101601dc, tvAudioSignalStatus@0x10243384, sessionError@0x102b31f0, {playbackStatus, playbackMetadataStatus, sessionInfo, extendedPlaybackStatus, playbackError} all inside f_102cb860, sleepTimerStatus@0x102e5458 (and playbackStatus type-assign at 0x102e3d60 inside f_102e38d0), trueplayStatus@0x1035de58, entitlementsVersionChanged@0x10370d88, groupCoordinatorChanged@0x103928e8+0x106a0014, groupVolume@0x1039d398 (plus inline type-assign 0x1039caf8 with emission-predicate flag stores), audioClipStatus@0x1050c170, settingsPlayerSettingsChanged@0x10526ed4, cloudRegistration@0x10595c08, diagnosticMetadata+diagnosticSubmissionResults@0x105b16f0/0x105b1748, zoneDefinitionsChange@0x10665844, one variable-topic site @0x10677d4c, one stack-topic site @0x10682810."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "send dispatch",
+     "address": "0x106c2818 -> f_109e98c4",
+     "callsite": "senders 0x105998d8 / 0x10599a8c / 0x106d8544 / 0x109f269c",
+     "notes": "event+0xc nonzero -> raw f_109f6d7c (event+8 ptr, exact length, null-ptr-nonzero-len -> basic_string exception); zero -> typed f_109f6fb0 -> f_109f6f0c producer vfunc+8 gated on non-null event+4; formats 4/5 envelope f_109f6d2c/f_109f6bc4 first."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "envelope fields",
+     "address": "0x109f6bc4",
+     "notes": "namespace, response, success, type, cmdId (optional), async (conditional), apiVersion (optional), event name; all envelope fields, not body members."
     }
    ],
-   "todo": [
-    "Established: the bounded topic registry, separate topic/schema ID spaces, example versionChanged mappings, actual raw-versus-typed sender dispatch, null/empty behavior and common-envelope boundary. Remaining: join every topic row to its concrete event construction call, event+4 producer class or event+8/+0xc raw-body writer, then recover body member types, emission predicates and failure behavior. Start with alarmVersionChange topic6/type0x18 and areasVersionChange topic7/type0x22, follow header type assignments through f_109e8780 and the reverse type->topic lookup f_109e13b0, then bind producer virtual+8 at 0x109f6f64. Registry names and plausible owning subsystems alone do not establish these schemas; this remains actionable static work, not an external-schema limitation."
-   ],
+   "todo": "Residual: for the 48 topics without a literal f_10677b94 construction site, bind each concrete producer class (vtable installed at event+4 by subsystem constructors) or raw-body writer, and recover per-body member lists and per-site emission predicates. Mechanism, registry and send contract are resolved; remaining work is the per-class body census.",
    "resolved_findings": [
-    "The event registry is not an emitter census. Initializer f_10098d34 writes 20-byte records at 0x110b8ce8; f_109e12f8/f_109e1334/f_109e1370 bound topic indices to 0..0x48 and compute index*20. Row+4 is the event-name pointer; row+8 is a separate schema/type index. For example topic6 alarmVersionChange maps to type0x18, topic7 areasVersionChange maps to type0x22, and topic0x2f playbackStatus maps to type0xb8. The schema-name table at 0x10f97094 names both type0x18 and type0x22 versionChanged. Identical schema-name text therefore does not make the two topic IDs or their implementation bindings interchangeable. The older approximate event count and blanket owner/emitter assignments are not a verified per-event binding census.",
-    "Concrete send path: f_106c2818 creates a writer and invokes f_109e98c4 at 0x106c2888. The dispatcher tests event+0xc: nonzero selects raw serialization f_109f6d7c; zero selects f_109f6fb0, which loads the producer pointer from event+4 and tail-calls f_109f6f0c. The latter starts an object, calls producer virtual+8 with the writer and writer flag +0x1040 when a producer exists, and ends the object. A null typed producer skips that callback, leaving an empty object. Thus the body producer and its member predicates are recoverable code, not necessarily an out-of-image Muse contract.",
-    "Raw bodies use event+8 as pointer and event+0xc as explicit byte length. f_109f6d7c constructs a string of that exact length and forwards it through writer virtual+8, rather than enumerating topic-specific members. A null pointer with nonzero length takes the basic_string null-not-valid exception at 0x109f6ef4-0x109f6efc. The public dispatch chooses this path only for nonzero length; zero length instead takes the typed path. Do not infer that an empty raw body proves a successfully emitted empty JSON object.",
-    "Formats4/5 add a shared array/header envelope through f_109f6d2c before either body representation. f_109f6bc4 emits namespace/addressing metadata when resolved, optional apiVersion, event name or response/success, type, optional cmdId and conditional async. These are envelope fields, not proof that every event body contains them. Both raw/typed paths finish writer state and return its status; reaching the sender is not proof that a producer populated every field or that the remote subscriber accepted the event."
-   ]
+    "Registry layout recovered end to end: 73 rows of 20 bytes built at 0x110b8ce8 by f_10098d34 with fields {descriptive tag, name ptr, type id <=0x142, sub-index u16, selector s8, format class u32}. Every topic, type, schema name, sub-index and class is enumerated in the registry field; ctr-sourced stores make row17 type and row21 sub-index 0x3c, and the tag field is quirky (row56=3, row60=60).",
+    "Format classes decoded: +0x10 picks the body family - 0 simple/version-changed, 2 playback family (f_109e12b4 is a ==2 predicate covering extendedPlaybackStatus, groupVolume, playbackMetadataStatus, playbackStatus, playbackError, sleepTimerStatus), 3 session pair, 4 UPnP/status family, 5 household/upgrade, 6 entitlements, 8 groupCoordinatorChanged.",
+    "Sub-index pair decoded: +0xc u16 is the producer sub-index inside a class (UPnP service indices 0x3f..0x52, device-status group 0xf, trueroom 0x3e, speakerPresence 0x3d, positioning 0x23, diagnostics 8, settings 9/0x26); +0xe s8 is the selector resolved by f_109e1044 (-1 = none) and reverse-matched by f_109e10d8.",
+    "Construction bound: shared ctor f_10677b94 (r5 = literal topic) wraps generic event f_10677970 (vtable 0x10e87040); header type comes from f_109e8780(obj+0x20, topic). Twenty-seven literal-topic call sites bind 25 topics including the five playback events inside f_102cb860; groupVolume and playbackStatus also get inline type-assigns at 0x1039caf8 and 0x102e3d60. Topics without a typed site are covered by subsystem-specific constructors not exhaustively inventoried here.",
+    "Send contract confirmed: event+0xc nonzero selects the raw writer over event+8 (exact byte length, null pointer with nonzero length throws), zero selects the typed producer path whose vfunc+8 call is skipped for a null producer leaving an empty object; formats 4/5 prepend the shared envelope either way."
+   ],
+   "registry": {
+    "base": "0x110b8ce8",
+    "stride": 20,
+    "initializer": "0x10098d34",
+    "row": "{+0 topic u32, +4 name*, +8 type u32, +0xc subIndex u16, +0xe selector s8, +0x10 formatClass u32}",
+    "topics": [
+     [
+      0,
+      "accessorySwapStatus",
+      3,
+      "accessorySwap",
+      18,
+      0
+     ],
+     [
+      1,
+      "tvAudioSignalStatus",
+      4,
+      "tvAudioSignalStatus",
+      18,
+      4
+     ],
+     [
+      2,
+      "activeZonesChange",
+      12,
+      "activeZonesChange",
+      82,
+      0
+     ],
+     [
+      3,
+      "zoneDefinitionsChange",
+      13,
+      "zoneDefinitionsChange",
+      82,
+      0
+     ],
+     [
+      4,
+      "zoneError",
+      14,
+      "zoneError",
+      82,
+      0
+     ],
+     [
+      5,
+      "alarmClock",
+      20,
+      "upnpEvent",
+      64,
+      4
+     ],
+     [
+      6,
+      "alarmVersionChange",
+      24,
+      "versionChanged",
+      1,
+      0
+     ],
+     [
+      7,
+      "areasVersionChange",
+      34,
+      "versionChanged",
+      2,
+      0
+     ],
+     [
+      8,
+      "audioClipStatus",
+      38,
+      "audioClipStatus",
+      3,
+      4
+     ],
+     [
+      9,
+      "audioInput",
+      40,
+      "upnpEvent",
+      65,
+      4
+     ],
+     [
+      10,
+      "availableSoftwareUpdate",
+      51,
+      "availableSoftwareUpdate",
+      63,
+      4
+     ],
+     [
+      11,
+      "avTransport",
+      52,
+      "upnpEvent",
+      66,
+      4
+     ],
+     [
+      12,
+      "batteryStatus",
+      55,
+      "battery",
+      15,
+      4
+     ],
+     [
+      13,
+      "wirelessNetworkStatus",
+      56,
+      "wirelessNetworkStatus",
+      15,
+      4
+     ],
+     [
+      14,
+      "microphoneSwitchStatus",
+      57,
+      "microphoneSwitch",
+      15,
+      4
+     ],
+     [
+      15,
+      "waterStatus",
+      58,
+      "waterState",
+      15,
+      4
+     ],
+     [
+      16,
+      "bluetoothPairingStatus",
+      59,
+      "bluetoothPairing",
+      15,
+      4
+     ],
+     [
+      17,
+      "bluetoothConnectionStatus",
+      60,
+      "bluetooth",
+      15,
+      4
+     ],
+     [
+      18,
+      "poeStatus",
+      61,
+      "poeState",
+      15,
+      4
+     ],
+     [
+      19,
+      "lineInStatus",
+      62,
+      "lineInStatus",
+      15,
+      4
+     ],
+     [
+      20,
+      "wiredSubConnectionStatus",
+      63,
+      "wiredSubStatus",
+      15,
+      4
+     ],
+     [
+      21,
+      "cloudRegistration",
+      74,
+      "cloudRegistrationStatus",
+      60,
+      0
+     ],
+     [
+      22,
+      "connectionManager",
+      77,
+      "upnpEvent",
+      67,
+      4
+     ],
+     [
+      23,
+      "contentDirectory",
+      80,
+      "upnpEvent",
+      68,
+      4
+     ],
+     [
+      24,
+      "deviceProperties",
+      90,
+      "upnpEvent",
+      69,
+      4
+     ],
+     [
+      25,
+      "diagnosticSubmissionResults",
+      95,
+      "diagnosticSubmissionResults",
+      8,
+      4
+     ],
+     [
+      26,
+      "diagnosticMetadata",
+      96,
+      "diagnosticMetadata",
+      8,
+      4
+     ],
+     [
+      27,
+      "effectiveSettingsDataChanged",
+      101,
+      "settingsChanged",
+      9,
+      4
+     ],
+     [
+      28,
+      "entitlementsVersionChanged",
+      106,
+      "versionChanged",
+      10,
+      6
+     ],
+     [
+      29,
+      "extendedDeviceStatus",
+      110,
+      "extendedDeviceStatus",
+      7,
+      0
+     ],
+     [
+      30,
+      "extendedPlaybackStatus",
+      111,
+      "extendedPlaybackStatus",
+      30,
+      2
+     ],
+     [
+      31,
+      "favoritesVersionChange",
+      115,
+      "versionChanged",
+      11,
+      0
+     ],
+     [
+      32,
+      "groups",
+      133,
+      "groups",
+      13,
+      0
+     ],
+     [
+      33,
+      "groupCoordinatorChanged",
+      134,
+      "groupCoordinatorChanged",
+      12,
+      8
+     ],
+     [
+      34,
+      "groupManagement",
+      136,
+      "upnpEvent",
+      70,
+      4
+     ],
+     [
+      35,
+      "groupRendering",
+      137,
+      "upnpEvent",
+      71,
+      4
+     ],
+     [
+      36,
+      "groupVolume",
+      138,
+      "groupVolume",
+      14,
+      2
+     ],
+     [
+      37,
+      "hdmiStatus",
+      140,
+      "hdmiStatus",
+      16,
+      4
+     ],
+     [
+      38,
+      "historyVersionChanged",
+      141,
+      "versionChanged",
+      17,
+      0
+     ],
+     [
+      39,
+      "householdUpdateStatus",
+      147,
+      "householdUpdateStatus",
+      20,
+      5
+     ],
+     [
+      40,
+      "upgradeManager",
+      148,
+      "upgradeManager",
+      20,
+      5
+     ],
+     [
+      41,
+      "htControl",
+      149,
+      "upnpEvent",
+      72,
+      4
+     ],
+     [
+      42,
+      "indexerStatus",
+      152,
+      "indexerStatus",
+      23,
+      0
+     ],
+     [
+      43,
+      "localDevices",
+      160,
+      "localDevices",
+      6,
+      0
+     ],
+     [
+      44,
+      "musicServices",
+      166,
+      "upnpEvent",
+      73,
+      4
+     ],
+     [
+      45,
+      "musicServicesChanged",
+      167,
+      "musicServicesChanged",
+      25,
+      0
+     ],
+     [
+      46,
+      "playbackMetadataStatus",
+      181,
+      "metadataStatus",
+      31,
+      2
+     ],
+     [
+      47,
+      "playbackStatus",
+      184,
+      "playbackStatus",
+      29,
+      2
+     ],
+     [
+      48,
+      "playbackError",
+      185,
+      "playbackError",
+      29,
+      2
+     ],
+     [
+      49,
+      "playerVolume",
+      192,
+      "playerVolume",
+      33,
+      4
+     ],
+     [
+      50,
+      "playlistsVersionChange",
+      195,
+      "versionChanged",
+      34,
+      0
+     ],
+     [
+      51,
+      "positioningSessionStatus",
+      211,
+      "positioningSessionStatusInfo",
+      35,
+      4
+     ],
+     [
+      52,
+      "positioningSessionError",
+      212,
+      "positioningSessionErrorInfo",
+      35,
+      4
+     ],
+     [
+      53,
+      "positioningDeviceStatus",
+      213,
+      "positioningDeviceStatusInfo",
+      35,
+      4
+     ],
+     [
+      54,
+      "queue",
+      223,
+      "upnpEvent",
+      74,
+      4
+     ],
+     [
+      55,
+      "renderingControl",
+      237,
+      "upnpEvent",
+      75,
+      4
+     ],
+     [
+      56,
+      "sessionError",
+      246,
+      "sessionError",
+      32,
+      3
+     ],
+     [
+      57,
+      "sessionInfo",
+      247,
+      "sessionInfo",
+      32,
+      3
+     ],
+     [
+      58,
+      "settingsVersionChanged",
+      252,
+      "versionChanged",
+      38,
+      0
+     ],
+     [
+      59,
+      "settingsDataChanged",
+      253,
+      "settingsChanged",
+      38,
+      0
+     ],
+     [
+      60,
+      "settingsPlayerSettingsChanged",
+      254,
+      "playerSettingsEvent",
+      38,
+      0
+     ],
+     [
+      61,
+      "sleepTimerStatus",
+      259,
+      "sleepTimerStatus",
+      52,
+      2
+     ],
+     [
+      62,
+      "systemProperties",
+      274,
+      "upnpEvent",
+      76,
+      4
+     ],
+     [
+      63,
+      "timers",
+      276,
+      "timers",
+      59,
+      4
+     ],
+     [
+      64,
+      "trueplayStatus",
+      288,
+      "trueplayStatus",
+      61,
+      4
+     ],
+     [
+      65,
+      "speakerPresenceStatus",
+      289,
+      "speakerPresenceResultList",
+      61,
+      4
+     ],
+     [
+      66,
+      "speakerPresenceRateChange",
+      290,
+      "speakerPresenceEffectiveRate",
+      61,
+      4
+     ],
+     [
+      67,
+      "trueroomAdaptationStatusEvent",
+      292,
+      "trueroomAdaptationStatus",
+      62,
+      4
+     ],
+     [
+      68,
+      "trueroomCalibrationStatus",
+      293,
+      "trueroomCalibrationStatus",
+      62,
+      4
+     ],
+     [
+      69,
+      "trueroomStatusEvent",
+      294,
+      "trueroomStatus",
+      62,
+      4
+     ],
+     [
+      70,
+      "virtualLineIn",
+      309,
+      "upnpEvent",
+      77,
+      4
+     ],
+     [
+      71,
+      "voiceAccountsVersionChange",
+      313,
+      "versionChanged",
+      81,
+      4
+     ],
+     [
+      72,
+      "zoneGroupTopology",
+      322,
+      "upnpEvent",
+      78,
+      4
+     ]
+    ],
+    "note": "row[topic,name,type,schemaName,subIndex,formatClass]; row17 type 0x3c and row21 subIndex 0x3c arrive via mfctr (ctr loaded once with 0x3c at the initializer head); the descriptive +0 tag is quirky: row56 sessionError stores 3 and row60 settingsPlayerSettingsChanged stores 60 via ctr"
+   }
   },
   "circuit_breaker": {
    "name": "circuit breaker FSM",
