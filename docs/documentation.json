@@ -154517,16 +154517,23 @@
      "type": "firmware",
      "address": "0x10f1143c",
      "notes": "zgt error paths"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10733878",
+     "notes": "Guard branches0x10733a74/0x10733ab0/0x10733aec; provider+0x24 comparison0x1073395c and output-buffer call0x10733990 versus request+0x14 error dispatch. Default f_1012b9b4 returns0x1f5 without composing XML. Common fault literal0x10eebdcc is formed at0x105638e4 via base+0x148 and queued at0x10563ab4; this common serializer is not yet certified as the concrete request error receiver."
     }
    ],
    "todo": [
-    "Residual: the literal fault envelope text - the fault body is composed inside the v[+0x24] setter (f_1012b9b4 family) and is not a static literal in this TU."
+    "Established: three non-fault guards, provider default501 versus request error emission, successful output-field path and compiled common SOAP fault fragments with a concrete serializer consumer. Remaining: bind the actual request implementation at f_10733878, its virtual+0x14 error method and response object constructor to the serializer around0x1056383c; recover numeric code formatting, buffer/error propagation and any action-specific description fields. Start with request+0x14 call0x1073390c and literal consumer0x10563ab4. The provider+0x24 stub is not the fault setter, and literal text is not unavailable. This remains actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: ZGT fault paths = {ReportUnresponsiveDevice handling, GetZoneGroupAttributes rejects {No valid UUID in request server, TServer is not valid for request, TRequest is invalid in the control server}}.",
-    "Fault paths enumerated: inbound ZGT errors {No valid UUID in request server, TServer is not valid for request, TRequest is invalid in the control server} (the GetZoneGroupAttributes/request-server rejects) plus ReportUnresponsiveDevice handling (Handling ReportUnresponsiveDevice %s/%s from %s:%hu - the unresponsive-member fault feed). ZGT errors split from the favorites 805 family (zone_topology record).",
-    "ZGT fault codes bound: the GetZoneGroupAttributes reject path at 0x10733878 loads fault arg 0x192 (402, UPnP Invalid Args) at 0x107338f0 and 0x1f5 (501, Action Failed) at 0x10733948 before the fault-set vfunc dispatch - the three rejects {No valid UUID, TServer not valid, TRequest invalid} map onto the standard UPnP 402/501 pair, matching the Invalid-Args/Action-Failed convention used by other actions.",
-    "Per-branch binding resolved: the three rejects {TRequest invalid @req==0 -> 0x10733a74, TServer not valid @req+0x6c==0 -> 0x10733ab0, No valid UUID @server+0x178==0 -> 0x10733aec} are log-then-return-empty paths (each logs via the topology domain and returns 0) - none of them emit a SOAP fault. The 402/501 codes stage in the response-fault path instead: the fault setter is vfunc v[+0x24] (identity-compared against f_1012b9b4 at 0x1073395c); when the v[+0x08] request-validity check returns nonzero the 501 (Action Failed) path at 0x10733944 runs; 402 (Invalid Args) is loaded at 0x107338f0 as the code arg fed into the v[+0x14] emit call."
+    "GetZoneGroupAttributes handler f_10733878 has three log-and-return0 guards: null request branches to0x10733a74, null request+0x6c to0x10733ab0, and null server+0x178 to0x10733aec. The messages are TRequest is invalid in the control server, TServer is not valid for request, and No valid UUID in request server. These guards do not themselves emit a SOAP fault and must not be mapped individually to402/501.",
+    "After those guards the handler calls request virtual+8. Its false path stages402; the true path stages501 as the default implementation outcome, compares the provider virtual+0x24 with f_1012b9b4, and otherwise invokes that provider with output buffers. f_1012b9b4 simply returns501; it is not a fault-envelope setter. A nonzero provider result reaches request virtual+0x14. Provider success instead supplies CurrentZoneGroupName, CurrentZoneGroupID, CurrentZonePlayerUUIDsInGroup and the household identifier through request virtual+0x24, then completes through request virtual+0xc. Those provider and request vtables have different roles.",
+    "A compiled common SOAP fault fragment exists at0x10eebdcc: <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>. The response serializer around0x1056383c constructs its pointer as Response literal0x10eebc84+0x148 and queues0x93 bytes through f_109bec4c at0x10563ab4. Other states queue the numeric-text buffer and </errorCode></UPnPError></detail></s:Fault> followed by body/envelope closures. This disproves the no-static-literal claim; the concrete GetZoneGroupAttributes request+0x14 binding into this serializer still requires a join.",
+    "ReportUnresponsiveDevice has its own request-handling diagnostic vocabulary. That fact does not establish that every unresponsive-device report is a SOAP fault or that the three attribute-request guard messages share its error policy."
    ]
   },
   "desired_settings": {
