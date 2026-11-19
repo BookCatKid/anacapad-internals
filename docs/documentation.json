@@ -55803,7 +55803,7 @@
      ]
     },
     "GetProtocolInfo": {
-     "description": "Returns the supported protocol info strings (Source/Sink CSVs) via impl->v[+0x8] on the r4-in impl object with the same nonzero=success convention as GetCurrentConnectionIDs.",
+     "description": "Reports the fixed Sink protocol-info list for the MediaRenderer endpoint. Source is always empty.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10735b64",
@@ -55818,17 +55818,43 @@
       "calls": [
        {
         "site": "0x10735b90",
-        "obj": "r4-in",
+        "obj": "request (r4-in)",
         "slot": 8,
-        "arg4": "r4-in"
+        "purpose": "validate request"
+       },
+       {
+        "site": "0x10735aa4",
+        "obj": "*(r3-in+0x4) from service",
+        "slot": 8,
+        "target": "0x1032e8a4",
+        "arg4": "0x400-byte Source buffer",
+        "arg5": "0x400",
+        "arg6": "0x800-byte Sink buffer",
+        "arg7": "0x800"
        }
       ],
-      "req_vcalls": []
+      "req_vcalls": [
+       {
+        "site": "0x10735ac8",
+        "slot": 36,
+        "purpose": "obtain Source"
+       },
+       {
+        "site": "0x10735af8",
+        "slot": 36,
+        "purpose": "obtain Sink"
+       },
+       {
+        "site": "0x10735b20",
+        "slot": 12,
+        "purpose": "commit"
+       }
+      ]
      },
      "inputs": {},
      "outputs": {
       "Source": {
-       "description": "source protocol-info CSV emitted by impl 0x10735a64 via core vfunc f_1032e84c",
+       "description": "Empty Source protocol-info list; the MediaRenderer core writes an initial NUL.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -55837,9 +55863,9 @@
        "semantic_type": "response field",
        "format": "text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "empty string",
+       "range": "0 bytes excluding NUL",
+       "special_values": "Empty string is the only emitted value in this build.",
        "required": false,
        "default": "none; written on success",
        "validation": "arg-name string loaded at 0x10735abc inside impl 0x10735a64; emitted via the response writer",
@@ -55848,21 +55874,21 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735abc",
-         "notes": "'Source' arg-name load in impl 0x10735a64"
+         "address": "0x1032e8a4",
+         "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735a64",
-         "notes": "impl emits this output"
+         "address": "0x10735aa4",
+         "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
         }
        ],
        "notes": null
       },
       "Sink": {
-       "description": "sink protocol-info CSV emitted by impl 0x10735a64",
+       "description": "Fixed Sink protocol-info list reported by the MediaRenderer core.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -55871,9 +55897,9 @@
        "semantic_type": "response field",
        "format": "text",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
+       "accepted_values": "http-get:*:audio/mp3:*,x-file-cifs:*:audio/mp3:*,http-get:*:audio/mp4:*,x-file-cifs:*:audio/mp4:*,http-get:*:audio/x-m4a:*,x-file-cifs:*:audio/x-m4a:*,http-get:*:audio/mpeg:*,x-file-cifs:*:audio/mpeg:*,http-get:*:audio/mpegurl:*,x-file-cifs:*:audio/mpegurl:*,file:*:audio/mpegurl:*,http-get:*:audio/x-mpegurl:*,x-file-cifs:*:audio/x-mpegurl:*,http-get:*:application/x-mpegurl:*,x-file-cifs:*:application/x-mpegurl:*,http-get:*:application/vnd.apple.mpegurl:*,x-file-cifs:*:application/vnd.apple.mpegurl:*,http-get:*:application/dash+xml:*,x-file-cifs:*:application/dash+xml:*,http-get:*:audio/mpeg3:*,x-file-cifs:*:audio/mpeg3:*,http-get:*:audio/wav:*,x-file-cifs:*:audio/wav:*,http-get:*:audio/x-wav:*,x-file-cifs:*:audio/x-wav:*,http-get:*:audio/wma:*,x-file-cifs:*:audio/wma:*,http-get:*:audio/x-ms-wma:*,x-file-cifs:*:audio/x-ms-wma:*,http-get:*:audio/aiff:*,x-file-cifs:*:audio/aiff:*,http-get:*:audio/x-aiff:*,x-file-cifs:*:audio/x-aiff:*,http-get:*:audio/flac:*,x-file-cifs:*:audio/flac:*,http-get:*:application/ogg:*,x-file-cifs:*:application/ogg:*,http-get:*:audio/ogg:*,x-file-cifs:*:audio/ogg:*,sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:audio/mp3:*,sonos.com-http:*:audio/mpeg:*,sonos.com-http:*:audio/mpeg3:*,sonos.com-http:*:audio/wma:*,sonos.com-http:*:audio/mp4:*,sonos.com-http:*:audio/x-m4a:*,sonos.com-http:*:audio/wav:*,sonos.com-http:*:audio/aiff:*,sonos.com-http:*:audio/flac:*,sonos.com-http:*:application/ogg:*,sonos.com-http:*:application/x-mpegURL:*,sonos.com-http:*:application/dash+xml:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*,x-sonosapi-stream:*:*:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*,x-sonosapi-radio:*:audio/x-sonosapi-radio:*,x-rincon-cpcontainer:*:*:*,",
+       "range": "1855 bytes excluding NUL",
+       "special_values": "The literal includes a trailing comma.",
        "required": false,
        "default": "none; written on success",
        "validation": "arg-name string loaded at 0x10735ae8 inside impl 0x10735a64; emitted via the response writer",
@@ -55882,125 +55908,175 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735ae8",
-         "notes": "'Sink' arg-name load in impl 0x10735a64"
+         "address": "0x1032e8a4",
+         "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735a64",
-         "notes": "impl emits this output"
+         "address": "0x10eb87e4",
+         "notes": "NUL-terminated Sink literal, 1855 bytes excluding NUL, including a final comma."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10735aa4",
+         "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "No action arguments are bound. Request slot +0x08 must return nonzero. The core worker separately returns zero to indicate success.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10735b64",
-        "notes": "wrapper decode"
+        "address": "0x10735b90",
+        "notes": "f_10735b64 calls request slot +0x08. Zero takes the immediate 402 tail; nonzero tailcalls f_10735a64 at 0x10735bb8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e8a4",
+        "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8]",
+      "description": "Requires an accepted SOAP request, with no action arguments or playback precondition.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735b64",
-        "notes": "req-vfunc call map: {'0x14': 1}"
+        "address": "0x10735b90",
+        "notes": "f_10735b64 calls request slot +0x08. Zero takes the immediate 402 tail; nonzero tailcalls f_10735a64 at 0x10735bb8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e8a4",
+        "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1); member delegates: r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8]",
+      "description": "The bound MediaRenderer core selects the literal. It does not consult the current playback source or individual connections.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735b64",
-        "notes": "member vfunc calls: ['r4 v[+0x8]']"
+        "address": "0x10eb8718",
+        "notes": "MediaRenderer core slot +0x08 selects 0x1032e8a4. Zone-player init passes this core to f_10735be8 at 0x1018f570; the constructor stores it at service+4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e8a4",
+        "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10eb87e4",
+        "notes": "NUL-terminated Sink literal, 1855 bytes excluding NUL, including a final comma."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
        "kind": "none",
-       "description": "No state mutation -- core vfuncs are read-only stubs/literal copies in this build.",
+       "description": "Writes the two response buffers without modifying service or playback state.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10735a64",
-         "notes": "core vfuncs f_1032e710/f_1032e84c perform no stores to shared state"
+         "address": "0x1032e8a4",
+         "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10735aa4",
+         "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. The fixed-result worker and response writer do not enqueue a service event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735b64",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1032e8a4",
+        "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735aa4",
+        "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8]",
+      "description": "None. This read-only query does not create connections or change capability state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735b64",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]']"
+        "address": "0x1032e8a4",
+        "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735aa4",
+        "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "An accepted request commits with the fixed Sink list and empty Source. A rejected request faults with 402 before the core runs; the helper's nonzero-core-return fault is unreachable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10735b64",
-        "notes": "commit/fault slot usage: {'0x14': 1}"
+        "address": "0x10735aa4",
+        "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e8a4",
+        "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735be4",
+        "notes": "Immediate 402 is loaded at 0x10735bc8 and passed to request slot +0x14."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -56013,33 +56089,28 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "impl->v[+0x8] rc gates emit | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const",
+       "meaning": "The request object rejected the argument-free query before the protocol-info worker ran.",
        "fault_sites": [
         "0x10735be4"
        ],
        "conditions": [
         {
-         "description": "impl vfunc rc",
+         "description": "Request vtable slot +0x08 returns zero at 0x10735b90.",
          "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10735b90",
+           "notes": "f_10735b64 calls request slot +0x08. Zero takes the immediate 402 tail; nonzero tailcalls f_10735a64 at 0x10735bb8."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x10735be4",
-           "notes": "impl rc passthrough"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10735b64",
-           "notes": "parse vcalls then fault path"
+           "notes": "Immediate 402 is loaded at 0x10735bc8 and passed to request slot +0x14."
           }
          ]
         }
@@ -56050,66 +56121,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x10735be4",
-         "notes": "impl rc passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10735a64",
-         "notes": "gate-fail path raises 402"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10735b64",
-         "notes": "wrapper parse + fault path"
+         "notes": "Immediate 402 is loaded at 0x10735bc8 and passed to request slot +0x14."
         }
-       ],
-       "unresolved": {
-        "proven": "impl->v[+0x8] rc gates emit",
-        "unknown": "whether 0 faults with 402 like its sibling",
-        "impl_exit_literals": {
-         "function": "0x10735a64",
-         "lits": [],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_1056157c": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 18
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "condition": "req->v[+0x08] request gate fails (invalid/unaccepted request state)",
-       "source": "handler fault site via req->v[+0x14] with literal 0x192",
-       "literal_bound": [
-        0,
-        402
-       ],
-       "resolved_note": "CM impls void commit-handlers; 402/1024 fault seeds via req path.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10735be4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -56134,23 +56147,33 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "f_10735b64",
-       "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+       "address": "0x10eb8718",
+       "notes": "MediaRenderer core slot +0x08 selects 0x1032e8a4. Zone-player init passes this core to f_10735be8 at 0x1018f570; the constructor stores it at service+4."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1032e730",
-       "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
+       "address": "0x10735aa4",
+       "notes": "f_10735a64 invokes core +0x08 once with Source and Sink buffers of 0x400 and 0x800 bytes. On zero it writes Source at 0x10735adc and Sink at 0x10735b0c, then commits at 0x10735b20."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1032e8a4",
+       "notes": "Clears Source at 0x1032e8bc, copies the Sink literal with strlcpy at 0x1032e8d0, then returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10eb87e4",
+       "notes": "NUL-terminated Sink literal, 1855 bytes excluding NUL, including a final comma."
       }
      ],
      "notes": null,
-     "implementation_notes": "Request-gate req->v[+0x08] (nonzero required else 402 fault). Emits Source via core(ConnectionManagerServer, vtable 0x10eb86c8)->v[+0x08] = f_1032e84c, a strlcpy of the literal CSV \"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*\" into a 0x400 stack buffer; emits Sink via core->v[+0x10] = f_1032e730, a stub that never writes the buffer and returns 706 -- the rc is discarded and Sink is emitted empty. Then req->v[+0x0c] commits the response. Outputs recovered from arg-name string loads inside the impl function (extractor missed them). Shared-handler service family: identical handler/impl addresses also registered under the sibling ConnectionManager service path; one code object serves both services.",
-     "todo": [
-      "Established: virtual dispatch to handler 0x10735b64; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Dispatcher record 0x10f118ec resolves service slot +0x0c to f_10735b64. The gate tailcalls f_10735a64, which loads service+4 and invokes the bound core's +0x08 slot. The core fills both buffers in one call; there is no separate Sink lookup. The Sink literal fits in the destination without truncation."
     }
    },
    "state_variables": {},
