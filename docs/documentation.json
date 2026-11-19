@@ -152501,18 +152501,43 @@
      "type": "firmware",
      "address": "0x10ef2224",
      "notes": "devicecertmanager block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a7e94",
+     "notes": "Actual request routine saves caller-provided URL and forwards it unchanged at 0x105a826c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105cc9e0",
+     "notes": "Registration call is bounded string copying, not service lookup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b26c4",
+     "notes": "constructJFFSRootPath proves local path composition."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a8738",
+     "notes": "Active-download guard before tail call into actual request routine."
     }
    ],
-   "todo": [
-    "Residual: the concrete base URL the Registration service resolves to per environment ('prod' and peers are environment config, resolved through the service registry at runtime)."
-   ],
+   "todo": "Residual: trace the interface/virtual caller supplying URL r5 to f_105a8724/f_105a7e68 and its environment selection. Registration is a copied request label, not a host lookup, and f_106b268c constructs local JFFS certificate paths, not the remote URL. The concrete remote device-certificate base is therefore still unresolved.",
    "resolved_findings": [
     "Resolved: differentiated from the other cert managers - this one owns ETag-cached cert downloads {requestTimeMS, downloadStatusCode, httpResultCode, previousETag -> downloaded|unchanged} with refresh-job scheduling on unknown metadata state; certval validation + registration signing live in the sibling records.",
-    "Responsibility diff vs the cert family (account_cert_lifecycle): certmanager = the generic key/cert plumbing (file validation {BAD_FILE,BAD_KEY,BAD_CERT,BAD_ISSUE_DATE}, issuance); regdevicecert = the registration cert carrying the device SonosID (gates token generation); devicecertmanager = the household-scoped device cert - it validates the cert against the household and user (error taxonomy adds MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present) and ships the X-Sonos-Muse-Household-Id + X-Sonos-Denylisted headers on requests. It maintains an ETag-cached download of the cert bundle (metadata {requestTimeMS, downloadStatusCode, httpResultCode, previousETag}; outcomes {downloaded, unchanged}; Cert download attempt finished; Unknown cert metadata state: %s. Scheduling cert refresh job); Retrieved manufacturing data: %s covers the mfg data fetch; files are generated lazily (file not available yet, generated on demand).",
-    "Resolved (download endpoint composition, 0x105a7dac): the cert fetch is a generic ETag file-fetch issued against the cloud service resolved by the literal name 'Registration' (f_105cc9d0 service lookup at 0x105a80fc); the requested file name is the certType value - 'deviceCert' for the normal cert or 'secureReg' for the secure-registration variant (metadata eventType='Registration', certType field). The request ships X-Sonos-Muse-Household-Id with the household id; the response is checked for header 'X-Sonos-Denylisted' == 'true' which sets state 'denylisted' on the manager. The download is staged to '<certdir>.tmp' (sonosMkDirRecursive + strlcat '.tmp') then committed. Sibling path literal proven: the ROOT cert bundle job (rootcerts_download, CertBundleDownloader block 0x10ef0bcc) downloads literal path '/certbundles/v4/trusted_roots.rcb' with retry log '%zu consecutive cert fetch failures. Trying again in %ld seconds' - so the cert bundle family rides host + fixed versioned path, while the device cert's remote path is composed by the Registration service client from the file name.",
-    "Trusted-roots fetch pipeline proven (f_1055de20, 'rootcerts_download' domain): remote path is the literal '/certbundles/v4/trusted_roots.rcb' on the registry-resolved service; staged to '%s/trusted_roots.rcb.tmp'; metadata file via RootCACertBundle::getMetadataFilename with 'etag' key; version tracked under 'rcb_ver'; refresh keys {newBundleID, newBundleVersion, newETag, nextFetchSec, rootCertBundle} under the 'security' namespace; failure path = 'Cert bundle fetch failure' + '%zu consecutive cert fetch failures. Trying again in %ld seconds' backoff + 'First root cert bundle fetch is %ld seconds from now'. deviceCert fetch keys {deviceId, deviceProvider, certType='deviceCert'} are data keys in the request, not path components - the literal path family is /certbundles/v4/<file>.",
-    "Established: remote path family bound - '/certbundles/v4/<file>' literals on the Registration service; deviceCert is fetched by certType key (not path); the full ETag/refresh key set {newBundleID,newBundleVersion,newETag,nextFetchSec,rootCertBundle,rcb_ver,etag} and failure-backoff log lines are proven.",
-    "Fetch-path composition resolved: the generic cert-file fetch (f_106b2bd0) composes the remote path as '%s/%s' - a service/environment-resolved base ('urn:sonos:environment' service lookup, env names like 'prod' are branch literals) plus the certType file name ('cert.xml'/'metadata.txt' are sibling file names in the same fetch). '/certbundles/v4/trusted_roots.rcb' is a fixed literal used only by the root-bundle downloader f_1055de20 - it is NOT the deviceCert prefix. deviceCert therefore rides the generic %s/%s path against the Registration service base, not a /certbundles/ literal."
+    "The previous Registration service lookup evidence is disproven. The actual request routine starts at f_105a7e68, not f_105a7dac. It saves incoming r5 as r23 at 0x105a7e94 and passes that same r23 as the request URL argument r4 to f_1055030c at 0x105a826c-0x105a8274. The call at 0x105a80fc to f_105cc9d0 with literal Registration does not resolve a host: f_105cc9d0 only checks for null and tail-calls strlcpy with capacity six into an owner field at 0x105cc9dc-0x105cc9ec. Therefore the literal is not evidence that the service registry supplied the URL.",
+    "The alleged generic remote path helper is also local storage plumbing. f_106b2bd0 selects metadata.txt and environment-directory mode, then tail-calls f_106b268c. That routine begins with constructJFFSRootPath using owner+0x10a4 at 0x106b26b8-0x106b26c4, optionally appends the configured slot-0x25 environment (default prod) at 0x106b2720-0x106b2754, then appends the filename using strlcat at 0x106b26d8-0x106b26f8. f_106b2be8 similarly selects cert.xml without the environment-directory flag. These are local paths, not a remote %s/%s URL schema or evidence for /certbundles/v4/deviceCert.",
+    "The download routine asks f_106b275c for the local environment-specific directory at 0x105a8118, creates it with sonosMkDirRecursive, and obtains another local path through f_106b2834 before appending .tmp at 0x105a8140-0x105a815c. It then submits the network request with caller-supplied URL, an application/json body assembled from manufacturing data, an output bound 0x4000 and timeout 0x7530 at 0x105a8218-0x105a8274. This separates staging, request destination and metadata label instead of deriving one from another.",
+    "The reachable public wrapper f_105a8724 initializes an optional error output to -6, checks owner+0x10d1, returns zero if a request is already active, and otherwise tail-calls f_105a7e68 at 0x105a8750-0x105a8754. The request routine sets that active byte at 0x105a7ee4. The URL provenance still requires the virtual/interface caller of this wrapper; the earlier config-only assertion did not establish it. Fixed trusted_roots.rcb paths belong to the root-bundle downloader, not proof of this caller-supplied device-certificate endpoint."
    ]
   },
   "zpinfo_dpimpl": {
