@@ -101092,8 +101092,8 @@
    ]
   },
   "0xcdc": {
-   "description": "Shared member offset coincidentally used by at least 9 unrelated classes; NOT a capability gate",
-   "effect": "+0xcdc is a shared layout offset, not a capability predicate: nine unrelated classes place different members here (stream id, curl struct member, flag word, pointers, bytes). Each site must be interpreted against its owning class, not as one gate.",
+   "description": "Shared layout offset in unrelated structures, not a capability gate.",
+   "effect": "Offset +0xcdc names different members in different structures. Resolve the effective address and its base before attributing a use to a device capability.",
    "loads": [
     {
      "pc": "0x101f3024",
@@ -101134,34 +101134,6 @@
     {
      "pc": "0x1033e91c",
      "func": "0x1033e640"
-    },
-    {
-     "pc": "0x1091800c",
-     "func": "0x10917bac"
-    },
-    {
-     "pc": "0x10918088",
-     "func": "0x10917bac"
-    },
-    {
-     "pc": "0x10922ad0",
-     "func": "0x10922990"
-    },
-    {
-     "pc": "0x10922b08",
-     "func": "0x10922990"
-    },
-    {
-     "pc": "0x1093f14c",
-     "func": "0x1093ef84"
-    },
-    {
-     "pc": "0x109524c0",
-     "func": "0x10952258"
-    },
-    {
-     "pc": "0x1095872c",
-     "func": "0x10958458"
     }
    ],
    "stores": [
@@ -101232,12 +101204,6 @@
      "src": "ret(0x10809f0c)"
     },
     {
-     "pc": "0x104454dc",
-     "func": "0x104437ec",
-     "size": "stw",
-     "src": "0x10f9a6c4"
-    },
-    {
      "pc": "0x1062f078",
      "func": "0x1062eac8",
      "size": "stb",
@@ -101273,15 +101239,35 @@
      "build": "86.10-80260",
      "address": "0x1021ff04",
      "notes": "load site inside function 0x1021fe30"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1033e2e8",
+     "notes": "This load is a byte test; 0x1033e304 frees the pointer at +0xce0 only if the flag is set and the pointer differs from +0xce8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1091800c",
+     "notes": "This and the six other former libcurl anchors load displacement 0x8a0, not 0xcdc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104454dc",
+     "notes": "The base register is r1 (stack), not an instance pointer."
     }
    ],
    "notes": null,
    "todo": [
-    "Residual: per-class member semantics still open for the chsnk crossfade bookkeeping word and the libcurl-internal struct field name at +0xcdc (upstream curl layout would need the bundled curl sources); the systemstate word is proven = env-tunable numeric default 0x2000 whose option name is runtime-registered."
+    "Residual: identify the source-level data associated with the optional chsnk subobject at +0xcdc and with the owned buffer in the SMAPI object at +0xcdc. Their cleanup roles are known; the load-site labels alone do not identify their contents."
    ],
    "resolved_findings": [
-    "Established: +0xcdc resolves per class - on spot_q it is a u32 track/stream id (setter f_10220878, compared in f_102203a0); the 0x101f/0x1033/0x109 load sites belong to unrelated objects at the shared offset. Still unknown: the field meanings at those other classes' +0xcdc. Next step: identify the owning class at each remaining site (as done for 0x934).",
-    "loadContainer member target identified: the pointer written into +0xcdc points at 0x10f9a6c4, which is a rodata pointer table (entries 0x10a19f90, 0x10a19e18, 0x10a198e0, 0x10a19730, 0x10a19218, then a null pair, then 0x10a19d60/0x10a19ecc/0x109c9854/0x109ccb98 and more). The member is therefore a code/handler-record pointer into a browse-loader dispatch table, not a data constant.",
+    "The recorded libcurl instructions load +0x8a0 rather than +0xcdc. 0x104454dc stores to sp+0xcdc, a stack slot rather than an object member. Neither is evidence about the +0xcdc member offset.",
     "systemstate +0xcdc word resolved: in the boot-init path (netsettings/systemtimeoffset module, f_101981f0) the word is seeded to 0x2000 then conditionally overwritten by env-option index 0x33 parsed as hex (strtol base 16 at 0x10199afc). So on this class +0xcdc is a numeric tunable with compiled default 8192, not a bitmask bit. The env-name table is runtime-built in .bss (0x110a53e0, stride 0x14) so the option name for selector 0x33 is registration data."
    ],
    "per_class": [
@@ -101293,7 +101279,7 @@
     {
      "owner": "chsnk crossfade engine",
      "evidence": "f_1033e00c/f_1033e640: 'chsnk' log + 'crossfade %zu samples'/'crossfaded %zu bytes' literals",
-     "field": "u32 read during crossfade bookkeeping"
+     "field": "One-byte presence flag for the adjacent buffer record: f_1033e00c at 0x1033e2e8 and f_1033e640 at 0x1033e91c read it with lbz; when nonzero, each loads +0xce0 and frees it unless it points at inline storage at +0xce8."
     },
     {
      "owner": "gm_impl (GroupManagement impl)",
@@ -101301,29 +101287,19 @@
      "field": "pointer to an allocd subobject - three stw of f_10809f0c/f_1039be20 return values at 0x10393ef4/0x10394360/0x10394444"
     },
     {
-     "owner": "bundled libcurl connection structs",
-     "evidence": "0x10917bac ('multi_getsock: unexpected multi state', pollset[] logs), 0x10922990 ('abort upload after having sent %lld bytes'), 0x1093ef84 ('adjust_pollset','cf_socket_shutdown'), 0x10952258 ('Authorization: Bearer %s'), 0x10958458 ('http/2: on_stream_close')",
-     "field": "libcurl-internal struct member at +0xcdc read across multi/easy/http2 paths (upstream curl layout, not a Sonos field)"
-    },
-    {
      "owner": "device settings/persistence object",
      "evidence": "f_101981f0: 'netsettings.txt', '/var/run/systemtimeoffset', 'removeTrueplayFetchedAssets'",
-     "field": "u32 flag word; init stores 0x2000 at 0x10199ac8 then a return value at 0x10199b0c"
-    },
-    {
-     "owner": "loadContainer-bearing object",
-     "evidence": "f_104437ec: 'loadContainer' literal",
-     "field": "stores const data pointer 0x10f9a6c4 at 0x104454dc"
+     "field": "Numeric setting: 0x10199ac8 stores 0x2000; 0x10199b0c overwrites it with the parsed option on the override path."
     },
     {
      "owner": "irdecoder object",
      "evidence": "f_102473fc: 'irdecoder' literal",
-     "field": "byte field cleared at 0x1024777c (stb 0)"
+     "field": "One byte in a range zeroed at initialization; r4 is impl+0xcd9 (0x10247588 and 0x102475e0), so the store at 0x1024777c addresses impl+0xcdc."
     },
     {
      "owner": "SMAPI subscription/playback object",
      "evidence": "f_101f2328 and f_101f3a80 are adjacent vtable slots at 0x10e9f6e8/0x10e9f6ec; sibling vfuncs reference 'subscription/{logicalSID}', 'subscribe'/'unsubscribe', 'playbackError', 'playbackExtended', 'metadata', '_objectType'",
-     "field": "u32 read inside two subscription-path vfuncs"
+     "field": "Buffer pointer freed at 0x101f3034 and 0x101f478c only when presence byte +0xcd8 is nonzero and the pointer does not equal inline storage at +0xce4."
     },
     {
      "owner": "lastUpdateDevice-related object",
