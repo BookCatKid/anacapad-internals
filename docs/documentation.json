@@ -149411,15 +149411,42 @@
      "type": "firmware",
      "address": "0x10fe686c",
      "notes": "dolby"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d60f30",
+     "notes": "e500 double comparisons validate two DRC record members against inclusive zero/one bounds."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d60ff8",
+     "notes": "Mode one requires both DRC doubles to be zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d5f9c8",
+     "notes": "Geometry numeric reader writes a concrete configuration member."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d5d858",
+     "notes": "Fallback stores are not a complete semantic schema."
     }
    ],
-   "todo": [
-    "Residual: the dolby_config.json numeric SCHEMA (units/ranges per group) - defaults are now decoded (+0x24=63, +0x58=1, +0x70=-1, rest 0) but the semantic units per field are in the absent JSON."
-   ],
+   "todo": "Residual: map the remaining staticparams/dynamicparams numeric readers and decoder consumers to units, scales and accepted ranges, including the mode enum and DRC cut/boost member binding. The native DRC validator is recovered; an external JSON file is not required to trace the remaining checks.",
    "resolved_findings": [
-    "Resolved: config schema = the parsed-key set {surround mode, downmix, dialog level, DRC} each consumed at the decoder init; per-key use documented in dsp_params.",
-    "Config surface proven: dolby_utils loads dolby_config.json with a JFFS-first search order (app/debug/dsp/dolby_config.json override dolby config with jffs -> /opt/dsp/dolby_config.json -> compiled defaults on unable to load player dolby json config, loading defaults); the file is NOT shipped in this rootfs so production runs compiled defaults. Decoder identity: dec_legacy / dlbdec with status XML <DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount> and dolby decoder unable to decode failure. The DSP chain integration point is dolbyconfigparser (dsp_params record): it consumes the JSON groups {/drc{cut,boost}, /staticparams{speakers,directdec,virt_mode,dap{frontangle,heightangle,rearsurrangle}}, /dynamicparams{oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal}, /default} with per-group parse errors {error parsing mode state, error parsing bass extraction mode, error parsing dap profile mode, Config %s not found, loading default}.",
-    "Compiled-default config record decoded at the \"loading defaults\" path (f_10d5d6f4, on JSON-load failure): member seeds {+0x20=0, +0x24=0x3f, +0x28..0x44 all 0, +0x58=1, +0x70=-1, +0x74..0x8c=0}. So the fallback dolby config is a mostly-zero record with +0x24=63 (a level/scale default), +0x58=1 (enable flag), +0x70=-1 (unset marker). The field units still need the JSON schema, but the concrete default values are now proven."
+    "The shipped ELF contains numeric validation, not merely defaults awaiting an external JSON schema. In f_10d60f0c the record mode at +0 is checked against 1. Mode 1 requires both doubles at +8 and +0x10 to equal zero (0x10d60ff8-0x10d61020). Other modes require each double to be in the inclusive interval [0,1] (0x10d60f30-0x10d60fa0); the first comparison result is retained and checked at 0x10d61024. e500/SPE efdcmpgt/efdcmplt/efdcmpeq decoding and constants 0.0 at 0x10e87718 and 1.0 at 0x10eb9ee0 establish the bounds. Failure logs drc config is invalid and returns zero. This is a native DRC-record check, not proof of universal Dolby parameter units.",
+    "The /drc parse path is bound by f_10d5ee28 loading /drc at 0x10d5ee54. The encompassing f_10d5f1e4 constructs /staticparams and parses frontangle/heightangle/surrangle/rearsurrangle via f_109d024c into stack+0x19c/+0x1a0/+0x1a8/+0x1ac at 0x10d5f9a4-0x10d5fb30. It separately parses oarBassExtraction through f_10d5ec08, dapCutOff through f_109d024c, and upmix/hfilt through f_10d5eaf0 (0x10d5fa2c-0x10d5fc18). These are distinguishable typed-reader paths; adjacent literals do not establish angle units, Hz scaling or all accepted ranges.",
+    "Constructor f_10d5d6f4 initializes the object, attempts the constructed JFFS app/debug/dsp/dolby_config.json path, then /opt/dsp/dolby_config.json, then the fallback block at 0x10d5d858. The fallback stores +0x24=63, +0x58=1 and +0x70=-1, with many zero members. Calling those three values level/enable/unset without consumer bindings was inference and is withdrawn. The object constructor also contains nonzero seeds outside that partial list; the list is not the complete schema.",
+    "Artifact verification: recursive reference inventory and the embedded package rootfs.squashfs directory listing contain /opt/dsp/S9_array.xml and the engineering DSP UI, but no dolby_config.json. This proves absence from the shipped filesystem artifact, not that every live device necessarily uses compiled defaults: JFFS overrides can be installed later. Surround/downmix/dialog labels from nearby decoder vocabulary are not substituted for the actual JSON parser keys."
    ]
   },
   "dts_decoder": {
