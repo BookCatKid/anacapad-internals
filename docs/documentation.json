@@ -20639,7 +20639,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x4c is the same function in both vtables. The one-second sleep at 0x10737fe8 runs on the SOAP worker thread after the response has been committed, so a client sees the reply before the follow-up happens."
     },
     "RoomDetectionStartChirping": {
-     "description": "Plays a room-detection chirp through the speaker and returns the identifier of the resulting playback. The wrapper parses Channel (u16), DurationMilliseconds (u32) and ChirpIfPlayingSwappableAudio (boolean) and calls slot +0x50 of runtime vtable 0x10ebc630, f_1035b390. When ChirpIfPlayingSwappableAudio is nonzero the worker first asks the audio-source layer through f_104ad918 whether current playback may be interrupted and returns 0 with PlayId 0xffffffff when it may not. It then requires the room-detection object at impl+0x1ac0 and calls f_104f669c with the channel and the duration converted to whole seconds (multiply-high by 0x10624dd3 then shift right 6, which is unsigned division by 1000) and multiplied back by 1000 inside f_104f669c, finally reading the assigned play id from the object through f_104f6634.",
+     "description": "Requests a room-detection chirp and returns a play identifier or the refused-interruption sentinel. The wrapper parses Channel (u16), DurationMilliseconds (u32) and ChirpIfPlayingSwappableAudio (boolean) and calls slot +0x50 of runtime vtable 0x10ebc630, f_1035b390. When ChirpIfPlayingSwappableAudio is nonzero the worker first asks the audio-source layer through f_104ad918 whether current playback may be interrupted and returns 0 with PlayId 0xffffffff when it may not. It then requires the room-detection object at impl+0x1ac0 and calls f_104f669c with the channel and the duration converted to whole seconds (multiply-high by 0x10624dd3 then shift right 6, which is unsigned division by 1000) and multiplied back by 1000 inside f_104f669c, finally reading the assigned play id from the object through f_104f6634.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073730c",
@@ -21064,7 +21064,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x104f6818",
-        "notes": "payload type 81 unsupported test"
+        "notes": "Generation status 81 comparison"
        }
       ]
      },
@@ -21103,7 +21103,7 @@
      },
      "side_effects": [
       {
-       "description": "Creates a chirp audio stream through f_104f55e8 and starts it on the external chirp source, then stores its play id at room-detection-object+0x98 under the object mutex. Audible output on the speaker is the observable effect.",
+       "description": "If the gated interruption check denies the request, the worker returns success with PlayId 0xffffffff without creating a stream or calling the source. Otherwise, on the successful start path f_104f669c creates the chirp stream, invokes external source slot +0x1c and stores its returned identifier at object+0x98 under the object mutex. The ID store does not prove audible playback.",
        "evidence": [
         {
          "type": "firmware",
@@ -21125,7 +21125,33 @@
          "build": "86.10-80260",
          "address": "0x104f68f4",
          "notes": "play id stored"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b484",
+         "notes": "Interruption allowed branches toward stream creation; denial falls through"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b494",
+         "notes": "Denial writes the sentinel"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b498",
+         "notes": "Denial returns zero"
         }
+       ],
+       "todo": [
+        "Established: A denied interruption returns the sentinel without starting; the other success path calls source slot +0x1c at 0x104f68f0 and stores its returned ID.",
+        "Unknown: When the source starts rendering audio rather than only accepting the chirp stream.",
+        "Next: Bind the concrete source loaded from object+0x9c at 0x104f68d0 and follow its +0x1c implementation into the rendering path."
        ]
       },
       {
@@ -21180,7 +21206,7 @@
       ]
      },
      "state_transitions": {
-      "description": "On success the room-detection object moves from idle to chirping with the new play id stored at object+0x98; the refused-interruption path leaves it unchanged. The stored id and audible playback are separate: the source has a finite byte budget, and f_104f6414 can clear the stored id either through RoomDetectionStopChirping or through an internal caller at 0x104756d4.",
+      "description": "The start-call path stores the ID returned by the source at object+0x98; the refused-interruption path leaves it unchanged. The stored id and audible playback are separate: the source has a finite byte budget, and f_104f6414 can clear the stored id either through RoomDetectionStopChirping or through an internal caller at 0x104756d4.",
       "evidence": [
        {
         "type": "firmware",
@@ -21199,7 +21225,7 @@
       ]
      },
      "return_behavior": {
-      "description": "The worker maps f_104f669c results: 0 to success, 1 to 402, 3 to 1049, any other value to 501. f_104f669c returns 1 for an unsupported chirp payload, 2 for a missing chirp audio source, an uncalibrated chirp volume or a failed stream creation, and 3 when a chirp is already playing. A missing room-detection object or a failed swappable-audio query is 501; a refused interruption is success with PlayId 0xffffffff. TRequest validation failure is 402.",
+      "description": "The worker maps f_104f669c results: 0 to success, 1 to 402, 3 to 1049, any other value to 501. f_104f669c returns 1 when stream byte +0x38 is zero and generation status +0x3c equals 81, 2 for a missing chirp audio source, an uncalibrated chirp volume or a failed stream creation, and 3 when a chirp is already playing. A missing room-detection object or a failed swappable-audio query is 501; a refused interruption is success with PlayId 0xffffffff. TRequest validation failure is 402.",
       "evidence": [
        {
         "type": "firmware",
@@ -21263,34 +21289,55 @@
       {
        "code": 402,
        "code_expr": "0x192 at 0x1035b414 or at 0x1073742c",
-       "meaning": "TRequest validation failed, or f_104f669c returned 1 because the generated chirp payload type (stream field +0x3c == 81) is not supported.",
+       "meaning": "TRequest validation failed, or f_104f669c returned 1 after testing a zero byte at stream+0x38 and generation status 81 at stream+0x3c.",
        "fault_sites": [
         "0x107373f8"
        ],
        "conditions": [
         {
-         "description": "f_104f669c logs 'Chirp payload %s not supported.' and returns 1",
+         "description": "Stream byte +0x38 is zero and stream+0x3c holds generation status 81",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x104f6818",
-           "notes": "payload type 81 test"
+           "address": "0x104f680c",
+           "notes": "A nonzero byte branches away from the status test"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x104f692c",
-           "notes": "log text"
+           "address": "0x104f6810",
+           "notes": "Load generation status"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f681c",
+           "notes": "Equality branches into the status-81 handler"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x104f6918",
-           "notes": "r30=1"
+           "notes": "Set worker result 1"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x104f692c",
+           "notes": "Diagnostic string Chirp payload %s not supported."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1035b418",
+           "notes": "Map worker result 1 to 402"
           }
          ]
         },
@@ -21314,7 +21361,54 @@
          "build": "86.10-80260",
          "address": "0x107373f8",
          "notes": "fault emit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f588c",
+         "notes": "Store configuration routine return status"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f58a8",
+         "notes": "Store sample-rate routine return status"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f5964",
+         "notes": "Store generator-start return status"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f5ad0",
+         "notes": "Store generator call return status"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104f5dbc",
+         "notes": "Diagnostic names the field generation status"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10cc5e18",
+         "notes": "One generation routine has a status-81 return"
         }
+       ],
+       "todo": [
+        "Established: The worker maps the zero +0x38 and generation-status-81 combination to 402. Field +0x3c holds return statuses, not a payload type.",
+        "Unknown: Which requested chirp variants can reach generation status 81 through the stream constructor.",
+        "Next: Trace the arguments from f_104f55e8 into the status-producing routines at 0x104f5884, 0x104f58a0, 0x104f595c and 0x104f5ac8, including the return-81 branch at 0x10cc5e18."
        ]
       },
       {
