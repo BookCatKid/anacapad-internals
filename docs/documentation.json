@@ -149179,11 +149179,53 @@
      "address": "0x105c77bc",
      "callsite": "0x105c77cc / 0x105c77e0 / 0x105c77f0 / 0x105c7800",
      "notes": "Name-descriptor table 0x10ef4384-0x10ef43e0 includes restricted-admin, protected-admin, restricted and protected. f_105c7714 binds parser slots 5,6,8,7 at 0x105c791c/0x105c7938/0x105c7954/0x105c7970 to category parsers built with ids 2,4,3,1 respectively; f_105c70f0 stores the id at parser+0x5c. Parser vtable 0x10ef434c slot+4 reaches f_105c6890: boolean values call f_105c6084 and strings call f_105c67b0 with that id. Both setters check unsigned (id-3)<=1 and reject those two ids through f_105c5a44, which logs and returns without storing. Raw boolean guard 0x3924fffd/0x2b890001/0x409d00bc at 0x105c6088/90/9c and string guard 0x105c67b4-0x105c67c8 establish polarity. f_105c6180 handles boolean reads only for ids 1/2; string deletion f_105c62e4 requires id 2. Numeric parser callback 0x105c68fc-0x105c6910 ignores ids 3/4 and logs others. Writer f_105c6af0 closes after restricted/admin and restricted without emitting either protected category. This disproves the earlier replication-member-list premise for this persistence implementation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10669db4",
+     "address": "0x10669dfc",
+     "notes": "UMTracking strcmp at 0x10669dec gates household receiver +0x168 load 0x10669df8 and f_105c99c8 call 0x10669dfc. False branch uses NoReport at 0x10669e0c; true branch Report at 0x10669eb8. Bounded label copy 0x10669e20; return zero 0x10669e58. Other-key backend +0x164/virtual+0x1c at 0x10669e78-0x10669eb0. Player GetString wrapper reaches this at 0x104b1e00."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105c99c8",
+     "address": "0x105c9a18",
+     "notes": "Category 2/name userMetricsTracking/capacity 8 at 0x105c99d4-0x105c99f0. Buffer first byte initialized zero at 0x105c9a08. Virtual+0xc read at 0x105c9a18; status!=1 diagnostic is not a replacement value. Exact strcmp true at 0x105c9a6c determines the boolean return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105c96d8",
+     "address": "0x105c976c",
+     "notes": "Constructor installs 0x10ef4918. Raw word at 0x10ef4924 is 0x105c94f0: getter clears output then nonzero category branches at 0x105c955c to f_105c9358. Setter f_1066b4bc saves household receiver argument r6 to +0x168 at 0x1066b500; player setup 0x1019827c loads player+0xcbc and passes it in r6 at 0x101982f8/0x101982fc to f_104b101c -> 0x1066b4bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105c9358",
+     "address": "0x105c93a8",
+     "notes": "Loads snapshot via f_105c7c44, guards its result at 0x105c93b4, then category-2 userMetricsTracking comparison 0x105c946c and boolean-string getter 0x105c9490. f_105c6180 reads parsed snapshot+0x28 at 0x105c628c. f_105c92a8 emits false/true only on status 1 at 0x105c931c-0x105c934c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105c7c44",
+     "address": "0x105c7ca4",
+     "notes": "Builds householdsettings.json filename from 0x10ef4498, resolves it with f_1068ab6c at 0x105c7d9c, and calls f_105c79c4 at 0x105c7ddc. Reader sonosFileReadWhole at 0x105c7a04 is capped at 0x7ff bytes; JSON parser setup/parse at 0x105c7a2c/0x105c7a38. Failure flag propagation 0x105c7de0-0x105c7df0 and snapshot gate prevent the boolean from being copied on read failure."
     }
    ],
    "resolved_findings": [
     "The legacy array formats are sscanf inputs at 0x105c72e0/0x105c730c, not current seed writers. The schema-2 writer f_105c6af0 emits restricted-admin/settings {explicitContentFiltering,recentlyPlayed,hhSwgenState,museHHName,userMetricsTracking} and restricted/settings {autoUpdatesEnabled}. Persistence calls it at 0x105c6dc4, creates a temporary file at 0x105c6dd8 and renames it at 0x105c6dec.",
-    "Protected and protected-admin are recognized category containers, but this file implementation has no supported stored members for them. They are not a missing replication-delivered member list: f_105c7714 constructs category parsers with ids restricted=1, restricted-admin=2, protected=3, protected-admin=4. Boolean and string setters reject ids 3 and 4 through f_105c5a44, which only logs the status-page exposure warning. Getters select only ids 1 and 2. The current serializer emits neither protected category. This is a limitation of this firmware's householdsettings.json implementation, not evidence that similarly named Muse settings objects elsewhere have no members."
+    "Protected and protected-admin are recognized category containers, but this file implementation has no supported stored members for them. They are not a missing replication-delivered member list: f_105c7714 constructs category parsers with ids restricted=1, restricted-admin=2, protected=3, protected-admin=4. Boolean and string setters reject ids 3 and 4 through f_105c5a44, which only logs the status-page exposure warning. Getters select only ids 1 and 2. The current serializer emits neither protected category. This is a limitation of this firmware's householdsettings.json implementation, not evidence that similarly named Muse settings objects elsewhere have no members.",
+    "Legacy UMTracking query consumer: f_104b1d90 forwards ordinary GetString keys to f_10669db4 at 0x104b1e00. That function strcmp-matches UMTracking and calls f_105c99c8 on its household-settings receiver at +0x168; only other keys dispatch the separate settings backend at +0x164. f_105c99c8 requests category 2/userMetricsTracking with an eight-byte text buffer and compares the returned text with exact lowercase true. True maps to Report; all other results map to NoReport. It logs the redirection and returns zero after bounded strlcpy, so query success alone is not evidence that the household file was read successfully or that the caller buffer held the complete label.",
+    "Concrete household reader binding: constructor f_105c96d8 installs vptr 0x10ef4918 at 0x105c976c; vtable+0xc contains f_105c94f0. That getter clears the output first, delegates category 0 to a separate backend, and sends nonzero categories to f_105c9358. Category 2/userMetricsTracking takes f_105c92a8 -> f_105c6180, reading the parsed boolean at snapshot+0x28 and emitting true/false. f_105c9358 first loads a snapshot through f_105c7c44, which resolves householdsettings.json and calls f_105c79c4 -> sonosFileReadWhole, then the household JSON parser. Failed snapshot reads leave the cleared query output empty and therefore yield NoReport, without falling through to the syssettings.xml backend. This is a read projection of the household setting, not XML recovery, migration completion, a write notification or proof that telemetry was transmitted."
    ]
   },
   "http_engine": {
