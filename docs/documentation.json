@@ -149152,16 +149152,37 @@
      "type": "firmware",
      "address": "0x10eb3aac",
      "notes": "cd_impl block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cebd0",
+     "notes": "Thirteen-row fixed Rhapsody prefix search; miss logs Unknown Rhapsody ID type."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cec6c",
+     "notes": "Optional extraction marker and target template read from a matched 24-byte row."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100ced98",
+     "notes": "Separate four-row reverse converter, not a global plugin registry."
     }
    ],
-   "todo": [
-    "Residual: whether additional prefix rows are registered by service plugins at runtime (the ladder found covers the anacapad-builtin set)"
-   ],
+   "todo": "Residual: trace ContentDirectory Browse backend selection and any provider/plugin registration path, including whether it can introduce namespaces outside the fixed Rhapsody converters. The thirteen-row RDCPA/RDCPI converter itself has a constant table and fixed loop bound; it is not a global backend-registration census.",
    "resolved_findings": [
     "Resolved: BrowseFlag paths = BrowseMetadata -> metadata serializer, BrowseDirectChildren -> child-list resolver per browse-category wire id; request parsing fetches {ObjectID,BrowseFlag,Filter,StartingIndex,RequestedCount,SortCriteria} positionally.",
-    "Browse backend model proven: ContainerID namespaces dispatch to backends - the local library families (LIB* ids from browse_ids: LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS, LIBPLAYLISTS, LIBSTATIONS, LIBMUSIC + Q:0/Q:1 queue roots) resolve against the local share index (share_indexer engine), while service-prefixed ids route through the x-rincon-cpcontainer SCP layer to the owning provider (wmp_provider for WMP NSS; SMAPI services register their own namespaces). BrowseFlag {BrowseDirectChildren, BrowseMetadata} selects list-vs-describe mode; Filter + SortCriteria + StartingIndex/RequestedCount window the response, and NumberReturned/TotalMatches/UpdateID frame it. The dual URN set {urn:schemas-sonos-com:service:ContentDirectory:1, urn:schemas-upnp-org:service:ContentDirectory:1} serves both namespaces; zh-CN/ja-JP locale variants exist. Event vars {SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress, ShareIndexLastError, FavoritesUpdateID, RadioFavoritesUpdateID, RadioLocationUpdateID, SavedQueuesUpdateID, ShareListUpdateID, cdMediaServer} are the LastChange payload vocabulary. UpdateObject/CreateObject/DestroyObject carry Elements XML; FindPrefix/GetAllPrefixLocations handle id-prefix mapping; SCHED ops bound the scheduler hooks.",
+    "Browse backend model proven: ContainerID namespaces dispatch to backends - the local library families (LIB* ids from browse_ids: LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS, LIBPLAYLISTS, LIBSTATIONS, LIBMUSIC + Q:0/Q:1 queue roots) resolve against the local share index (share_indexer engine), while service-prefixed ids route through the x-rincon-cpcontainer SCP layer to the owning provider (wmp_provider for WMP NSS; a binding from SMAPI registration to this converter has not been established). BrowseFlag {BrowseDirectChildren, BrowseMetadata} selects list-vs-describe mode; Filter + SortCriteria + StartingIndex/RequestedCount window the response, and NumberReturned/TotalMatches/UpdateID frame it. The dual URN set {urn:schemas-sonos-com:service:ContentDirectory:1, urn:schemas-upnp-org:service:ContentDirectory:1} serves both namespaces; zh-CN/ja-JP locale variants exist. Event vars {SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress, ShareIndexLastError, FavoritesUpdateID, RadioFavoritesUpdateID, RadioLocationUpdateID, SavedQueuesUpdateID, ShareListUpdateID, cdMediaServer} are the LastChange payload vocabulary. UpdateObject/CreateObject/DestroyObject carry Elements XML; FindPrefix/GetAllPrefixLocations handle id-prefix mapping; SCHED ops bound the scheduler hooks.",
     "Resolved: the ContainerID prefix dispatch ladder is literal @0x10e77fc0+: RDCPA:ARTALBUM: -> explore:artist:mainreleases::art.%s; RDCPA:ARTCOMPILATIONS: -> explore:artist:compilations::art.%s; RDCPA:ARTSINGLESEPS: -> explore:artist:singlesandeps::art.%s; RDCPA:ARTTOPTRACKS: -> explore:artist:toptracks::art.%s; RDCPA:GLBALBUM: -> explore:album::alb.%s; RDCPA:GLBARTIST: -> explore:artist::art.%s; RDCPA:GLBPLAYLIST: -> explore:playlist::pp.%s; RDCPA:LIBPLAYLISTS: -> explore:playlist::mp.%s; RDCPA:LIBPLAYLISTS (no colon) -> mymusic:playlists; RDCPA:LIBALBUM: -> mymusic:album::alb.%s; RDCPI:ARTSTATION:/RDCPI:GLBSTATION:/RDCPI:GLBTRACK: are item-level URIs. So prefix rows ARE literal: RDCPA = container prefixes, RDCPI = item prefixes, each mapping to an explore:/mymusic: target template.",
-    "Established: full RDCPA/RDCPI prefix->URI ladder with explore:/mymusic: targets."
+    "The RDCPA/RDCPI mapping is positively bound to a Rhapsody-ID converter, not proven as the entire ContentDirectory backend namespace registry. f_100ceb4c loads constant table 0x10e77464 at 0x100ceb68-0x100ceb70, compares each prefix with strncmp, advances by 0x18 per row and stops after index 12 at 0x100cebd0-0x100cebdc. A miss logs Unknown Rhapsody ID type and returns zero at 0x100cebe0-0x100cec18. The first row is RDCPI:GLBTRACK:, followed by the twelve RDCPA/RDCPI rows already enumerated. No runtime count, append operation or plugin callback is used by this thirteen-row search.",
+    "On a matching row, prefix-map consumers read an optional extraction marker at row+0x10 and a target/template at +0x14 (0x100cec6c-0x100cec94). A null marker copies the constant target directly at 0x100cecfc-0x100ced14; otherwise f_100ce8f0 extracts the identifier and snprintf formats the target at 0x100cec78-0x100cecb4. Failed extraction returns zero. Fields at +4,+8 and byte +0xc are forwarded to f_1071d758 before the result is copied to the caller. This is immutable per-row conversion data, not evidence that SMAPI plugins register new rows.",
+    "A distinct reverse-conversion path f_100ced24 starts with radea:Tra. and checks four fixed 0x20-byte rows, using offsets +0x138 through +0x154 relative to 0x10e77464 (0x100ced98-0x100cee58). Its existence further distinguishes these provider-specific conversion tables from a general-purpose ContentDirectory registration API. The earlier blanket attribution of this ladder to all ContainerID dispatch is withdrawn; the broader backend/plugin registration question still requires the Browse dispatch call chain."
    ]
   },
   "audio_stream_mixer": {
