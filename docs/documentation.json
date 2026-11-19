@@ -112806,11 +112806,25 @@
      "build": "86.10-80260",
      "address": "0x1018f6d8",
      "notes": "bl f_10242118 inside f_1018d27c"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019f8a8",
+     "notes": "f_1019f87c reads pointer from source+4 and length from source+8 and forwards begin/end to f_1018069c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10180754",
+     "notes": "After computing end-begin, f_1018069c selects inline storage or heap allocation, copies the span with memcpy (single byte handled separately), stores its length, and terminates it. The null/nonempty branch references basic_string::_M_construct null not valid. This is copying, not registering an action."
     }
    ],
    "notes": null,
    "todo": [
-    "Residual: which verb name each of the 19 ops-pair members serves - names are stored in the member span objects (member[r4+4] points at the name-bearing record populated by the span registrars caller), not in the static table."
+    "Residual: recover the caller data that supplies each ops pair's source span, then prove which members, if any, bear a particular AVTransport verb. The common callback copies a string span; neither the copy nor the table identifies a verb."
    ],
    "disasm_digest": {
     "insns": 3299,
@@ -113297,8 +113311,8 @@
     "Resolved: the zp aggregate embedded-member map is decoded - the registration block 0x1018d300-0x1018d900 installs ~30 sub-objects at zp+0x000,0x028,0x044,0x060,0x07c,0x098,0x0b4,0x0d0,0x0ec,0x108,0x124/0x128,0x144/0x148,0x164/0x168,0x184/0x188,0x1a4/0x1a8,0x1c4/0x1c8,0x1e4/0x1e8,0x204/0x208,0x224/0x228,0x244/0x248,0x264/0x268,0x284/0x288,0x2a4/0x2a8,0x2c4/0x2c8,0x2e4/0x2e8,0x304/0x308,0x324/0x328,0x344/0x348,0x364/0x368,0x384/0x388 (stride ~0x20-0x24). Each member is {secondary fn-table ptr, aux ptr, flag byte} - the fn tables are plain pointer arrays (not Itanium vtables: -8/-4 words are zero) whose slot-0 impls include f_10809540 and f_1012cb60; members register themselves via f_1018069c(this=member+4, arg4, arg4+len).",
     "Member-table census complete: 32 registration rows install records {callback fn ptr, aux fn ptr, sentinel/flags, 0, fn2} at zp+0x000..0x3b8 stride 0x1c..0x20 (rodata tables 0x10e8aa88..0x10e98410). Identifiable members by callback literals: +0x1c4 NewMuseHHIDEvent handler (RZonePlayer muse), +0x244 /AlarmClock/Event, +0x304 Master (group role), +0x324 hardware warning state, +0x364 discovery chime; +0x000/+0x028 rows are zeroed placeholders; six rows share the generic thunk f_10809540 (empty/base callback).",
     "Member-callback family bound: the registration sweep's literal vocabulary identifies the unnamed member callbacks as the AVTransport verb surface + lifecycle members - verb literals loaded in-range include {commitReplaceWhilePlaying, prepareToBeDelegationTarget, setStateSSGoal, externalSkipToItem, skipToFirstTrack, stopPauseWhenPausedAtEndEnabled, recordCurrentState, handleWorkRequestWhileRunning, handleWorkRequestWhileStopped, notifyTransportError, streaming enqueued %s} plus state/crash members {htsnk, crashed_play_state, watchdog_crash, sonospowercoordinator_backtrace} and state keys {[hardware_version],[model],[spotifyesdk_version],[play_state]}.",
-    "Member-callback census completed: the 19-member family at zp+0x124..+0x384 binds ops-pair tables whose slot1 callbacks are span registrars (each stores r3+8 and calls registrar f_1018069c with [member[r4+4], +r4+8)); family fns {f_1019f87c..f_1019fb94} plus satellites {f_1012e268,f_1012e2b0,f_1012e388,f_100f72b4,f_100f72fc,f_100d5bd0,f_100e55e0,f_100e5628}.",
-    "Offset-to-ops census complete: the ctor sweep stores 32 {ops-table, aux-ptr} pairs at zp+{0x00c,0x028,0x044,0x060,0x07c,0x098,0x0b4,0x0d0,0x0ec,0x108,0x124,0x144,0x164,0x184,0x1a4,0x1c4,0x1e4,0x204,0x224,0x244,0x264,0x284,0x2a4,0x2c4,0x2e4,0x304,0x324,0x344,0x364,0x384} (stride 0x20). Two member classes coexist: 19 ops-pair tables {f_10809540 dispatch thunk, f_1019f87c..f_1019fb94 span registrar} (the AVTransport verb family) interleaved with 9 rows whose slot-0 pointer lands in rodata strings - those are embedded data members, not verb ops. Each registrar body is identical: stw this+8; call f_1018069c(member[r4+4], member[r4+8]) registering the member span under the parent aux handle. Verb-name identity per offset is not carried in the ops table - names live inside each span members own fields."
+    "Member-callback census completed: the 19-member family at zp+0x124..+0x384 binds ops-pair tables whose slot1 callbacks are string span constructors (each stores r3+8 and calls f_1018069c with [source+4 pointer, pointer + source+8 length)); family fns {f_1019f87c..f_1019fb94} plus satellites {f_1012e268,f_1012e2b0,f_1012e388,f_100f72b4,f_100f72fc,f_100d5bd0,f_100e55e0,f_100e5628}.",
+    "Offset-to-ops census complete: the ctor sweep stores 32 {ops-table, aux-ptr} pairs at zp+{0x00c,0x028,0x044,0x060,0x07c,0x098,0x0b4,0x0d0,0x0ec,0x108,0x124,0x144,0x164,0x184,0x1a4,0x1c4,0x1e4,0x204,0x224,0x244,0x264,0x284,0x2a4,0x2c4,0x2e4,0x304,0x324,0x344,0x364,0x384} (stride 0x20). Two member classes coexist: 19 ops-pair tables {f_10809540 dispatch thunk, f_1019f87c..f_1019fb94 span registrar} (common string constructor family) interleaved with 9 rows whose slot-0 pointer lands in rodata strings - those are embedded data members, not verb ops. The shared callback copies text from caller-supplied pointer/length data; its ops pair is not itself a verb dispatch table."
    ]
   },
   "0x104661fc": {
