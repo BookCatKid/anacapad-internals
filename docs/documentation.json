@@ -66397,7 +66397,7 @@
      ]
     },
     "SaveAsSonosPlaylist": {
-     "description": "Saves QueueID as a Sonos playlist under Title/ObjectID: explicit-id twin of AVTransport.SaveQueue; returns AssignedObjectID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x24](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+     "description": "Saves the session's queue s+0x2d890 as a Sonos saved queue (playlist) named Title, creating a new one for an empty ObjectID or replacing 'SQ:<n>', and returns its object ID 'SQ:<n>'. Only QueueID 0 is accepted. Chain: wrapper f_104643c0 parses QueueID as u32 (0x10464408), Title (cap 0x400, 0x10464430) and ObjectID (cap 0x400, 0x10464458), faults 402 on parse failure (0x104644ec) and calls qm->v[+0x24](qm, QueueID, Title, ObjectID, out, 0x400) at 0x1046449c; nonzero rc faults through req->v[+0x14] (0x104644b8), 0 emits AssignedObjectID from the out buffer (0x104644fc/0x1046451c). qm vtable 0x10ed1bcc slot +0x24 is f_10465f7c: QueueID != 0 returns 800 (0x10465f88); QueueID 0 tail-calls engine->v[+0x7c] on *(qm+0x128) (0x10465fa8), which in engine vtable 0x10edfbb8 is f_102aa8b4. f_102aa8b4 locks engine+0x458 (0x102aa908); a nonzero QueueID would return 718 (0x102aa910, unreachable from this service); it returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102aa968..0x102aa974); it copies Title into a 0x400 buffer (f_10906304, 0x102aa988), trims it with sonosTrimWhitespace (0x102aa990), returns 402 if the result is empty (0x102aa99c) or contains CR or LF (strpbrk at 0x102aa9ac); otherwise it returns f_10146e94(s+0x2d890, title, ObjectID, out, cap, 0, 0, 0) (0x102aa9e0), s=*(engine+0x580). f_10146e94 forwards to f_104794d4 with this = *(0x11096770) (0x10146ecc). f_104794d4 logs 'pszObjectId is NULL' for a NULL ObjectID; an empty ObjectID selects index -1 (new playlist); a nonempty ObjectID must parse with sscanf 'SQ:%d' or it returns 801 (0x104798d4), and a parsed index selects replace mode (0x104796cc). Under the lock at this+0x28 (f_10988558/f_10988984) it walks tracks 1..u16 q+0x26c8 with f_10146a1c (0x10479744), saves through f_1047ee0c (0x10479794) to the 'savedqueues.rsq' store, and when that returns 0 or 803 it increments this+0xec, calls f_1047cd90(this, *(this+0xc8), count) (0x1047988c) and writes 'SQ:%d' with the saved index into the output buffer (0x104798b0) before returning the f_1047ee0c code.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x104643c0",
@@ -66439,7 +66439,7 @@
      },
      "inputs": {
       "QueueID": {
-       "description": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+       "description": "must be 0; any other value returns 800",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -66456,7 +66456,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Target queue in the manager registry (explicit, unlike the implicit AVTransport queue).",
+       "validation": "must be 0, else 800",
        "evidence": [
         {
          "type": "firmware",
@@ -66478,19 +66478,24 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine queue-table lookup"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10465f7c",
+         "address": "0x10465f88",
+         "notes": "li r3,0x320"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `QueueID` is parsed then forwarded verbatim to r5-in vfunc +36 (site 0x1046449c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: f_10465f7c returns 800 for any nonzero QueueID (0x10465f84/0x10465f88) and passes 0 to f_102aa8b4, which saves the fixed record s+0x2d890; the value does not select a queue."
        ]
       },
       "Title": {
-       "description": "Playlist title (SaveQueue-family trimming rules may apply inside the impl).",
+       "description": "playlist title; trimmed, must be nonempty and single-line",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -66507,7 +66512,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Playlist title (SaveQueue-family trimming rules may apply inside the impl).",
+       "validation": "nonempty after whitespace trim, no CR/LF, else 402",
        "evidence": [
         {
          "type": "firmware",
@@ -66529,20 +66534,25 @@
          "build": "86.10-80260",
          "function": "0x102dff24",
          "notes": "strchr(Title,\\n) -> 402"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aa8b4",
+         "address": "0x102aa990",
+         "notes": "sonosTrimWhitespace"
         }
        ],
        "notes": null,
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Title` is parsed then forwarded verbatim to r5-in vfunc +36 (site 0x1046449c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `Title` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `Title` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: copied with f_10906304 into a 0x400 buffer, trimmed with sonosTrimWhitespace, rejected with 402 if empty after trimming (0x102aa99c) or if it contains '\\r' or '\\n' (0x102aa9b4); the trimmed copy is passed to f_104794d4 and stored in the save context (sp+0x70, 0x104796c8)."
        ]
       },
       "ObjectID": {
-       "description": "Saved-queue object id / parent selector.",
+       "description": "empty to create, or 'SQ:<n>' to overwrite an existing saved queue; other text returns 801",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -66559,7 +66569,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Saved-queue object id / parent selector.",
+       "validation": "empty or 'SQ:%d', else 801",
        "evidence": [
         {
          "type": "firmware",
@@ -66580,22 +66590,31 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "impl consumes string record"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x104798cc",
+         "notes": "sscanf 'SQ:%d'"
         }
        ],
        "notes": null,
        "buf_cap": 1024,
        "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ObjectID` is parsed then forwarded verbatim to r5-in vfunc +36 (site 0x1046449c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: the ObjectID grammar and the new/replace selection.",
+        "Residual: how f_1047ee0c handles an 'SQ:<n>' index that does not exist is not traced; next step is its replace path."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ObjectID` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `ObjectID` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: empty selects a new saved queue (index -1, 0x10479554); otherwise sscanf(ObjectID, 'SQ:%d') must return 1 or the call returns 801 (0x104798d4); the parsed index makes f_104794d4 run in replace mode (sp+0x60 = 1 at 0x104796d4) for that saved queue."
        ]
       }
      },
      "outputs": {
       "AssignedObjectID": {
-       "description": "Written by the queue-manager impl on success.",
+       "description": "'SQ:<n>' object ID of the saved queue",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -66631,12 +66650,23 @@
          "build": "86.10-80260",
          "function": "0x10479bb4",
          "notes": "saved-queue store"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x104798b0",
+         "notes": "snprintf"
         }
        ],
        "notes": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `AssignedObjectID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: format and the condition under which it is written.",
+        "Residual: the index f_1047ee0c stores in sp+0x68 for a new saved queue is not traced; next step is its allocation path."
+       ],
+       "resolved_findings": [
+        "Resolved: written by f_104794d4 with snprintf(out, 0x400, 'SQ:%d', index) (0x104798b0), index taken from the save context sp+0x68 after f_1047ee0c returns 0 or 803 (0x10479864); emitted only on rc 0 (0x104644f4..0x1046451c)."
        ]
       }
      },
@@ -66653,7 +66683,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x24]",
+      "description": "QueueID 0, transport mode 1 or 2, valid Title and ObjectID",
       "evidence": [
        {
         "type": "firmware",
@@ -66661,15 +66691,26 @@
         "build": "86.10-80260",
         "function": "0x104643c0",
         "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aa8b4",
+        "address": "0x102aa974",
+        "notes": "mode gate"
        }
       ],
       "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×3, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+       "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+      ],
+      "resolved_findings": [
+       "Resolved: QueueID 0 (else 800), engine mode 1 or 2 (else 800), Title nonempty and single-line after trimming (else 402), ObjectID empty or 'SQ:%d' (else 801), and a successful save (f_1047ee0c rc 0)."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x24]",
+      "description": "engine mode, session queue s+0x2d890 tracks, saved-queue manager state",
       "evidence": [
        {
         "type": "firmware",
@@ -66677,11 +66718,22 @@
         "build": "86.10-80260",
         "function": "0x104643c0",
         "notes": "member vfunc calls: ['r30 v[+0x24]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104794d4",
+        "address": "0x10479784",
+        "notes": "lhz q+0x26c8"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+       "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+      ],
+      "resolved_findings": [
+       "Resolved: reads engine mode engine+0x4654, the tracks of s+0x2d890 (count u16 q+0x26c8, entries through f_10146a1c) and the saved-queue manager *(0x11096770) state at +0xc8/+0xec."
       ]
      },
      "side_effects": [
@@ -66694,11 +66746,22 @@
          "build": "86.10-80260",
          "function": "0x104643c0",
          "notes": "delegate map ['r30 v[+0x24]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047cd90",
+         "address": "0x1047cde4",
+         "notes": "listener vcall"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x24] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+        "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+       ],
+       "resolved_findings": [
+        "Resolved (manager side): f_104794d4 writes the saved queue through f_1047ee0c ('savedqueues.rsq'), then on rc 0/803 sets this+0xf0, increments this+0xec and calls f_1047cd90, which copies the ID string into this+0xd0 (strlcpy 0x19), stores the count in this+0xec, calls (*(this+0xc0))->v[+0x14](obj, 2, this+0xd0, count, 0) (0x1047cde4) and tail-calls this->v[+0x14](this, this+0xd0, count) (0x1047ce18)."
        ]
       }
      ],
@@ -66711,11 +66774,22 @@
         "build": "86.10-80260",
         "function": "0x104643c0",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047cd90",
+        "address": "0x1047cde4",
+        "notes": "listener vcall"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+       "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+      ],
+      "resolved_findings": [
+       "Resolved (manager side): f_104794d4 writes the saved queue through f_1047ee0c ('savedqueues.rsq'), then on rc 0/803 sets this+0xf0, increments this+0xec and calls f_1047cd90, which copies the ID string into this+0xd0 (strlcpy 0x19), stores the count in this+0xec, calls (*(this+0xc0))->v[+0x14](obj, 2, this+0xd0, count, 0) (0x1047cde4) and tail-calls this->v[+0x14](this, this+0xd0, count) (0x1047ce18)."
       ]
      },
      "state_transitions": {
@@ -66727,15 +66801,26 @@
         "build": "86.10-80260",
         "function": "0x104643c0",
         "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x24]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047cd90",
+        "address": "0x1047cde4",
+        "notes": "listener vcall"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x24].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+       "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+      ],
+      "resolved_findings": [
+       "Resolved (manager side): f_104794d4 writes the saved queue through f_1047ee0c ('savedqueues.rsq'), then on rc 0/803 sets this+0xf0, increments this+0xec and calls f_1047cd90, which copies the ID string into this+0xd0 (strlcpy 0x19), stores the count in this+0xec, calls (*(this+0xc0))->v[+0x14](obj, 2, this+0xd0, count, 0) (0x1047cde4) and tail-calls this->v[+0x14](this, this+0xd0, count) (0x1047ce18)."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 with AssignedObjectID, or fault",
       "evidence": [
        {
         "type": "firmware",
@@ -66743,11 +66828,22 @@
         "build": "86.10-80260",
         "function": "0x104643c0",
         "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104643c0",
+        "address": "0x104644a4",
+        "notes": "mr. r4,r3"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+       "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+      ],
+      "resolved_findings": [
+       "Resolved (front end): 402 parse, 800 nonzero QueueID or bad mode, 402 bad Title, 801 bad ObjectID, otherwise the f_1047ee0c code; only 0 emits AssignedObjectID."
       ]
      },
      "fault_sites": [
@@ -66761,7 +66857,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x24)",
-       "meaning": "literal gate: r4!=0 -> 800 (0x10465f88); r4==0 -> engine vfunc +0x7c on *(svc+0x128)",
+       "meaning": "front-end codes: 800 nonzero QueueID (f_10465f7c) or transport mode not 1/2, 402 empty or multi-line Title, 801 ObjectID not 'SQ:%d'",
        "fault_sites": [
         "0x104644b8"
        ],
@@ -66821,6 +66917,14 @@
          "build": "86.10-80260",
          "address": "0x10465f94",
          "notes": "== -> engine vfunc +0x7c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x104798d4",
+         "notes": "li r3,0x321"
         }
        ],
        "unresolved": {
@@ -66849,9 +66953,8 @@
        "literal_bound": [
         718
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x24); sites: 0x104644b8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: literal exits 800 (0x10465f88, 0x102aa968), 402 (0x102aa984 for the empty and CR/LF checks), 801 (0x104798d4); 718 at 0x102aa910 is unreachable because f_10465f7c only forwards QueueID 0."
        ]
       },
       {
@@ -66925,6 +67028,14 @@
          "build": "86.10-80260",
          "address": "0x10ed2edc",
          "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x104797d4",
+         "notes": "mr r3,r31 returns f_1047ee0c rc"
         }
        ],
        "conditions": [
@@ -66970,8 +67081,8 @@
         }
        ],
        "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: f_104794d4 returns the f_1047ee0c code verbatim (0x10479798 -> 0x104797d4), including 803 after the ID has been written.",
+        "Residual: the trigger condition of each f_1047ee0c code (and of 803 in particular) is not decoded; next step is to disassemble f_1047ee0c's return sites."
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -66994,12 +67105,47 @@
        "build": "86.10-80260",
        "address": "0x10ed1a64",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10465f7c",
+       "address": "0x10465f88",
+       "notes": "QueueID!=0 -> 800"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102aa8b4",
+       "address": "0x102aa9e0",
+       "notes": "bl f_10146e94"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x10479794",
+       "notes": "bl f_1047ee0c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104794d4",
+       "address": "0x104798b0",
+       "notes": "snprintf 'SQ:%d'"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x104643c0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
+      "Residual: the save engine f_1047ee0c (its return codes and which index it assigns to a new playlist in ctx sp+0x68) and the listener call f_1047cd90 makes (this+0xc0 slot +0x14, and this->v[+0x14]) are not traced; next step is to disassemble f_1047ee0c's index assignment and resolve the vptr of *(this+0xc0)."
+     ],
+     "resolved_findings": [
+      "Resolved: the impl chain is fully static. wrapper f_104643c0 parses QueueID as u32 (0x10464408), Title (cap 0x400, 0x10464430) and ObjectID (cap 0x400, 0x10464458), faults 402 on parse failure (0x104644ec) and calls qm->v[+0x24](qm, QueueID, Title, ObjectID, out, 0x400) at 0x1046449c; nonzero rc faults through req->v[+0x14] (0x104644b8), 0 emits AssignedObjectID from the out buffer (0x104644fc/0x1046451c). qm vtable 0x10ed1bcc slot +0x24 is f_10465f7c: QueueID != 0 returns 800 (0x10465f88); QueueID 0 tail-calls engine->v[+0x7c] on *(qm+0x128) (0x10465fa8), which in engine vtable 0x10edfbb8 is f_102aa8b4. f_102aa8b4 locks engine+0x458 (0x102aa908); a nonzero QueueID would return 718 (0x102aa910, unreachable from this service); it returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102aa968..0x102aa974); it copies Title into a 0x400 buffer (f_10906304, 0x102aa988), trims it with sonosTrimWhitespace (0x102aa990), returns 402 if the result is empty (0x102aa99c) or contains CR or LF (strpbrk at 0x102aa9ac); otherwise it returns f_10146e94(s+0x2d890, title, ObjectID, out, cap, 0, 0, 0) (0x102aa9e0), s=*(engine+0x580). f_10146e94 forwards to f_104794d4 with this = *(0x11096770) (0x10146ecc). f_104794d4 logs 'pszObjectId is NULL' for a NULL ObjectID; an empty ObjectID selects index -1 (new playlist); a nonempty ObjectID must parse with sscanf 'SQ:%d' or it returns 801 (0x104798d4), and a parsed index selects replace mode (0x104796cc). Under the lock at this+0x28 (f_10988558/f_10988984) it walks tracks 1..u16 q+0x26c8 with f_10146a1c (0x10479744), saves through f_1047ee0c (0x10479794) to the 'savedqueues.rsq' store, and when that returns 0 or 803 it increments this+0xec, calls f_1047cd90(this, *(this+0xc8), count) (0x1047988c) and writes 'SQ:%d' with the saved index into the output buffer (0x104798b0) before returning the f_1047ee0c code. In plain terms: SaveAsSonosPlaylist only works with QueueID 0, needs a nonblank single-line title and transport mode 1 or 2, always saves the session queue s+0x2d890 (not a queue selected by ID), and returns the saved playlist's 'SQ:<n>' ID. A save that returns 803 still updates the counter and writes the ID internally but is reported to the client as fault 803."
      ]
     }
    },
