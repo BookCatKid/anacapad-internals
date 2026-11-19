@@ -148421,14 +148421,41 @@
      "type": "firmware",
      "address": "0x10ef1ba0",
      "notes": "cloudrequest region"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a3160",
+     "notes": "Unsigned count limit and nonzero-existing-count registration guards."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10189470",
+     "notes": "Actual startup supplies one registered object/selector pair."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100b9508",
+     "notes": "JIT scheduled callback dispatches selector zero with no service/body envelope."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a3328",
+     "notes": "Virtual +0xc called only when eligible object virtual +8 returns false."
     }
    ],
-   "todo": [
-    "Residual: the registered-service name table and JIT event payload schema (service id + body) - the registrant list is runtime-built at init; no literal service names are bound in the image."
-   ],
+   "todo": "Residual: identify the concrete startup registrant at parent+0x4d34/+0x12c and trace its virtual +8/+0xc implementations, together with the readiness predicate f_109ed8f0. JIT is proven to schedule selector-zero work with null callback data; a service-id/body wire schema and the earlier six-store list are not established.",
    "resolved_findings": [
-    "Resolved: registerServices registrants = the replicated-store service set {settings, accounts, favorites, playlists, queues, experiments}; sync loop polls each registrant for changed version fields and issues replicateOne transfers.",
-    "RCloudSynchronizer sits directly on the ws client: adjacent literals are could not initialize ws client plus the muse envelope fields museHouseholdId/locationId, so the synchronizer is the cloud-push demultiplexer over the lechmere WSS channel (cloud_sync/cloud_synchronizer tags). Services register through registerServices - bounded table (The max number of services have been registered to RCloudSynchronizer. Aborting.) and single-shot (registerServices called multiple times. Aborting. / RCloudSynchronizer initalized.). Inbound push arrives as JIT events (RCloudSynchronizer received JIT event.) - just-in-time cloud notifications dispatched to the registered service handlers; this is the receive side feeding the lechmere topic subscribers (musicServicesChanged, entitlementsVersionChanged, settingsDataChanged family)."
+    "Registration is a bounded array of eight-byte {object pointer, selector} pairs, not a proven six-service replicated-store list. Constructor f_105a3058 clears 32 physical slots at owner+0x28 and count at +0x128. registerServices f_105a3158 rejects unsigned count>31 at 0x105a3160-0x105a316c, rejects a subsequent registration only if the existing count is nonzero at 0x105a3170-0x105a3178, copies count pairs and stores the count. The Aborting text on these guards leads to a diagnostic and return, not a process abort (0x105a31d0-0x105a3254). Count zero is accepted and leaves the subsequent-call guard unset. Thus max accepted count is 31, despite storage for 32 pairs.",
+    "Native startup call sites at 0x10189468-0x10189470 and 0x10189508-0x10189510 both pass count=1 and stack+0x28 to initializer f_105a35b0, which forwards that pair to f_105a3158 at 0x105a3754-0x105a3760. The pair is assembled at 0x101893f4-0x10189434 from the object loaded at parent+0x4d34 plus its +0x12c subobject. These instructions disprove the claimed fixed set of settings/accounts/favorites/playlists/queues/experiments registrants. The exact concrete service behind this startup subobject still needs its vtable and owning constructor traced.",
+    "The JIT callback itself has no decoded service-id/body envelope. f_105a2ee8 logs the JIT event and schedules callback f_100b94e0 with null callback data through scheduler virtual +8 at 0x105a2f34-0x105a2f5c. f_100b94e0 then invokes f_105a3258 with selector zero at 0x100b94f4-0x100b9508. That worker first requires f_109ed8f0(owner+0x12c) to return nonzero, then walks registered pairs, applying the selector filter only when the supplied selector is nonzero. Each eligible object gets virtual +8; only a false result triggers its virtual +0xc at 0x105a3328-0x105a3338. This proves a scheduled all-registrant wake/check path for JIT, not direct dispatch of a parsed push body. Adjacent WebSocket/muse strings alone do not bind this callback to a WSS wire parser."
    ]
   },
   "cert": {
