@@ -249,7 +249,7 @@
       "actions": {
         "GetSessionId": "Obtains a session token for an existing service account selected by ServiceId and exact Username. It can contact the provider synchronously using stored credentials, or use a configured proxy; it does not create an account. ServiceId is not limited to0..255. Missing input returns402, policy denial401, and missing service/account806. Transport and provider faults propagate; no SessionId is returned on failure.",
         "ListAvailableServices": "Reads the locally installed music-service catalog without refreshing it. Returns service-descriptor XML, encoded numeric service types, and a device:counter version token. The type list is not a list of raw ServiceIds or only logged-in accounts. Missing or malformed local catalog data can produce empty or partial lists instead of a SOAP fault; the getter does not change the catalog or emit an event.",
-        "UpdateAvailableServices": "Asks the speaker to refresh its catalog of music services by re-pulling the current service list, so newly launched or updated services appear."
+        "UpdateAvailableServices": "Waits while the speaker downloads and installs a refreshed local music-service catalog. An unchanged server response also succeeds. A newly accepted catalog advances its version and requests ServiceListVersion notification; success does not guarantee delivery to subscribers. Faults:800 already refreshing,801 download/length unavailable,802 installation or version acceptance,803 catalog transformation,804 body larger than128KiB. This is not an enqueue-only action; a separate periodic job can perform the same refresh."
       }
     },
     "/QPlay/Control": {

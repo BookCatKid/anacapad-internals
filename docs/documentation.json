@@ -95833,7 +95833,7 @@
   "/MusicServices/Control": {
    "name": "MusicServices",
    "control_path": "/MusicServices/Control",
-   "description": "Music-service catalog and account-session service. Concrete catalog implementation is embedded at ctx+0x292b8; service at ctx+0x3d010 binds its primary and secondary interfaces during construction. GetSessionId can authenticate remotely; ListAvailableServices reads catalog state; UpdateAvailableServices refreshes it.",
+   "description": "Music-service catalog and account-session service. Concrete catalog implementation is embedded at ctx+0x292b8; service at ctx+0x3d010 binds its primary and secondary interfaces during construction. GetSessionId can authenticate remotely; ListAvailableServices reads catalog state; UpdateAvailableServices refreshes it. Catalog file musicservices.xml is local; UpdateAvailableServices downloads it synchronously while a separate timed job can call the same worker. Native event is ServiceListVersion=device:counter, not LastChange.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -97317,7 +97317,7 @@
      "implementation_notes": "Local-file SAX rewrite and synchronous callback output order traced; old-client branches are not assumed reachable on ordinary SOAP. XML SchemaVersion1 is distinct from AvailableServiceListVersion. CSV cap2048 is not an XML cap."
     },
     "UpdateAvailableServices": {
-     "description": "Triggers a refresh of the available music-services list via impl->v[+0x8] on the svc+4 member.",
+     "description": "Synchronously refreshes the installed music-service catalog from the configured service-catalog endpoint, using conditional ETag download when available. Parses/rewrites a temporary local catalog, installs it by rename, advances its device:counter version and requests native ServiceListVersion notification only when a new catalog is accepted. Not an asynchronous enqueue-only action.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073a3b4",
@@ -97343,248 +97343,589 @@
         "arg4": "vret(*(r3-in+0x4),+0x8)"
        }
       ],
-      "req_vcalls": []
+      "req_vcalls": [],
+      "impl_function": "0x100c997c ->0x100c8fdc ->0x100cc4f4 ->0x100c7898",
+      "impl_vfunc": "Primary vtable0x10e768a4 +8, concrete binding at service level."
      },
      "inputs": {},
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "No action arguments, no parser or request-validator call. Legacy402 parse failure is unreachable in this wrapper.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1073a3b4",
-        "notes": "wrapper decode"
+        "function": "0x1073a3b4",
+        "address": "0x1073a3d8",
+        "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v[+0x8]",
+      "description": "Available non-busy catalog implementation, reachable configured HTTPS catalog service for modified download, acceptable length/XML, and writable runtime data directory. An unmodified response can succeed without replacement.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a3b4",
-        "notes": "req-vfunc call map: {'0x14': 1, '0xc': 1}"
+        "function": "0x100c997c",
+        "address": "0x100c99fc",
+        "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c93c0",
+        "notes": "Builds /catalog/services through10540004. Setting20 override via1053fa2c, when nonempty, replaces URL base (suffix appended). Otherwise1053faf8 uses table index21, HTTPS, row10ee707c={service-catalog,ws.sonos.com,flags0}: default https://service-catalog.ws.sonos.com/catalog/services. Shared builder also honors runtime environment setting37 and host-suffix setting48, and optional global110a4a28 special-auth routing through1053f8c8 (setting49). Therefore default host is not an unconditional fixed destination; SOAP supplies no URL argument. Settings are runtime strings; numeric keys/branches, not an assumed device-specific hostname, define override precedence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c9478",
+        "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c9704",
+        "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100cc4f4",
+        "address": "0x100cc6f8",
+        "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7898",
+        "address": "0x100c7aa8",
+        "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: *(r3+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r3+4) v[+0x8]",
+      "description": "Busy flag, current list version/last-update device, cached ETag/conditional flag, configuration/customer ID and account-derived installed IDs, installed descriptor cache, runtime data directory, and policy-controlled periodic job state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1073a3b4",
-        "notes": "member vfunc calls: ['*(r3+4) v[+0x8]']"
+        "function": "0x100c997c",
+        "address": "0x100c99fc",
+        "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c93c0",
+        "notes": "Builds /catalog/services through10540004. Setting20 override via1053fa2c, when nonempty, replaces URL base (suffix appended). Otherwise1053faf8 uses table index21, HTTPS, row10ee707c={service-catalog,ws.sonos.com,flags0}: default https://service-catalog.ws.sonos.com/catalog/services. Shared builder also honors runtime environment setting37 and host-suffix setting48, and optional global110a4a28 special-auth routing through1053f8c8 (setting49). Therefore default host is not an unconditional fixed destination; SOAP supplies no URL argument. Settings are runtime strings; numeric keys/branches, not an assumed device-specific hostname, define override precedence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c95e0",
+        "notes": "Reads R_CustomerID through config impl+0x1c4; if absent/empty/exact0 leaves URL unchanged. Otherwise appends ?sonosId=<customerID> and optional &installedIds=<decimal CSV>. Customer buffer17 bytes; URL buffers1025. Account snapshot101b688c; account-type filter100c923c/9240 is (key&0x7f)-((key&1)^1)==7, then100c92d0 actual logical key>>8, accepting IDs<=255, appending comma-separated IDs. These SH0 operations are masks, not shifts; no local login is performed. Global trial-serial initialization100c6248 does not gate this fetch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c9478",
+        "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7898",
+        "address": "0x100c7b78",
+        "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c6ae4",
+        "address": "0x101941e4",
+        "notes": "Startup101941e4 calls100c6ae4 which registers timed callback100c59b4 with timed-job manager impl+0x1d0 through10572358. This is separate from SOAP execution. Callback skips refresh on first call, picks initial randomized delay viaZZ0153(1800,86400) at100c5b88. Later calls1074700c(impl+0x1cc,selector0x10) and invokes primary+8 at100c5b64 only if policy result nonzero. Next interval uses response impl+0x1f4 when1800<=seconds<=86400, otherwise86400; writes next absolute clock1 seconds to callback result. Source labels ICS/Player distinguish interval source, not SOAP async status."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r3+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r3+4) v[+0x8] (call-derived member-method semantics)",
+       "description": "Synchronous HTTPS request with optional customer/account query and ETag; temporary file create/write/cleanup, trial config update, canonical rename, catalog-cache invalidation/reload, version and ETag update, replication announcement and dirty native event-source wake. Failure is not a blanket rollback guarantee.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c8fdc",
+         "address": "0x100c93c0",
+         "notes": "Builds /catalog/services through10540004. Setting20 override via1053fa2c, when nonempty, replaces URL base (suffix appended). Otherwise1053faf8 uses table index21, HTTPS, row10ee707c={service-catalog,ws.sonos.com,flags0}: default https://service-catalog.ws.sonos.com/catalog/services. Shared builder also honors runtime environment setting37 and host-suffix setting48, and optional global110a4a28 special-auth routing through1053f8c8 (setting49). Therefore default host is not an unconditional fixed destination; SOAP supplies no URL argument. Settings are runtime strings; numeric keys/branches, not an assumed device-specific hostname, define override precedence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c8fdc",
+         "address": "0x100c95e0",
+         "notes": "Reads R_CustomerID through config impl+0x1c4; if absent/empty/exact0 leaves URL unchanged. Otherwise appends ?sonosId=<customerID> and optional &installedIds=<decimal CSV>. Customer buffer17 bytes; URL buffers1025. Account snapshot101b688c; account-type filter100c923c/9240 is (key&0x7f)-((key&1)^1)==7, then100c92d0 actual logical key>>8, accepting IDs<=255, appending comma-separated IDs. These SH0 operations are masks, not shifts; no local login is performed. Global trial-serial initialization100c6248 does not gate this fetch."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c8fdc",
+         "address": "0x100c9478",
+         "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100cc4f4",
+         "address": "0x100cc6f8",
+         "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c72e8",
+         "address": "0x100c98d0",
+         "notes": "After transform and BEFORE install, compares trial-list CSV with R_AvailableSvcTrials, updates config through bound config+8 only if changed. Config write rc not checked. A later802 can leave this config side effect in place; no rollback. This helper is not the file-install worker."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c7898",
+         "address": "0x100c7aa8",
+         "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c7898",
+         "address": "0x100c7b78",
+         "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c997c",
+         "address": "0x100c9b68",
+         "notes": "On fetchrc0 reloads local catalog100c6d3c, compares old/new via105546f0, and updates accountmanager101b7e90 when catalog changed or reload failed. Return remains fetchrc; post-install reload failure does NOT become a new SOAP fault. Unmodified response returns0 without version increment/rename/new eventdirty write. Always clears busy before returning normal result; no guarantee every provider descriptor/presentation-map is fetched by this action."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c71d0",
+         "address": "0x100c7248",
+         "notes": "Constructor100c6950 constructs event source atimpl+8 through1067aec4 at100c69c8, then installs vptr10e76914 at100c6a24. Source slot+0x14 at10e76928=100c72bc adjusts-8 to100c71d0. That method locks impl+0x128 and calls100c7084(initial=1) for initial output or100c7084(initial=0) for incremental output. Serializer writes native e:property ServiceListVersion from impl+0x1d7 + colon + unsigned+0x1f0, not LastChange. Incremental onlywhen+0x1d5, clears dirty100c7130 after invoking accountmanager101b7cd4; initialalwaysrenders.10676994 literal<e:property>< at106769cc and10676a44 close the property. Notify100c7b80->1067c6ec->1067c46c sets source+0x110 dirty and wakes attached sender through10678c50 at1067c5c8. Sender weak ownership copied from ctor argument at1067af58/64; if expired/absent, logs no notification sender. No unconditional network delivery promise."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "An accepted replacement sets ServiceListVersion dirty and requests native GENA-source notification; payload is device:counter property, not LastChange. Not-modified download does not produce a new catalog version/event write. Subscriber availability and sender lifetime govern actual delivery.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7898",
+        "address": "0x100c7b78",
+        "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c71d0",
+        "address": "0x100c7248",
+        "notes": "Constructor100c6950 constructs event source atimpl+8 through1067aec4 at100c69c8, then installs vptr10e76914 at100c6a24. Source slot+0x14 at10e76928=100c72bc adjusts-8 to100c71d0. That method locks impl+0x128 and calls100c7084(initial=1) for initial output or100c7084(initial=0) for incremental output. Serializer writes native e:property ServiceListVersion from impl+0x1d7 + colon + unsigned+0x1f0, not LastChange. Incremental onlywhen+0x1d5, clears dirty100c7130 after invoking accountmanager101b7cd4; initialalwaysrenders.10676994 literal<e:property>< at106769cc and10676a44 close the property. Notify100c7b80->1067c6ec->1067c46c sets source+0x110 dirty and wakes attached sender through10678c50 at1067c5c8. Sender weak ownership copied from ctor argument at1067af58/64; if expired/absent, logs no notification sender. No unconditional network delivery promise."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "idle -> busy while network/transform/install work runs unlocked -> idle on return. Accepted install replaces musicservices.xml, invalidates cache, stores own-device/new-counter/ETag, enables conditional downloads and announces replication type6. Trial configuration can change before later installation failure.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c997c",
+        "address": "0x100c99fc",
+        "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100cc4f4",
+        "address": "0x100cc6f8",
+        "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c72e8",
+        "address": "0x100c98d0",
+        "notes": "After transform and BEFORE install, compares trial-list CSV with R_AvailableSvcTrials, updates config through bound config+8 only if changed. Config write rc not checked. A later802 can leave this config side effect in place; no rollback. This helper is not the file-install worker."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7898",
+        "address": "0x100c7aa8",
+        "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7898",
+        "address": "0x100c7b78",
+        "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c997c",
+        "address": "0x100c9b68",
+        "notes": "On fetchrc0 reloads local catalog100c6d3c, compares old/new via105546f0, and updates accountmanager101b7e90 when catalog changed or reload failed. Return remains fetchrc; post-install reload failure does NOT become a new SOAP fault. Unmodified response returns0 without version increment/rename/new eventdirty write. Always clears busy before returning normal result; no guarantee every provider descriptor/presentation-map is fetched by this action."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Waits synchronously for fetch/transform/install result. Zero commits empty SOAP success response, including not-modified response and unchecked post-install reload/config errors.800 busy,801 transport/length unavailable,802 install acceptance/parse/rename,803 temporary catalog transform/read/write/XML failure,804 reported body length>128KiB. No402, no raw HTTP status or deferred job ID.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073a3b4",
+        "address": "0x1073a3d8",
+        "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c997c",
+        "address": "0x100c99fc",
+        "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c9478",
+        "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c8fdc",
+        "address": "0x100c9704",
+        "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100cc4f4",
+        "address": "0x100cc6f8",
+        "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c7898",
+        "address": "0x100c7aa8",
+        "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100c997c",
+        "address": "0x100c9b68",
+        "notes": "On fetchrc0 reloads local catalog100c6d3c, compares old/new via105546f0, and updates accountmanager101b7e90 when catalog changed or reload failed. Return remains fetchrc; post-install reload failure does NOT become a new SOAP fault. Unmodified response returns0 without version increment/rename/new eventdirty write. Always clears busy before returning normal result; no guarantee every provider descriptor/presentation-map is fetched by this action."
+       }
+      ]
+     },
+     "fault_sites": [],
+     "errors": [
+      {
+       "code": 800,
+       "meaning": "Catalog refresh already busy: impl+0x1d4 nonzero at100c99e8 ->100c99fc; no fetch attempted.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Catalog refresh already busy: impl+0x1d4 nonzero at100c99e8 ->100c99fc; no fetch attempted.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100c997c",
+           "address": "0x100c99fc",
+           "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c997c",
+         "address": "0x100c99fc",
+         "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073a3b4",
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+        }
+       ]
+      },
+      {
+       "code": 801,
+       "meaning": "HTTP setup/request failure (10546520 nonzero) or response length unavailable/chunked (10541e00 false). Raw transport/HTTP status normalized to801.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "HTTP setup/request failure (10546520 nonzero) or response length unavailable/chunked (10541e00 false). Raw transport/HTTP status normalized to801.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100c8fdc",
+           "address": "0x100c9478",
+           "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100c8fdc",
+           "address": "0x100c9704",
+           "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c8fdc",
+         "address": "0x100c9478",
+         "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c8fdc",
+         "address": "0x100c9704",
+         "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073a3b4",
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "meaning": "Transformed catalog not accepted/installed:100c7898 false, including stale-version/device comparison, local-file parse/validity rejection or rename failure.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Transformed catalog not accepted/installed:100c7898 false, including stale-version/device comparison, local-file parse/validity rejection or rename failure.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100c7898",
+           "address": "0x100c7aa8",
+           "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c7898",
+         "address": "0x100c7aa8",
+         "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073a3b4",
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "meaning": "Temporary catalog transformation failed:100cc4f4 false from temporary-file open/read/write/XML parsing/completion/error state; temp is unlinked on error.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Temporary catalog transformation failed:100cc4f4 false from temporary-file open/read/write/XML parsing/completion/error state; temp is unlinked on error.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100cc4f4",
+           "address": "0x100cc6f8",
+           "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100cc4f4",
+         "address": "0x100cc6f8",
+         "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073a3b4",
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "meaning": "Reported HTTP body length exceeds0x20000 bytes; equal128KiB accepted.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Reported HTTP body length exceeds0x20000 bytes; equal128KiB accepted.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x100c8fdc",
+           "address": "0x100c9704",
+           "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x100c8fdc",
+         "address": "0x100c9704",
+         "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073a3b4",
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "meaning": "Unreachable legacy input-parse fault: this no-input wrapper does not parse or validate a request.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Unreachable legacy input-parse fault: this no-input wrapper does not parse or validate a request.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1073a3b4",
+           "address": "0x1073a3d8",
+           "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x1073a3b4",
-         "notes": "delegate map ['*(r3+4) v[+0x8]']; notify-family calls []"
-        }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r3+4) v[+0x8] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073a3b4",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v[+0x8]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073a3b4",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r3+4) v[+0x8]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x1073a3b4",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [
-      {
-       "site": "0x1073a404",
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x8)"
-      }
-     ],
-     "errors": [
-      {
-       "code": 800,
-       "code_expr": "vret(*(r3-in+0x4),+0x8)",
-       "meaning": "impl->v[+0x8] rc surfaced",
-       "fault_sites": [
-        "0x1073a404"
-       ],
-       "conditions": [
-        {
-         "description": "impl vfunc rc",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x100c997c",
-           "notes": "literal li r3,0x320 path inside impl"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100c997c",
-         "notes": "literal li r3,0x320 path inside impl"
-        }
-       ],
-       "unresolved": {
-        "proven": "impl->v[+0x8] rc surfaced",
-        "unknown": "none identified",
-        "knowledge": "; impl n=140 single exit; r29 flag + literal 800; derived residual",
-        "impl_exit_literals": {
-         "function": "0x100c997c",
-         "lits": [
-          0,
-          1,
-          36,
-          800
-         ],
-         "passthrough_exits": 3
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
         },
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "condition": "parse/replace table failure path emits 0x320 in impl f_100c997c at 0x100c99fc; other inner rcs forwarded (vocabulary partially resolved)",
-       "worker_literal_bound": [
-        800
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x8); sites: 0x1073a404).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x1073a404"
-       ],
-       "conditions": [
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1073a3b4",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073a3b4",
-         "notes": "wrapper parse + fault path"
+         "function": "0x1073a3b4",
+         "address": "0x1073a3d8",
+         "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
         }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "music-services list refresh rc domain adds {801} via service-catalog worker",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100c960f",
-         "notes": "service worker {801,802,803,804}"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x100c960f",
-           "notes": "service worker {801,802,803,804}"
-          }
-         ]
-        }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x100c960f emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -97595,38 +97936,109 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x1073a3b4",
-       "address": "0x1073a3b4",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10f11d34",
-       "notes": "action dispatch table entry"
+       "address": "0x1073a3d8",
+       "notes": "Calls bound primary impl+8=100c997c directly, without parsing inputs or calling request validator. Nonzero rc is moved to r4 at1073a3e0 and tail-forwarded through request+0x14 at1073a404; zero commits through request+0xc at1073a420. NO402 generation path. Service-level constructor/vtable binding applies."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x100c997c",
-       "notes": "Impl f_100c997c: the service-list replace worker: ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320"
+       "address": "0x100c99fc",
+       "notes": "Under mutex impl+0x128 checks busybyte+0x1d4. Nonzero returns800 without fetch. Otherwise sets busy1, snapshots old version+0x1f0 plus1, conditional flag+0x1d6 and ETag+0x1f8, then unlocks. Calls100c6e20 for old catalog and SYNCHRONOUSLY invokes100c8fdc at100c9aac. Reacquires mutex, clears busy at100c9ac0; returned result is fetch result, not a job identifier. Another concurrent caller can observe800 while first caller is waiting on network."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x1073a3b4",
-       "notes": "handler body: impl call + fault/commit only; no parse or emit arg sites"
+       "function": "0x100c8fdc",
+       "address": "0x100c93c0",
+       "notes": "Builds /catalog/services through10540004. Setting20 override via1053fa2c, when nonempty, replaces URL base (suffix appended). Otherwise1053faf8 uses table index21, HTTPS, row10ee707c={service-catalog,ws.sonos.com,flags0}: default https://service-catalog.ws.sonos.com/catalog/services. Shared builder also honors runtime environment setting37 and host-suffix setting48, and optional global110a4a28 special-auth routing through1053f8c8 (setting49). Therefore default host is not an unconditional fixed destination; SOAP supplies no URL argument. Settings are runtime strings; numeric keys/branches, not an assumed device-specific hostname, define override precedence."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c8fdc",
+       "address": "0x100c95e0",
+       "notes": "Reads R_CustomerID through config impl+0x1c4; if absent/empty/exact0 leaves URL unchanged. Otherwise appends ?sonosId=<customerID> and optional &installedIds=<decimal CSV>. Customer buffer17 bytes; URL buffers1025. Account snapshot101b688c; account-type filter100c923c/9240 is (key&0x7f)-((key&1)^1)==7, then100c92d0 actual logical key>>8, accepting IDs<=255, appending comma-separated IDs. These SH0 operations are masks, not shifts; no local login is performed. Global trial-serial initialization100c6248 does not gate this fetch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c8fdc",
+       "address": "0x100c9478",
+       "notes": "Monotonic clock1 deadline now+30000ms at100c9304/9310. Sets Accept application/sonos_service_catalog.v1.xml via10545034. Nonempty cached ETag AND conditionalflag+0x1d6 adds If-None-Match through100c9720..9764; otherwise unconditional request.10546520 waits through10546158/10545ff4 request machinery; any nonzero normalized801. Response not-modified flag at100c9680 skips body/install and returns0 at100c97dc. Response-derived check interval stored impl+0x1f4 at100c9678. Missing ETag or modified-body/same-ETag only logs, NOT a fault. Does not forward raw HTTP status as SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c8fdc",
+       "address": "0x100c9704",
+       "notes": "After successful modified response,10541e00 must report a known non-chunked length: helper tests response+0x44b4 and rejects response+0x4a8 at10541e08/18. False maps801 at100c9798. Unsigned length>0x20000 maps804 at100c9714; exactly128KiB is allowed (branch NOT greater at100c9708 reaches transform). Limit applies to reported remote body length, not the whole SOAP response or local-file size."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100cc4f4",
+       "address": "0x100cc6f8",
+       "notes": "Fetch100c98a8 invokes entire function100cc4f4..100cce6c, NOT misaligned100c960f. Opens musicservices.xml.tmp via1054b9c8; copies rewritten XML root with LastUpdateDevice=own impl+0x1c0, Version=snapshot old+1 modulo32bits, SchemaVersion5 and optional response ETag. Reads body in4096-byte chunks into SAX105528ac/10c3fc68; parser/read/XML-completion failure sets error byte+0x1024, as do failed1054b738 writes. Requires completed parse flag at100cc7b8; flush/close1054b8e0 then error flag check100cc708, unlinks temp on failure100cce50. Re-emits catalog plus eligible existing built-in descriptors (lookups Id255 and240..253 at100c9814..9884); trial-list output accumulates during transform. False maps803 at100c98bc. No direct800 branch in this transform."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c72e8",
+       "address": "0x100c98d0",
+       "notes": "After transform and BEFORE install, compares trial-list CSV with R_AvailableSvcTrials, updates config through bound config+8 only if changed. Config write rc not checked. A later802 can leave this config side effect in place; no rollback. This helper is not the file-install worker."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c7898",
+       "address": "0x100c7aa8",
+       "notes": "Concrete primary+0x1c thunk100c7c34 adjusts no object and reaches100c7898 with own device ID, new version, schema5,temp path. Under impl+0x128 mutex10660e58 compares incoming/current version-device; rejected/stale input returnsfalse. Re-parses local temp through105528ac/10c4015c and serializer10e76700, requires validity flag. Renames temp onto canonical musicservices.xml at100c7aa8; rename failure returnsfalse. Anyfalse maps802 at100c9914, including version rejection and parse/validation, not just rename. Does not prove fsync/power-loss durability or rollback prior trial config."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c7898",
+       "address": "0x100c7b78",
+       "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c997c",
+       "address": "0x100c9b68",
+       "notes": "On fetchrc0 reloads local catalog100c6d3c, compares old/new via105546f0, and updates accountmanager101b7e90 when catalog changed or reload failed. Return remains fetchrc; post-install reload failure does NOT become a new SOAP fault. Unmodified response returns0 without version increment/rename/new eventdirty write. Always clears busy before returning normal result; no guarantee every provider descriptor/presentation-map is fetched by this action."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c6ae4",
+       "address": "0x101941e4",
+       "notes": "Startup101941e4 calls100c6ae4 which registers timed callback100c59b4 with timed-job manager impl+0x1d0 through10572358. This is separate from SOAP execution. Callback skips refresh on first call, picks initial randomized delay viaZZ0153(1800,86400) at100c5b88. Later calls1074700c(impl+0x1cc,selector0x10) and invokes primary+8 at100c5b64 only if policy result nonzero. Next interval uses response impl+0x1f4 when1800<=seconds<=86400, otherwise86400; writes next absolute clock1 seconds to callback result. Source labels ICS/Player distinguish interval source, not SOAP async status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c71d0",
+       "address": "0x100c7248",
+       "notes": "Constructor100c6950 constructs event source atimpl+8 through1067aec4 at100c69c8, then installs vptr10e76914 at100c6a24. Source slot+0x14 at10e76928=100c72bc adjusts-8 to100c71d0. That method locks impl+0x128 and calls100c7084(initial=1) for initial output or100c7084(initial=0) for incremental output. Serializer writes native e:property ServiceListVersion from impl+0x1d7 + colon + unsigned+0x1f0, not LastChange. Incremental onlywhen+0x1d5, clears dirty100c7130 after invoking accountmanager101b7cd4; initialalwaysrenders.10676994 literal<e:property>< at106769cc and10676a44 close the property. Notify100c7b80->1067c6ec->1067c46c sets source+0x110 dirty and wakes attached sender through10678c50 at1067c5c8. Sender weak ownership copied from ctor argument at1067af58/64; if expired/absent, logs no notification sender. No unconditional network delivery promise."
       }
      ],
-     "notes": null,
-     "implementation_notes": "Impl f_100c997c: the service-list replace worker: ~0x1c770-byte stack frame with the parse/replace table; emits a 0x320(800) error constant on one early path; other paths forward inner rc.",
-     "args_verified_empty": true,
-     "todo": [
-      "Established: virtual dispatch to handler 0x1073a3b4; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "SchemaVersion5 is the installed file format, distinct from ListAvailableServices descriptor root SchemaVersion1 and device:counter version. Runtime endpoint overrides/provider membership are data, not statically enumerable constants.",
+     "implementation_notes": "Replaced misaligned100c960f and unrelated favorites-store fault ladder with bounded aligned MusicServices workers and exact800..804 conditions. Synchronous SOAP path is separate from timed refresh callback.",
+     "args_verified_empty": true
     }
    },
    "state_variables": {
@@ -97670,7 +98082,7 @@
     },
     "ServiceId": {
      "evented": false,
-     "description": "non-evented MusicServices state variable: read via action out-args, not pushed",
+     "description": "Non-evented ui4 GetSessionId INPUT; used for service-descriptor/account-key lookup, not a getter output.",
      "data_type": "ui4",
      "allowed_values": null,
      "range": null,
@@ -97689,7 +98101,7 @@
     },
     "ServiceListVersion": {
      "evented": true,
-     "description": "evented state variable: appears in MusicServices LastChange/GENA event notifications",
+     "description": "Evented native device:counter string from catalog last-update device impl+0x1d7 and unsigned version+0x1f0; same value source as AvailableServiceListVersion action output.",
      "data_type": "string",
      "allowed_values": null,
      "range": null,
@@ -97702,13 +98114,29 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "notes": "MusicServices1.xml <stateVariable name=ServiceListVersion sendEvents=yes>string: SCPD-advertised (evented)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c71d0",
+       "address": "0x100c7248",
+       "notes": "Constructor100c6950 constructs event source atimpl+8 through1067aec4 at100c69c8, then installs vptr10e76914 at100c6a24. Source slot+0x14 at10e76928=100c72bc adjusts-8 to100c71d0. That method locks impl+0x128 and calls100c7084(initial=1) for initial output or100c7084(initial=0) for incremental output. Serializer writes native e:property ServiceListVersion from impl+0x1d7 + colon + unsigned+0x1f0, not LastChange. Incremental onlywhen+0x1d5, clears dirty100c7130 after invoking accountmanager101b7cd4; initialalwaysrenders.10676994 literal<e:property>< at106769cc and10676a44 close the property. Notify100c7b80->1067c6ec->1067c46c sets source+0x110 dirty and wakes attached sender through10678c50 at1067c5c8. Sender weak ownership copied from ctor argument at1067af58/64; if expired/absent, logs no notification sender. No unconditional network delivery promise."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100c7898",
+       "address": "0x100c7b78",
+       "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
       }
      ],
      "notes": null
     },
     "SessionId": {
      "evented": false,
-     "description": "non-evented MusicServices state variable: read via action out-args, not pushed",
+     "description": "Non-evented GetSessionId OUTPUT; returned provider/proxy session token, not independently GENA-pushed.",
      "data_type": "string",
      "allowed_values": null,
      "range": null,
@@ -97727,7 +98155,7 @@
     },
     "Username": {
      "evented": false,
-     "description": "non-evented MusicServices state variable: read via action out-args, not pushed",
+     "description": "Non-evented GetSessionId INPUT; exact account-name match, not a getter output.",
      "data_type": "string",
      "allowed_values": null,
      "range": null,
@@ -97746,25 +98174,34 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /MusicServices/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "Native GENA event-source notification at /MusicServices/Event; accepted replacement dirties ServiceListVersion and wakes attached sender. Initial subscriptions serialize current token; incremental output is dirty-gated.",
     "lastchange_template": null,
-    "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
+    "no_template_note": "Native e:property ServiceListVersion is serialized directly, not inside LastChange. This follows concrete writer literals, not absence from an unrelated three-service LastChange namespace registry.",
     "wss_event_names": [
      "musicServices",
      "musicServicesChanged"
     ],
-    "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
+    "wss_note": "Names musicServices/musicServicesChanged occur in the WSS runtime registry; names alone do not establish that this native GENA event is delivered by WSS. No such attribution is made here.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "function": "0x100c71d0",
+      "address": "0x100c7248",
+      "notes": "Constructor100c6950 constructs event source atimpl+8 through1067aec4 at100c69c8, then installs vptr10e76914 at100c6a24. Source slot+0x14 at10e76928=100c72bc adjusts-8 to100c71d0. That method locks impl+0x128 and calls100c7084(initial=1) for initial output or100c7084(initial=0) for incremental output. Serializer writes native e:property ServiceListVersion from impl+0x1d7 + colon + unsigned+0x1f0, not LastChange. Incremental onlywhen+0x1d5, clears dirty100c7130 after invoking accountmanager101b7cd4; initialalwaysrenders.10676994 literal<e:property>< at106769cc and10676a44 close the property. Notify100c7b80->1067c6ec->1067c46c sets source+0x110 dirty and wakes attached sender through10678c50 at1067c5c8. Sender weak ownership copied from ctor argument at1067af58/64; if expired/absent, logs no notification sender. No unconditional network delivery promise."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x100c7898",
+      "address": "0x100c7b78",
+      "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
      }
     ],
-    "notify_path": "f_100c7084 e:property dump {ServiceListVersion} -> f_10676a44",
-    "payload_model": "e:property doc via f_10676a44 writer family",
+    "notify_path": "100c7b80 ->1067c6ec ->1067c46c ->10678c50(sender wake); source10e76914+0x14 ->100c72bc ->100c71d0 ->100c7084 ->10676994/10676a44.",
+    "payload_model": "e:property ServiceListVersion contains device:counter token; initial snapshot unconditionally, incremental onlydirty+0x1d5.",
     "wss_registry": [
      {
       "idx": 44,
@@ -97779,12 +98216,8 @@
       "tag": 25
      }
     ],
-    "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `musicServices`, `musicServicesChanged`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
     "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "Concrete event-source interface, serializer, dirty producer, native property syntax and sender-wake path recovered. WSS registry names are only an inventory, not a substitute for this native binding proof."
     ]
    },
    "errors": [
@@ -97816,15 +98249,19 @@
        "build": "86.10-80260",
        "address": "0x1073a1c4",
        "notes": "fault raise site"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1073a11c",
+       "address": "0x1073a1c4",
+       "notes": "Three-action name table10f11d1c; either miss reaches common1073a1b0 load401 then request+0x14 bctrl1073a1c4. Matching action calls handler then normal cleanup, no second401 site in this bounded function.1073a4f0 loads QPlayAuth at1073a500, excluding1073a53c from this service."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from two reject paths (li 0x191 constant load at 0x1073a1b4,0x1073a53c); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
+      "Bounded MusicServices dispatcher1073a11c..1073a264 has one shared unknown-action401 emitter at1073a1c4, reached on either binary-search miss.1073a53c belongs to QPlayAuth dispatcher beginning1073a4f0, NOT MusicServices."
      ]
     }
    ],
@@ -97857,6 +98294,30 @@
      "function": "0x1018d27c",
      "address": "0x1018f488",
      "notes": "At1018e5b8 r29=ctx+0x30000;1018e5bc r19=ctx+0x292b8. Call1018f488 constructs100c6950 there, installing primary10e768a4 at100c6a14 and secondary10e76900 atimpl+4. Call1018f498 constructs1073a4b4 atctx+0x3d010 withr4=impl,r5=impl+4. Stores1073a4c0/1073a4c8 bind service+4=impl and service+8=&impl secondary vptr. GetSession primary+0xc=100c7fb4; Update primary+8=100c997c; List secondary+8=100c6948 adjusts-4 then100c6314."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100c8fdc",
+     "address": "0x100c93c0",
+     "notes": "Builds /catalog/services through10540004. Setting20 override via1053fa2c, when nonempty, replaces URL base (suffix appended). Otherwise1053faf8 uses table index21, HTTPS, row10ee707c={service-catalog,ws.sonos.com,flags0}: default https://service-catalog.ws.sonos.com/catalog/services. Shared builder also honors runtime environment setting37 and host-suffix setting48, and optional global110a4a28 special-auth routing through1053f8c8 (setting49). Therefore default host is not an unconditional fixed destination; SOAP supplies no URL argument. Settings are runtime strings; numeric keys/branches, not an assumed device-specific hostname, define override precedence."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100c6ae4",
+     "address": "0x101941e4",
+     "notes": "Startup101941e4 calls100c6ae4 which registers timed callback100c59b4 with timed-job manager impl+0x1d0 through10572358. This is separate from SOAP execution. Callback skips refresh on first call, picks initial randomized delay viaZZ0153(1800,86400) at100c5b88. Later calls1074700c(impl+0x1cc,selector0x10) and invokes primary+8 at100c5b64 only if policy result nonzero. Next interval uses response impl+0x1f4 when1800<=seconds<=86400, otherwise86400; writes next absolute clock1 seconds to callback result. Source labels ICS/Player distinguish interval source, not SOAP async status."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100c71d0",
+     "address": "0x100c7248",
+     "notes": "Constructor100c6950 constructs event source atimpl+8 through1067aec4 at100c69c8, then installs vptr10e76914 at100c6a24. Source slot+0x14 at10e76928=100c72bc adjusts-8 to100c71d0. That method locks impl+0x128 and calls100c7084(initial=1) for initial output or100c7084(initial=0) for incremental output. Serializer writes native e:property ServiceListVersion from impl+0x1d7 + colon + unsigned+0x1f0, not LastChange. Incremental onlywhen+0x1d5, clears dirty100c7130 after invoking accountmanager101b7cd4; initialalwaysrenders.10676994 literal<e:property>< at106769cc and10676a44 close the property. Notify100c7b80->1067c6ec->1067c46c sets source+0x110 dirty and wakes attached sender through10678c50 at1067c5c8. Sender weak ownership copied from ctor argument at1067af58/64; if expired/absent, logs no notification sender. No unconditional network delivery promise."
     }
    ],
    "notes": null,
@@ -97867,12 +98328,7 @@
     "zoneplayer/accountsmgr.cxx",
     "zoneplayer/entitlementsmanager.cxx"
    ],
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable.",
     "Concrete MusicServices binding: constructor100c6950 at1018f488 builds impl atctx+0x292b8 with primary10e768a4 and secondary10e76900 atimpl+4. Service constructor1073a4b4 at1018f498 stores impl inservice+4 and addressimpl+4 inservice+8. Slots resolve GetSessionId100c7fb4, UpdateAvailableServices100c997c and ListAvailableServices thunk100c6948 ->100c6314. Action records reference this proof; dispatch is not an unbound runtime injection."
    ]
   },
