@@ -62882,7 +62882,7 @@
      ]
     },
     "CreateQueue": {
-     "description": "Requests ownership of the session's default queue for QueueOwnerID with QueueOwnerContext and a policy flag word, and returns that queue's ID. Chain: wrapper f_10464bd0 parses QueueOwnerID (cap 0x101, 0x10464c28), QueueOwnerContext (cap 0x401, 0x10464c50) and QueuePolicy (cap 0x401, 0x10464c84), faults 402 if req->v[+0x8] reports a parse failure (0x10464d24), then calls qm->v[+0x14](qm, owner, ctx, &QueueID, policy) at 0x10464ccc; qm vtable 0x10ed1bcc slot +0x14 is f_10465a64, which loads the engine *(qm+0x128) and tail-branches to f_102dff24. f_102dff24 validates the strings, turns QueuePolicy into a flag word, then under the engine mutex (lock engine+0x458 at 0x102e000c, unlock 0x102e004c) calls f_102b2ee4(engine,0,0) (0x102e001c), calls f_102d094c(engine) when that returns nonzero (0x102e005c), and calls f_102c3694(engine, owner, ctx, flags, 0, &QueueID, 0) (0x102e0044). f_102c3694 calls f_102c350c(engine, 'Replaced', engine+0xa0a4, 6) when f_10a0732c(engine+0xa0a4) is nonzero (0x102c37d4), submits a request built by f_1032e56c(req, owner, ctx, flags, 0, 0) to the session *(engine+0x580) via f_10255f64 (0x102c3730, rc ignored), and writes QueueID = strtol(s+0x2fff4, 10) (0x102c3754), the ID string of the default queue record s+0x2ff98.",
+     "description": "Requests ownership of the session's default queue for QueueOwnerID with QueueOwnerContext and a policy flag word, and returns that queue's ID. Chain: wrapper f_10464bd0 parses QueueOwnerID (cap 0x101, 0x10464c28), QueueOwnerContext (cap 0x401, 0x10464c50) and QueuePolicy (cap 0x401, 0x10464c84), faults 402 if req->v[+0x8] reports a parse failure (0x10464d24), then calls qm->v[+0x14](qm, owner, ctx, &QueueID, policy) at 0x10464ccc; qm vtable 0x10ed1bcc slot +0x14 is f_10465a64, which loads the engine *(qm+0x128) and tail-branches to f_102dff24. f_102dff24 validates the strings, turns QueuePolicy into a flag word, then under the engine mutex (lock engine+0x458 at 0x102e000c, unlock 0x102e004c) calls f_102b2ee4(engine,0,0) (0x102e001c), calls f_102d094c(engine) when that returns nonzero (0x102e005c), and calls f_102c3694(engine, owner, ctx, flags, 0, &QueueID, 0) (0x102e0044). f_102c3694 calls f_102c350c(engine, 'Replaced', engine+0xa0a4, 6) when f_10a0732c(engine+0xa0a4) is nonzero (0x102c37d4), submits a request built by f_1032e56c(req, owner, ctx, flags, 0, 0) to the session *(engine+0x580) via f_10255f64 (0x102c3730, rc ignored), and writes QueueID = strtol(s+0x2fff4, 10) (0x102c3754), the ID string of the default queue record s+0x2ff98. The session thread applies the f_1032e56c request (op 15) in f_10262670 (cases 0x10266488 and 0x10268564, which report ok=1 unconditionally): under the s+0x208 lock it calls f_1014d8c4(s+0x2ff98, 1, owner, ctx, flags). f_1014d8c4 empties the default queue (f_10145b98 at 0x1014d900), releases q+0x48, stores the policy word at q+0x26e4 (0x1014d930) and clears the low 3 bits of q+0x26dc. When the queue name buffer q+0x4c ('Q:%u') is nonempty it renumbers the queue (0x1014d9b8..0x1014da2c): n = strtol(q+0x4e, 10) + 1, with isel at 0x1014d9d8 turning a wrap to 0 into 1, writes 'Q:%u' (0x10e94018) to q+0x4c, copies the digits into the QueueID string q+0x5c, and resets the UpdateID q+0x70 to 0. It then copies QueueOwnerID to q+0x75 (256 bytes, 0x1014d958), sets q+0x175 to 1, copies QueueOwnerContext to q+0x186 (1024 bytes, 0x1014d970), clears the UUID at q+0x176 (sonos_uuid_clear, 0x1014d978) and, when q+0x4c is nonempty, calls f_1014d738, which bumps the UpdateID to 1 and posts the in-process queue event. If the default queue is the playing queue, f_10262670 also resets s+0x326cc and s+0x326ce and calls f_10261b38. Because the submit is synchronous (f_1032e658 waits for the consumer), f_102c3694 reads the ID afterwards: *out = strtol(s+0x2fff4, 0, 10) at 0x102c3750. In plain terms: CreateQueue empties the session's default queue, gives it a new QueueID one higher than the old one, records the owner, context and policy on it, and returns the new ID.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10464bd0",
@@ -62965,17 +62965,54 @@
          "function": "0x102dff24",
          "address": "0x102dffd8",
          "notes": "cmplwi len-1,0xfe"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266488",
+         "notes": "op 15 case calls f_10262670, ok=1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d900",
+         "notes": "default queue emptied"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d9f4",
+         "notes": "new name Q:%u from strtol(q+0x4e)+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014da28",
+         "notes": "UpdateID reset to 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c3694",
+         "address": "0x102c3750",
+         "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
         }
        ],
        "notes": null,
        "buf_cap": 257,
-       "todo": [
-        "Established: QueueOwnerID must be 1..255 bytes without a newline and is forwarded into the f_1032e56c request.",
-        "Residual: the session-side consumer of the f_1032e56c request (behind f_10255f64) is not traced, so it is not proven that it stores the ID at q+0x75 of s+0x2ff98 (the field AttachQueue compares); next step is to disassemble f_1032e56c and its consumer."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `QueueOwnerID` = verbatim forward to impl vfunc +20 (obj r5-in, call site 0x10464ccc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (validation): f_102dff24 returns 402 if the string contains '\\n' (strchr at 0x102dff84) or if strlen-1 > 0xfe unsigned (0x102dffd8), i.e. it must be 1..255 bytes; otherwise it is passed as r4 of f_1032e56c (0x102c371c)."
+        "Resolved (validation): f_102dff24 returns 402 if the string contains '\\n' (strchr at 0x102dff84) or if strlen-1 > 0xfe unsigned (0x102dffd8), i.e. it must be 1..255 bytes; otherwise it is passed as r4 of f_1032e56c (0x102c371c).",
+        "Resolved: f_1014d8c4 copies the owner string to q+0x75 of the default queue (f_10906304 with size 0x100 at 0x1014d958) and sets q+0x175 to 1; this is the field AttachQueue compares. The session thread applies the f_1032e56c request (op 15) in f_10262670 (cases 0x10266488 and 0x10268564, which report ok=1 unconditionally): under the s+0x208 lock it calls f_1014d8c4(s+0x2ff98, 1, owner, ctx, flags). f_1014d8c4 empties the default queue (f_10145b98 at 0x1014d900), releases q+0x48, stores the policy word at q+0x26e4 (0x1014d930) and clears the low 3 bits of q+0x26dc. When the queue name buffer q+0x4c ('Q:%u') is nonempty it renumbers the queue (0x1014d9b8..0x1014da2c): n = strtol(q+0x4e, 10) + 1, with isel at 0x1014d9d8 turning a wrap to 0 into 1, writes 'Q:%u' (0x10e94018) to q+0x4c, copies the digits into the QueueID string q+0x5c, and resets the UpdateID q+0x70 to 0. It then copies QueueOwnerID to q+0x75 (256 bytes, 0x1014d958), sets q+0x175 to 1, copies QueueOwnerContext to q+0x186 (1024 bytes, 0x1014d970), clears the UUID at q+0x176 (sonos_uuid_clear, 0x1014d978) and, when q+0x4c is nonempty, calls f_1014d738, which bumps the UpdateID to 1 and posts the in-process queue event. If the default queue is the playing queue, f_10262670 also resets s+0x326cc and s+0x326ce and calls f_10261b38. Because the submit is synchronous (f_1032e658 waits for the consumer), f_102c3694 reads the ID afterwards: *out = strtol(s+0x2fff4, 0, 10) at 0x102c3750."
        ]
       },
       "QueueOwnerContext": {
@@ -63026,17 +63063,54 @@
          "function": "0x102dff24",
          "address": "0x102dffe8",
          "notes": "cmplwi len,0x3ff"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266488",
+         "notes": "op 15 case calls f_10262670, ok=1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d900",
+         "notes": "default queue emptied"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d9f4",
+         "notes": "new name Q:%u from strtol(q+0x4e)+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014da28",
+         "notes": "UpdateID reset to 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c3694",
+         "address": "0x102c3750",
+         "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
         }
        ],
        "notes": null,
        "buf_cap": 1025,
-       "todo": [
-        "Established: QueueOwnerContext may be 0..1023 bytes and is forwarded into the f_1032e56c request.",
-        "Residual: the request consumer that stores it (expected at q+0x186, the field AttachQueue returns) is not traced; next step is f_1032e56c and its consumer."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `QueueOwnerContext` = verbatim forward to impl vfunc +20 (obj r5-in, call site 0x10464ccc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (validation): f_102dff24 returns 402 if strlen > 0x3ff (0x102dffe8); otherwise it is passed as r5 of f_1032e56c (0x102c3718). Empty is accepted."
+        "Resolved (validation): f_102dff24 returns 402 if strlen > 0x3ff (0x102dffe8); otherwise it is passed as r5 of f_1032e56c (0x102c3718). Empty is accepted.",
+        "Resolved: f_1014d8c4 copies the context string to q+0x186 of the default queue (f_10906304 with size 0x400 at 0x1014d970), the field AttachQueue returns. The session thread applies the f_1032e56c request (op 15) in f_10262670 (cases 0x10266488 and 0x10268564, which report ok=1 unconditionally): under the s+0x208 lock it calls f_1014d8c4(s+0x2ff98, 1, owner, ctx, flags). f_1014d8c4 empties the default queue (f_10145b98 at 0x1014d900), releases q+0x48, stores the policy word at q+0x26e4 (0x1014d930) and clears the low 3 bits of q+0x26dc. When the queue name buffer q+0x4c ('Q:%u') is nonempty it renumbers the queue (0x1014d9b8..0x1014da2c): n = strtol(q+0x4e, 10) + 1, with isel at 0x1014d9d8 turning a wrap to 0 into 1, writes 'Q:%u' (0x10e94018) to q+0x4c, copies the digits into the QueueID string q+0x5c, and resets the UpdateID q+0x70 to 0. It then copies QueueOwnerID to q+0x75 (256 bytes, 0x1014d958), sets q+0x175 to 1, copies QueueOwnerContext to q+0x186 (1024 bytes, 0x1014d970), clears the UUID at q+0x176 (sonos_uuid_clear, 0x1014d978) and, when q+0x4c is nonempty, calls f_1014d738, which bumps the UpdateID to 1 and posts the in-process queue event. If the default queue is the playing queue, f_10262670 also resets s+0x326cc and s+0x326ce and calls f_10261b38. Because the submit is synchronous (f_1032e658 waits for the consumer), f_102c3694 reads the ID afterwards: *out = strtol(s+0x2fff4, 0, 10) at 0x102c3750."
        ]
       },
       "QueuePolicy": {
@@ -63095,6 +63169,14 @@
          "function": "0x102dff24",
          "address": "0x102e00f0",
          "notes": "402 on bad policy"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d930",
+         "notes": "policy word stored at q+0x26e4 (persisted as key pol by f_1014614c)"
         }
        ],
        "notes": null,
@@ -63111,7 +63193,7 @@
      },
      "outputs": {
       "QueueID": {
-       "description": "decimal ID of the session default queue s+0x2ff98",
+       "description": "decimal QueueID of the session default queue s+0x2ff98 after the request is applied: the old number plus one when q+0x4c held a name, otherwise unchanged",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -63155,11 +63237,52 @@
          "function": "0x102c3694",
          "address": "0x102c3754",
          "notes": "stw r3,0(r29)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266488",
+         "notes": "op 15 case calls f_10262670, ok=1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d900",
+         "notes": "default queue emptied"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d9f4",
+         "notes": "new name Q:%u from strtol(q+0x4e)+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014da28",
+         "notes": "UpdateID reset to 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c3694",
+         "address": "0x102c3750",
+         "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
         }
        ],
        "notes": null,
        "resolved_findings": [
-        "Resolved: f_102c3694 stores strtol(s+0x2fff4, 0, 10) through the QueueID pointer (0x102c3750/0x102c3754), where s=*(engine+0x580) and s+0x2fff4 is the ID string at q+0x5c of the default queue record s+0x2ff98; the wrapper emits sp+0x1c with f_1055fcbc at 0x10464d48. In plain terms: the returned QueueID is the default queue's existing ID, the same value AttachQueue returns."
+        "Resolved: f_102c3694 stores strtol(s+0x2fff4, 0, 10) through the QueueID pointer (0x102c3750/0x102c3754), where s=*(engine+0x580) and s+0x2fff4 is the ID string at q+0x5c of the default queue record s+0x2ff98; the wrapper emits sp+0x1c with f_1055fcbc at 0x10464d48. In plain terms: the returned QueueID is the default queue's new ID (old number plus one when the queue already had a name), read after the session thread has applied the request.",
+        "Resolved: The session thread applies the f_1032e56c request (op 15) in f_10262670 (cases 0x10266488 and 0x10268564, which report ok=1 unconditionally): under the s+0x208 lock it calls f_1014d8c4(s+0x2ff98, 1, owner, ctx, flags). f_1014d8c4 empties the default queue (f_10145b98 at 0x1014d900), releases q+0x48, stores the policy word at q+0x26e4 (0x1014d930) and clears the low 3 bits of q+0x26dc. When the queue name buffer q+0x4c ('Q:%u') is nonempty it renumbers the queue (0x1014d9b8..0x1014da2c): n = strtol(q+0x4e, 10) + 1, with isel at 0x1014d9d8 turning a wrap to 0 into 1, writes 'Q:%u' (0x10e94018) to q+0x4c, copies the digits into the QueueID string q+0x5c, and resets the UpdateID q+0x70 to 0. It then copies QueueOwnerID to q+0x75 (256 bytes, 0x1014d958), sets q+0x175 to 1, copies QueueOwnerContext to q+0x186 (1024 bytes, 0x1014d970), clears the UUID at q+0x176 (sonos_uuid_clear, 0x1014d978) and, when q+0x4c is nonempty, calls f_1014d738, which bumps the UpdateID to 1 and posts the in-process queue event. If the default queue is the playing queue, f_10262670 also resets s+0x326cc and s+0x326ce and calls f_10261b38. Because the submit is synchronous (f_1032e658 waits for the consumer), f_102c3694 reads the ID afterwards: *out = strtol(s+0x2fff4, 0, 10) at 0x102c3750."
        ]
       }
      },
@@ -63223,7 +63346,7 @@
      },
      "side_effects": [
       {
-       "description": "sends an ownership request for the default queue; may first notify a previous owner ('Replaced')",
+       "description": "Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
        "evidence": [
         {
          "type": "firmware",
@@ -63239,11 +63362,51 @@
          "function": "0x102c3694",
          "address": "0x102c37d4",
          "notes": "bl f_102c350c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266488",
+         "notes": "op 15 case calls f_10262670, ok=1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d900",
+         "notes": "default queue emptied"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014d9f4",
+         "notes": "new name Q:%u from strtol(q+0x4e)+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d8c4",
+         "address": "0x1014da28",
+         "notes": "UpdateID reset to 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102c3694",
+         "address": "0x102c3750",
+         "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
         }
        ],
        "todo": [
-        "Established: the calls f_102d094c (when f_102b2ee4 is nonzero), f_102c350c('Replaced') (when engine+0xa0a4 is set) and the f_1032e56c request submit are identified with sites.",
-        "Residual: what f_102d094c changes, whom f_102c350c notifies with 'Replaced', and how the session consumer applies the f_1032e56c request are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40), f_102c350c and f_1032e56c."
+        "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
+        "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c) and which listener f_102c350c notifies with 'Replaced' (0x102c37d4) are not traced; next step is to disassemble both."
        ],
        "resolved_findings": [
         "Resolved (dispatch): see the chain: optional f_102d094c(engine), optional f_102c350c 'Replaced' call for a previous owner string at engine+0xa0a4, then the f_1032e56c request submitted to the session."
@@ -63278,7 +63441,7 @@
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+0x14]",
+      "description": "No transport-state literal. Default-queue state changes as described: contents cleared, QueueID renumbered, UpdateID reset, owner/context/policy replaced.",
       "evidence": [
        {
         "type": "firmware",
@@ -63294,11 +63457,51 @@
         "function": "0x102dff24",
         "address": "0x102e0050",
         "notes": "li r30,0 after unlock"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10266488",
+        "notes": "op 15 case calls f_10262670, ok=1"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d8c4",
+        "address": "0x1014d900",
+        "notes": "default queue emptied"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d8c4",
+        "address": "0x1014d9f4",
+        "notes": "new name Q:%u from strtol(q+0x4e)+1"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d8c4",
+        "address": "0x1014da28",
+        "notes": "UpdateID reset to 0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102c3694",
+        "address": "0x102c3750",
+        "notes": "output ID = strtol(q+0x5c) read after the synchronous submit"
        }
       ],
       "todo": [
-       "Established: the calls f_102d094c (when f_102b2ee4 is nonzero), f_102c350c('Replaced') (when engine+0xa0a4 is set) and the f_1032e56c request submit are identified with sites.",
-       "Residual: what f_102d094c changes, whom f_102c350c notifies with 'Replaced', and how the session consumer applies the f_1032e56c request are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40), f_102c350c and f_1032e56c."
+       "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
+       "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c) and which listener f_102c350c notifies with 'Replaced' (0x102c37d4) are not traced; next step is to disassemble both."
       ],
       "resolved_findings": [
        "Resolved (front end): f_102dff24 and f_102c3694 store only QueueID and stack data; any transition happens in f_102d094c or the request consumer."
@@ -63495,7 +63698,7 @@
      ],
      "notes": null,
      "resolved_findings": [
-      "Resolved: the impl chain is fully static. wrapper f_10464bd0 parses QueueOwnerID (cap 0x101, 0x10464c28), QueueOwnerContext (cap 0x401, 0x10464c50) and QueuePolicy (cap 0x401, 0x10464c84), faults 402 if req->v[+0x8] reports a parse failure (0x10464d24), then calls qm->v[+0x14](qm, owner, ctx, &QueueID, policy) at 0x10464ccc; qm vtable 0x10ed1bcc slot +0x14 is f_10465a64, which loads the engine *(qm+0x128) and tail-branches to f_102dff24. f_102dff24 validates the strings, turns QueuePolicy into a flag word, then under the engine mutex (lock engine+0x458 at 0x102e000c, unlock 0x102e004c) calls f_102b2ee4(engine,0,0) (0x102e001c), calls f_102d094c(engine) when that returns nonzero (0x102e005c), and calls f_102c3694(engine, owner, ctx, flags, 0, &QueueID, 0) (0x102e0044). f_102c3694 calls f_102c350c(engine, 'Replaced', engine+0xa0a4, 6) when f_10a0732c(engine+0xa0a4) is nonzero (0x102c37d4), submits a request built by f_1032e56c(req, owner, ctx, flags, 0, 0) to the session *(engine+0x580) via f_10255f64 (0x102c3730, rc ignored), and writes QueueID = strtol(s+0x2fff4, 10) (0x102c3754), the ID string of the default queue record s+0x2ff98. In plain terms: CreateQueue does not allocate a new queue record; it validates its inputs, sends an ownership/configuration request for the session's default queue and returns the default queue's ID. It returns success even if the session rejects the request, because f_102c3694 ignores the submit result and f_102dff24 returns 0 unconditionally after the locked block (0x102e0050)."
+      "Resolved: the impl chain is fully static. wrapper f_10464bd0 parses QueueOwnerID (cap 0x101, 0x10464c28), QueueOwnerContext (cap 0x401, 0x10464c50) and QueuePolicy (cap 0x401, 0x10464c84), faults 402 if req->v[+0x8] reports a parse failure (0x10464d24), then calls qm->v[+0x14](qm, owner, ctx, &QueueID, policy) at 0x10464ccc; qm vtable 0x10ed1bcc slot +0x14 is f_10465a64, which loads the engine *(qm+0x128) and tail-branches to f_102dff24. f_102dff24 validates the strings, turns QueuePolicy into a flag word, then under the engine mutex (lock engine+0x458 at 0x102e000c, unlock 0x102e004c) calls f_102b2ee4(engine,0,0) (0x102e001c), calls f_102d094c(engine) when that returns nonzero (0x102e005c), and calls f_102c3694(engine, owner, ctx, flags, 0, &QueueID, 0) (0x102e0044). f_102c3694 calls f_102c350c(engine, 'Replaced', engine+0xa0a4, 6) when f_10a0732c(engine+0xa0a4) is nonzero (0x102c37d4), submits a request built by f_1032e56c(req, owner, ctx, flags, 0, 0) to the session *(engine+0x580) via f_10255f64 (0x102c3730, rc ignored), and writes QueueID = strtol(s+0x2fff4, 10) (0x102c3754), the ID string of the default queue record s+0x2ff98. In plain terms: CreateQueue empties the session's default queue, gives it a new QueueID one higher than the old one, records the owner, context and policy on it, and returns the new ID. It returns success without checking the submit result, because f_102c3694 ignores it (the op 15 consumer always reports ok=1 anyway) and f_102dff24 returns 0 unconditionally after the locked block (0x102e0050)."
      ]
     },
     "RemoveAllTracks": {
