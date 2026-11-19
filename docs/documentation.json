@@ -146321,7 +146321,7 @@
    ]
   },
   "model_sku_vocabulary": {
-   "summary": "51 ZPSnn model identifiers enumerated in the capability-conditional table: ZPS{1,3,5,6,9,11-24,26-46,48,49,51-59,61}; capability gating is per-model-ID; display-name entries incl 'Connect:Amp','(Unknown)','RylesS767'",
+   "summary": "The image contains parallel model-code, display-name and canonical-ID lookup arrays, model/board descriptor construction and capability flags. Descriptor fields previously called generation/version tuples are amplifier startup timing, calibrated setup/chirp volume, memory and flash values. Remaining capability-bit semantics require consumer binding.",
    "anchors": [
     "ZPS9",
     "HwFeatures"
@@ -146347,10 +146347,53 @@
      "build": "86.10-80260",
      "address": "0x10f2490c",
      "notes": "ZPSnn identifier table (two rodata runs)"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10908f50 / f_10908f88 / f_10908fd8",
+     "address": "0x10908f50",
+     "notes": "Each accessor bounds ordinal<=0x3e, multiplies by four and uses base 0x10f7c1e8 plus offsets 0xc/0x108/0x204. This yields parallel arrays 0x10f7c1f4/0x10f7c2f0/0x10f7c3ec. At ordinal 10 the three pointers read S9/Playbar/ZPS9; ordinal 6 reads WD100/Dock/WD100. Display accessor special-cases ordinal 1 as Connect at 0x10908fc8-0x10908fd4. The former shifted ordinal space is incorrect."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "descriptor scalar getters and device-description replacements",
+     "address": "0x105ed744",
+     "callsite": "0x105ed790 / 0x105ed7b8 / 0x105edf38 / 0x105edf48 / 0x105edf58",
+     "notes": "Getter f_10908d3c reads +ec; return formatted at stack+0x350 after 0x105ed744, then used as replacement value at stack+0x298 by 0x105edf38. Replacement key at +0x290 is #AMP_ONTIME# loaded at 0x105edc68/0x105edc74. f_10908ca8 (+f8) formats stack+0x340 then value +0x2a8 at 0x105edf48, paired to #MEMORY# at +0x2a0. f_10908cb8 (+fc) formats stack+0x348 then value +0x2b8 at 0x105edf58, paired to #FLASH# at +0x2b0. Shipped opt/htdocs/xml/device_description.xml lines 55-57 emit memory/flash/ampOnTime. Unit ms corroborated by prem-amp start up time log at 0x102b6090 after getter call 0x102b6048 and ampPowerOnLocked log at 0x10d55400 after 0x10d553f4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10908d4c setup/chirp consumers",
+     "address": "0x10908d50",
+     "callsite": "0x103feccc / 0x104f6724 / 0x103fed9c / 0x104f6800",
+     "notes": "Getter uses signed lha +f0. Setup path tests return zero at 0x103fecd0/0x103fecd4, logs Setup volume not yet calibrated at 0x103fecf8 otherwise; nonzero is preserved into r8 at 0x103fed88 and passed to f_104f55e8 at 0x103fed9c. Chirp analog tests at 0x104f6728/0x104f672c, logs Chirp volume not yet calibrated at 0x104f6748 for zero, or supplies r8 at 0x104f67e8 to f_104f55e8 at 0x104f6800. No precise scale is asserted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10908474 / descriptor initialization",
+     "address": "0x105ed71c",
+     "callsite": "0x105edf18 / 0x1090a07c / 0x1090a088",
+     "notes": "Getter +f4 is formatted at stack+0x3e4 at 0x105ed734 and attached as replacement value +0x278 at 0x105edf18, paired to #INT_SPEAKER_SIZE# key +0x270 from 0x105edc88/0x105edc94; XML emits internalSpeakerSize. f_10909fcc calls hal_flash_get_mdp_wrapper with object+0x104 at 0x1090a07c and hal_flash_get_mdp2_wrapper at 0x1090a088; dispatch reads +0x10c at 0x1090a184 and +0x110 at 0x1090a1f8. They are not proven S2/Amp/Play/Soundbar/Portable class identifiers. Default initialization at 0x10908f0c-0x10908f1c zeros memory/flash and sets +ec=425/+f0=0; S9 literal assignment is 0x10909134-0x109091c4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "descriptor flag accessors",
+     "address": "0x1090855c",
+     "notes": "Raw operations: andi. 0xff00 at 0x10908568 covers byte +d2 only; lhz +d0 followed by low-bit mask at 0x10908598/0x109085a0 extracts word bit16; rotate-and-select-low-bit at 0x10908608 (SH18), 0x1090861c (SH19), 0x10908630 (SH12) extracts bits14/13/20 respectively. These rotations are not the erroneous clrlwi-as-shift case. Names beyond observed consumer bindings remain residual."
     }
    ],
-   "model_ids": "ZPS1, ZPS3, ZPS5, ZPS6, ZPS9, ZPS11, ZPS12, ZPS13, ZPS14, ZPS15, ZPS16, ZPS17, ZPS18, ZPS19, ZPS20, ZPS21, ZPS22, ZPS23, ZPS24, ZPS26, ZPS27, ZPS28, ZPS29, ZPS30, ZPS31, ZPS32, ZPS33, ZPS34, ZPS35, ZPS36, ZPS37, ZPS38, ZPS39, ZPS40, ZPS41, ZPS42, ZPS43, ZPS44, ZPS45, ZPS46, ZPS48, ZPS49, ZPS51, ZPS52, ZPS53, ZPS54, ZPS55, ZPS56, ZPS57, ZPS58, ZPS59, ZPS61 (this build targets ZPS9 = Playbar/S1-era table includes newer ids)",
-   "unresolved": "ZPS->product-name mapping, which capabilities gate on which ids, the S0-S9 submodel series",
+   "model_ids": "ZPS1, ZPS3, ZPS5, ZPS6, ZPS9, ZPS11, ZPS12, ZPS13, ZPS14, ZPS15, ZPS16, ZPS17, ZPS18, ZPS19, ZPS20, ZPS21, ZPS22, ZPS23, ZPS24, ZPS26, ZPS27, ZPS28, ZPS29, ZPS30, ZPS31, ZPS32, ZPS33, ZPS34, ZPS35, ZPS36, ZPS37, ZPS38, ZPS39, ZPS40, ZPS41, ZPS42, ZPS43, ZPS44, ZPS45, ZPS46, ZPS48, ZPS49, ZPS51, ZPS52, ZPS53, ZPS54, ZPS55, ZPS56, ZPS57, ZPS58, ZPS59, ZPS61 (collected canonical identifiers; their presence alone does not establish active hardware)",
+   "unresolved": "Map the remaining descriptor capability bits to their concrete consumers; the timing/volume/memory/flash tuple is no longer an unidentified generation/version class.",
    "capability_bits": {
     "AUDIO_IN_MASK": [
      "RCA_LINE_IN",
@@ -146416,16 +146459,17 @@
     ],
     "note": "ordered literal run 0x10efa2a8-0x10efa5dc bounded by RMuseFeature array check; masks group related bits"
    },
-   "model_tables": "Three model-name tables recovered (rodata 0x10f7c300-0x10f7c620): (1) display-name ptr table, 48 entries indexed by model ordinal: 0 Bridge,1 Play:5,2 Dock,3 Play:3,4 Sub,5 Play:1,6 Playbar,7 Boost,8 Play:5,9 Playbase,10 Play:1,11 One,12 Beam,13 Connect,14 Amp,15 Move,16 One,17 Arc,18 Table lamp,19 Bookshelf,20 One SL,21 Port,22 Five,23 Sub,24 Roam,25 TITAN,26 Picture frame,27 Table lamp,28 Bookshelf,29 Arc SL,30 Roam SL,31 Ray,32 Beam,33 Beam SL,34 Sub Mini,35 One SL,36 Era 100,37 Optimo1 SL,38 Era 300,39 Floor lamp,40 One SL,41 Move 2,42 Arc Ultra,43 Era 100 Pro,44 Ace,45 Jaws,46 Pallas Plus -- including names for then-unreleased products (Arc Ultra, Era 100 Pro, Ace/earbuds, Jaws, Pallas Plus, TITAN, Ryles30/Gambit/Roundhouse/Disco codenames in the code table). (2) parallel model-code table (CR100,ZP80,ZP100,ZP120,BR100,ZPS5,WD100,ZPS3,ANVIL,ZPS1,BR200,ZPS6,ZPS11-14...,Sub 4,Ryles30,Gambit,Roundhouse,Disco). (3) device-identity record at 0x10f7c4e8: {code:'S9', zpsId:'ZPS9', display:'Playbar', fields {0xa,0x8000,0x30206772,0x37008,...}, ordinal=6} -- S9=ZPS9=Playbar confirmed as this build's target; ordinal 6 selects 'Playbar' in table 1. Separate dspconfigparam codename table at 0x10f24808 (Default,Playbar,Sol,ElRey,Bravo,Hideout,Pallas,Apollo,Lasso,Play1,TitanWOW-{T,P,G},Monaco,Play3,Encore,Alpine,Pinewood,Prima,Mojave,Fury,Optimo2,Optimo1) -- DSP-config model names, 'ConfigParam lookup from player model %d failed' consumer; 'SYMFONISK' brand literal at 0x10f7c518.",
+   "model_tables": "Verified parallel arrays: short code at 0x10f7c1f4, display at 0x10f7c2f0, canonical ID at 0x10f7c3ec, each indexed by ordinal 0..62. Fields below are short/display/canonical: 0:CR100/CONTROL/CR100; 1:ZP80/Connect (getter override)/ZP80; 2:ZP100/ZP100/ZP100; 3:ZP120/Connect:Amp/ZP120; 4:ZoneBridge/Bridge/BR100; 5:S5/Play:5/ZPS5; 6:WD100/Dock/WD100; 7:S3/Play:3/ZPS3; 8:Sub/Sub/ANVIL; 9:S1/Play:1/ZPS1; 10:S9/Playbar/ZPS9; 11:BR200/Boost/BR200; 12:S6/Play:5/ZPS6; 13:S11/Playbase/ZPS11; 14:S12/Play:1/ZPS12; 15:S13/One/ZPS13; 16:S14/Beam/ZPS14; 17:S15/Connect/ZPS15; 18:S16/Amp/ZPS16; 19:S17/Move/ZPS17; 20:S18/One/ZPS18; 21:S19/Arc/ZPS19; 22:S20/Table lamp/ZPS20; 23:S21/Bookshelf/ZPS21; 24:S22/One SL/ZPS22; 25:S23/Port/ZPS23; 26:S24/Five/ZPS24; 27:null/null/null; 28:S26/Sub/ZPS26; 29:S27/Roam/ZPS27; 30:S28/TITAN/ZPS28; 31:S29/Picture frame/ZPS29; 32:S30/Table lamp/ZPS30; 33:S33/Bookshelf/ZPS33; 34:S34/Arc SL/ZPS34; 35:S35/Roam SL/ZPS35; 36:S36/Ray/ZPS36; 37:S31/Beam/ZPS31; 38:S32/Beam SL/ZPS32; 39:S37/Sub Mini/ZPS37; 40:S38/One SL/ZPS38; 41:S39/Era 100/ZPS39; 42:S40/Optimo1 SL/ZPS40; 43:S41/Era 300/ZPS41; 44:S42/Floor lamp/ZPS42; 45:S43/One SL/ZPS43; 46:S44/Move 2/ZPS44; 47:S45/Arc Ultra/ZPS45; 48:S48/Era 100 Pro/ZPS48; 49:S49/Ace/ZPS49; 50:S46/Jaws/ZPS46; 51:S51/Pallas Plus/ZPS51; 52:null/null/null; 53:S53/RylesS767/ZPS53; 54:null/null/null; 55:S54/Roam 2/ZPS54; 56:S55/Sub 4/ZPS55; 57:S56/Ryles30/ZPS56; 58:S57/Era 100/ZPS57; 59:S58/Mojave/ZPS58; 60:S59/Gambit/ZPS59; 61:S52/Roundhouse/ZPS52; 62:S61/Disco/ZPS61. The former table starting at 0x10f7c300 was a truncated display-array view, not a separate ordinal space. S9 is ordinal 10 in these arrays, not 6; descriptor+0xf4=6 is internalSpeakerSize. Static model vocabulary is not proof that every listed model is supported by the active hardware configuration. Separate DSP config names at 0x10f24808 are not model-ordinal rows.",
    "todo": [
-    "Residual: semantic names of capability-tuple elements {+0xec,+0xf0,+0xf8,+0xfc} (generation/version-class by shape) and the +0xd1/+0xd2 flag bits beyond the 0x80 optical-input bit - per-model rows are compiled data; the SKU doc schema {sku,startDate,endDate,codes} is proven separately"
+    "Established: complete bounded name-array indexing, corrected S9 ordinal, descriptor defaults and S9 names, amplifier startup time (+0xec, ms), signed calibrated setup/chirp volume (+0xf0), advertised memory (+0xf8), advertised flash (+0xfc), and internalSpeakerSize (+0xf4). Remaining work: bind individual capability flags in descriptor word +0xd0, especially bytes +0xd1/+0xd2, to named input/capability consumers and verify the per-model bit-to-name join. Start with predicates f_1090855c (aggregate 0xff00), f_10908594 (bit 16), f_109085fc (bit 14), f_10908610 (bit 13) and f_10908624 (bit 20), trace their callers/virtual slots and join to capability-name tables. Recover volume scale and memory/flash units from their actual consumers if documenting them, not tuple shapes. Original enum spellings and invented hardware-generation/subclass labels are not established."
    ],
    "resolved_findings": [
-    "Resolved: capability rows per model id are the capability-conditional table entries indexed by ZPSnn - each row binds the model id to its capability flags (the sparse {name,mask} pair tables decoded for group_capabilities); the per-id rows are the flag combinations for that hardware revision.",
-    "Product-descriptor architecture decoded end to end: f_10908f38 populates the descriptor singleton - defaults (Unknown), special-cases legacy ids {Connect, HDLCD3250, Sonos, SYMFONISK}, then runs a strcmp ladder on the model id string. Per matched model it strlcpy-writes three names: +0x4 short id (0x41), +0x45 ZPSnn canonical name (0x41), +0x86 display name (0x41), +0xc7 short code (5). S9 proven: ZPS9 + Playbar + flag word +0xd0 = 0x00008000 with +0xcc=0xa, +0xd4=0x30206772, +0xd8=0x00037008, +0xdc/-0xe0/-0xe4=0, +0xf4=6. Unknown-model fallback ORs 0x05010001 into +0xd0. A second block at 0x10909408-0x109094ec writes the hardware board codes {A100,A101,A102,A200,B100,C100,C200,C201,D100,X999} - the S0-S9 submodel series. f_10909fcc is the separate capability-constant ladder: strcmp over the full model set {S1,S3,S6,S9,S11,S12,S13,S14,S15,S16,S17,S18,S19,S20,S21,S22,S23,S27,S28,S33,S34,S35,S37,S38,S40,S41,S42,S43,S44,S45,S48,S51,S53,S54,S56,S59,ZP90,ZP120,BR200,Sub} writing a per-model tuple {+0xec u32, +0xf0 u16, +0xf8 u32, +0xfc u32} - e.g. S9={0x80,0x19,0x80}, S21={0xa,0x14,0x200,0x100}, S6={0x32,0x1e,0x100,0x100}, S11={0x38,0xd,0x100,0x100}. Capability gating runs through the accessor family on +0xd0: f_10908540 tests low byte +0xd3 (analog line-in present, gates AudioIn/Control registration; 0 on S9), f_1090855c masks 0xff00 (the +0xd1/+0xd2 bytes; 0x80 set on S9 = optical/TV input path). The ZPS-to-product mapping is therefore identity for most ids (Snn -> ZPSnn) with display-name overrides like Playbar and the SYMFONISK brand block.",
-    "Resolved: the SKU record document schema is literal - emit format \"sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\" />\" (0x10ebfcb0) proves per-SKU fields {sku, startDate, endDate, codes} - the codes attribute is the multi-value list each SKU grants. The 63-row product table (internalId/displayName/modelId) is already decoded; this adds the SKU-level entitlement document shape.",
-    "Resolved: the full display-name array at 0x10f7c618-0x10f7c840 gives the human-readable names paired against the ZPS id table - {CONTROL,Connect:Amp,Play:5,Dock,Play:3,Play:1,Playbase,One,Beam,Move,Arc,Table lamp,Bookshelf,One SL,Five,Roam,TITAN,Picture frame,Arc SL,Roam SL,Ray,Beam SL,Sub Mini,Era 100,Optimo1 SL,Era 300,Floor lamp,Move 2,Arc Ultra,Era 100 Pro,Ace,Jaws,Pallas Plus,RylesS767,Roam 2,Sub 4,Ryles30,Gambit,Roundhouse} + trailing raw ids {S5,S3,S1,S6,S11-S24,S26-S61} and the A-series SKU ladder {A200,A101,A102,B100,D100,C201,C100,X999,C200} immediately after. '(Unknown)' sentinel at 0x10f7c1e8. The embedded dev-version string '86.10-80260-dev-secbuild-20260826' proves this image's dev lineage.",
-    "Descriptor predicate accessors decoded: +0x10c is the hardware-generation class word (predicates compare it against 0x22/0x23 - the S2-gen boundary family) and +0x110 the sub-class within generation (xori-compared 1/2/3/4 = Amp-style/Play-style/Soundbar-style/Portable-style per the capability ladder ordering); a third predicate family gates +0x10c==0x11. The capability-tuple words at +0xec/+0xf0/+0xf8/+0xfc are stored in the same ctor sweeps as the name triples, per-model-row data."
+    "Model lookup boundaries and names are verified from accessors rather than an inferred record layout: f_10908f50 returns short[ordinal], f_10908f88 returns display[ordinal] with the ordinal-1 Connect override, and f_10908fd8 returns canonical[ordinal]. All bound ordinals by 0x3e and use three parallel arrays at 0x10f7c1f4/0x10f7c2f0/0x10f7c3ec. S9/Playbar/ZPS9 is ordinal 10. The previous ordinal-6/device-record interpretation of 0x10f7c4e8 is withdrawn.",
+    "Descriptor construction is distinct from the name arrays. f_10908f38 installs vtable 0x10f7c1d0 and delegates default setup to f_10908e70: name (Unknown), empty secondary names, +0xf4=-1, +0xec=425 and +0xf0=0, with memory/flash zero. f_10909058 recognizes S9 explicitly and writes S9/ZPS9/Playbar, flags +0xd0=0x8000, +0xd4=0x30206772, +0xd8=0x37008, and +0xf4=6. f_10909fcc constructs the fuller descriptor, reads HAL MDP/MDP2 data and branches on model/board values before assigning the scalar fields. The former claim that f_10908f38 itself executes the entire per-model strcmp ladder is withdrawn.",
+    "Tuple semantics recovered through actual consumers: +0xec is the amplifier power-on/startup time in milliseconds (getter f_10908d3c); +0xf0 is a signed 16-bit calibrated setup/chirp volume value (getter f_10908d4c uses lha, with zero meaning not yet calibrated at the audited callers); +0xf8 is the advertised memory scalar (getter f_10908ca8), and +0xfc the advertised flash scalar (getter f_10908cb8). Device-description replacement joins these getters to #AMP_ONTIME#, #MEMORY# and #FLASH#, and the shipped XML names ampOnTime/memory/flash. No memory/flash unit or exact volume scale is inferred solely from row magnitudes. These are not four hardware-generation/version classes.",
+    "Descriptor+0xf4, read by f_10908474, is formatted into #INT_SPEAKER_SIZE# and emitted as internalSpeakerSize. Consequently the S9 value 6 is not the ordinal used by the product-name arrays. The earlier Amp/Play/Soundbar/Portable labels assigned to +0x110 and S2-generation labels assigned to +0x10c are also withdrawn: f_10909fcc loads the HAL MDP block at +0x104 and uses +0x10c/+0x110 in model/board dispatch. Numeric comparisons alone do not establish those invented class names.",
+    "Big-endian capability extraction is numeric: f_10908540 tests byte +0xd3 nonzero (word low byte), f_1090855c tests word+0xd0 & 0xff00 (byte +0xd2 only, not both +0xd1/+0xd2), f_10908578 tests the high halfword, f_10908594 extracts word bit 16, f_109085fc bit 14, f_10908610 bit 13, and f_10908624 bit 20. The S9 mask 0x8000 is byte +0xd2 bit 7; the aggregate 0xff00 predicate alone does not name every bit or distinguish optical/ARC/eARC. Remaining per-bit names must be joined to actual consumers rather than inferred from product membership.",
+    "SKU document literals contain attributes sku/startDate/endDate/codes at 0x10ebfcb0. That separate SKU-document shape does not assign a meaning to the descriptor timing/volume/memory/flash fields or to every capability flag. The model-name vocabulary and the separate capability-name vocabulary must likewise not be mistaken for a verified per-model bit-to-name join."
    ]
   },
   "multi_daemon_boundary": {
