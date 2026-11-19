@@ -49395,6 +49395,15 @@
        "address": "0x102648c4",
        "callsite": "0x102648c4",
        "notes": "Session state/metadata publishing records a timed source node through f_103420a4 at 0x1026470c, then obtains the transport weak owner at 0x10264784. Nonzero live owner and transport pointer gate f_1067c6ec at 0x102648c4. Stopped active-clear postprocessing reaches f_102642d4 at 0x10267e2c; running clear reaches it through later controller state changes, not a per-track notify loop. Shared AVTransport source snapshot/latches determine emitted fields; external mode 1 source snapshots need not mirror queue-controller state."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10266c68",
+       "address": "0x10266fa4",
+       "callsite": "0x10266fa8",
+       "notes": "Raw word 0x554807fb at 0x10266fa4 has SH=0, MB=31, ME=29, Rc=1: wraparound mask 0xfffffffd of state minus 2. BO=13, BI=2 at 0x10266fa8 uses CR0 equality, meaning state 2 or 4, not a shift or missing comparison. These later controller gates do not make SOAP completion wait for STOPPED."
       }
      ],
      "notes": "The shared f_102b3a84 version-mismatch and optional revision-output branches are not reachable with the hardcoded arguments supplied by this action."
@@ -50225,6 +50234,15 @@
        "function": "0x1014e9a8",
        "callsite": "0x1014eaa0",
        "notes": "Deletion compacts entries at queue+0x26c0, adjusts optional shuffle map +0x26c4, decreases count +0x26c8, adjusts current-track index when supplied, sets +0x26e8, and calls f_1014d738 when queue name +0x4c is nonempty. f_1014d738 increments word +0x70 at 0x1014d7bc..0x1014d7c0, sets dirty byte +0x74 and posts an internal event through f_10117654 at 0x1014d820."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103417dc",
+       "address": "0x1034186c",
+       "callsite": "0x103418f0",
+       "notes": "Raw word 0x56f707fe at 0x1034186c masks shuffle flags with 1 (SH=0, MB=31, ME=31); it is not a shift. Raw words 0x56d6043e/0x5718043e at 0x1034183c/0x10341858 mask span arithmetic with 0xffff. Raw 0x56a7f87f at 0x103418ec instead has SH=31, MB=1, ME=31, Rc=1: unsigned halving, setting CR0 for the zero branch at 0x103418f0."
       }
      ],
      "notes": null
@@ -51321,6 +51339,15 @@
        "address": "0x10149bb8",
        "callsite": "0x102acbf0",
        "notes": "With r6=0, helper locks queue and copies revision word+0x70 to first output at 0x10149bb8, count halfword+0x26c8 to second at 0x10149bc0. Post-completion f_102aca78 reread copies revision to caller at 0x102acbfc. NewUpdateID is this reread, not input UpdateID+1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102aca78",
+       "address": "0x102acbb8",
+       "callsite": "0x102acbc4",
+       "notes": "Raw words 0x5746043e/0x5725043e at 0x102acbb8/0x102acbbc have SH=0, MB=16, ME=31, Rc=0: end/start are masked with 0xffff before kind-14 construction, not divided by 65536. The earlier endpoint comparison is on the computed 32-bit value."
       }
      ],
      "notes": null
@@ -52701,6 +52728,15 @@
        "address": "0x1025a994",
        "callsite": "0x1025aa1c",
        "notes": "Active running helper first calls f_1014e794 with session+0x326cc current-index pointer at 0x1025a950, retaining its bool result. It queries clock/source context via session+0x2598 slot +0xc and calls f_103411b0 at 0x1025a994 even when mutation returned false. That trims old source-list prefix via f_103410d8, remaps node +0x28c/+0x28e indices for the rotation/shuffle map, and compares eligible next-source continuity using f_10149d80. An incompatible buffered suffix is detached into retired chain at 0x103414a4, reporting reselection and source identity +0x290/+0x294. On reselection f_10149e68 normalizes index; failure sets session+0x327d2 and restores supplied result. f_10259c1c then reconciles packet/crossfade history and sets changed output. Current index copied to session+0x326fc. The original mutation bool is returned, so an 800 completion failure is not a guarantee that no source bookkeeping ran."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014e794",
+       "address": "0x1014e930",
+       "callsite": "0x1014e938",
+       "notes": "Raw 0x554a043e at 0x1014e930 masks the exclusive upper bound with 0xffff (SH=0, MB=16, ME=31, Rc=0). Explicit compare 0x1014e934 and BO=5, BI=29 at 0x1014e938 skip remapping when bound<=current. Reversal-loop words 0x57a8f87f/0x5509f87f/0x57e9f87f at 0x1014e828/0x1014e874/0x1014e8b8 instead have SH=31, MB=1, ME=31, Rc=1: true unsigned halving with CR0 zero tests."
       }
      ],
      "notes": null
