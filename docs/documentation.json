@@ -67423,18 +67423,31 @@
          "function": "0x1014e0b0",
          "address": "0x1014e548",
          "notes": "shuffle order head"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265910",
+         "notes": "request completion"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265a08",
+         "notes": "notifyClients on s+0x2578"
         }
        ],
        "notes": "Formatted as decimal text and passed to the replace-commit request.",
        "buf_cap": null,
-       "todo": [
-        "Established: CurrentTrackIndex becomes list A of the op-16 request; f_1014e0b0 uses it only to pick the new current index, which it stores in the shuffle order head.",
-        "Residual: the op-16 consumer branches to the shared tail at 0x10265908 after f_1014e0b0 returns, and whether that tail repositions the playing track is not traced. Next step is to disassemble 0x10265908 in f_1026571c."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `CurrentTrackIndex` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
         "Resolved (binding and use): bound as a u32 by f_105614e0 into job+0x141c (parse site 0x10465490); on the success path it is formatted with snprintf('%u') at 0x102f7f38 and the text is passed as r8 of the commit-request builder f_1032e398 at 0x102f7fd4.",
-        "Established (commit path): the RAT worker f_102f7bd0 builds the op-16 request with f_1032e398 at 0x102f7fd4: position r24, generation job+0x147c, count u16 job+0x1478, flag +0x100 = 0, list A = sp+0x349c, list B = sp+0x3488 when job+0x1468 is nonzero and NULL otherwise, and the NewQueueLength pointer at req+0x114. List A is the text '%u' (fmt 0x10f94c94) of CurrentTrackIndex job+0x141c, written by __snprintf_chk at 0x102f7f38; list B is '%u' of job+0x1464 - job+0x1468 (0x102f7fa4). The op-16 consumer (0x10265fbc..0x10265ff8) passes these to f_1014e0b0 with r9 = 0 and NULL result pointers except NewQueueLength. f_1014e0b0 replaces a NULL list by '' (0x1014e760, 0x1014e76c) and reads A and B as parallel decimal lists (strtol at 0x1014e358 and 0x1014e36c). When A is 0 and B is nonzero, the new current position is old length + B (0x1014e2a0..0x1014e2ac); otherwise the loop ends with position old length + 1 (0x1014e618). After the old block is removed the position minus the old length becomes the new current index (0x1014e4dc), which f_1014e0b0 writes only to the shuffle order head q+0x26c4[0] (0x1014e548) and to the result pointer r19, which this consumer passes as NULL."
+        "Established (commit path): the RAT worker f_102f7bd0 builds the op-16 request with f_1032e398 at 0x102f7fd4: position r24, generation job+0x147c, count u16 job+0x1478, flag +0x100 = 0, list A = sp+0x349c, list B = sp+0x3488 when job+0x1468 is nonzero and NULL otherwise, and the NewQueueLength pointer at req+0x114. List A is the text '%u' (fmt 0x10f94c94) of CurrentTrackIndex job+0x141c, written by __snprintf_chk at 0x102f7f38; list B is '%u' of job+0x1464 - job+0x1468 (0x102f7fa4). The op-16 consumer (0x10265fbc..0x10265ff8) passes these to f_1014e0b0 with r9 = 0 and NULL result pointers except NewQueueLength. f_1014e0b0 replaces a NULL list by '' (0x1014e760, 0x1014e76c) and reads A and B as parallel decimal lists (strtol at 0x1014e358 and 0x1014e36c). When A is 0 and B is nonzero, the new current position is old length + B (0x1014e2a0..0x1014e2ac); otherwise the loop ends with position old length + 1 (0x1014e618). After the old block is removed the position minus the old length becomes the new current index (0x1014e4dc), which f_1014e0b0 writes only to the shuffle order head q+0x26c4[0] (0x1014e548) and to the result pointer r19, which this consumer passes as NULL.",
+        "Resolved (consumer tail): after f_1014e0b0 the op-16 consumer branches to 0x10265908. That tail completes the request (f_1032e6c0 at 0x10265910). When byte *r26 or sp+0x38 is set (0x10265914..0x10265928) it also bumps the counter at s+0x27f0+8 (f_103410c0) and, through the weak reference at s+0x257c, calls notifyClients on the event source s+0x2578 (f_1067c6ec -> f_1067c46c 'upnpeventing', 0x10265a08). None of these touches the play position, and the consumer passes NULL for f_1014e0b0's current-index result (r19). So for the Queue service CurrentTrackIndex only decides which new track heads the shuffle order (q+0x26c4[0] at 0x1014e548); it does not move playback."
        ]
       },
       "NewCurrentTrackIndices": {
@@ -67532,7 +67545,7 @@
        "buf_cap": null,
        "todo": [
         "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit; job+0x1464 holds a single-value argument and job+0x1468 counts items before it.",
-        "Residual: the container-expansion code that calls f_1015108c (reached through a function pointer, no direct bl caller) is not identified, so which expanded items are counted is not established. Next step is a data-reference scan for 0x1015108c."
+        "Residual: the container-expansion code that calls f_1015108c is not identified. Its only reference is slot 0x10e93688 of the callback table at 0x10e93678 (f_10150fdc, f_10150fe8, f_101511d0, f_10152eac, f_1015108c, f_10151018), which has no lis/addi reference in code, so which expanded items are counted is not established. Next step is to find the code that installs that table."
        ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
