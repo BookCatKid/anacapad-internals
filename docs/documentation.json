@@ -161990,7 +161990,7 @@
    "name": "mdputil",
    "summary": "Reads factory identity/configuration, stages command-line edits, verifies manufacturing-bundle signatures and erases/writes manufacturing flash. The512-byte identity page and4096-byte second page have distinct layouts. CLI, repair, signature inputs and flash failures are traced; driver-side serial/check commands, geometry and remaining hardware-field consumers still require work.",
    "todo": [
-    "Established: CLI edits/order, signature inputs/results, wildcard final-color range and color-name table, repair/write preparation, erase/write failures, flash geometry, chk sysword assignment, and the separate library flash-serial retrieval/display contract including every supported device ID and marker/complement check. Remaining: locate kernel consumers of sysword and trace /dev/mtd/0 ioctls0x40044d24/0x80244d23, including returned serial-data extent and device-command parameter meanings; bind remaining unprinted manufacturing tail fields and individual manifest hardware-code meanings to consumers. Follow those producer/consumer chains before removing this TODO."
+    "Residual: identify the live flash backend installed in the kernel MTD callback slot +0xa4 and decode its device-command parameters, including whether/how it changes the requested serial-data extent. The matching kernel ioctl dispatcher and user-copy sizes are now located. Kernel sysword consumers, remaining manufacturing tail fields and individual manifest hardware-code consumers still require tracing."
    ],
    "artifacts": [
     "bin/mdputil"
@@ -162003,7 +162003,9 @@
     "Hardware-manifest output is one-based1..8. Editable indices are1..7 with per-entry numeric ranges;0 and8 reject. Null-check printer wrapper uses conditional bclr and fall-through,not a dead delegate.",
     "REGION edit is option-e:0x10000eb4 stores the supplied value at staged MDP1+0x1c. Thus the documented command mdputil -fwe 2 supplies new REGION value2;2 is not a field index.",
     "/etc/Configure line74 invokes mdputil-B. At0x10001190 the option can check existing MDP2 through/dev/chk, then requests a forced write when original old-version>6. Otherwise it exits early unless-w has already appeared. It is not merely a printing option.",
-    "Application MDP flag cleanup has the concrete predicate and bit effects in application_flag_consumer. It clears printk/console bits and sets marker0x20;it is not an inverted capability predicate."
+    "Application MDP flag cleanup has the concrete predicate and bit effects in application_flag_consumer. It clears printk/console bits and sets marker0x20;it is not an inverted capability predicate.",
+    "Kernel-side ioctl dispatch located by decompressing the shipped package/86.10-80260-1-9-kernel.uImage gzip payload after its 64-byte uImage header. Addresses here are offsets in that decompressed raw image, not asserted ELF VAs. At raw+0x1aea38-0x1aea44 the dispatch compares request 0x80244d23, reaching raw+0x1aec40; at raw+0x1aed6c-0x1aed74 it compares 0x40044d24. The latter selects device-structure+0x184 as source and copies four bytes to the user argument at raw+0x1aed94-0x1aed9c. This binds the library first ioctl output to a stored device word, not a direct chip command issued by that arm. The exact device initialization producing this word still needs tracing.",
+    "For 0x80244d23 the kernel copies a 36-byte request from the user argument into stack+8 at raw+0x1aec58-0x1aec68, rejects a missing callback at device+0xa4 with -95 at raw+0x1af45c, allocates the requested first-word byte count, and checks request words at +8 and +0x14 against 8 at raw+0x1aec94-0x1aecac. The accepted path calls device+0xa4 with (device, local request, allocated buffer) at raw+0x1af324-0x1af338, propagates a nonzero result, and uses the request first word as the return-copy extent at raw+0x1af354 onward. Thus the 36-byte ioctl header size is not itself the serial-data extent. The library hal_flash_read_fsn requests 256 bytes and separately reports/extracts smaller serial lengths. Backend identity and command-field meanings are not established merely by matching ioctl constants, and remain open rather than claiming a complete kernel trace."
    ],
    "binary_identity": {
     "binary": "bin/mdputil",
@@ -162609,6 +162611,12 @@
      "build": "86.10-80260",
      "address": "0xed4",
      "notes": "Setter stores exactly four checked prefix bytes without rejecting trailing input."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "notes": "Decompressed payload offsets: 0x1aed6c matches 0x40044d24 and copies device+0x184; 0x1aec40 copies 36-byte request for 0x80244d23; 0x1af338 dispatches device callback+0xa4."
     }
    ],
    "cli_edit_contract": {
