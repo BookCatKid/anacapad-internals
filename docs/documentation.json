@@ -88186,7 +88186,7 @@
      ]
     },
     "GetLastIndexChange": {
-     "description": "Returns LastIndexChange timestamp via impl->v[+0x8].",
+     "description": "Returns the cached share-index revision stamp as text, not an unsigned counter or Unix timestamp. Handler 0x103079a8 calls cd_impl primary slot +0x2c = f_1030259c with a 21-byte buffer. The worker snapshots the stamp through provider impl+0x34c, serializes its kind prefix and date fields, and returns zero. Invalid cached stamps produce an empty string. See the ContentDirectory service-level binding proof.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x103079a8",
@@ -88230,186 +88230,305 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x1030259c",
+      "impl_vfunc": "cd_impl primary vtable 0x10eb3f20 slot +0x2c"
      },
      "inputs": {},
      "outputs": {
       "LastIndexChange": {
-       "description": "produced by impl 0x1030259c via media-store member this+0x168",
+       "description": "Serialized cached revision stamp: F or S followed by date fields; empty when the stamp validity byte is zero.",
        "direction": "out",
        "primitive": {
-        "fmt_helper": null,
-        "fmt": null
+        "fmt_helper": "0x10c3f10c",
+        "fmt": "%04hu-%02hu-%02hu %02hu:%02hu:%02hu"
        },
-       "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "unrestricted/impl-validated per 0x1030259c",
-       "range": "see impl 0x1030259c",
-       "special_values": "none observed in this build",
+       "semantic_type": "revision stamp string",
+       "format": "FYYYY-MM-DD HH:MM:SS or SYYYY-MM-DD HH:MM:SS; empty for invalid stamp",
+       "unit": "calendar date fields, no timezone suffix",
+       "accepted_values": "cached stamp serialization; not an integer",
+       "range": "21-byte response buffer including NUL; valid ordinary dates yield 20 characters",
+       "special_values": "Empty string when provider stamp byte 0 is zero. Kind byte nonzero selects F; zero selects S. No meaning beyond the binary kind discriminator is assumed.",
        "required": false,
-       "default": "see impl 0x1030259c",
-       "validation": "impl-produced",
+       "default": "none; cached value written on success",
+       "validation": "Output text is passed directly through response slot +0x10, not parsed as a number.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10307a70",
-         "notes": "out-arg access site"
+         "function": "0x1030259c",
+         "address": "0x103025dc",
+         "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e89c74",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103079a8",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x2c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x103079a8",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×1, commit×1); member delegates: r4 v[+0x8], r30 v[+0x2c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x2c]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x103079a8",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', 'r30 v[+0x2c]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], r30 v[+0x2c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query delegate: r4 v[+0x8], r30 v[+0x2c] (call-derived member-method semantics)",
-       "evidence": [
+         "function": "0x1010ca2c",
+         "address": "0x1010ca60",
+         "notes": "Locks provider+0x28, copies stamp at provider+0x4dcc with f_10c3f210, unlocks at 0x1010ca80. Copy preserves validity byte, kind byte and date fields."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c3f10c",
+         "address": "0x10c3f13c",
+         "notes": "Invalid stamp byte0=0 emits empty text at 0x10c3f148. Otherwise prefix byte is F when stamp byte1 is nonzero, S when zero, then tail-call f_10c3c88c on date at stamp+4."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c3c88c",
+         "address": "0x10c3c8e8",
+         "notes": "PIC format pointer 0x10fb1598 contains %04hu-%02hu-%02hu %02hu:%02hu:%02hu. Loads date halfwords +4,+6,+0xa,+0x10,+0xc,+0xe as year, month, day, hour, minute, second. snprintf formats the date text after the prefix."
+        },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x103079a8",
-         "notes": "delegate map ['r4 v[+0x8]', 'r30 v[+0x2c]']; notify-family calls []"
+         "address": "0x10307a04",
+         "notes": "Calls primary slot +0x2c with 21-byte output buffer. Output LastIndexChange goes through text slot +0x10 at 0x10307a84, commit 0x10307a98. No input registration."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x8], r30 v[+0x2c] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      }
+     },
+     "validation": {
+      "description": "No inputs or named argument parsers. The per-call request has zero registered inputs and always validates; the wrapper 402 path is dead.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "See service-level binding and per-SOAP request proof. Zero-input validation always returns 1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103079a8",
+        "address": "0x10307a04",
+        "notes": "Calls primary slot +0x2c with 21-byte output buffer. Output LastIndexChange goes through text slot +0x10 at 0x10307a84, commit 0x10307a98. No input registration."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "No action inputs, readiness test or stamp-validity fault. An invalid cached stamp is returned as empty text rather than an error.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3f10c",
+        "address": "0x10c3f13c",
+        "notes": "Invalid stamp byte0=0 emits empty text at 0x10c3f148. Otherwise prefix byte is F when stamp byte1 is nonzero, S when zero, then tail-call f_10c3c88c on date at stamp+4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1030259c",
+        "address": "0x103025dc",
+        "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "See service-level binding and per-SOAP request proof. Zero-input validation always returns 1."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Worker loads the provider pointer from impl+0x34c. f_1010ca2c holds provider mutex +0x28 while copying its stamp at +0x4dcc into a local stamp object. f_10c3f10c tests validity byte +0, then kind byte +1 and date payload +4; it does not read a live clock. The query returns a snapshot of stored fields, not time elapsed or the SystemUpdateID counter.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1030259c",
+        "address": "0x103025dc",
+        "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ca2c",
+        "address": "0x1010ca60",
+        "notes": "Locks provider+0x28, copies stamp at provider+0x4dcc with f_10c3f210, unlocks at 0x1010ca80. Copy preserves validity byte, kind byte and date fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3f10c",
+        "address": "0x10c3f13c",
+        "notes": "Invalid stamp byte0=0 emits empty text at 0x10c3f148. Otherwise prefix byte is F when stamp byte1 is nonzero, S when zero, then tail-call f_10c3c88c on date at stamp+4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3c88c",
+        "address": "0x10c3c8e8",
+        "notes": "PIC format pointer 0x10fb1598 contains %04hu-%02hu-%02hu %02hu:%02hu:%02hu. Loads date halfwords +4,+6,+0xa,+0x10,+0xc,+0xe as year, month, day, hour, minute, second. snprintf formats the date text after the prefix."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Initializes a local stamp with f_10c3f090, copies under the provider mutex, serializes and bounded-copies text to the response buffer; f_10c3f100 is the local stamp destructor. No provider or library mutation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1030259c",
+         "address": "0x103025dc",
+         "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ca2c",
+         "address": "0x1010ca60",
+         "notes": "Locks provider+0x28, copies stamp at provider+0x4dcc with f_10c3f210, unlocks at 0x1010ca80. Copy preserves validity byte, kind byte and date fields."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No event notifier is called by this getter or its stamp-copy/format helpers. No GENA event is triggered.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103079a8",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1030259c",
+        "address": "0x103025dc",
+        "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ca2c",
+        "address": "0x1010ca60",
+        "notes": "Locks provider+0x28, copies stamp at provider+0x4dcc with f_10c3f210, unlocks at 0x1010ca80. Copy preserves validity byte, kind byte and date fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3f10c",
+        "address": "0x10c3f13c",
+        "notes": "Invalid stamp byte0=0 emits empty text at 0x10c3f148. Otherwise prefix byte is F when stamp byte1 is nonzero, S when zero, then tail-call f_10c3c88c on date at stamp+4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3c88c",
+        "address": "0x10c3c8e8",
+        "notes": "PIC format pointer 0x10fb1598 contains %04hu-%02hu-%02hu %02hu:%02hu:%02hu. Loads date halfwords +4,+6,+0xa,+0x10,+0xc,+0xe as year, month, day, hour, minute, second. snprintf formats the date text after the prefix."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x2c]",
+      "description": "None. Snapshot and serialization leave validity, kind and cached date unchanged.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x103079a8",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', 'r30 v[+0x2c]']"
+        "function": "0x1030259c",
+        "address": "0x103025dc",
+        "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ca2c",
+        "address": "0x1010ca60",
+        "notes": "Locks provider+0x28, copies stamp at provider+0x4dcc with f_10c3f210, unlocks at 0x1010ca80. Copy preserves validity byte, kind byte and date fields."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], r30 v[+0x2c].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Worker f_1030259c returns zero regardless of stamp validity; the invalid representation is empty text. Handler emits LastIndexChange through response text slot +0x10 at 0x10307a84 and commits at 0x10307a98. It does not propagate formatting/copy helper return values as SOAP faults. Both generic nonzero-worker fault and wrapper 402 are dead.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "function": "0x1030259c",
+        "address": "0x103025dc",
+        "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3f10c",
+        "address": "0x10c3f13c",
+        "notes": "Invalid stamp byte0=0 emits empty text at 0x10c3f148. Otherwise prefix byte is F when stamp byte1 is nonzero, S when zero, then tail-call f_10c3c88c on date at stamp+4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "function": "0x103079a8",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0x10': 1, '0xc': 1}"
+        "address": "0x10307a04",
+        "notes": "Calls primary slot +0x2c with 21-byte output buffer. Output LastIndexChange goes through text slot +0x10 at 0x10307a84, commit 0x10307a98. No input registration."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "See service-level binding and per-SOAP request proof. Zero-input validation always returns 1."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "impl 0x1030259c: single exit returns 0; the action never faults from the impl -- only the handler request-gate can emit 402 | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "unreachable request-validity zero",
+       "meaning": "Dead wrapper literal 402 at 0x10307a54, fault call 0x10307a20. No inputs are registered and worker returns zero, including an invalid stamp.",
        "fault_sites": [
-        "0x103079a8"
+        "0x10307a20"
        ],
        "conditions": [
         {
-         "description": "impl/store gate failed",
+         "description": "No reachable condition with the proven binding and per-call request.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302cb4",
-           "notes": "impl body"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x106960f8",
+           "address": "0x10696404",
+           "notes": "See service-level binding and per-SOAP request proof. Zero-input validation always returns 1."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103079a8",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1030259c",
+           "address": "0x103025dc",
+           "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
           }
          ]
         }
@@ -88419,15 +88538,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1030259c",
-         "notes": "impl domain bounded: {0}"
+         "function": "0x106960f8",
+         "address": "0x10696404",
+         "notes": "See service-level binding and per-SOAP request proof. Zero-input validation always returns 1."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103079a8",
-         "notes": "wrapper parse + fault path"
+         "function": "0x1030259c",
+         "address": "0x103025dc",
+         "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103079a8",
+         "address": "0x10307a04",
+         "notes": "Calls primary slot +0x2c with 21-byte output buffer. Output LastIndexChange goes through text slot +0x10 at 0x10307a84, commit 0x10307a98. No input registration."
         }
        ]
       }
@@ -88448,13 +88577,57 @@
        "build": "86.10-80260",
        "address": "0x10eb42b8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1030259c",
+       "address": "0x103025dc",
+       "notes": "Loads provider from impl+0x34c; obtains cached stamp via f_1010ca2c, formats via f_10c3f10c with capacity 0x15 and copies via f_10906304 at 0x103025fc. Returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010ca2c",
+       "address": "0x1010ca60",
+       "notes": "Locks provider+0x28, copies stamp at provider+0x4dcc with f_10c3f210, unlocks at 0x1010ca80. Copy preserves validity byte, kind byte and date fields."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10c3f10c",
+       "address": "0x10c3f13c",
+       "notes": "Invalid stamp byte0=0 emits empty text at 0x10c3f148. Otherwise prefix byte is F when stamp byte1 is nonzero, S when zero, then tail-call f_10c3c88c on date at stamp+4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10c3c88c",
+       "address": "0x10c3c8e8",
+       "notes": "PIC format pointer 0x10fb1598 contains %04hu-%02hu-%02hu %02hu:%02hu:%02hu. Loads date halfwords +4,+6,+0xa,+0x10,+0xc,+0xe as year, month, day, hour, minute, second. snprintf formats the date text after the prefix."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103079a8",
+       "address": "0x10307a04",
+       "notes": "Calls primary slot +0x2c with 21-byte output buffer. Output LastIndexChange goes through text slot +0x10 at 0x10307a84, commit 0x10307a98. No input registration."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106960f8",
+       "address": "0x10696404",
+       "notes": "See service-level binding and per-SOAP request proof. Zero-input validation always returns 1."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x103079a8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetSearchCapabilities": {
      "description": "Returns empty SearchCaps. Wrapper 0x10307e10 validates a no-input request and tail-calls worker 0x10307d44. The worker invokes cd_impl primary slot +0x08 = f_10302498 with a 0x400-byte output buffer, then emits the empty string and commits. See the ContentDirectory service-level binding and per-call request proofs.",
