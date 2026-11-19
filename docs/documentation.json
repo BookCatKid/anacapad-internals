@@ -177005,7 +177005,7 @@
    "todo": "Established: Endpoint collector f_10238144 handles object-end callback token kind 1 for field metadata index zero. With its target model installed, it copies the completed scratch endpoint to the next 0x1c-byte slot while count<=2, increments model+0xa0, and clears the scratch endpoint type/URI afterward. At count>2 it returns zero without appending or incrementing; the collector itself supplies no overflow error. This yields at most three stored endpoints even if further object callbacks arrive. accountTiers instead uses a generic array binding: f_1023a214 binds the count at model+0xe8 with maximum four and binds model+0xd8 as four 4-byte custom enum values. The generic array completion stores the smaller of parsed element count and the declared maximum. Exact overall acceptance and side effects for extra elements or repeated arrays still require the shared element cursor/error paths. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
   },
   "0x1011aabc": {
-   "description": "Download JSON reader f_1011aabc creates a fresh model, schema adapter and streaming parser, binds through f_1011bd2c, then requests chunks of up to 1024 bytes from input slot +8 using the supplied deadline. It feeds the reported byte count to f_109c4b34 without branching on that read call return register. Internal result 10 continues only while the last reported byte count is nonzero; a zero-length read with result 10 falls into the logged failure path. Parser result zero reaches root descriptor status checks: when the root has a seen/default marker, status bit 0x2 produces local internal error 7. Only after these checks does it postprocess a nonempty apiKey.zp and copy the scratch model to the caller with f_102399a4. Parse failure returns false without this final model copy. JSON framework error numbers here are not SOAP fault codes; the outer download worker maps this false result to 801.",
+   "description": "Download JSON reader f_1011aabc creates a fresh model, schema adapter and streaming parser, binds through f_1011bd2c, then requests chunks of up to 1024 bytes from input slot +8 using the supplied deadline. It feeds the reported byte count to f_109c4b34 without branching on that read call return register. Internal result 10 continues only while the last reported byte count is nonzero; a zero-length read with result 10 falls into the logged failure path. Parser result zero reaches root descriptor status checks: when the root has a seen/default marker, status bit 0x2 produces local internal error 7. Only after these checks does it postprocess a nonempty apiKey.zp and copy the scratch model to the caller with f_102399a4. Parse failure returns false without this final model copy. JSON framework error numbers here are not SOAP fault codes; the outer download worker maps this false result to 801. Its only caller is f_1011b710 (direct bl at 0x1011b938; no data word in the image names 0x1011aabc), which passes the store object, a response-body stream adapter built by f_10545064 for the f_10546520 HTTP GET that returned status zero, the same clock-id-1 +10000 ms deadline the GET used, and a scratch output model. A false return reaches the 'Failure' log and status 801; a true return is followed by a 0x401-byte URI copy and a second f_102399a4 model copy into the new cache row before upsert f_10119434 and save. Inside the loop the length word is reset to 0x400 before every read vcall, which receives (stream, buffer, &len, deadline); the vcall's own return register is never inspected, so an erroring or failing read is indistinguishable from a short one and only the reported byte count drives the loop. The first read always executes, and the loop ends the first time the engine reports a result other than 10, so body bytes after the completing chunk are never consumed. After engine result zero the only local gate is the single root descriptor of the anonymous root-object binding: f_109c0f58 tests descriptor+0x21 &9 for a seen or defaulted marker and, when present, bit 0x2 yields local error 7; an unmarked root skips the bit test. No nested field descriptor is scanned here, so the per-field status bits written by the shared machinery (length-overflow 0x2 on fixed or 0x400-cap dynamic strings via f_109c1314/f_109c39bc, invalid custom conversion 0x4/0x5) cannot reach this check or fail the download by themselves; truncated optional values and unknown enum names still produce a copied model holding the truncated or zeroed value, the same no-rollup rule stated for svc_manifest.details.json_acceptance. Member-level rejections still arrive through the engine result: object close marks the parent descriptor seen (clearing the default bit) and stores f_109c311c's required-scan result into the engine status word, so an absent required schemaVersion surfaces as result 8; a null schemaVersion never marks it seen because f_10118580 ignores non-kind-3 tokens, duplicate members reset then reassign with no duplicate-name rejection, and unknown members without binding flag 0x8 are skipped (shared semantics in svc_manifest.details.json_acceptance and .json_binding). The apiKey.zp postprocess runs only when the zp length word model+0xc4 is nonzero: f_10118710 verifies and decodes the zp text through f_10542708 (key material through the runtime-bound global pointer at 0x1109736c, parse_key helper f_105422f4, '(c) Sonos Inc.' marker check and a base64 decode capped at 0x401 bytes, returning a malloc'd plaintext or zero) and replaces zp with the decoded header only when its strlen is <=0x400; a decode failure or oversized result instead clears zp in place and logs 'svcmanifest'/'Could not extract API header' at level 3, never affecting the parse result. Exception contract: no function in this cluster has a .eh_frame FDE (the search table carries no initial-loc in 0x10118000-0x1011c000) and f_1011aabc issues no __cxa_* calls, so the teardown chain at 0x1011ac00-0x1011ac8c runs only on normal control flow. The only throw-capable code beneath it is std::string growth inside f_10118710 (f_10831bc0 -> f_1082d960 -> __throw_length_error) and inside the success-path model copy f_102399a4 (f_1082deb8 assign -> f_1082d508 -> f_10823abc -> __throw_bad_alloc/__throw_length_error); the std helpers carry their own cleanup FDEs but f_10118710, f_102399a4 and f_1011aabc all lack them, so such a throw cannot be caught or unwound through this frame and allocation failure terminates the process rather than returning false or 801. The stream reader itself is a runtime-injected vfunc on the caller's adapter; its deadline and error behavior is the caller's contract.",
    "why_external": "Determines whether downloaded manifest data is copied into the caller model or rejected.",
    "required_for_behavior": true,
    "role": "music_service_manifest_parser",
@@ -177016,9 +177016,72 @@
      "build": "86.10-80260",
      "address": "0x1011aabc",
      "notes": "Instruction-level binder/collector/stream analysis; see music_service_manifest."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011aabc",
+     "notes": "Read loop 0x1011ab74-0x1011abbc: 0x400 rewritten to sp+0x18 before every stream vt+8 vcall on r30=arg2 (args buf=sp+0xd9c, &len sp+0x18, deadline r28=arg3); vcall return register never inspected. First entry bypasses the count gate via b 0x1011ab80; later entries gate on last byte count (cmpwi cr7,r9,0; bc bo=12,bi=30 -> fail). Feed result: cmplwi 0xa at 0x1011abb4 loops on 10, cmpwi 0 at 0x1011abc0 sends any other nonzero to fail; result 0 continues."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011abc8",
+     "notes": "Post-result-zero gate: f_109c0f58(root descriptor at sp+0x28) tests desc+0x21 &9 seen/default marker; marker nonzero -> lbz sp+0x49 (=desc+0x21) andi. 0x2 at 0x1011abd8 -> r31=7 at 0x1011acd8; marker zero skips the bit test at 0x1011abe4. zp gate lwz sp+0x110 = model+0xc4 length word; nonzero -> f_10118710(model) at 0x1011accc. Success path sets r31=1 at 0x1011abf8 then f_102399a4(out=arg4, model=sp+0x4c)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011acdc",
+     "notes": "Failure path: f_109c36c0(parser=sp+0x530, buf=sp+0xd9c, code=r31, cap 0x80) builds the message, f_109b6fe4('svcmanifest',4) resolves the channel, f_109b72ac logs 'JSON parse error %d: %s' at 0x1011ad30, then r31=0. Reached by every nonzero non-10 engine result, result 10 with a zero last-read count, and local error 7."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011bd2c",
+     "notes": "Bind: adapter vt+0 f_1011ba90 returns adapter+0x16c embedded engine; descriptor array at adapter+4 read via +0x174; kind-7 root descriptor built by f_109c0eb8(&d,7,adapter,0,0,0) at 0x1011bdb4 and registered through parser vt+8 then vt+0xc; manifest field bindings installed by f_1023a214(ctx,model,adapter) at 0x1011bdf0. Adapter vtable 0x10e8a634: +0 f_1011ba90, +4 schema callback f_10118580, +8 f_1023808c, +0xc f_1011bac0, +0x10 f_1011bad8, +0x1c f_1011baa0, +0x20 f_10118500, +0x24 f_10118450; static schema-definition table at 0x10e8a71c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109c3268",
+     "notes": "Engine object-close path (inside f_109c4b34 cluster): parent descriptor status gets rlwinm clr bit 0x8 + ori 0x1 at 0x109c3250-0x109c325c (real occurrence clears default, sets seen), then f_109c311c required-scan result stored into engine status word parser+0x40 via stw r3,0x40(r31) at 0x109c3268. Missing required member therefore surfaces directly as feed result 8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109c3af0",
+     "notes": "Per-field status writes in shared value handlers: length-overflow path stores desc+0x21 = (v|0x2)&~0x8|0x1 at 0x109c3adc-0x109c3af0 (truncated but seen); custom converter result 3 stores |0x5 at 0x109c3c4c; nested member type-invalid stores |0x4 at 0x109c3eac. These bits land on each field's own descriptor; f_1011aabc scans only the root descriptor, so they cannot reach its error-7 check."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10118710",
+     "notes": "apiKey.zp postprocess 0x10118710-0x10118828: zp std::string at model+0xc0(data)/+0xc4(len); f_10542708(zp.data,strlen) verifies/decodes via runtime-bound global fn ptr 0x1109736c (no file-backed initializer), parse_key helper f_105422f4, '(c) Sonos Inc.' marker ZZ0183 and sonosBase64 decode into cap 0x401, returning malloc'd plaintext or 0 with 'dataio'/'parse_key failed'/'Couldnt load api header, error 1|2' logs. Decoded strlen<=0x400 (cmplwi + bc bo=4,bi=29 at 0x1011874c) -> f_10831bc0 replace into zp; otherwise zp cleared (len=0,data[0]=0) + 'svcmanifest'/'Could not extract API header' level3; result freed, return ignored."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b938",
+     "function": "0x1011b710",
+     "notes": "Sole call site; a full image scan finds no data word equal to 0x1011aabc. Args: r3=store r31, r4=sp+0xafa0 body adapter (f_10545064 ctor at 0x1011b7e4, used by f_10546520 GET at 0x1011b810 which returned status 0), r5=&sp+0x18 deadline (sonosClockGetTime+timevalAddMs 0x2710 at 0x1011b7d0-0x1011b7dc, same value passed to the GET), r6=&sp+0x38 scratch model. False -> 'Failure' log '%s downloading music service manifest from %s; ret=%u, lRet=0x%x' level3 then 0x321 (801); true -> memcpy(row.uri,uri,0x401), f_102399a4(row+0x40c,&model), f_1011a5d0 cache load, f_10119434 upsert, then save."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1102a458",
+     "notes": ".eh_frame_hdr search table (4620 FDE entries): no initial-loc in 0x10118000-0x1011c000 and no FDE covers f_1011aabc, f_1011bd2c, f_109c4b34, f_1023a214, f_10118710, f_102399a4, f_102389bc, f_10239b78, f_109c0f58, f_109c36c0, f_109b6fe4, f_109b72ac, any ctor here, or caller f_1011b710. f_1011aabc emits no __cxa_* calls. Only reachable throws: f_10118710 -> f_10831bc0 -> f_1082d960 -> __throw_length_error 0x108b134c, and f_102399a4 -> f_1082deb8 -> f_1082d508 -> f_10823abc -> __throw_bad_alloc 0x108b10d0 / __throw_length_error; std helpers carry their own cleanup FDEs but the first non-FDE frame (f_10118710 or f_102399a4) forces terminate, so allocation failure cannot produce false/801."
     }
-   ],
-   "todo": "Established: Download JSON reader f_1011aabc creates a fresh model, schema adapter and streaming parser, binds through f_1011bd2c, then requests chunks of up to 1024 bytes from input slot +8 using the supplied deadline. It feeds the reported byte count to f_109c4b34 without branching on that read call return register. Internal result 10 continues only while the last reported byte count is nonzero; a zero-length read with result 10 falls into the logged failure path. Parser result zero reaches root descriptor status checks: when the root has a seen/default marker, status bit 0x2 produces local internal error 7. Only after these checks does it postprocess a nonempty apiKey.zp and copy the scratch model to the caller with f_102399a4. Parse failure returns false without this final model copy. JSON framework error numbers here are not SOAP fault codes; the outer download worker maps this false result to 801. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
+   ]
   },
   "0x10119568": {
    "description": "Cache-file row-close callback f_10119568(parser, field, tok) runs only when tok+0 kind==1 (object end) and field+8==4, then calls f_101194cc(parser) and returns 0. f_101194cc upserts the just-closed scratch row at parser+0xde8 (0x4fc bytes: +0 sid, +4 version word whose low halfword +6 is the emitted version, +8 uri, +0x40c manifest model) into the caller-supplied table at parser+0x12e4 through f_10119434, then re-initializes the scratch row by building a fresh empty 0x4fc row on the stack (0x401 zeroed bytes plus a constructed manifest model via f_10239628, copied in by f_10118f64, temp destroyed via f_10239b78), so each array row starts clean and a row object with no manifest member upserts an empty model. f_10119434(table, row) first compares the new sid (row+0) against rows[0..count] including one slot past the last used row; a match copies the new row over that slot through f_10118f64 and returns 1 regardless of capacity, so existing sids replace in arrival order even at capacity. No match at count>33 returns 0 (new sid silently skipped); otherwise it appends at count*0x4fc+4 and increments count. The slot-past-count compare is a harmless overread inside the 34-slot table except at count=34 where it reads past the array and could in principle match garbage; the append cap check still runs after the scan. The callback discards the upsert result, so a skipped row never reaches the parse status and a later syntax or required-field failure does not roll back earlier inserts or replacements. Nothing in this cluster calls __cxa_* or contains landing pads; all error flow is integer results. f_1011a4bc updates stored source/version/index only after overall parse success, while the supplied table may already carry a parsed prefix after a failure; the download worker (f_1011b65c, direct f_10119434 call at 0x1011b98c) inserts a newly downloaded row through the same primitive. Whole-file acceptance, complete row retention and unchanged output on failure are three different properties here.",
