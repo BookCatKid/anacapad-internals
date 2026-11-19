@@ -64686,7 +64686,7 @@
      ]
     },
     "ReplaceAllTracks": {
-     "description": "Replaces a queue's entire contents; returns NewUpdateID. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x30](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). The impl vfunc is a forwarder into the shared queue-engine object *(svc+0x128) on engine vtable 0x10e97d30; the concrete enqueue/replace logic lives in that engine vfunc (bounded by worker exit-scan).",
+     "description": "Replace the whole content of an explicit queue with a new URI list (or clear it when the list is empty). As with AddMultipleURIs the wrapper does not parse arguments: the engine calls back into the request adapter (vtable 0x10ed19d8, parse slot f_1046538c) under the engine mutex. Chain: wrapper f_10465090 builds a stack request adapter {vptr 0x10ed19d8, req} and calls qm->v[+0x30] at 0x104650f4; qm vtable 0x10ed1bcc slot +0x30 is f_10465970, which loads the engine *(qm+0x128) and tail-calls engine vtable slot +0xdc. The engine is the 0xae38-byte object allocated at 0x103fb4a0 and built by ctor f_10511f34, which stores primary vptr 0x10edfbb8 at 0x105123c0; the qm ctor f_10465fac stores it at qm+0x128 (0x104660c0); 0x10edfbb8+0xdc = f_102bd4f0. f_102bd4f0 locks engine+0x458, returns 800 unless transport mode *(engine+0x4654) is 1 or 2, then runs a stack job (vptr 0x10eb2fd0) through f_102f7bd0, which parses, validates QueueID/UpdateID (f_102f7634), on the first entry submits a clear-queue request (f_102f7798), inserts each entry, submits the commit request and writes NewQueueLength and NewUpdateID back through the adapter.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10465090",
@@ -64745,23 +64745,36 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "required (402 if absent); decimal text must equal the ID string of queue record s+0x2d890 or s+0x2ff98, else 718",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_QueueID (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7634",
+         "address": "0x102f76d8",
+         "notes": "snprintf %u of job+0x10"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7634",
+         "address": "0x102f7788",
+         "notes": "li 0x2ce no queue matched"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `QueueID` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `QueueID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: bound as a u32 by f_105614e0 into job+0x10 by the parse adapter f_1046538c (adapter vtable 0x10ed19d8 slot +8), called from the runner f_102f7bd0 at 0x102f7c88. f_102f7634 requires all scalar args present (adapter->v[+0x10] = f_104655f0, else 402 at 0x102f7640), formats QueueID with snprintf('%u') at 0x102f76d8 and strcmp's it against the ID strings at +0x5c of the session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)) at 0x102f76e4/0x102f76f8; no match returns 718 (0x102f7788). The selected queue is stored at job+0x1470 (0x102f774c). In plain terms: QueueID must be the decimal ID of one of the session's two live queues."
        ]
       },
       "UpdateID": {
@@ -64782,23 +64795,28 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "required (402 if absent); 0 = no check; nonzero must equal the queue's current update id, else 1028",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_UpdateID (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7634",
+         "address": "0x102f7728",
+         "notes": "lwz job+0x14; mismatch -> 0x404"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `UpdateID` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: bound as a u32 into job+0x14. f_102f7634 reads the queue's current update id with f_10149b24 at 0x102f7724; a nonzero UpdateID that differs returns 1028 (li 0x404 at 0x102f7738); 0 skips the check. In plain terms: a nonzero UpdateID must match the queue's current update id."
        ]
       },
       "ContainerURI": {
@@ -64826,16 +64844,25 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_URI (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7a50",
+         "address": "0x102f7a88",
+         "notes": "container empty test"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `ContainerURI` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: ContainerURI is parsed into job+0x18 and selects the insert worker (empty -> f_1014f808, nonempty -> f_1014fb34 with the URI as r4).",
+        "Residual: what f_1014fb34 stores from the container URI into each inserted track is not traced; next step is to disassemble f_1014fb34 and follow its r4."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ContainerURI` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `ContainerURI` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved (binding and dispatch): bound as a string by f_1056157c into job+0x18 (capacity from r7 set by the runner). In the per-entry callback f_102f7a50 an empty ContainerURI (lbz job+0x18 at 0x102f7a88) sends each entry to f_1014f808 (0x102f7abc); otherwise f_1014fb34(job+0x18, ...) at 0x102f7b30."
        ]
       },
       "ContainerMetaData": {
@@ -64863,16 +64890,25 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_URIMetaData (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1046538c",
+         "address": "0x10465484",
+         "notes": "f_1056157c bind"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `ContainerMetaData` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: ContainerMetaData is parsed into job+0x419 and handed to f_1014fb34 with ContainerURI.",
+        "Residual: how f_1014fb34 consumes the metadata is not traced; next step is to follow its r5 argument."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `ContainerMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `ContainerMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved (binding): bound as a string by f_1056157c into job+0x419; consumed only by f_1014fb34 when ContainerURI is nonempty."
        ]
       },
       "CurrentTrackIndex": {
@@ -64900,16 +64936,25 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_TrackNumber (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7f10",
+         "notes": "lwz r8,0x141c(r31) then snprintf"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `CurrentTrackIndex` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: CurrentTrackIndex reaches the commit request f_1032e398 as decimal text.",
+        "Residual: how the request consumer uses it to reposition playback is not traced; next step is to disassemble f_1032e398 and the consumer behind f_10255f64."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `CurrentTrackIndex` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `CurrentTrackIndex` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved (binding and use): bound as a u32 by f_105614e0 into job+0x141c (parse site 0x10465490); on the success path it is formatted with snprintf('%u') at 0x102f7f38 and the text is passed as r8 of the commit-request builder f_1032e398 at 0x102f7fd4."
        ]
       },
       "NewCurrentTrackIndices": {
@@ -64937,16 +64982,33 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_TrackNumbersCSV (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7634",
+         "address": "0x102f775c",
+         "notes": "strchr ',' then strtol"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7ed8",
+         "notes": "f_10c39f14 token loop"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `NewCurrentTrackIndices` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: the argument is a comma-separated index list, parsed at three sites and range-checked against the inserted count.",
+        "Residual: the exact acceptance rule of the f_10c39f14 loop (role of job+0x1468 and the sign test at 0x102f7eb8) is not fully decoded; next step is to disassemble f_10c39f14 and trace job+0x1468 writes from f_1014f808."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved (binding): bound as a string by f_1056157c into job+0x1420 (parse site 0x104654bc). f_102f7634 strchr's it for ',' and, when absent, strtol's it into job+0x1464 (0x102f7774); f_102f7798 strtoul's it with errno checking (0x102f77fc) on the first entry; the success path tokenises it with f_10c39f14 and range-checks each value against the inserted count u16 job+0x1478, returning 402 when out of range (0x102f7f08)."
        ]
       },
       "NumberOfURIs": {
@@ -64967,23 +65029,36 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "required; must equal the parsed entry count, else 402; 0 with an empty list clears the queue",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_NumTracks (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7cac",
+         "notes": "job+0x1460 vs job+0x1474"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f8098",
+         "notes": "f_1032e47c clear request"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `NumberOfURIs` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `NumberOfURIs` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `NumberOfURIs` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: bound as a u32 into job+0x1460. f_102f7a50 increments job+0x1474 per entry (0x102f7a94). Success requires a selected queue and NumberOfURIs == job+0x1474 (cmp at 0x102f7cac); a mismatch returns 402 (0x102f7cb4) after an f_1032e5b4 request. NumberOfURIs 0 with zero entries is the clear-only path: f_102f7634 validates, a f_1032e47c clear request is submitted (0x102f80a4) and a nonzero submit rc becomes 800 (0x102f80b0). In plain terms: NumberOfURIs must match the list length, and 0 clears the queue."
        ]
       },
       "EnqueuedURIsAndMetaData": {
@@ -65011,16 +65086,25 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_LIST_URI_AND_METADATA (string): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7c40",
+         "notes": "f_1014ce8c(parser,job)"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `EnqueuedURIsAndMetaData` is parsed then forwarded verbatim to r5-in vfunc +48 (site 0x104650f4) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: entries stream through the f_1014ce8c parser into f_102f7a50.",
+        "Residual: the tokenisation grammar lives in parser vtable 0x10e937e0 and is not traced; next step is to disassemble its slots from f_10144950."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `EnqueuedURIsAndMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `EnqueuedURIsAndMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved (binding): bound as a streaming sink by f_105615a8 (parse site 0x10465510) feeding the f_1014ce8c parser (init at 0x102f7c40), which calls the job callback f_102f7a50 (job vtable 0x10eb2fd0 slot +8) per entry; the parser error is the u16 read at 0x102f7c8c."
        ]
       }
      },
@@ -65047,13 +65131,28 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "UpdateID (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f7ffc",
+         "notes": "lwz r5,0x24(r1)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10464254",
+         "address": "0x1046425c",
+         "notes": "stw r5,0xc(r3)"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewUpdateID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: after the commit request is submitted (0x102f7fe0) f_10149b24(queue,&sp24,&sp22,0) at 0x102f7ff4 re-reads the queue update id; sp24 goes as r5 of adapter->v[+0xc] (f_10464254 stores it at adapter+0xc) at 0x102f8010 and the wrapper emits it."
        ]
       },
       "NewQueueLength": {
@@ -65081,13 +65180,24 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "notes": "A_ARG_TYPE_NumTracks (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7bd0",
+         "address": "0x102f8000",
+         "notes": "lhz r4,0x20(r1)"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewQueueLength`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the value is written by the commit-request builder f_1032e398.",
+        "Residual: f_1032e398's computation is not traced; next step is to disassemble f_1032e398."
+       ],
+       "resolved_findings": [
+        "Resolved (provenance): u16 out-param sp+0x20 of f_1032e398 (r10 at 0x102f7fb0), passed as r4 of adapter->v[+0xc] at 0x102f8000 and stored at adapter+8."
        ]
       }
      },
@@ -65104,7 +65214,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r5 v[+?]",
+      "description": "transport mode 1 or 2; scalar args present; QueueID names a session queue; nonzero UpdateID matches; NumberOfURIs equals entry count",
       "evidence": [
        {
         "type": "firmware",
@@ -65112,15 +65222,22 @@
         "build": "86.10-80260",
         "function": "0x10465090",
         "notes": "req-vfunc call map: {'0x14': 1, '0x24': 2, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102bd4f0",
+        "address": "0x102bd538",
+        "notes": "mode gate"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×2, commit×1); member delegates: r5 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_102bd4f0 locks engine+0x458 (f_10557cac at 0x102bd52c) and returns 800 unless (*(engine+0x4654)-1) <= 1 unsigned (0x102bd538); then all scalar args present (402), QueueID names a session queue (718), nonzero UpdateID matches (1028), NumberOfURIs equals the entry count (402) and NewCurrentTrackIndices values are within the inserted count (402)."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r5 v[+?]",
+      "description": "engine mode, session object, session queue records and their update ids",
       "evidence": [
        {
         "type": "firmware",
@@ -65128,16 +65245,23 @@
         "build": "86.10-80260",
         "function": "0x10465090",
         "notes": "member vfunc calls: ['r5 v[+?]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102bd4f0",
+        "address": "0x102bd580",
+        "notes": "lwz 0x584/0x580"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r5 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: reads engine mode *(engine+0x4654), session *(engine+0x580)/+0x584 (0x102bd580), the two session queue records (ID at +0x5c) and the queue update id via f_10149b24."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r5 v[+?] (call-derived member-method semantics)",
+       "description": "clears the selected queue, inserts the new entries and submits a commit request to the session",
        "evidence": [
         {
          "type": "firmware",
@@ -65145,11 +65269,22 @@
          "build": "86.10-80260",
          "function": "0x10465090",
          "notes": "delegate map ['r5 v[+?]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7798",
+         "address": "0x102f7994",
+         "notes": "clear request submit"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r5 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: clear, insert and commit requests are identified with call sites.",
+        "Residual: what f_1032e45c (submitted before the clear at 0x102f78e4) requests, and whether the f_1032e5b4 mismatch request rolls back the inserts, is not traced; next step is to disassemble f_1032e45c and f_1032e5b4."
+       ],
+       "resolved_findings": [
+        "Resolved (dispatch): the first entry submits a clear-queue request f_1032e47c via f_102f7798 (0x102f7994), then entries are inserted by f_1014f808/f_1014fb34 and a commit request f_1032e398 is submitted (0x102f7fe0); the empty-list path submits only the f_1032e47c clear (0x102f80a4)."
        ]
       }
      ],
@@ -65162,15 +65297,25 @@
         "build": "86.10-80260",
         "function": "0x10465090",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102f7bd0",
+        "notes": "bl scan: no notify-family call"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the action path emits no event itself.",
+       "Residual: which session-side consumer of the f_10255f64 requests raises the Queue UpdateID event is not traced; next step is to scan the consumer for the Queue event template near 0x10ed1c6c."
+      ],
+      "resolved_findings": [
+       "Resolved (negative within the action): no notify call exists in f_10465090, f_10465970, f_102bd4f0, f_102f7bd0, f_102f7634, f_102f7798 or f_102f7a50."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v[+?]",
+      "description": "no transport state transition; queue content replaced",
       "evidence": [
        {
         "type": "firmware",
@@ -65178,11 +65323,18 @@
         "build": "86.10-80260",
         "function": "0x10465090",
         "notes": "no transition-literal/store pattern; member delegates: ['r5 v[+?]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102bd4f0",
+        "address": "0x102bd530",
+        "notes": "read-only use of +0x4654"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: no transport-state transition; *(engine+0x4654) is only read (0x102bd530) and never written on this path. Queue content is replaced."
       ]
      },
      "return_behavior": {
@@ -65194,11 +65346,22 @@
         "build": "86.10-80260",
         "function": "0x10465090",
         "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 2, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465090",
+        "address": "0x104650f4",
+        "notes": "impl call; rc test follows"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: wrapper behaviour and the engine literal code set are traced.",
+       "Residual: the u16 code domain stored by the f_1014ce8c parser (including insert-worker rcs) is not enumerated; next step is to trace the parser error store."
+      ],
+      "resolved_findings": [
+       "Resolved: engine rc is the wrapper rc; 0 -> NewQueueLength and NewUpdateID emitted then commit; nonzero -> req->v[+0x14] fault, no outputs. Codes: 800 (mode gate or clear-submit failure), 402, 718, 1028, or the parser's u16 error."
       ]
      },
      "fault_sites": [],
@@ -65206,7 +65369,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "delegates to queue-engine object *(svc+0x128) vfunc +0xdc; queue-engine vfunc on resolved engine vtable 0x10e97d30; concrete code set is the engine worker's return domain",
+       "meaning": "engine rc from f_102bd4f0 (engine vtable 0x10edfbb8 slot +0xdc): 800, 402, 718, 1028 or parser-recorded u16 code",
        "fault_sites": [
         "0x10465090"
        ],
@@ -65252,6 +65415,14 @@
          "build": "86.10-80260",
          "address": "0x10465974",
          "notes": "lwz *(r3+0x128) -> vfunc +0xdc bctr"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f7634",
+         "address": "0x102f7738",
+         "notes": "0x404"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x10465970 exits=[-8]; literal exits bounded | worker literal bound [800] (worker_err_literals.json)",
@@ -65259,8 +65430,11 @@
         800
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10465090).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: all literal codes in the action path are enumerated.",
+        "Residual: the parser-recorded u16 code domain is not enumerated; next step is to trace the f_1014ce8c parser error store."
+       ],
+       "resolved_findings": [
+        "Resolved: literals at 0x102bd504 (800), 0x102f80b0 (800 clear submit), 0x102f7640/0x102f7cb4 (402), 0x102f7788 (718), 0x102f7738 (1028)."
        ]
       },
       {
@@ -65311,15 +65485,35 @@
        "build": "86.10-80260",
        "address": "0x10ed1a58",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10465090",
+       "address": "0x104650f4",
+       "notes": "qm->v[+0x30](qm,&adapter)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10465970",
+       "address": "0x10465974",
+       "notes": "f_10465970: r3=*(qm+0x128); bctr *(*r3+0xdc)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102bd4f0",
+       "address": "0x102bd624",
+       "notes": "engine runs job vptr 0x10eb2fd0 through f_102f7bd0"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10465090; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: engine vtable 0x10e97d30 slot 0x30 binds concrete impl function 0x10192ff8 (vtable row is firmware data)."
+      "Resolved: the impl chain is fully static. wrapper f_10465090 builds a stack request adapter {vptr 0x10ed19d8, req} and calls qm->v[+0x30] at 0x104650f4; qm vtable 0x10ed1bcc slot +0x30 is f_10465970, which loads the engine *(qm+0x128) and tail-calls engine vtable slot +0xdc. The engine is the 0xae38-byte object allocated at 0x103fb4a0 and built by ctor f_10511f34, which stores primary vptr 0x10edfbb8 at 0x105123c0; the qm ctor f_10465fac stores it at qm+0x128 (0x104660c0); 0x10edfbb8+0xdc = f_102bd4f0. The earlier claim that engine vtable 0x10e97d30 slot 0x30 binds 0x10192ff8 was wrong: 0x10e97d30 has 9 slots and the ctor stores 0x10edfbb8 at engine+0. In plain terms: ReplaceAllTracks is a SOAP front end onto the same queue engine AVTransport uses."
      ]
     },
     "SaveAsSonosPlaylist": {
