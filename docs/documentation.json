@@ -81497,13 +81497,54 @@
        "build": "86.10-80260",
        "address": "0x1073d664",
        "notes": "Service constructor f_1073d65c initializes +4 and +8 to zero. The controller constructor is a different object and vtable."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1018fba0",
+       "function": "0x1018d27c",
+       "notes": "The zone-player constructor forms r31=zone-player+0x40000 at 0x1018e090, forms r3=r31-0x580 at 0x1018fb9c, and calls f_1073d65c at 0x1018fba0. Thus the SOAP service is at zone-player+0x3fa80 and its impl word is zone-player+0x3fa84. Raw words 0x387ffa80/0x485adabd verify the address and call. f_1073d65c stores zero at +4/+8 (raw 0x91230004/0x91230008) and vptr 0x10f11ed4 at +0. Word 0x10f11edc is dispatcher 0x1073ccc0. No nonzero impl assignment is established here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10195628",
+       "function": "0x101953c8",
+       "notes": "The router forms zone-player+0x3fa80 at 0x101955dc and stores it at sp+0xf4 at 0x10195628, with the Control URL at sp+0xf8 and VirtualLineIn name at sp+0xfc. The selected service is called through vtable +8 at 0x1019576c-0x10195778. This proves routing to the SOAP service, not initialization of service+4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103fbd5c",
+       "function": "0x103fa434",
+       "notes": "Controller allocation/setup at 0x103fbd04-0x103fbd8c requests 0x420 bytes, calls f_104132a8 at 0x103fbd5c with that allocation in r3, and stores the controller at parent+0x1998 at 0x103fbd8c. The parent is r31 in this region. No connection from that field to SOAP service+4 is established."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ecbe34",
+       "function": "0x104132a8",
+       "notes": "Raw controller table words, not a proven SOAP table: +0x08=f_10415c58, +0x0c=f_10415d38, +0x10=f_10415f58, +0x14=f_104164b0, +0x18=f_104164c4, +0x1c=f_10412b6c, +0x20=f_1041689c, +0x24=f_10412b78. Slot +0x1c merely adjusts the stack and returns, without setting r3 (0x10412b6c-0x10412b74). A matching numeric slot is not evidence of compatible SOAP semantics."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104135f4",
+       "function": "0x104132a8",
+       "notes": "Adjacent controller address points are formed relative to 0x10ecbe2c, not by independent lis/addi pairs: 0x10ecbe7c/+4, 0x10ecbe8c/+0x20, 0x10ecbe9c/+0x3c, 0x10ecbeac/+0x58, 0x10ecbebc/+0x74, 0x10ecbecc/+0x90, 0x10ecbee4/+0xb0, 0x10ecbefc/+0xd0 (table/object offsets). Stores are 0x10413610-0x1041363c; f_104140e4 reinstalls these address points at 0x10414158-0x10414180. A zero result from xref.py on these secondary address points does not mean they have no uses."
       }
      ],
      "notes": null,
      "todo": [
-      "Established: f_1073d2dc calls service+4 slot +0x14 at 0x1073d384. Constructor f_104132a8 stores controller vptr 0x10ecbe2c at 0x10413608; word 0x10ecbe40 is f_104164b0, which sets r4=1 and tail-calls f_1041616c.",
-      "Residual: the controller thunk consumes the incoming r4 as a cookie and ignores incoming r5, whereas the SOAP call supplies InstanceID in r4 and Speed in r5. The controller worker returns a boolean, whereas the SOAP wrapper treats nonzero as a fault code. No binding or adapter between these interfaces has been proven.",
-      "Next step: trace the writer of the VirtualLineIn service object +4 (initialized to zero by f_1073d65c), recover its concrete vtable, and follow its slot +0x14, including any adapter to f_104164b0. Do not infer that the controller callback itself is the SOAP implementation."
+      "Established: constructor call 0x1018fba0 places the SOAP service at zone-player+0x3fa80; f_1073d65c clears its +4/+8 and installs 0x10f11ed4, whose +8 is f_1073ccc0. Router 0x10195628 selects this same service. The separate controller allocation is constructed at 0x103fbd5c and stored at parent+0x1998 at 0x103fbd8c. Its slot +0x14 is f_104164b0, but no assignment to SOAP service+4 is proven.",
+      "Search performed: xref.py address-formation hits for 0x10f11ed4 are only 0x1073d670; for 0x10ecbe2c they are 0x104135e8 and 0x104140f0. No such hits for f_104164b0, f_1041616c, f_1073d65c or f_1073ccc0. An aligned raw .text opcode-18 branch scan finds only 0x1018fba0 calling f_1073d65c, 0x103fbd5c calling f_104132a8, and 0x104164c0/0x104164d4/0x104164e0 branching to f_1041616c; no direct branch targets f_104164b0. Initialized pointer searches in .rodata, .data, .data.rel.ro, .got2, .sdata and .sdata2 (where present) find f_104164b0 only at 0x10ecbe40, f_1073ccc0 only at 0x10f11edc, and no words equal to f_1041616c, 0x10ecbe2c or context offsets 0x3fa80/0x3fa84. These searches do not exclude indirect adapters.",
+      "Search performed: .text addi/lwz/stw immediate scans for the direct context low offsets 0xfa80/0xfa84/0xfa88 identify construction (0x1018fb9c), destruction (0x101926c4/0x101926d0) and routing (0x101955dc), but no nonzero impl writer. Scanning offsets 0xf6d8/0xf6dc/0xf6e0 also tested a context+0x3a8 alias; no binding was established. The neighboring controller address points 0x10ecbe7c/8c/9c/ac/bc/cc and 0x10ecbee4/fc have no independent xref.py hits, but constructor/destructor disassembly proves their relative-address stores as recorded in evidence. No SOAP adapter was identified from these subobjects.",
+      "Residual: service+4 concrete object, its slots +0x08 through +0x24 and all SOAP-to-controller connections remain unproven. The controller Play thunk overwrites incoming Speed with the cookie from r4 and returns a completion boolean, unlike the SOAP zero-success/fault-code contract. Next trace aliases of zone-player+0x3fa80 and bulk/indexed or shared-pointer copies into +4/+8 beyond the immediate scans, including calls receiving a containing object. Recover the first nonzero store and its source vptr before attributing any controller slot or return to SOAP Play. No claim of an exhaustive writer search or an unreachable action is made."
      ]
     },
     "Previous": {
