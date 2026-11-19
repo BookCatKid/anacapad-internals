@@ -40489,12 +40489,12 @@
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
-       "accepted_values": "A_ARG_TYPE_MemberID-domain value",
-       "range": "destination buffer: 25 bytes including space for NUL",
-       "special_values": "none identified",
+       "accepted_values": "Any materialized string locally; the normal remote ChangeCoordinator path requires an exact match with the recipient's stored coordinator ID.",
+       "range": "At most 24 retained bytes plus NUL; an overlong value is truncated.",
+       "special_values": "An empty value is distinct from an absent argument; a remote member accepts it only if it matches that member's stored coordinator and the remaining topology checks pass.",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The required value is materialized by name; the adapter reports 402 when it is missing. The local promotion worker does not validate identifier syntax. A remote ChangeCoordinator recipient compares it with that recipient's stored coordinator.",
        "evidence": [
         {
          "type": "firmware",
@@ -40541,14 +40541,50 @@
          "address": "0x106efc14",
          "notes": "Registers and writes CurrentCoordinator from the incoming r5 value. The next string argument, from r6, is NewCoordinator.",
          "function": "0x106efae0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107301c8",
+         "notes": "TRequest slot +0x1c allocates a record and forwards the argument name in r4 to record slot +8. The record vtable at 0x10eebf40 binds that slot to f_1055eb4c, which stores the name at record+0x34. At 0x10730480 materialization retrieves it via record slot +0xc (f_1055eb5c) and passes it into parsed-body lookup at 0x10730490.",
+         "function": "0x1073017c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "If lookup does not produce a value, finalization is skipped. A record not marked finalized at +0x31 and not marked optional at +0x30 makes materialization return zero. The input-record constructor zeros both bytes.",
+         "function": "0x10730414"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560720",
+         "notes": "Copies at most the registered capacity. f_10560a58 appends a NUL at the copied length below capacity or overwrites the last byte at capacity; type 7 does not take a conversion or format-check branch. Overlong values are truncated to capacity minus one, not rejected.",
+         "function": "0x10560708"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10391960",
+         "notes": "Normal ChangeCoordinator recipient compares CurrentCoordinator with its stored ID at topology+0x120 using strcmp. For the same update to proceed, NewCoordinator must differ from the recipient's local ID, the stored coordinator must not be the recipient itself, and the new ID must contain exactly 24 bytes. A false result maps to 800 in f_102af490 at 0x102af678.",
+         "function": "0x1039192c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103931b8",
+         "notes": "Alternative per-member call sends SetAVTransportURI with x-rincon:<local player ID>; it does not forward CurrentCoordinator.",
+         "function": "0x10392d80"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": 25,
-       "todo": [
-        "Established: the engine materializes a 25-byte destination and forwards the string as CurrentCoordinator on the remote ChangeCoordinator arm, with the promoting local player as NewCoordinator.",
-        "Verify length and missing-value behavior in the request materializer, and trace the remote member's validation of its prior-coordinator value."
-       ]
+       "notes": "This action treats the value as the outgoing coordinator in the normal per-member ChangeCoordinator call. The alternative SetAVTransportURI call does not send it. Per-member RPC faults do not become faults from this import action.",
+       "buf_cap": 25
       },
       "CurrentGroupID": {
        "description": "Group identifier to install during promotion. A nonempty value replaces the topology group's identifier together with the promoting player's local ID. An empty value preserves the existing topology strings at this step.",
@@ -40563,12 +40599,12 @@
        "semantic_type": "string argument",
        "format": "utf-8 text (large blob arg via req slot)",
        "unit": "n/a",
-       "accepted_values": "A_ARG_TYPE_GroupID-domain value",
-       "range": "destination buffer: 36 bytes including space for NUL",
+       "accepted_values": "Any materialized string at the AVTransport promotion boundary; there is no UUID syntax check there.",
+       "range": "At most 35 retained bytes plus NUL; an overlong value is truncated.",
        "special_values": "Empty leaves the existing group/coordinator strings in place in f_10392d80.",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The required value is materialized by name; the adapter reports 402 when it is missing. The promotion worker tests only whether the materialized string is empty and does not use the topology backend call result as a fault.",
        "evidence": [
         {
          "type": "firmware",
@@ -40615,13 +40651,45 @@
          "address": "0x10392e38",
          "notes": "Both arms use the resulting coordinator and group strings for f_1039be20, mark the topology event source, and forward the same strings to topology backend slot +0x40.",
          "function": "0x10392d80"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107301c8",
+         "notes": "TRequest slot +0x1c allocates a record and forwards the argument name in r4 to record slot +8. The record vtable at 0x10eebf40 binds that slot to f_1055eb4c, which stores the name at record+0x34. At 0x10730480 materialization retrieves it via record slot +0xc (f_1055eb5c) and passes it into parsed-body lookup at 0x10730490.",
+         "function": "0x1073017c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "If lookup does not produce a value, finalization is skipped. A record not marked finalized at +0x31 and not marked optional at +0x30 makes materialization return zero. The input-record constructor zeros both bytes.",
+         "function": "0x10730414"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560720",
+         "notes": "Copies at most the registered capacity. f_10560a58 appends a NUL at the copied length below capacity or overwrites the last byte at capacity; type 7 does not take a conversion or format-check branch. Overlong values are truncated to capacity minus one, not rejected.",
+         "function": "0x10560708"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10392e74",
+         "notes": "Backend slot +0x40 receives the resulting coordinator and group strings. No return value from that call is tested before proceeding to the member iteration setup.",
+         "function": "0x10392d80"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "After the optional update, the worker logs the resulting coordinator and group identifiers and passes them to the topology backend. It marks the topology dirty byte at +0x164 regardless of which group-ID branch ran.",
        "buf_cap": 36,
        "todo": [
-        "Established: after materialization the topology worker tests only for an empty group ID before reusing the current strings or replacing them, and the copy has a 36-byte destination.",
-        "Verify length and missing-value behavior in the request materializer and whether the topology backend applies any additional group-ID validity checks."
+        "Established: the required value is retrieved by name, truncated to 35 bytes if needed, and the promotion worker distinguishes only empty from nonempty before passing the resulting topology strings to backend slot +0x40.",
+        "Resolve the backend implementation bound to topology+0x5a8 by f_103938f0 and trace how it uses or validates the forwarded group ID."
        ]
       },
       "OtherMembers": {
@@ -41208,7 +41276,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "The adapter materializes the two list descriptors via request +8; compatibility with the advertised field depends on how the parser handles missing or unexpected fields.",
+       "validation": "Each firmware list name registers a required type 8 record and is looked up independently at materialization. A lookup failure for either expected record makes the adapter return 402; CurrentQueueTrackList is not queried by the adapter.",
        "evidence": [
         {
          "type": "firmware",
@@ -41239,13 +41307,45 @@
          "address": "0x102de9a0",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107301c8",
+         "notes": "TRequest slot +0x1c allocates a record and forwards the argument name in r4 to record slot +8. The record vtable at 0x10eebf40 binds that slot to f_1055eb4c, which stores the name at record+0x34. At 0x10730480 materialization retrieves it via record slot +0xc (f_1055eb5c) and passes it into parsed-body lookup at 0x10730490.",
+         "function": "0x1073017c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "If lookup does not produce a value, finalization is skipped. A record not marked finalized at +0x31 and not marked optional at +0x30 makes materialization return zero. The input-record constructor zeros both bytes.",
+         "function": "0x10730414"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105615cc",
+         "notes": "The type 8 registration sets the destination callback and clears the finalized byte; it does not mark the argument optional. The input-record constructor f_10561414 clears the optional byte at +0x30.",
+         "function": "0x105615a8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560770",
+         "notes": "On a successful parsed-body lookup, the type 8 path sends the value bytes and length to destination vtable slot +8; f_10560a58 later finalizes it with a zero-length call.",
+         "function": "0x10560708"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the adapter requests separate type-8 SharedQueueTrackList and PrivateQueueTrackList descriptors and never looks up the advertised name.",
-        "Verify how request +8 handles missing SharedQueueTrackList or PrivateQueueTrackList or a supplied CurrentQueueTrackList, and continue through the two list consumers."
+        "Established: the adapter uses separate required type 8 records for the two queue lists. They are looked up by their registered names and an unmaterialized required input causes 402.",
+        "Verify the parsed-body implementation does not backfill or alias the single advertised field, then trace the two type 8 callbacks to the shared/private queue imports and their malformed-list behavior."
        ]
       },
       "CurrentVLIState": {
