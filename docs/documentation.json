@@ -157677,20 +157677,32 @@
   },
   "tp_enums": {
    "name": "Trueplay SDK enum registry",
-   "summary": "SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_DOT_ONE,NINE_DOT_ONE_DOT_FOUR}; CHANNEL_DIRECTION {UNSPECIFIED,DIRECT,INDIRECT_ARRAY,INDIRECT_SINGLE_DRIVER}; CHANNEL_TYPE {UNSPECIFIED,L,R,C,SUB,LS,RS,LRS,RRS,LTM,RTM,LW,RW,MONO,LTR,RTR,INPUT,OUTPUT,SCRATCH}; VOLTAGE_GAIN_CALCULATOR {UNSPECIFIED,BULK_CAPACITORS,BOOSTED_BATTERY,BUCKED_CAPACITOR}; ARRAY_SUB_SYSTEM {UNSPECIFIED,BRAVO,FURY,OPTIMO2,OPTIMO2_SURROUND,LASSO,APOLLO}; TONE_HANDLER {UNSPECIFIED,STANDARD,SUB}; TUNING_MODE {UNSPECIFIED,INDIVIDUAL_CHANNELS,ALL_CHANNELS_AS_MONO}; SUB_POLARITY {UNSPECIFIED,POSITIVE,NEGATIVE}; MEASUREMENT_MODE {UNSPECIFIED,SPATIAL,SPECTRAL}; DEVICE_ORIENTATION {UNSPECIFIED,HORIZONTAL,VERTICAL,WALL_ABOVE,WALL_BELOW,INVERTED,FACEDOWN,HORIZONTAL_LEFT,HORIZONTAL_RIGHT}; protobuf enum names {TUNING_MODE_ALL_CHANNELS_AS_MONO,MEASUREMENT_MODE_{UNSPECIFIED,SPATIAL,SPECTRAL},DEVICE_ORIENTATION_{UNSPECIFIED,HORIZONTAL,VERTICAL,WALL_ABOVE,WALL_BELOW,INVERTED,FACEDOWN,HORIZONTAL_LEFT,HORIZONTAL_RIGHT}}",
+   "summary": "SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_DOT_ONE,NINE_DOT_ONE_DOT_FOUR}; CHANNEL_DIRECTION {UNSPECIFIED,DIRECT,INDIRECT_ARRAY,INDIRECT_SINGLE_DRIVER}; CHANNEL_TYPE {UNSPECIFIED,L,R,C,SUB,LS,RS,LRS,RRS,LTM,RTM,LW,RW,MONO,LTR,RTR}; VOLTAGE_GAIN_CALCULATOR {UNSPECIFIED,BULK_CAPACITORS,BOOSTED_BATTERY,BUCKED_CAPACITOR}; ARRAY_SUB_SYSTEM {UNSPECIFIED,BRAVO,FURY,OPTIMO2,OPTIMO2_SURROUND,LASSO,APOLLO}; TONE_HANDLER {UNSPECIFIED,STANDARD,SUB}; TUNING_MODE {UNSPECIFIED,INDIVIDUAL_CHANNELS,ALL_CHANNELS_AS_MONO}; SUB_POLARITY {UNSPECIFIED,POSITIVE,NEGATIVE}; MEASUREMENT_MODE {UNSPECIFIED,SPATIAL,SPECTRAL}; DEVICE_ORIENTATION {UNSPECIFIED,HORIZONTAL,VERTICAL,WALL_ABOVE,WALL_BELOW,INVERTED,FACEDOWN,HORIZONTAL_LEFT,HORIZONTAL_RIGHT}; protobuf enum names {TUNING_MODE_ALL_CHANNELS_AS_MONO,MEASUREMENT_MODE_{UNSPECIFIED,SPATIAL,SPECTRAL},DEVICE_ORIENTATION_{UNSPECIFIED,HORIZONTAL,VERTICAL,WALL_ABOVE,WALL_BELOW,INVERTED,FACEDOWN,HORIZONTAL_LEFT,HORIZONTAL_RIGHT}}; separate processing CHANNEL_TYPE {UNSPECIFIED,INPUT,OUTPUT,SCRATCH} has its own0..3 index space, not extra values16..18 of the spatial-channel enum.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10fbed60",
      "notes": "tp enums"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "bounded enum name lookup functions",
+     "address": "0x10caa06c",
+     "callsite": "0x10caa0a0 / 0x10caa0d4 / 0x10caa140 / 0x10caa1b0 / 0x10caa1e4",
+     "notes": "Raw PPC and pointer-table contents establish bounds and r3<<2 lookup, unknown fallback, spatial0..15 versus processing0..3. Negative input takes unsigned out-of-range. No executed Playbar/DSP writer join certified."
     }
    ],
    "todo": [
-    "Residual: the enum-to-DSP-param value map per array type (Playbar path decoded; per-value binding is config data)."
+    "Established: bounded numeric-to-name maps and separate spatial/processing channel enum domains, with explicit unknown fallback. Remaining: bind the actual model/configuration readers carrying speaker, array, direction and channel values to their DSP parameter writers; recover per-array conversion/default/rejection behavior and prove the Playbar path rather than assuming the diagnostic string lookups execute. Start with enum table0x10fbf1d4+0xc and reader-side value producers, then join selected array constructors to parameter serialization. The name getters alone neither establish a DSP map nor an external-config-only limitation. This remains actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: Playbar tuning path = SPEAKER_MASK {UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_DOT_ONE,NINE_DOT_ONE_DOT_FOUR} with CHANNEL_DIRECTION {DIRECT,INDIRECT_ARRAY,INDIRECT_SINGLE_DRIVER} + CHANNEL_TYPE {L,R,C,SUB,LS,RS}; ARRAY_SUB_SYSTEM maps to the array-driver tuning.",
-    "Established: the complete Trueplay enum vocabularies (speaker masks, channel direction/type, gain calculators, array subsystems, tone handlers, tuning modes)."
+    "Static enum-to-name lookup f_10caa06c accepts unsigned0..5 and indexes table0x10fbe650 with value times4; out-of-range, including negative inputs interpreted unsigned, returns unknown at0x10f92d18. Numeric speaker masks0..5 are UNSPECIFIED,THREE_DOT_ONE,FIVE_DOT_ONE,FIVE_DOT_ONE_DOT_TWO,SEVEN_DOT_ONE,NINE_DOT_ONE_DOT_FOUR. These names do not prove Playbar enables every layout or that numeric enums are bit masks.",
+    "Spatial channel names use f_10caa0a0, bound0..15 and table0x10fbef08. Processing channel names instead use f_10caa1b0, bound0..3 and table0x10fbfed4: UNSPECIFIED,INPUT,OUTPUT,SCRATCH. Both start at0; merging them into one19-value enum was wrong. Channel direction f_10caa0d4 accepts0..3 from the first table+0x40.",
+    "Array subsystem lookup f_10caa140 accepts0..6 at table0x10fbf1d4+0xc: UNSPECIFIED,BRAVO,FURY,OPTIMO2,OPTIMO2_SURROUND,LASSO,APOLLO. Tone handler f_10caa10c separately accepts0..2 from that table base, while voltage-gain calculator f_10caa178 accepts0..3 from+0x28. Each out-of-range branch returns unknown rather than selecting an unspecified default configuration.",
+    "Orientation f_10caa1e4 accepts0..8 from0x10fbff4c. Measurement/sub-polarity/tuning lookups f_10caa218/f_10caa250/f_10caa288 each accept0..2 from that base+0x24/+0x30/+0x3c. Raw PPC verifies unsigned bounds, r3-times4 indexing and separate offsets; none of these functions writes a DSP parameter.",
+    "No direct relative branch or aligned pointer-table reference to the checked speaker-mask/array-name lookup entrypoints was found in this pass. Consequently these bounded functions prove static name maps, not that the Playbar runtime executes them. The prior Playbar-path-decoded and per-value-binding-is-config-data claims are withdrawn until concrete model/array consumers and DSP writers are joined."
    ]
   },
   "chirp_sdk": {
