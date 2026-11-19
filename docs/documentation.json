@@ -89151,27 +89151,23 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /QPlay/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "No dedicated QPlay GENA subscription route is registered in 86.10-80260.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [],
-    "wss_note": "No WSS registry name maps to this service in the 73-entry table; event surface likely absent or folded into another namespace",
+    "wss_note": "No QPlay entry in the WSS event-name registry; this does not rule out unrelated events from other services.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "address": "0x11090da4",
+      "notes": "The QPlay control record binds the literal at 0x10e76060 to f_105e8274. The contiguous event-route records at 0x11090ea0 through 0x11091044 bind their exact literals to f_105e8290; none is QPlay."
      }
     ],
-    "notify_path": "'updateSharedTQPlayMode' worker ('...bad context!' log) is the QPlay state-update path; X_QPlay_SoftwareCapability static; no dedicated emitter recovered",
-    "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue).",
-     "Residual: the notify emission path inside the binary is not recovered. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
+    "notify_path": null,
     "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "QPlay has a control route but no matching event route. QPlayAuth returns SOAP output without signaling a notifier; updateSharedTQPlayMode is not a QPlay subscription route."
     ]
    },
    "errors": [
