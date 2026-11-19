@@ -42882,7 +42882,7 @@
        ]
       },
       "CurrentAVTTrackList": {
-       "description": "serialized AVT track-list blob",
+       "description": "Supplies the active indexed transport track list separately from the shared and private queue lists.",
        "direction": "in",
        "primitive": {
         "type_tag": null,
@@ -42892,14 +42892,14 @@
         "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "Line-oriented serialized track list.",
        "unit": "n/a",
        "accepted_values": "A_ARG_TYPE_Queue-domain value",
        "range": "impl-bounded (req-slot arg)",
-       "special_values": "none identified",
+       "special_values": "A missing field fails materialization with 402. A present empty value reaches the list decoder.",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The required type 8 record feeds the active-list decoder. The finish helper clears the list on decoder error or failed ordering-index validation; it does not return an independent SOAP fault.",
        "evidence": [
         {
          "type": "firmware",
@@ -42922,17 +42922,49 @@
          "address": "0x102df680",
          "notes": "The base engine calls the adapter's +8 materializer with output storage. A materialization failure goes through engine cleanup before the outer wrapper reports it.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df55c",
+         "notes": "The source worker binds CurrentAVTTrackList to the indexed manager's +0x2b188 list. The worker binds SharedQueueTrackList to indexed manager+0x2d890 and PrivateQueueTrackList to +0x2ff98. It resets the targets before materialization and calls the finish helper for all three receivers before checking the adapter result.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014cd9c",
+         "notes": "The list receiver created by f_1014cdf4 has vtable 0x10e937cc. Slot +8 forwards the bytes and length to f_1014c758. That decoder separates lines on LF, feeds them through a 12-state table, and uses a per-receiver status byte at receiver+0xc (decoder+4). For example, an oversized decoded context or a failed unsigned conversion at 0x1014c968 sets this byte at 0x1014cc50 or 0x1014cc64.",
+         "function": "0x1014c758"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560a74",
+         "notes": "The request finalizer sets the finalized byte before calling the type 8 receiver with zero length. Materialization works from required-record presence/finalization, not the receiver's separate parser status.",
+         "function": "0x10560a58"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014f18c",
+         "notes": "The engine's list finish helper tests receiver+0xc and calls f_10145c1c. That helper checks an optional ordering index against the item count and rejects duplicate or out-of-bounds indices. On decoder error or index-check failure, f_1014f18c clears the list via f_10145b98, then releases the receiver state. The engine does not use a finish result as a SOAP status.",
+         "function": "0x1014f18c"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: Looks up CurrentAVTTrackList in the engine-driven request adapter. at 0x102fa054.",
-        "Trace the engine's post-materialization handling and concrete acceptance rules for CurrentAVTTrackList; the lazy lookup and destination are established."
+        "Established: the required value is decoded into the indexed manager's active list at +0x2b188; presence validation is independent of list content validation.",
+        "Map the newline-driven field states and finalization conditions in f_1014c758, and trace how a cleared active list affects subsequent source restoration."
        ]
       },
       "CurrentQueueTrackList": {
-       "description": "The service XML advertises CurrentQueueTrackList. The firmware adapter instead looks up SharedQueueTrackList and PrivateQueueTrackList, each into a separate type 8 descriptor, and does not look up CurrentQueueTrackList by that literal name.",
+       "description": "The service XML advertises CurrentQueueTrackList, but this SOAP path requires separate SharedQueueTrackList and PrivateQueueTrackList fields. Supplying the advertised field alone cannot satisfy those lookups.",
        "direction": "in",
        "primitive": {
         "type_tag": null,
@@ -42942,14 +42974,14 @@
         "via_slot": "req-slot (blob/large arg, impl parses internally: no per-arg parse-descriptor)"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "The two firmware fields carry line-oriented serialized track lists; the advertised field is not consumed.",
        "unit": "n/a",
-       "accepted_values": "A_ARG_TYPE_Queue-domain value",
-       "range": "impl-bounded (req-slot arg)",
-       "special_values": "none identified",
+       "accepted_values": "No value supplied under CurrentQueueTrackList satisfies either required firmware field.",
+       "range": "Not applicable to the advertised field. Each actual field is passed as a byte span to a bounded-field list decoder.",
+       "special_values": "An absent firmware field causes 402 when request materialization is reached. A present empty value reaches the list decoder rather than taking the missing-field branch.",
        "required": true,
        "default": "none",
-       "validation": "Each firmware list name registers a required type 8 record and is looked up independently at materialization. A lookup failure for either expected record makes the adapter return 402; CurrentQueueTrackList is not queried by the adapter.",
+       "validation": "Parsed-argument lookup tests exact name length and bytes. The decoder separately validates list content. Its error flag or a failed ordering check clears the receiving list, rather than directly becoming a materialization fault.",
        "evidence": [
         {
          "type": "firmware",
@@ -43012,13 +43044,61 @@
          "address": "0x10560770",
          "notes": "On a successful parsed-body lookup, the type 8 path sends the value bytes and length to destination vtable slot +8; f_10560a58 later finalizes it with a zero-length call.",
          "function": "0x10560708"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106963a8",
+         "notes": "The SOAP dispatcher constructs a parsed-argument map with f_109f02f4, then passes it to the TRequest constructor at 0x10696404. That constructor stores it at request+0x3a74 (0x10731208). The map constructor inserts the names supplied in the parsed argument vector; it does not add coordinator-specific aliases.",
+         "function": "0x106960f8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x109f01f8",
+         "notes": "Parsed-argument map vtable 0x10f98720 uses this function for slot +8. It hashes the requested name as supplied. The map search f_109f07b0 checks key length and exact bytes with memcmp at 0x109f0890, so CurrentQueueTrackList cannot satisfy either of the two registered queue-list lookups.",
+         "function": "0x109f01f8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df55c",
+         "notes": "The source worker binds CurrentAVTTrackList to the indexed manager's +0x2b188 list. The worker binds SharedQueueTrackList to indexed manager+0x2d890 and PrivateQueueTrackList to +0x2ff98. It resets the targets before materialization and calls the finish helper for all three receivers before checking the adapter result.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014cd9c",
+         "notes": "The list receiver created by f_1014cdf4 has vtable 0x10e937cc. Slot +8 forwards the bytes and length to f_1014c758. That decoder separates lines on LF, feeds them through a 12-state table, and uses a per-receiver status byte at receiver+0xc (decoder+4). For example, an oversized decoded context or a failed unsigned conversion at 0x1014c968 sets this byte at 0x1014cc50 or 0x1014cc64.",
+         "function": "0x1014c758"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560a74",
+         "notes": "The request finalizer sets the finalized byte before calling the type 8 receiver with zero length. Materialization works from required-record presence/finalization, not the receiver's separate parser status.",
+         "function": "0x10560a58"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014f18c",
+         "notes": "The engine's list finish helper tests receiver+0xc and calls f_10145c1c. That helper checks an optional ordering index against the item count and rejects duplicate or out-of-bounds indices. On decoder error or index-check failure, f_1014f18c clears the list via f_10145b98, then releases the receiver state. The engine does not use a finish result as a SOAP status.",
+         "function": "0x1014f18c"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
        "todo": [
-        "Established: the adapter uses separate required type 8 records for the two queue lists. They are looked up by their registered names and an unmaterialized required input causes 402.",
-        "Verify the parsed-body implementation does not backfill or alias the single advertised field, then trace the two type 8 callbacks to the shared/private queue imports and their malformed-list behavior."
+        "Established: there is no parsed-body lookup alias, both actual field names are required, and each feeds the same line decoder on a separate list. Decoder error or an invalid ordering index can clear the target without a direct 402.",
+        "Map decoder states 0 through 11 in f_1014c758 to the exact shared/private queue wire fields and terminal conditions; follow any subsequent effect of a cleared list through the promotion worker."
        ]
       },
       "CurrentSourceState": {
