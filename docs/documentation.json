@@ -154607,21 +154607,37 @@
   },
   "spdif_burst": {
    "name": "SPDIF burst-format taxonomy",
-   "summary": "supported {Dolby Digital,Dolby Digital Surround,Dolby Digital Plus,Dolby Atmos (DD+),Dolby TrueHD,Dolby Atmos (TrueHD),Dolby MAT,Dolby Atmos (MAT),DTS (Type1),DTS (Type2),DTS (Type3)}; unsupported enum {NULL Burst,Pause Burst,AC-3,SMPTE 338M v1-v5,MPEG1 Layer 1,MPEG1 Layer 2/3,MPEG2,MPEG2-AAC,MPEG2 Layer 1/2/3 LSF,DTS1-4,ATRAC,ATRAC 2/3,ATRAC X,WMA Professional,MPEG2 AAC LSF,MPEG4 AAC,Enhanced AC-3,MAT,MPEG4 ALS,Reserved 2-4,Extended Data,MPEG4 AAC LC in LATM/LOAS,MPEG4 HE AAC in LATM/LOAS,DRA} all prefixed \"Unsupported \"; this is the IEC 61937 data-type code map (NULL/PAUSE are IEC-61937 burst types; MAT = Dolby MAT container; DRA = DRA Chinese standard); per-type error counters tv_decoder_error_{dd,ddp,mat,pcm,dts1,dts2,dts3} + tv_decoder_dsp_error_dap; IEC 61937 data-type rejection names incl 'Unsupported AC-3', 'Unsupported DTS1' + 'No Signal'",
+   "summary": "Digital-audio format names and IEC burst-type accessors describe recognized/reported categories, not a per-model TX support mask. A concrete sample-word normalization/status-block path is recovered separately from IEC61937 payload emission.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ee650c",
      "notes": "burst enum"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10e6f328 / direct caller",
+     "address": "0x10d5b000",
+     "callsite": "0x10e6f3f0 / 0x10e6f434 / 0x10e6f4dc / 0x10e6f5d8",
+     "notes": "Input buffer mutation and status accumulation, optional outputs, empty path and restart/oversize branches. Ordinary bl instructions disprove never-bl/private-GOT-only model; no TX preamble emission established."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "name/period getters",
+     "address": "0x107deee4",
+     "callsite": "0x107deef4 / 0x107def20 / 0x107def2c / 0x107def38",
+     "notes": "Raw compare GT bounds119/120, adjusted index and left shifts verified. Recognition table is not a TX support mask."
     }
    ],
    "code_module": {
     "range": "0x10e50000-0x10e6ffff (.text, ~128KB, previously zero doc anchors)",
     "contents": [
-     "IEC61937 burst-writer: 'OVERSIZE SPDIF block @ %d frames!' / 'Restart SPDIF block @ %d frames.' frame-boundary recovery logs (f_10e6f32c)",
-     "enum->name mappers: f_10e6e5ac (17 external callers) bounds-checks index<0x10 then lwzux into ptr table @0x1102a2cc, 'UNDEFINED' fallback @0x10e88b0c; 'BLED_UNAVAILABLE' string @0x10e88b58 in neighborhood",
-     "163-entry relocated table @0x1108b594 in .data.rel.ro (slots f_10e54684-f_10e62544 family; buffer-ctor f_10e55110 inits obj+0x800/+0x1000/+0x1800 buffers)",
-     "module calls nanopb (pb_encode/pb_decode/pb_ostream_from_buffer/pb_istream_from_buffer): the nanopb runtime co-located/linked with the SPDIF layer"
+     "f_10e6f328 is called directly at0x10d5b000, returns buffer/size/timestamp outputs, rotates incoming words and gathers status bits with192-frame boundary handling. It is not established as an IEC61937 payload writer.",
+     "The nearby enum-name mapper and nanopb calls do not establish that every function in0x10e50000-0x10e6ffff belongs to this audio path."
     ],
     "evidence": [
      {
@@ -154631,25 +154647,25 @@
       "notes": "bl-target census: 0x10e5-0x10e6 fns' top calls = __stack_chk_fail/__printf_chk + pb_* (234/135/46/45); SPDIF literals resolved in f_10e6f32c; .data.rel.ro run census found the 163-slot table"
      }
     ],
-    "residual": "per-slot table semantics and the full burst-writer call graph unmapped; external entrypoints identified by inbound-call census (f_10e6e5ac mapper x17, f_10e5025c x8, f_10e57b2c x6)",
+    "residual": "Bind the remaining entrypoints and pointer-table references to their concrete callers before attributing the entire address interval to SPDIF.",
     "todo": [
-     "Established: the .text range 0x10e50000-0x10e6ffff contains the IEC61937 burst writer, enum->name mappers, and frame-boundary recovery logic - previously a zero-anchor region.",
-     "Residual: the remaining functions in the 128KB block beyond the catalogued writer and mapper entry points. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "Established: actual entry f_10e6f328 and direct caller0x10d5b000, word/status processing and boundary recovery. Remaining: enumerate pointer-table readers/constructors and join each claimed module function to its owning object and caller. A broad code interval, nanopb co-location or unbound pointer run does not prove one module or a runtime-only dispatch boundary."
     ],
     "resolved_findings": [
-     "Resolved (boundary): residual unknown - the remaining functions in the 128KB block beyond the catalogued writer and mapper entry points."
+     "The old injected-dispatch/static-boundary claim is withdrawn: f_10e6f328 has a direct caller and directly calls f_10e6e5e0. Further entrypoint attribution remains actionable static work."
     ]
    },
-   "pic_call_model": "module is -fPIC: fns anchor PC via bc $+4;mflr r30 then lwz negative(r30) into .got2; the 164-slot table @0x1108b594-0x1108b824 (ends exactly at .got2 start) = the objects private GOT function block - 164 distinct fn ptrs spanning 0x10e53-0x10e62 (the modules complete internal fn set). Internal calls go lwz/mtctr/bctrl (63 bctrl sites), never bl - which is why the module had zero bl-anchored doc references despite being fully mapped.",
+   "pic_call_model": "The earlier complete-private-GOT/never-bl interpretation is withdrawn. The checked function at0x10e6f328 uses absolute address formation and ordinary direct branches, including logger calls0x10e6f550/0x10e6f5d8; its caller0x10d5b000 is also direct. This does not establish the linkage model or ownership of every entry in the unrelated pointer run at0x1108b594.",
    "todo": [
-    "Residual: the TX support mask (which Pc types the sink actually emits) lives in the HT DSP sink config, not this table - the table is the normative IEC name/period space used by the parser"
+    "Established: exact burst-name/period getter bounds and concrete input-word/status-block processing with192-frame recovery. Remaining: trace the actual TX encoder/sink selection and configuration writers to supported Pc values, separating parser recognition and display names from emitted formats. Start with callers of f_107def18 and the input path0x10d5b000; recover units and model/capability gates from consumers before assigning a TX mask. The nested code-module ownership census is separately actionable; neither residual is proven runtime-only."
    ],
    "resolved_findings": [
-    "Resolved: burst-encoder selection = the supported enum {Dolby Digital,DD Surround,DD Plus,Atmos DD+,TrueHD,Atmos TrueHD,MAT,Atmos MAT,DTS Type1-3} vs unsupported {NULL Burst,Pause Burst,AC-3} + code_module/pic_call_model.",
-    "Burst-encoder selection bounded: the supported enum {DD, DD Surround, DD+, DD Atmos(DD+), TrueHD, Atmos(TrueHD), MAT, Atmos(MAT), DTS Type1-3} vs unsupported {NULL Burst, Pause Burst, AC-3, ...} is the IEC-61937 PaPc databurst-type table; on TX the encoder emits the IEC-61937 preamble (Pa/Pb sync + Pc burst info + Pd payload); the RX side is the SPDIFParser FSM (BITSTREAM_CONFIRMATION/ALIGN_TO_BURST states) in the htaudio record.",
+    "Reported Dolby/DTS labels and unsupported-type names are not an executable TX selector or a verified model capability mask.",
+    "f_10e6f328 obtains the input base from receiver+0xc then buffer+0x28 plus descriptor+0x38, and length from descriptor+0x34. It can return base/length/timestamp through optional output pointers. The loop rotates each selected input word left12, examines high status bits, stores the low24 bits back and advances by8 bytes. This modifies existing input words; no Pa/Pb/Pc/Pd emission sequence is established by this function.",
     "Resolved: the burst-type vocabulary is the complete IEC 61937 Pc data-type name table - 120-entry array at 0x10f27bc8 (index==Pc): Null=0, AC-3=1, SMPTE338M v1-v5=2/28-31, Pause=3, MPEG1/2 family=4-10, DTS1-4=11-13/17, ATRAC=14-16, WMA Pro I-IV=18/49/81/113, Enhanced AC-3=21, MAT=22, MPEG4 ALS=23, AAC-in-LATM/LOAS=53/85, DRA=119, the rest Unknown/reserved.",
-    "Resolved: the Pc table @0x10f27bc8 is compound - 120 char* names then a 120-entry u16 column @+0x1e0 = the IEC-61937 data-burst repetition period in IEC60958 frames. Two accessors bound it: name getter @0x107deee4 (idx<0x77 else \"Unknown\") and period getter @0x107def18 (arg+1<0x78, reads u16[arg+1]). With the +1 index the column reproduces the spec periods exactly: AC-3=1536, MPEG1L2/3=1152, DTS1=512, DTS2=1024, DTS3=2048, DTS4=2048, ATRAC=1024/512/2048, E-AC-3=6144, MAT=15360, MPEG4 AAC=2048/4096 - the parse-side tables are normative spec data, not device capability.",
-    "Audio-pipeline phase vocabulary at 0x10f26030: {INITIAL, READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, HT_SWAP, SRC, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING} (13 phases). Loss/interrupt-reason enum at 0x10f2990c: {NO_REASON, SIGNAL_LOST, INPUT_ERROR, CHANNEL_NUM_CHANGE, INPUT_RATE_CHANGE, BITSTREAM_DISCONTINUITY, DECODER_ERROR, DECODER_DSP_ERROR, HT_SWAP_ERROR, HT_SWAP_START, HT_SWAP_END, ASRC_ERROR, DIALOG_EXTRACTOR_ERROR, STREAM_ERROR, CONFIG_CHANGE, MODE_CHANGE, AV_SYNC_EXCURSION, GROUP_LATENCY_CHANGE, MONITOR_START} (19 reasons)."
+    "Name getter f_107deee4 accepts unsigned indices0..119 inclusive and returns Unknown above119; raw compare0x77 branches on greater-than, not greater-or-equal. Period getter f_107def18 wraps arg+1 to u32, accepts that adjusted value<=120 and reads u16 at0x10f27bc8+0x1e0+2*(arg+1), otherwise returns0. Raw shifts are multiplication by4/2, not clrlwi-as-right-shift. The getter alone does not certify normative units or TX capability for all entries.",
+    "Audio-pipeline phase vocabulary at 0x10f26030: {INITIAL, READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, HT_SWAP, SRC, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING} (13 phases). Loss/interrupt-reason enum at 0x10f2990c: {NO_REASON, SIGNAL_LOST, INPUT_ERROR, CHANNEL_NUM_CHANGE, INPUT_RATE_CHANGE, BITSTREAM_DISCONTINUITY, DECODER_ERROR, DECODER_DSP_ERROR, HT_SWAP_ERROR, HT_SWAP_START, HT_SWAP_END, ASRC_ERROR, DIALOG_EXTRACTOR_ERROR, STREAM_ERROR, CONFIG_CHANGE, MODE_CHANGE, AV_SYNC_EXCURSION, GROUP_LATENCY_CHANGE, MONITOR_START} (19 reasons).",
+    "The status path compares frame counter+0x48 with192 at0x10e6f4dc. A new boundary before192 logs Restart; above192 logs OVERSIZE, then both reset counter and accumulation state. Zero usable length skips the loop and returns0. Low24 and counter-low3 operations are masks; the counter/8 extraction is an actual rotate29/mask3..31 at0x10e6f530. These are status-block recovery operations, not codec acceptance decisions."
    ]
   },
   "addrmon": {
