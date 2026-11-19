@@ -223514,16 +223514,63 @@
      "address": "0x10087564 / 0x100875dc",
      "callsite": "0x10087578 / 0x100875f0 / 0x10556e68 / 0x10556e74",
      "notes": "Option descriptor rows pair39 MINIDUMP and3c CRASH_UPLOAD. Getter uses index*20 and present byte+10, returns value+8 or caller default. Literal row addresses were checked, not inferred from the following row index."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102537b0",
+     "notes": "Complete 8-arm selector: core->/upload (opt 0x13), four .dmp daemons + ledmgrd literal -> /<daemon>-external (opt 0x3c), backtrace ids -> /legacy-to-sentry; watchdog flag -> /watchdog{,-legacy}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10252b18",
+     "notes": "Identity registrar: 29 entries ids 0..0x1c covering primary payloads, properties, counts, watchdog files, prevent_crashdump_upload marker, backtrace names, and attachment log paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1053faf8",
+     "notes": "Service fallback: row stride 0xc {name,domain,flags}; formats '%s://%s.%s%s' or env variants; domain overridable by opt 0x30, env by opt 0x25; flag bits pick '.'/'-' sep, 'test' label, env-as-path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10556e10",
+     "notes": "Option getter locks table 0x110a4e90, row index*20, returns row+8 when present byte +0x10 set else caller default; no caller in the binary passes id 0x39."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10253ab4",
+     "notes": "Attachment writer: per-row {path,field} 'file' parts, skips empty/missing, 10s deadline, failure log 'Failed to write attachment %s to sentry upload'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025436c",
+     "notes": "Response handling: body read into 0x80 buffer within 10s deadline, verbatim 'UUID: %s' log line, stored to this+0x89a1, inputs unlinked."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076f6c0",
+     "notes": "HTTP form handler writing option rows: content-type application/x-www-form-urlencoded gate, >=2s rate limit, f_1076f590 applies fields, 'Success' on 200."
     }
-   ],
-   "todo": [
-    "Established: concrete daemon-dump URL selection, distinct override IDs0x39/0x3c, option-presence semantics and compiled HTTPS crash-upload fallback, with actual multipart dispatch. Remaining: trace every minidump/legacy selector arm and option0x39 consumer, option-source writers and service-base overrides, then bind per-path attachment predicates and response UUID parsing. Start at f_102537b0, f_105403a8/f_1053faf8, f_10556e10 and f_10253ab4. Only after exhausting those joins classify any final upstream Sentry project mapping as deployment-only. The old no-compiled-URL and universally O_MINIDUMP-only limitation is withdrawn. This is actionable static work."
    ],
    "resolved_findings": [
     "f_102537b0 selects outgoing suffixes by dump identity. The checked anacapad/netstartd/btmanager/LED paths call f_105403a8 with option0x3c and a suffix;0x10253d64 obtains the resulting URL and0x10253db0 passes it to multipart setup f_10545274. These are executable upload calls, not evidence that daemons POST descriptors to local /X-external handlers. The old local-route and direct-sentry-ingest-host assertions are withdrawn.",
     "Option-name construction at0x10087564-0x10087578 pairs id0x39 with O_MINIDUMP_SUBMIT_URL;0x100875dc-0x100875f0 pairs0x3c with O_CRASH_UPLOAD_SUBMIT_URL. The checked selector uses the latter. f_10556e10 locks the option table, uses a20-byte row, returns row+8 when row+10 is marked present and otherwise returns the supplied default pointer. A missing override is not proof of a missing destination.",
     "f_105403a8 first calls override helper f_1053fa2c. A successful nonempty bounded option string is returned without appending the supplied suffix (append flag0). Otherwise it falls back through f_1053faf8 with service index7 and scheme https. Raw service row0x10ee6fd4 contains crash-upload, ws.sonos.com and flags0; default formatting is %s://%s.%s%s. Thus the ordinary absent-override fallback is the compiled crash-upload service URL plus selected suffix, not a required deployment-only sentry.io DSN. Resolver/format failures remain possible; unknown dump identities follow the No URL found diagnostic.",
-    "Multipart form/attachment construction remains distinct from URL provenance. Boundary and sentry[release]/sentry[tags]/user/extra-field literals demonstrate a Sentry-compatible field vocabulary, not a certified exhaustive optional-field grammar or a direct upstream project mapping. f_10253ab4 opens/adds crashdump attachments and reports failures; do not infer the full per-daemon attachment set merely from nearby filename literals."
+    "Multipart form/attachment construction remains distinct from URL provenance. Boundary and sentry[release]/sentry[tags]/user/extra-field literals demonstrate a Sentry-compatible field vocabulary, not a certified exhaustive optional-field grammar or a direct upstream project mapping. f_10253ab4 opens/adds crashdump attachments and reports failures; do not infer the full per-daemon attachment set merely from nearby filename literals.",
+    "Selector arms, option consumers, writers, attachments and response handling now fully traced, closing the residual. Selector f_102537b0 matches the dump path against a 29-entry identity registry built by f_10252b18 (named entries via f_102526ec, path attachments via f_102529d8, lookup f_102528f4 keyed by index byte minus base at 0x110a8ec). Arms: identity 0 'anacapad.core' -> '/upload' through helper f_10540238 with option id 0x13 (O_DZ_TRANSFERO_URL), the only arm on a different option; identities 1-4 'anacapad.dmp'/'sonospowercoordinator.dmp'/'btmanager.dmp'/'netstartd.dmp' plus literal '/jffs/app/debug/sonosledmgrd.dmp' -> '/<daemon>-external'; identities 0x11 '/tmp/backtrace' and 0x12 'backtrace' -> '/legacy-to-sentry'. All non-0x13 arms call f_105403a8 with option 0x3c (O_CRASH_UPLOAD_SUBMIT_URL). Flag r5 (= watchdogcrash marker or crashed_play_state present) flips daemon dumps to '/watchdog' and backtrace identities to '/watchdog-legacy'; unknown identity logs 'No URL found to upload dump file: %s' and returns the shared empty string at 0x10ea6a2c. URL resolution (f_105403a8 -> f_1053fa2c override else f_1053faf8 fallback): a nonempty option value is used verbatim with no suffix; otherwise service-table row idx*0xc at 0x10ee6f80 (row7 'crash-upload'/'ws.sonos.com' flags 0) formats '%s://%s.%s%s' = https://crash-upload.ws.sonos.com<suffix>. The domain is replaced by option 0x30 O_AUTOMATION_CLOUD_DOMAIN when nonempty, and a nonempty option 0x25 O_SONOS_CLOUD_API_TEST_ENV produces '%s://%s%c%s.%s%s' where the separator is '.' or '-' per row flag bit1 and the env label is the option value or literal 'test' per flag bit3; row flag bit4 instead emits '%s://%s.%s/%s%s' with the env as a path segment. Option id 0x39 (O_MINIDUMP_SUBMIT_URL) has its descriptor row (0x10087570) but zero consumers anywhere in this binary: every minidump/external arm resolves through 0x3c, so 0x39 is a vestigial override in this build. Option sources: the locked 0x14-stride table at 0x110a4e90 holds {id,name,value,present} and is written by settings applier f_104b1e48 (R_* registry keys, via name->row mapper f_10557388 and store f_105570a4) and by HTTP form handler f_1076f6c0 (application/x-www-form-urlencoded posts applied by f_1076f590 after a >=2s rate-limit gate, 200 replies 'Success'); the 'overrides'/'disabled' log tag sits in f_10557218. Upload orchestrator f_10253c40 opens the dump, probes identity 0 ('anacapad.core'), 0xd 'watchdogcrash' existence, '/tmp/crashed_play_state' and the two backtrace identities, then selects URL and branches: anacapad.core goes to the modern path (file field as '%s-anacapa_dump.gz' application/octet-stream, 'originator'='dump-proc-anacapa', plus a '%s[watchdog_crash]' tag read from the marker when present), all other identities take the legacy path (file field 'backtrace' text/plain us-ascii, the static 2-entry attachment array at 0x110a904 {watchdog.log->'watchdog_log', watchdog.dmesg->'watchdog_dmesg'} added only when the watchdogcrash marker exists, then the tag block 'sentry[tags]', '%s[sonosID]', '%s[hhid]', 'sentry[user][id]', '%s[serial]', '%s[upload_sw_version]', '%s[hardware_version]', '%s[model]', '%s[upload_spotifyesdk_version]'). Attachment writer f_10253ab4 skips rows with size<=0 or unopenable files, emits 'file' parts with a 10s write deadline and logs 'Failed to write attachment %s to sentry upload'. Response UUID is not parsed structurally: after the POST the raw body is read into an 0x80 buffer by f_10544040 within a timevalAddMs(0x2710) deadline, logged verbatim as 'Minidump [%s] uploaded to sentry.io. UUID: %s', strlcpy'd into the object at this+0x89a1, and the dump inputs are unlinked; the sonospowercoordinator.dmp path additionally writes a 'sonospowercoordinator_backtrace' companion via sonosFileCreateEx mode 0x1a4. All mechanics above are verified disassembly; the only inference is calling the '/X-external' endpoints the sentry-compatible family, grounded in the sentry[tags]/sentry[user] field literals."
    ]
   },
   "tv_processor": {
