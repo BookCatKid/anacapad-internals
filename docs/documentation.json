@@ -104218,7 +104218,7 @@
      ]
     },
     "GetZoneGroupAttributes": {
-     "description": "Returns zone-group identity fields. Wrapper calls impl->v[+0x34] on r4-in; extra capability checks precede the emit path (a 402 fault fires when the inner call returns 0).",
+     "description": "Returns four cached group identity strings for the UUID attached to the internal request server, using concrete topology slot +0x24 -> f_10748dc8. The UUID is not a SOAP input.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733878",
@@ -104291,250 +104291,528 @@
      "inputs": {},
      "outputs": {
       "CurrentZoneGroupName": {
-       "description": "zone-group name string serialized from impl+0x5a8 state under topology lock",
+       "description": "Selected member room name, optionally suffixed with the count of other eligible group members; otherwise empty according to member flags.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "live value",
-       "range": "{0,1}",
-       "special_values": "empty string when the corresponding impl member is unset",
+       "semantic_type": "group display-name string",
+       "format": "room name or room name + N",
+       "unit": "text",
+       "accepted_values": "Cached room name +0xe09 with optional decimal member count",
+       "range": "First 1023 bytes plus NUL",
+       "special_values": "Empty when selected member+0x82c!=0 or +0x82a==0. Zero other members omits the suffix.",
        "required": false,
-       "default": "live serialized state; no fixed default",
-       "validation": "emitted on success only (impl rc==0); 501 when serializer flag clear",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10748e44",
-         "notes": "serializer call under f_10988564 lock"
-        }
-       ],
-       "notes": null
-      },
-      "CurrentZoneGroupID": {
-       "description": "zone-group ID string serialized under topology lock",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "live value",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "empty string when the corresponding impl member is unset",
-       "required": false,
-       "default": "live serialized state; no fixed default",
-       "validation": "emitted on success only (impl rc==0); 501 when serializer flag clear",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10748e44",
-         "notes": "serializer call under f_10988564 lock"
-        }
-       ],
-       "notes": null
-      },
-      "CurrentZonePlayerUUIDsInGroup": {
-       "description": "topology attribute serialized under impl+0x318 lock",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "live value",
-       "range": "{0,1}",
-       "special_values": "empty string when the corresponding impl member is unset",
-       "required": false,
-       "default": "live serialized state; no fixed default",
-       "validation": "emitted on success only (impl rc==0); 501 when serializer flag clear",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10733a14",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f09394",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      },
-      "CurrentMuseHouseholdId": {
-       "description": "household ID string serialized under topology lock",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "live value",
-       "range": "{0,1}",
-       "special_values": "empty string when the corresponding impl member is unset",
-       "required": false,
-       "default": "live serialized state; no fixed default",
-       "validation": "emitted on success only (impl rc==0); 501 when serializer flag clear",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10748e44",
-         "notes": "serializer call under f_10988564 lock"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10733878",
-        "notes": "wrapper decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×4, raise-fault×1, out-arg write×4, validate×1, commit×1); member delegates: r4 v[+0x34], *(r29+4) v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733878",
-        "notes": "req-vfunc call map: {'0x8': 1, '0x14': 1, '0x24': 4, '0x10': 4, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×4, raise-fault×1, out-arg write×4, validate×1, commit×1); member delegates: r4 v[+0x34], *(r29+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x34], *(r29+4) v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733878",
-        "notes": "member vfunc calls: ['r4 v[+0x34]', '*(r29+4) v[+?]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x34], *(r29+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "read-only query delegate: r4 v[+0x34], *(r29+4) v[+?] (call-derived member-method semantics)",
+       "default": "No request default.",
+       "validation": "Produced only after internal UUID lookup succeeds; bounded name formatting does not cause a SOAP fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10733878",
-         "notes": "delegate map ['r4 v[+0x34]', '*(r29+4) v[+?]']; notify-family calls []"
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10748f54",
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748d14",
+         "address": "0x10f138c0",
+         "callsite": "0x10748dc4",
+         "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query delegate: r4 v[+0x34], *(r29+4) v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": null
+      },
+      "CurrentZoneGroupID": {
+       "description": "Cached group ID of the request-server UUID, not a boolean.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "group identifier string",
+       "format": "cached group string",
+       "unit": "identifier text",
+       "accepted_values": "Selected member+0xde5",
+       "range": "First 1023 bytes plus NUL",
+       "special_values": "Empty when selected member+0x82c!=0; empty cached group ID is also returned as empty.",
+       "required": false,
+       "default": "No request default.",
+       "validation": "Bounded string copy; no independent identifier grammar check.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733878",
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10748f54",
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748d14",
+         "address": "0x10f138c0",
+         "callsite": "0x10748dc4",
+         "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+        }
+       ],
+       "notes": null
+      },
+      "CurrentZonePlayerUUIDsInGroup": {
+       "description": "Comma-separated eligible cached group-member UUIDs, with a flagged leader first when found, followed by ordinary members in topology traversal order.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "escaped comma-separated UUID list",
+       "format": "comma-separated strings; comma/backslash inside an item escaped with backslash",
+       "unit": "UUID text list",
+       "accepted_values": "Cached UUIDs +0x10 selected by matching group ID and eligibility/bridge/coordinator flags",
+       "range": "At most 799 bytes plus NUL",
+       "special_values": "Empty for selected member+0x82c!=0 or no eligible entries. Large list is bounded/truncated, not faulted.",
+       "required": false,
+       "default": "No request default.",
+       "validation": "No network lookup or output-side UUID grammar validation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733878",
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10748f54",
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748a4c",
+         "address": "0x10748b38",
+         "callsite": "0x10748b78",
+         "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+        }
+       ],
+       "notes": null
+      },
+      "CurrentMuseHouseholdId": {
+       "description": "Current Muse household text supplied by the topology household provider, independent of the selected group identity.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "Muse household identifier string",
+       "format": "provider-supplied text",
+       "unit": "identifier text",
+       "accepted_values": "Provider getter output using capacity 54",
+       "range": "54-byte destination including terminator",
+       "special_values": "No additional fallback or validity test in this action; getter return is ignored.",
+       "required": false,
+       "default": "No action-defined default.",
+       "validation": "Copied through topology+0x580 provider slot +0x0c; not boolean conversion or builder validation.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733878",
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10748f54",
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10e8b050",
+         "callsite": "0x10748ec4",
+         "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
+        }
+       ],
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "No named inputs. Internal request context supplies UUID. Request-validation false -> defensive 402; null/unknown UUID -> concrete worker 501. Bounded output formatting does not return a serialization-readiness fault.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733878",
+        "address": "0x1073390c",
+        "callsite": "0x107338b8",
+        "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10748f54",
+        "callsite": "0x10748e44",
+        "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748d14",
+        "address": "0x10f138c0",
+        "callsite": "0x10748dc4",
+        "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748a4c",
+        "address": "0x10748b38",
+        "callsite": "0x10748b78",
+        "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Ordinary request validation and a non-null internal request-server UUID resolvable in the cached topology. No SOAP UUID input, coordinator-only guard, clock gate or online-discovery requirement.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733878",
+        "address": "0x10e8b048",
+        "callsite": "0x10733990",
+        "notes": "Concrete topology constructor f_10125b54 installs primary vptr 0x10e8b024 at 0x10126234; init passes that object to service constructor f_10733b28 at 0x1018e2cc, which stores implementation at service+4 and vptr 0x10f113b0. Wrapper loads implementation slot +0x24 at 0x10733950; table entry 0x10e8b048 -> f_10748dc8 (also base table 0x10f12290). Slot +0x34 at 0x107338b8 is on the request, not implementation. Wrapper compares worker against 501 stub f_1012b9b4 at 0x10733958 and shortcuts only that stub; installed worker is different."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733878",
+        "address": "0x1073390c",
+        "callsite": "0x107338b8",
+        "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10748f54",
+        "callsite": "0x10748e44",
+        "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads internal request -> +0x6c server -> +0x178 UUID; topology collection +0x5a8, room/group/member flags and identity under mutex +0x318; current Muse household provider at topology+0x580. Provider return is not action status.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733878",
+        "address": "0x1073390c",
+        "callsite": "0x107338b8",
+        "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10748f54",
+        "callsite": "0x10748e44",
+        "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748d14",
+        "address": "0x10f138c0",
+        "callsite": "0x10748dc4",
+        "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748a4c",
+        "address": "0x10748b38",
+        "callsite": "0x10748b78",
+        "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10e8b050",
+        "callsite": "0x10748ec4",
+        "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Read-only cached-topology query with mutex acquisition, bounded temporary string writes, optional diagnostics and SOAP response/fault. No grouping operation, file save or remote device query.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10748f54",
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748d14",
+         "address": "0x10f138c0",
+         "callsite": "0x10748dc4",
+         "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748a4c",
+         "address": "0x10748b38",
+         "callsite": "0x10748b78",
+         "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10e8b050",
+         "callsite": "0x10748ec4",
+         "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. Query helpers read group/name/member state and household text; no event dirty flag or notification scheduler is invoked by this action.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10733878",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10748dc8",
+        "address": "0x10748f54",
+        "callsite": "0x10748e44",
+        "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748d14",
+        "address": "0x10f138c0",
+        "callsite": "0x10748dc4",
+        "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748a4c",
+        "address": "0x10748b38",
+        "callsite": "0x10748b78",
+        "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10e8b050",
+        "callsite": "0x10748ec4",
+        "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x34], *(r29+4) v[+?]",
+      "description": "None. Resolving and formatting cached attributes does not join/leave groups, update household identity or persist settings.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10733878",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x34]', '*(r29+4) v[+?]']"
+        "function": "0x10748dc8",
+        "address": "0x10748f54",
+        "callsite": "0x10748e44",
+        "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748d14",
+        "address": "0x10f138c0",
+        "callsite": "0x10748dc4",
+        "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748a4c",
+        "address": "0x10748b38",
+        "callsite": "0x10748b78",
+        "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10e8b050",
+        "callsite": "0x10748ec4",
+        "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x34], *(r29+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Worker domain {0,501}: null or unresolvable internal UUID selects 501, otherwise four text outputs and zero. Wrapper commits all four on zero, faults worker result at 0x1073390c otherwise; request-validation failure adds defensive 402. Empty strings and bounded/truncated list output are successful values. No directory-object/store-save/800 branch.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733878",
-        "notes": "commit/fault slot usage: {'0x8': 1, '0x14': 1, '0x24': 4, '0x10': 4, '0xc': 1}"
+        "address": "0x1073390c",
+        "callsite": "0x107338b8",
+        "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10748f54",
+        "callsite": "0x10748e44",
+        "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748d14",
+        "address": "0x10f138c0",
+        "callsite": "0x10748dc4",
+        "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748a4c",
+        "address": "0x10748b38",
+        "callsite": "0x10748b78",
+        "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10748dc8",
+        "address": "0x10e8b050",
+        "callsite": "0x10748ec4",
+        "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [],
+     "fault_sites": [
+      {
+       "site": "0x1073390c",
+       "code": null,
+       "code_expr": "402 on request validation failure, otherwise nonzero implementation return"
+      }
+     ],
      "errors": [
       {
        "code": 501,
        "code_expr": "vret",
-       "meaning": "attribute serialization not-ready flag - impl returns 0x1f5",
+       "meaning": "Internal request-server UUID is null or not found in the cached topology.",
        "fault_sites": [
-        "0x10733878"
+        "0x1073390c"
        ],
        "conditions": [
         {
-         "description": "attribute serialization not-ready flag - impl returns 0x1f5",
+         "description": "f_10748dc8 takes null-UUID or failed f_10765a00 lookup branch at 0x10748f1c; following diagnostics/RabortIfUnlocked it returns 501 at 0x10748f54. Not a serializer-ready flag.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
+           "function": "0x10733878",
+           "address": "0x1073390c",
+           "callsite": "0x107338b8",
+           "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10748dc8",
            "address": "0x10748f54",
-           "notes": "impl return path"
+           "callsite": "0x10748e44",
+           "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
           }
          ]
         }
@@ -104544,33 +104822,42 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x10733878",
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
          "address": "0x10748f54",
-         "notes": "impl return path produces rc 501"
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x10748dc8 exits=[20]; topology impl rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10733878).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "Concrete worker {0,501}; wrapper adds 402."
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Defensive no-input request validation failure.",
        "fault_sites": [
-        "0x10733878"
+        "0x1073390c"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Request slot +8 returns zero at 0x107338ec. There are no named action arguments to omit.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733878",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10733878",
+           "address": "0x1073390c",
+           "callsite": "0x107338b8",
+           "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
           }
          ]
         }
@@ -104580,46 +104867,82 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733878",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10733878",
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
         }
        ]
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "topology rc domain adds {800} via zgt worker",
+       "code_expr": "unreachable inherited store-error association",
+       "meaning": "No store-commit or 800-family error path is reachable from this action.",
        "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1015aaf8",
-         "notes": "peer fns carry 800-band"
-        }
-       ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Installed concrete worker only returns zero or 501; wrapper uses that result and does not call the unrelated directory-store worker f_1015aaf8.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1015aaf8",
-           "notes": "peer fns carry 800-band"
+           "function": "0x10733878",
+           "address": "0x10e8b048",
+           "callsite": "0x10733990",
+           "notes": "Concrete topology constructor f_10125b54 installs primary vptr 0x10e8b024 at 0x10126234; init passes that object to service constructor f_10733b28 at 0x1018e2cc, which stores implementation at service+4 and vptr 0x10f113b0. Wrapper loads implementation slot +0x24 at 0x10733950; table entry 0x10e8b048 -> f_10748dc8 (also base table 0x10f12290). Slot +0x34 at 0x107338b8 is on the request, not implementation. Wrapper compares worker against 501 stub f_1012b9b4 at 0x10733958 and shortcuts only that stub; installed worker is different."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10733878",
+           "address": "0x1073390c",
+           "callsite": "0x107338b8",
+           "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10748dc8",
+           "address": "0x10748f54",
+           "callsite": "0x10748e44",
+           "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733878",
+         "address": "0x10e8b048",
+         "callsite": "0x10733990",
+         "notes": "Concrete topology constructor f_10125b54 installs primary vptr 0x10e8b024 at 0x10126234; init passes that object to service constructor f_10733b28 at 0x1018e2cc, which stores implementation at service+4 and vptr 0x10f113b0. Wrapper loads implementation slot +0x24 at 0x10733950; table entry 0x10e8b048 -> f_10748dc8 (also base table 0x10f12290). Slot +0x34 at 0x107338b8 is on the request, not implementation. Wrapper compares worker against 501 stub f_1012b9b4 at 0x10733958 and shortcuts only that stub; installed worker is different."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733878",
+         "address": "0x1073390c",
+         "callsite": "0x107338b8",
+         "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10748dc8",
+         "address": "0x10748f54",
+         "callsite": "0x10748e44",
+         "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+        }
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x1015aaf8 emits constant set {496, 800, 801, 802, 803} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
-       ]
+       "domain_note": "Non-error record retained to correct prior inherited store-commit attribution; no additional wire code."
       }
      ],
      "firmware_differences": [],
@@ -104629,22 +104952,57 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x10733878",
-       "address": "0x10733878",
-       "notes": "action wrapper handler"
+       "address": "0x10e8b048",
+       "callsite": "0x10733990",
+       "notes": "Concrete topology constructor f_10125b54 installs primary vptr 0x10e8b024 at 0x10126234; init passes that object to service constructor f_10733b28 at 0x1018e2cc, which stores implementation at service+4 and vptr 0x10f113b0. Wrapper loads implementation slot +0x24 at 0x10733950; table entry 0x10e8b048 -> f_10748dc8 (also base table 0x10f12290). Slot +0x34 at 0x107338b8 is on the request, not implementation. Wrapper compares worker against 501 stub f_1012b9b4 at 0x10733958 and shortcuts only that stub; installed worker is different."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f113f4",
-       "notes": "action dispatch table entry"
+       "function": "0x10733878",
+       "address": "0x1073390c",
+       "callsite": "0x107338b8",
+       "notes": "No named action inputs. Request slot +0x34 yields internal TRequest; wrapper follows +0x6c to TServer and +0x178 to UUID. Missing objects/UUID log at 0x10733a74/0x10733ab0/0x10733aec and continue with null UUID. Validation +8 at 0x107338ec false -> 402. Calls worker with name capacity 0x400, ID capacity 0x400, UUID-list capacity 0x320, Muse ID capacity 0x36 and internal UUID. Worker nonzero faults at sole call 0x1073390c; zero emits four string outputs at 0x107339c8/0x107339f8/0x10733a28/0x10733a58, commits 0x10733a6c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10748dc8",
+       "address": "0x10748f54",
+       "callsite": "0x10748e44",
+       "notes": "Locks topology+0x318 via f_10988564. Null UUID or lookup failure in f_10765a00(topology+0x5a8,UUID) logs No valid UUID for Zone Group Attributes request, calls RabortIfUnlocked at 0x10748f50, and selects 501 at 0x10748f54. Lookup matches cached UUID member+0x10 and filters via f_10778dc8. Success calls f_10748d14(name), f_107488f4(ID), f_10748a4c(UUID list), then Muse getter; returns zero after unlock. No builder/readiness flag, directory-store save, or 800 error producer is reachable."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10748d14",
+       "address": "0x10f138c0",
+       "callsite": "0x10748dc4",
+       "notes": "Initializes name output empty. Only member+0x82c==0 and +0x82a!=0 invoke f_10748bfc with flag zero. That helper counts OTHER members with f_10762df8 true, same group string +0xde5, +0x82c==0 and +0x82a==0; f_10748bb0 copies selected member room name +0xe09 when count zero, otherwise snprintf format %s + %d at 0x10f138c0. Name capacity 1024. f_107488f4 copies group string +0xde5 with f_10906304 unless +0x82c!=0 and flag zero, in which case ID is empty; this action passes flag zero. ID capacity 1024."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10748a4c",
+       "address": "0x10748b38",
+       "callsite": "0x10748b78",
+       "notes": "Initializes UUID-list output empty and returns immediately for selected member+0x82c!=0. Otherwise comma-list builder f_10c39af8 uses caller capacity 800. f_107480f8 first searches eligible members of selected group with +0x82a!=0 and may prepend that member UUID. Then topology iteration appends members with f_10762df8 true, matching group ID +0xde5, +0x82c==0 and +0x82a==0. UUID source is +0x10; no sorting is performed. f_10c39b10 inserts commas between items, escapes comma/backslash with backslash, and bounds/NUL-terminates writes. Overflow truncates list; no error return is propagated."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10748dc8",
+       "address": "0x10e8b050",
+       "callsite": "0x10748ec4",
+       "notes": "Primary slot +0x2c is f_1012ba50 at 0x10e8b050. Worker recognizes this forwarding method at 0x10748e9c and directly invokes provider *(topology+0x580) slot +0x0c with output pointer and capacity 54 at 0x10748ec4; alternate path calls slot +0x2c at 0x10748f70 and also discards its return. Base constructor f_1074043c stores this provider pointer from sixth-argument shared handle at 0x10740a20. Thus output is provider-supplied current Muse household text, not the selected room name/group ID or DeviceProperties HouseholdID. No Muse lookup by UUID and no SOAP fault conversion of provider return."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10733878; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "CurrentMuseHouseholdId is supplied by its household provider, not DeviceProperties HouseholdID. No implementation v[+?] or runtime-injection boundary remains."
     },
     "GetZoneGroupState": {
      "description": "Returns cached live topology as a bounded ZoneGroupState XML string through statically constructed topology implementation slot +0x28 -> f_10752ce4 -> f_10743328.",
