@@ -52815,7 +52815,7 @@
      ]
     },
     "Previous": {
-     "description": "Skips to the previous track. Impl f_102b9938 gate (718) then body at 0x102b9998: lock impl+0x458, log 'upnp'/'previous', call f_102b6214. mode!=2 -> f_102b01b4 (submit op-0x19 then streamer prev vfunc at *(impl+0x5a0); streamer nonzero=ok). mode==2 -> FIRST checks capability: f_10258ab0(impl+0x580,0,1) bit 0x00100000 - if the source cannot skip back, returns success WITHOUT submitting anything (silent no-op). If capable: f_102b5ddc, build rec, submit f_10255f64; nonzero rc -> 711, zero -> clear impl+0x6ed8 + return 0.",
+     "description": "Skips backward via the indexed op-7 request or the streamer path. Indexed playback requires the Previous capability bit; a clear bit faults with 701 rather than silently succeeding.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8760",
@@ -52924,15 +52924,31 @@
       ]
      },
      "state_dependencies": {
-      "description": "Indexed path requires source capability bit 0x00100000 from f_10258ab0(impl+0x580,0,1); without it Previous is a silent success no-op.",
+      "description": "The mode and indexed Previous capability bit determine the branch. The streamer boolean or indexed acceptance decides success.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b6288",
-        "notes": "andis. caps,0x10 -> silent success",
-        "function": "f_102b6214"
+        "address": "0x102b628c",
+        "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+        "function": "0x102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b62b0",
+        "notes": "After preparing the source, mode 2 uses request opcode 7 (f_1032e4b0). False f_10255f64 returns 711 at 0x102b62dc; success clears impl+0x6ed8.",
+        "function": "0x102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b6240",
+        "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+        "function": "0x102b6214"
        }
       ]
      },
@@ -52952,19 +52968,35 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The wrapper does not publish a playback event. Indexed submission signals a session request and waits for its result; the streamer path invokes its session method.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8760",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102b628c",
+        "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+        "function": "0x102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b62b0",
+        "notes": "After preparing the source, mode 2 uses request opcode 7 (f_1032e4b0). False f_10255f64 returns 711 at 0x102b62dc; success clears impl+0x6ed8.",
+        "function": "0x102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b6240",
+        "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+        "function": "0x102b6214"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace what the indexed skip-op consumer and the streamer skip method publish after success. Identify LastChange fields and their suppression conditions; successful request completion alone does not establish delivery."
       ]
      },
      "state_transitions": {
@@ -52981,23 +53013,39 @@
       ]
      },
      "return_behavior": {
-      "description": "rc==0 on success incl. the capability no-op; 711 on indexed submit failure; 701 on streamer failure.",
+      "description": "718 for nonzero parsed InstanceID, 701 for a missing indexed capability or unsuccessful streamer path, 711 for a false indexed submission. Successful paths clear impl+0x6ed8.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b62dc",
-        "notes": "li r3,0x2c7",
-        "function": "f_102b6214"
+        "address": "0x102b9978",
+        "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b99cc.",
+        "function": "0x102b9938"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b624c",
-        "notes": "r30=0x2bd",
-        "function": "f_102b6214"
+        "address": "0x102b628c",
+        "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+        "function": "0x102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b62b0",
+        "notes": "After preparing the source, mode 2 uses request opcode 7 (f_1032e4b0). False f_10255f64 returns 711 at 0x102b62dc; success clears impl+0x6ed8.",
+        "function": "0x102b6214"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b6240",
+        "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+        "function": "0x102b6214"
        }
       ]
      },
@@ -53012,34 +53060,21 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x3c)",
-       "meaning": "apply worker f_102b6214: literal {701, 0, 711} plus call-derived; impl-side 718 stands; rc forwarded verbatim",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f8814"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "The engine rejects the parsed ID before entering the skip worker.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102b9978",
-           "notes": "li 0x2ce",
-           "function": "f_102b9938"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x102b9938",
-           "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+           "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b99cc.",
+           "function": "0x102b9938"
           }
          ]
         }
@@ -53050,42 +53085,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102b9978",
-         "notes": "li 0x2ce",
-         "function": "f_102b9938"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102b9938",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b624c",
-         "notes": "li r3,0x2bd"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b62cc",
-         "notes": "li r3,0"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b62dc",
-         "notes": "li r3,0x2c7"
+         "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b99cc.",
+         "function": "0x102b9938"
         }
        ],
        "unresolved": {
@@ -53135,30 +53136,34 @@
         0,
         718
        ],
-       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x3c); sites: 0x102f8814).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
        "code": 701,
        "code_expr": "vret(r5-in,+0x3c)",
-       "meaning": "Stream-mode skip failed - the streamer vfunc returned 0 (no live session or rejected).",
+       "meaning": "Indexed Previous capability absent or the streamer path failed.",
        "fault_sites": [
         "0x102f8814"
        ],
        "conditions": [
         {
-         "description": "mode!=2 and streamer vfunc result == 0",
+         "description": "Either the indexed capability bit is clear or the non-indexed helper returned zero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b624c",
-           "notes": "r30=0x2bd on streamer fail",
-           "function": "f_102b6214"
+           "address": "0x102b628c",
+           "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+           "function": "0x102b6214"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b6240",
+           "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+           "function": "0x102b6214"
           }
          ]
         }
@@ -53168,9 +53173,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b624c",
-         "notes": "701",
-         "function": "f_102b6214"
+         "address": "0x102b628c",
+         "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+         "function": "0x102b6214"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b6240",
+         "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+         "function": "0x102b6214"
         }
        ]
       },
@@ -53245,34 +53258,64 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "No further session/streamer code is forwarded by Previous.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102b628c",
+         "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+         "function": "0x102b6214"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b62b0",
+         "notes": "After preparing the source, mode 2 uses request opcode 7 (f_1032e4b0). False f_10255f64 returns 711 at 0x102b62dc; success clears impl+0x6ed8.",
+         "function": "0x102b6214"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b6240",
+         "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+         "function": "0x102b6214"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "The helper results are converted to 0, 701 or 711 before return; there is no raw downstream return here.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102b628c",
+           "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+           "function": "0x102b6214"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b62b0",
+           "notes": "After preparing the source, mode 2 uses request opcode 7 (f_1032e4b0). False f_10255f64 returns 711 at 0x102b62dc; success clears impl+0x6ed8.",
+           "function": "0x102b6214"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b6240",
+           "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+           "function": "0x102b6214"
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -53318,13 +53361,41 @@
        "build": "86.10-80260",
        "address": "0x10eb3150",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b9978",
+       "notes": "Nonzero parsed InstanceID returns 718 before the worker call at 0x102b99cc.",
+       "function": "0x102b9938"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b628c",
+       "notes": "Mode 2 requires bit 0x00100000 from f_10258ab0(*(impl+0x580),0,1). A clear bit jumps to the 701 return at 0x102b624c, not the success tail.",
+       "function": "0x102b6214"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b62b0",
+       "notes": "After preparing the source, mode 2 uses request opcode 7 (f_1032e4b0). False f_10255f64 returns 711 at 0x102b62dc; success clears impl+0x6ed8.",
+       "function": "0x102b6214"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b6240",
+       "notes": "Non-indexed mode uses f_102b01b4; control-submit failure or a false streamer result gives 701. True clears impl+0x6ed8 and succeeds.",
+       "function": "0x102b6214"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8760; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "RemoveAllTracksFromQueue": {
      "description": "Clears all membership from queue ID 0 using live derived AVTransport vtable 0x10edfbb8 slot +0x78, f_102b3bf4 -> f_102b3a84 -> f_102b397c. Only InstanceID 0 is accepted. This action supplies version 0 and no output pointer to the common helper, so it has no optimistic UpdateID check and no returned revision. In mode 1 or 2 it submits kind 4 and waits for completion. Both workers call f_10262a98 -> f_1014da34 -> f_10145b98; named queues advance revision even when already empty. Active queue clearing resets current-source bookkeeping and later progresses to STOPPED through the controller; inactive clearing need not stop the selected playback source.",
