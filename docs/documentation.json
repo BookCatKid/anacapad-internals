@@ -46220,7 +46220,7 @@
      ]
     },
     "GetRunningAlarmProperties": {
-     "description": "Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.",
+     "description": "Returns the running alarm ID, current group identifier and saved logged start time from AVTransport state. InstanceID must resolve to zero. If the ringing flag is clear, returns fault 800 rather than empty outputs. No AlarmClock service or engine call is made by this getter.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fb664",
@@ -46276,25 +46276,39 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x102ad8fc",
+      "impl_vfunc": "AVTransport vtables 0x10eaf2ec and 0x10edfbb8 slot +0xa0",
+      "description": "Static worker reads alarm context under implementation+0x458 lock; normal return domain {0,718,800}."
      },
      "inputs": {
       "InstanceID": {
        "direction": "in",
-       "format": "decimal text",
+       "format": "decimal prefix conversion using strtoul(text,NULL,10)",
        "type": "",
-       "accepted": "impl-side grammar applies",
+       "accepted": "Permissive strtoul conversion; resulting zero required.",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "engine instance index; impl returns 718 when nonzero",
+       "description": "Required instance index; only a resulting unsigned value of zero succeeds.",
        "unit": "none - dimensionless",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb698",
-         "notes": "in-arg name load + req->v[+0x1c] parse call"
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102fb6ac",
+         "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
         }
        ],
        "primitive": {
@@ -46306,15 +46320,15 @@
        },
        "semantic_type": "SonosUintArg",
        "range": "0 only; nonzero InstanceID rejected by impl guard with 718",
-       "special_values": "none identified",
+       "special_values": "Present empty/nonnumeric text becomes zero. Missing input faults 402.",
        "default": "none - required argument",
-       "validation": "impl guard cmpwi r4,0: nonzero parsed value -> 718",
+       "validation": "Required presence, then unsigned conversion without end-pointer/errno check, then worker zero guard.",
        "accepted_values": "0"
       }
      },
      "outputs": {
       "AlarmID": {
-       "description": "Identifier of the running alarm (empty if none).",
+       "description": "Saved running-alarm ID from AVTransport implementation+0x5a88, emitted only when ringing flag is nonzero.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -46323,10 +46337,10 @@
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
-       "required": false,
+       "accepted_values": "Stored unsigned 32-bit value; no ID lookup or range validation.",
+       "range": "0..4294967295",
+       "special_values": "Idle state faults 800; no empty fallback.",
+       "required": true,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
        "evidence": [
@@ -46334,33 +46348,46 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb760",
-         "notes": "out-arg access site"
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3588",
-         "notes": "argument name string"
+         "function": "0x102ad8fc",
+         "address": "0x102ada50",
+         "callsite": "0x102ada70",
+         "notes": "AlarmID word copied to output at 0x102ada50; group string bounded copy at 0x102ada5c from group object +0x139. Date formatter f_10c3c88c receives saved calendar impl+0x5a8c and capacity 20, format YYYY-MM-DD HH:MM:SS, then copies to output capacity 64 at 0x102ada80. RunAlarm f_102e17dc stores AlarmID at 0x102e19bc and calendar components at 0x102e19c4..0x102e1a04 after parsing LoggedStartTime via f_10c3cbfc at 0x102e18b0. Getter formats saved start time, not current clock time."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
         }
        ],
        "notes": null
       },
       "GroupID": {
-       "description": "Group the alarm runs on.",
+       "description": "Current group identifier from group object *(impl+0x57c)+0x139, not an alarm-record room identifier.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "string",
-       "format": "string",
+       "format": "bounded group-identifier text",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
-       "required": false,
+       "accepted_values": "Current group object string",
+       "range": "up to 63 bytes plus NUL",
+       "special_values": "No idle fallback; action faults 800.",
+       "required": true,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
        "evidence": [
@@ -46368,33 +46395,46 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb784",
-         "notes": "out-arg access site"
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3590",
-         "notes": "argument name string"
+         "function": "0x102ad8fc",
+         "address": "0x102ada50",
+         "callsite": "0x102ada70",
+         "notes": "AlarmID word copied to output at 0x102ada50; group string bounded copy at 0x102ada5c from group object +0x139. Date formatter f_10c3c88c receives saved calendar impl+0x5a8c and capacity 20, format YYYY-MM-DD HH:MM:SS, then copies to output capacity 64 at 0x102ada80. RunAlarm f_102e17dc stores AlarmID at 0x102e19bc and calendar components at 0x102e19c4..0x102e1a04 after parsing LoggedStartTime via f_10c3cbfc at 0x102e18b0. Getter formats saved start time, not current clock time."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
         }
        ],
        "notes": null
       },
       "LoggedStartTime": {
-       "description": "Start timestamp as logged by the alarm scheduler.",
+       "description": "Saved logged start calendar normalized by date formatter, not a fresh time read.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "string",
-       "format": "string",
+       "format": "YYYY-MM-DD HH:MM:SS",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
-       "required": false,
+       "accepted_values": "Saved RunAlarm calendar formatted into 20-byte buffer",
+       "range": "19 timestamp characters plus NUL for ordinary four-digit years",
+       "special_values": "No timezone suffix; idle state faults 800.",
+       "required": true,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
        "evidence": [
@@ -46402,127 +46442,228 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb7b4",
-         "notes": "out-arg access site"
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3598",
-         "notes": "argument name string"
+         "function": "0x102ad8fc",
+         "address": "0x102ada50",
+         "callsite": "0x102ada70",
+         "notes": "AlarmID word copied to output at 0x102ada50; group string bounded copy at 0x102ada5c from group object +0x139. Date formatter f_10c3c88c receives saved calendar impl+0x5a8c and capacity 20, format YYYY-MM-DD HH:MM:SS, then copies to output capacity 64 at 0x102ada80. RunAlarm f_102e17dc stores AlarmID at 0x102e19bc and calendar components at 0x102e19c4..0x102e1a04 after parsing LoggedStartTime via f_10c3cbfc at 0x102e18b0. Getter formats saved start time, not current clock time."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
         }
        ],
        "notes": null
       }
      },
      "validation": {
-      "description": "See inputs.",
+      "description": "Missing InstanceID -> 402; parsed nonzero InstanceID -> 718; zero InstanceID but clear ringing flag -> 800.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad8fc",
-        "notes": "impl decode",
-        "function": "f_102ad8fc"
+        "function": "0x10560a58",
+        "address": "0x10560b50",
+        "callsite": "0x102fb6ac",
+        "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ad8fc",
+        "address": "0x102ada1c",
+        "callsite": "0x102fb6f4",
+        "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102fb664",
+        "address": "0x102fb710",
+        "callsite": "0x102fb6f4",
+        "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
        }
       ]
      },
      "requirements": {
-      "description": "InstanceID==0 only (where present).",
+      "description": "Required InstanceID must convert to zero and AVTransport ringing flag +0x5a86 must be nonzero. No coordinator, clock-generation or AlarmClock lookup gate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad8fc",
-        "notes": "impl decode",
-        "function": "f_102ad8fc"
+        "function": "0x10560a58",
+        "address": "0x10560b50",
+        "callsite": "0x102fb6ac",
+        "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ad8fc",
+        "address": "0x102ada1c",
+        "callsite": "0x102fb6f4",
+        "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
        }
       ]
      },
      "state_dependencies": {
-      "description": "Alarm context fields read from engine alarm state; empty when idle; provenance unresolved.",
+      "description": "Reads AVTransport implementation+0x5a86 ringing flag, +0x5a88 saved ID, +0x5a8c saved start calendar and group object +0x57c/+0x139 under implementation+0x458 lock. No AlarmClock service/engine access.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad8fc",
-        "notes": "impl decode",
-        "function": "f_102ad8fc"
+        "function": "0x102ad8fc",
+        "address": "0x102ada1c",
+        "callsite": "0x102fb6f4",
+        "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102ad8fc",
+        "address": "0x102ada50",
+        "callsite": "0x102ada70",
+        "notes": "AlarmID word copied to output at 0x102ada50; group string bounded copy at 0x102ada5c from group object +0x139. Date formatter f_10c3c88c receives saved calendar impl+0x5a8c and capacity 20, format YYYY-MM-DD HH:MM:SS, then copies to output capacity 64 at 0x102ada80. RunAlarm f_102e17dc stores AlarmID at 0x102e19bc and calendar components at 0x102e19c4..0x102e1a04 after parsing LoggedStartTime via f_10c3cbfc at 0x102e18b0. Getter formats saved start time, not current clock time."
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "description": "Read-only engine access under lock; temporary and output-buffer writes and scoped logging only. No file access, persistence, alarm scheduling or observer publication.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "f_102ad8fc",
-         "notes": "impl decode",
-         "function": "f_102ad8fc"
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "None - pure read.",
+      "description": "None. Worker only reads alarm context and writes caller outputs; no notification enqueue.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad8fc",
-        "notes": "impl decode",
-        "function": "f_102ad8fc"
+        "function": "0x102ad8fc",
+        "address": "0x102ada1c",
+        "callsite": "0x102fb6f4",
+        "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
        }
       ]
      },
      "state_transitions": {
-      "description": "None.",
+      "description": "None. Ringing/idle state is observed, not changed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad8fc",
-        "notes": "impl decode",
-        "function": "f_102ad8fc"
+        "function": "0x102ad8fc",
+        "address": "0x102ada1c",
+        "callsite": "0x102fb6f4",
+        "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
        }
       ]
      },
      "return_behavior": {
-      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "description": "Worker domain {0,718,800}. Only zero emits all three outputs and commits; idle state is fault 800, not a successful empty response. Wrapper additionally emits 402 on required-input absence. Sole fault call 0x102fb710; stack guard abort is not a SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad8fc",
-        "notes": "impl decode",
-        "function": "f_102ad8fc"
+        "function": "0x102ad8fc",
+        "address": "0x102ada1c",
+        "callsite": "0x102fb6f4",
+        "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102fb664",
+        "address": "0x102fb710",
+        "callsite": "0x102fb6f4",
+        "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b50",
+        "callsite": "0x102fb6ac",
+        "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
        }
       ]
      },
-     "fault_sites": [],
+     "fault_sites": [
+      {
+       "site": "0x102fb710",
+       "code": null,
+       "code_expr": "validation false ? 402 : worker return in {718,800}"
+      }
+     ],
      "errors": [
       {
        "code": 402,
-       "meaning": "request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter",
+       "meaning": "Required InstanceID is absent; not strict numeric syntax validation.",
        "conditions": [
         {
-         "description": "malformed/missing SOAP arg envelope",
+         "description": "Canonical request validation returns false for missing required InstanceID; wrapper loads 402 at 0x102fb744.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "shared request-object parse vfunc; same layer emits 402 in sibling handlers"
+           "function": "0x102fb664",
+           "address": "0x102fb710",
+           "callsite": "0x102fb6f4",
+           "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10560a58",
+           "address": "0x10560b50",
+           "callsite": "0x102fb6ac",
+           "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
           }
          ]
         }
@@ -46532,27 +46673,49 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "shared request-object arg-parse vfuncs (slot 28 InstanceID read / slot 12 commit); same layer emits 402 Invalid Args in sibling handlers"
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b50",
+         "callsite": "0x102fb6ac",
+         "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102fb710"
        ]
       },
       {
        "code": 800,
-       "meaning": "800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified",
+       "meaning": "No alarm is currently marked as ringing in AVTransport state.",
        "conditions": [
         {
-         "description": "impl worker returns an 800-class store/commit fault",
+         "description": "InstanceID is zero and implementation+0x5a86 is zero; worker returns literal 800 at 0x102ada20 without writing outputs.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "reachable literal set of handler callees; exact emitting worker not isolated"
+           "function": "0x102ad8fc",
+           "address": "0x102ada1c",
+           "callsite": "0x102fb6f4",
+           "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102fb664",
+           "address": "0x102fb710",
+           "callsite": "0x102fb6f4",
+           "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
           }
          ]
         }
@@ -46562,13 +46725,75 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "800-series literal present in the handler’s callee reach set; emitting worker unidentified so trigger condition unresolved"
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 800; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102fb710"
+       ]
+      },
+      {
+       "code": 718,
+       "meaning": "Unsupported AVTransport instance.",
+       "fault_sites": [
+        "0x102fb710"
+       ],
+       "conditions": [
+        {
+         "description": "Parsed InstanceID is nonzero; worker returns 718 at 0x102ad944 before locking or checking ringing state.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10560a58",
+           "address": "0x10560b50",
+           "callsite": "0x102fb6ac",
+           "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102ad8fc",
+           "address": "0x102ada1c",
+           "callsite": "0x102fb6f4",
+           "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ad8fc",
+         "address": "0x102ada1c",
+         "callsite": "0x102fb6f4",
+         "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102fb664",
+         "address": "0x102fb710",
+         "callsite": "0x102fb6f4",
+         "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
+        }
        ]
       }
      ],
@@ -46578,38 +46803,49 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "f_102ad8fc",
-       "notes": "impl decode",
-       "function": "f_102ad8fc"
+       "function": "0x102fa5c4",
+       "address": "0x10eaf38c",
+       "callsite": "0x102fb6f4",
+       "notes": "AVTransport wrapper constructed by f_102fc9c0 at 0x1018fb70, service vptr 0x10eb300c. Dispatcher loads service+4 at 0x102fa6c8 and passes it as r5 at 0x102fa700. Handler f_102fb664 saves that implementation pointer and calls its slot +0xa0. Both implementation vtables 0x10eaf2ec and 0x10edfbb8 have f_102ad8fc at +0xa0 (entries 0x10eaf38c and 0x10edfc58). This is AVTransport dispatch, not AlarmClock service dispatch."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102ad8fc",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0xa0 entry"
+       "address": "0x102ada1c",
+       "callsite": "0x102fb6f4",
+       "notes": "Complete worker 0x102ad8fc..0x102ada94: nonzero InstanceID returns 718 at 0x102ad944 before locking. With InstanceID zero, takes implementation+0x458 using f_10557afc, reads ringing byte +0x5a86. Zero returns 800 (0x102ada20), without output writes. Nonzero copies alarm ID +0x5a88, group string from *(impl+0x57c)+0x139 and saved calendar +0x5a8c. Releases lock through f_100caad8; normal return domain {0,718,800}. No AlarmClock engine call, persistence or scheduling call occurs."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102fb664",
-       "address": "0x102fb664",
-       "notes": "action wrapper handler"
+       "address": "0x102fb710",
+       "callsite": "0x102fb6f4",
+       "notes": "Required InstanceID parsed at 0x102fb6ac; validation at 0x102fb6c0. False loads literal 402 at 0x102fb744. Validation and worker faults share sole request fault call 0x102fb710. On zero worker return: AlarmID formatted by f_1055fcbc at 0x102fb768; GroupID and LoggedStartTime emitted by text writers 0x102fb798/0x102fb7c8; commit at 0x102fb7dc. Both text buffers have capacity 64. No outputs emitted on a fault."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb30fc",
-       "notes": "action dispatch table entry"
+       "function": "0x10560a58",
+       "address": "0x10560b50",
+       "callsite": "0x102fb6ac",
+       "notes": "f_105614e0 registers type tag 4, capacity 24; finalizer uses strtoul(text,NULL,10) at 0x10560b50 and stores 32 bits. No end-pointer, errno or numeric range check. Numeric text is truncated to 23 bytes and terminated. Present empty/nonnumeric text becomes zero; decimal prefixes accepted. Required-input absence makes canonical validator f_10730414 return false; not a strict decimal grammar check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102ad8fc",
+       "address": "0x102ada50",
+       "callsite": "0x102ada70",
+       "notes": "AlarmID word copied to output at 0x102ada50; group string bounded copy at 0x102ada5c from group object +0x139. Date formatter f_10c3c88c receives saved calendar impl+0x5a8c and capacity 20, format YYYY-MM-DD HH:MM:SS, then copies to output capacity 64 at 0x102ada80. RunAlarm f_102e17dc stores AlarmID at 0x102e19bc and calendar components at 0x102e19c4..0x102e1a04 after parsing LoggedStartTime via f_10c3cbfc at 0x102e18b0. Getter formats saved start time, not current clock time."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102fb664; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Static AVTransport dispatch is identical for these slots in both implementation classes. The getter does not delegate to the AlarmClock service or its engine."
     },
     "GetTransportInfo": {
      "description": "Returns transport state/status/speed strings. Impl f_102b1738 gate (718) then worker f_102b1684: dispatches on mode impl+0x4654 (==2 -> indexed fill path 0x102b1a44; ==1 -> 0x102b19c8; else -> f_10308aec(impl+0x5d4,...) plus strlcpy of the impl+0x5dc source-name string into an out buffer). All outputs are filled by the worker under the impl+0x458 lock.",
