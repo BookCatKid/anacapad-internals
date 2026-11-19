@@ -145014,7 +145014,7 @@
    ]
   },
   "ibt_plans": {
-   "summary": "a remote-management command executor: commands named in log domain 'ibt' are compiled into 'plans' (a generated target list: 'failed to generate target list for command (%s)'), then dispatched per-target with per-target results ('[dispatch] dispatched (%s) to target (%s), result [%s]'); gated by the enablePitchfork feature flag checked at init",
+   "summary": "Muse intended-target plan generation and execution. A request with intendedTargets selects the plan path; generated target strategies execute in sequence and stop on a non-success result. There is no enablePitchfork gate proven by the former init-function evidence.",
    "anchors": [
     "executing ibt plan for command",
     "unsupported IBT command",
@@ -145069,10 +145069,18 @@
      "build": "86.10-80260",
      "address": "0x10a581b0",
      "notes": "enablePitchfork gate checked twice in init fn"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109eb04c / f_10b983fc / f_103cd3d8 / f_103cd46c / f_10a581b0",
+     "address": "0x109eb280",
+     "callsite": "0x109eb2a8 / 0x10b9846c / 0x103cd54c / 0x10a585a8",
+     "notes": "f_109e5dc0 loads request+0x21a0, tested before IBT dispatch to f_10b98840. f_10b983fc calls provider vtable+0xc and requires result 0x34; an already nonempty plan vector skips generation, not execution. f_10b985c4 calls f_109e80b0 at 0x10b9871c, assigns 0x48 on failure, and at 0x10b98810 invokes each strategy's +8 method while result remains 0x34. Raw cmplwi r4,1 at 0x103cd3f4 and branches at 0x103cd3f0/f8 distinguish strategy kinds 0/1. f_103cd46c logs unsupported when provider virtual+0x10 returns non-0x34, not after a command-name switch. Config field +0xf00 is passed to JSON writer with enablePitchfork at 0x10a58594-a8 and 0x10a587c8-d8. Copy/compare sites independently disprove the former interpretation of these reads as gates."
     }
    ],
-   "unresolved": "full command vocabulary (only 'ibt' command-name seen in dispatch compare), plan serialization format, what the targets are (players in household?), what enablePitchfork bundles",
-   "mechanics": "executor f_10b985c4: look up command → generate ibt plan → generate target list → for each target '[dispatch] dispatched (%s) to target (%s), result [%s]'; 'already generated ibt plan, no action taken' = idempotent re-entry; 'unsupported IBT command (%s)' rejects unknown verbs",
+   "mechanics": "f_109eb04c tests f_109e5dc0(request) at 0x109eb280 and takes f_10b98840 when request+0x21a0 is nonzero. f_10b985c4 generates a plan through f_10b983fc, materializes targets through f_109e80b0, then executes strategy virtual slot +8 while the result remains 0x34. This is plan-local deduplication, not proof that repeating a wire command is idempotent.",
    "dispatch_vocabulary": {
     "log_domain": "[dispatch] / [group]",
     "lines": [
@@ -145094,11 +145102,13 @@
    },
    "zone_command_namespace": "The '{verb,namespace}' registry tail at .data 0x11094380-0x110943f4 binds these verbs to namespace 'zones': subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone, unjoinZone: terminated {0xffffffff,0xffffffff}. Same record format as the main muse_verb_ns_registry @0x110941d8.",
    "todo": [
-    "Residual: the full IBT command-name vocabulary beyond the [group] family - command names arrive inside the muse command body (wire data), so the unsupported-command switch keys are not literal-enumerated; the per-command enablePitchfork bundling is a flag-table read."
+    "Established: intendedTargets selects the plan path, plan-local generation is reused, two compiled strategy kinds dispatch/group are constructed by f_103cd3d8, and enablePitchfork's previously cited uses serialize config rather than gate execution. Remaining: the exact set of Muse command providers that implement target conversion and the actual enablePitchfork execution consumer. Trace the provider virtual +0xc used at 0x10b9846c and virtual +0x10 at 0x103cd54c back to their constructors and command registrations; trace the feature-config field accessors beyond its serialized +0xf00 representation. These remain actionable static RE, not proven runtime-only boundaries."
    ],
    "resolved_findings": [
-    "Resolved: plan executor decoded - commands compile into generated target lists (failed to generate target list for command (%s)), then dispatch per-target returning per-target result strings ([dispatch] dispatched (%s) to target (%s), result [%s]); the target type is a player/device descriptor; gated by the ibt channel auth.",
-    "IBT (intent-based target) plan model decoded (literals at 0x10fac6xx + 0x10ec78xx): commands arrive in muse command bodies carrying an intendedTargets parameter parsed into implicit vs explicit target forms (implicit target parsed [%s] / explicit target parsed [%s]; invalid intendedTargets parameter, command does not support intendedTargets parameter, invalid muse command body format). Plan generation is deduplicated (already generated ibt plan, no action taken) then executed per-target (executing ibt plan for command (%s), failed to generate target list/ibt plan for command (%s)), with per-target dispatch logging [dispatch] dispatched (%s) to target (%s), result [%s] and [dispatch] unsupported IBT command (%s). Targets are player/area id sets - validation vocabulary: no players or areas were specified, has repeated player id, Effective player id set is empty, has too many player ids, contains invalid player ids. The proven command family is [group] group formation: adding player [%s] to group, forwarding player [%s], created new group [%s, %s], created new group but no GC, Grouping ungroupable player to other players is not supported; compatibility is enforced by validateProtocolVersionCompatibility over {Audio TX, HT Audio} protocol types (protocol versions are incompatible / Protocol versions that do not match). Plan payloads ride the iocompress layer (RCompressBuffer deflate / RDecompressBuffer inflate). Gated by enablePitchfork per the feature flags."
+    "Resolved: plan executor decoded - commands compile into generated target lists (failed to generate target list for command (%s)), then dispatch per-target returning per-target result strings ([dispatch] dispatched (%s) to target (%s), result [%s]); the target type is a player/device descriptor; the previous channel-auth claim is not established by this executor.",
+    "IBT (intent-based target) plan model decoded (literals at 0x10fac6xx + 0x10ec78xx): commands arrive in muse command bodies carrying an intendedTargets parameter parsed into implicit vs explicit target forms (implicit target parsed [%s] / explicit target parsed [%s]; invalid intendedTargets parameter, command does not support intendedTargets parameter, invalid muse command body format). Plan generation is deduplicated (already generated ibt plan, no action taken) then executed per-target (executing ibt plan for command (%s), failed to generate target list/ibt plan for command (%s)), with per-target dispatch logging [dispatch] dispatched (%s) to target (%s), result [%s] and [dispatch] unsupported IBT command (%s). Targets are player/area id sets - validation vocabulary: no players or areas were specified, has repeated player id, Effective player id set is empty, has too many player ids, contains invalid player ids. The proven command family is [group] group formation: adding player [%s] to group, forwarding player [%s], created new group [%s, %s], created new group but no GC, Grouping ungroupable player to other players is not supported; compatibility is enforced by validateProtocolVersionCompatibility over {Audio TX, HT Audio} protocol types (protocol versions are incompatible / Protocol versions that do not match). The previously asserted enablePitchfork gate is withdrawn: its cited function serializes the field.",
+    "The unsupported-command log is emitted when a provider's virtual +0x10 conversion returns a status other than 0x34 at 0x103cd550. The dispatcher itself does not compare command strings there; this is not evidence that command names are absent from the compiled provider implementations. Factory f_103cd3d8 recognizes kind 0 (group strategy, vtable 0x10ec7880) and kind 1 (dispatch strategy, vtable 0x10ec786c), returning null for other kinds. Its factory vtable 0x10ec7894 is installed at 0x1018ea44.",
+    "enablePitchfork is a boolean config field at +0xf00: f_10a581b0 passes its value and key to JSON writer f_109d14e0 at 0x10a585a8 and 0x10a587d8. Copy operations at 0x10a5741c/28 and 0x10a57834/40 and equality comparison at 0x10a57f30-3c are not feature gates. No per-command bundle or init-time gating follows from these sites."
    ]
   },
   "lechmere_wss": {
