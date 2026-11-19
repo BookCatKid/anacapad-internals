@@ -162922,9 +162922,6 @@
   "bin_mdnsd": {
    "name": "mdnsd (Sonos mDNS fork)",
    "summary": "Stock Apple mDNSResponder daemon (/sbin/sddpd-adjacent /sbin/mdnsd), run foregrounded as 'mdnsd -f' by /etc/runmdns behind the waitwhiletrue /var/run/stopmdns gate. Sonos ships the posix mDNSResponder, not avahi.",
-   "todo": [
-    "Residual: exact upstream release within the 878.x-1310.x window (DSO/push present, SRP absent) - no version tag or per-release marker string exists in the image."
-   ],
    "artifacts": [
     "sbin/mdnsd"
    ],
@@ -162934,8 +162931,25 @@
     "Privileges/sandboxing: attempts setgid+setuid to nobody and warns on failure ('WARNING: mdnsd continuing as group root / as root because setgid/setuid to nobody failed'); usage is '%s [-debug]' (-f foreground flag comes from mDNSPosix main).",
     "Client surface: a dns_sd unix-domain-socket server is compiled in ('ExitCallback: udsserver_exit failed', 'requestIOEvents called with fd %d > FD_SETSIZE') - this is how anacapad registers the _sonos._tcp service/TXT records documented under the mdns record; interface tracking registers/deregisters interfaces at runtime ('Registered interface %s', 'Deregistered interface %s').",
     "Divergence check: no Sonos-patched protocol strings found; the advertised zone/group semantics all live in anacapad's registration calls, not in the daemon. /etc/mdnsd.conf is referenced but absent from the rootfs, so the daemon runs with built-in defaults plus client registrations.",
-    "Resolved: /sbin/mdnsd is mDNSResponder Engineering Build (Aug 20 2026 14:46:24) - self-bannered \"@(#) mDNSResponder (Engineering Build)\", no upstream release tag (build number only, \"mDNSResponder Build %d.%02d.%02d\" in state-log banners). The UDS path is the upstream default /var/run/mdnsd with pidfile /var/run/mdnsd.pid; supervised by /etc/runmdns (waitwhiletrue /var/run/stopmdns then exec /sbin/mdnsd -f). The build carries the DSO/TLV extension family (dso_add_tlv_*, BuildUpdateMessage, SendGroupUpdates for DNS Push subscriptions) and a client/daemon version handshake (\"client version 0x%08X daemon version 0x%08X\", DaemonVersion query). Built with crosstool-NG GCC 5.5.0.",
-    "Release-window fingerprint: banner 'mDNSResponder (Engineering Build) (Aug 20 2026 14:46:24)' - build-time only, no mDNSResponder-XXX tag. Feature presence: DSO TLV machinery (dso_start_tlv/add_tlv_bytes/dsop fields) + '_dns-push-tls' service type = DNS Push Notifications (RFC 8765) era code, i.e. >= mDNSResponder-878.x; LLQ + NAT-PMP + sleep proxy + WAB browse queries all present. SRP (service registration protocol) and Oblivious-DoT strings are ABSENT - pre-SRP vintage, consistent with the 878.x-1310.x window."
+    "Exact compiled release recovered from executable instructions, disproving the earlier no-version-marker/window claim: the state-log format at 0x1005a9bc is ---- BEGIN STATE LOG ---- (%s mDNSResponder Build %d.%02d.%02d). Its pointer is loaded into r20 at 0x10003f7c and passed as format r5 at 0x1000411c. The call at 0x1000412c passes r7=1311, r8=40, r9=1, loaded immediately before it at 0x1000410c-0x10004114. The END STATE LOG arm independently passes the same triple at 0x100040dc-0x100040fc. Thus this image identifies its mDNSResponder build as 1311.40.01 (release tuple 1311.40.1), not merely 878.x-1310.x. The Engineering Build string at 0x1005a7d8 is an additional build-time banner, not evidence that no numeric release exists.",
+    "Independent version check, not only the banner: handler f_10048c4c compares the incoming property string against DaemonVersion at 0x10048cd4 and, on equality, constructs a response. At 0x10048d7c/0x10048d88 it materializes 0x00c81a91=13114001, matching 1311*10000+40*100+1; 0x10048d90 serializes that value and 0x10048da8 sends the 12-byte response. A nonmatching name takes the four-byte response at 0x10048ce0-0x10048cec. These two reachable output paths bind the compiled daemon version despite the missing textual mDNSResponder-XXX release tag. This identifies the image release constant, not byte-for-byte identity with an unmodified upstream source checkout."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "sbin/mdnsd",
+     "build": "86.10-80260",
+     "address": "0x1000410c",
+     "notes": "State-log call passes literal release triple 1311,40,1."
+    },
+    {
+     "type": "firmware",
+     "binary": "sbin/mdnsd",
+     "build": "86.10-80260",
+     "function": "0x10048c4c",
+     "address": "0x10048d88",
+     "notes": "DaemonVersion response embeds integer 13114001, independently matching release triple."
+    }
    ]
   },
   "bin_netstartd": {
