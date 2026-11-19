@@ -144472,20 +144472,48 @@
      "type": "firmware",
      "address": "0x10ebf80c",
      "notes": "entitlements block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f99838",
+     "notes": "Nineteen named rows match the business_msp numeric mapping; empty zero row precedes them."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a087ac",
+     "notes": "Length-gated case-insensitive lookup, including explicit miss outcome."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a087e0",
+     "notes": "Matched row numeric ID is copied to output, not directly evaluated as a permission."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a0873c",
+     "notes": "Reverse name lookup uses twelve-byte stride without a local bounds check."
     }
    ],
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor 'Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]' -- the runtime authz policy consults them); the SBiz entitlement gates Sonos Radio preinstall ('no SBiz entitlement; preinstalling Sonos Radio' vs 'found SBiz entitlement; blocking preinstall'); staleness triggers a refresh job ('stale entitlements; scheduling job to refresh'); on ENTITLEMENTS_CHANGED the old set is stashed for diffing ('stashed existing entitlements to compare later').; internal subscribe verb 'internalMuseSubscribeToEntitlements' wires the ENTITLEMENTS_CHANGED event into the muse event bus; cache lifecycle: 'TTLs updated on refresh (data is unchanged)' / 'cache re-populated on refresh' / 'Cache format unexpected'/'Corrupt Cache' -> cloud refetch; both Sonos Radio and Sonos Business MSP get a scheduled re-evaluation job on change ('scheduled job to consider updating Sonos {Radio,Business MSP}').",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type names present: SBiz (Sonos Business: the business-subscription marker; gates Sonos Radio preinstall + drives RRuntimeZPPolicy), businessCore, sonosRadio, controlChannels, restrictedAccess (capability keys co-located with the record schema). Field vocab: credentialTypeAllowed, allowGuestAccess, isTrial, startDate, endDate.",
    "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
-   "todo": [
-    "Residual: value semantics are server-defined; the name->bit binding is now static (0x10f99838 table)."
-   ],
+   "todo": "Residual: trace the entitlement input parser, trial/date eligibility checks and category-mask-to-SFB/SRADIO consumer bindings. The compiled nineteen-name numeric mapping and lookup behavior are recovered and agree with business_msp, but output XML and enum-name conversion do not establish authorization semantics or prove those semantics are exclusively server-defined.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
     "Resolved: the entitlements fetch/cache pipeline is decoded (entitlementsmanager.cxx @0x10ebf908+): GET /entitlements/api on the cloud URL with X-Sonos-User-Id header; cached via HTTPCacheManager with eTag (\"failed to get current eTag from cache\") and Cache-Control:max-age=0 on explicit refresh; on ENTITLEMENTS_CHANGED (internal bus event type 6) old entitlements are stashed for compare, cache re-populates, and jobs are scheduled to reconsider Sonos Radio + Sonos Business MSP. XML cache schema: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\" /></Entitlements>. SBiz entitlement gates Sonos Radio preinstall: \"no SBiz entitlement; preinstalling Sonos Radio\" vs \"found SBiz entitlement; blocking preinstall\".",
-    "Feature-bit map proven: the SFB/SRADIO name->bit_index table at 0x10f99838 ({name*, strlen, bit} triples) binds all 19 entitlement bits positionally - see business_msp for the list."
+    "Shared name bindings were checked directly against business_msp: the nineteen named twelve-byte rows at 0x10f99838-0x10f99910 map SRADIO_NO_ADS/HD_CONTENT/SPECIAL_CONTENT/ONDEMAND_ARCHIVE/CAN_SKIP to 1..5, then SFB_BASIC_UI/COMMERCIAL_MSP/ESSENTIALS_MSP/PREMIUM_MSP/DASHBOARD_ACCESS/CNTRL_MEDIA_SRCS/CNTRL_THIRD_PARTY/RSTC_CONTENT_ACS/RSTC_SAVE_CONTENT_ACS/RSTC_SETTINGS_ACS/RSTC_ALARMS_ACS/RSTC_MESSAGING_ACS/RSTC_SAVE_GROUPS_ACS/SCHEDULES_ACCESS to 6..19. These values agree with the existing business_msp mapping. A preceding row at 0x10f9982c has an empty name, length zero and numeric value zero. The nineteen named values are ordinal IDs/indices, not literal powers-of-two masks; their downstream use as bit positions still requires the consumer binding.",
+    "Native lookup f_10a08744 starts from the preceding empty row, initializes a non-null output to zero, searches through index nineteen, requires an exact supplied length and then uses strncasecmp at 0x10a087ac-0x10a087c8. A match returns one and stores the row numeric ID at 0x10a087dc-0x10a087e4. A miss returns zero at 0x10a08810-0x10a08838. A zero-length name matches the empty row and yields zero. Null output is a special success path at 0x10a0883c rather than an error. Reverse helper f_10a08720 indexes twelve-byte rows by the incoming ID and loads the name pointer at 0x10a08720-0x10a08740; this helper itself has no range check. This establishes parser/reverse-name mechanics, not entitlement authorization.",
+    "The existing XML Entitlement format is diagnostic output, not proof of an input schema or an eligibility predicate. As recorded in business_msp, f_10372f48 emits type/trial/sku/date/code fields after a bounded five-record loop; the four category integers are emitted by f_10a4e0e4 through f_109d1570. A server-provided value can still have native acceptance and enforcement logic. Therefore server-defined semantics is not used as a reason to stop tracing: the actual input parser, time/trial predicates and category-to-feature consumers remain explicit work, consistently with business_msp."
    ]
   },
   "factory_reset": {
