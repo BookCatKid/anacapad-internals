@@ -41570,7 +41570,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102de7f8",
-         "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+         "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
          "function": "0x102de740"
         },
         {
@@ -41797,7 +41797,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102de7f8",
-        "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+        "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
         "function": "0x102de740"
        },
        {
@@ -41860,7 +41860,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102de7f8",
-           "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+           "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
            "function": "0x102de740"
           },
           {
@@ -41902,7 +41902,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102de7f8",
-         "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+         "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
          "function": "0x102de740"
         },
         {
@@ -41939,13 +41939,13 @@
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "The wrapper does not issue its own 402. It forwards a nonzero engine error; field parsing is performed through the request adapter in the base engine.",
+       "meaning": "The base engine returns 402 if a required argument is missing during exact-name materialization or if the OtherMembers framing fails after materialization. A present value is not rejected by materialization just because conversion yields zero or the queue-list consumer rejects its contents. After parsing, the coordinator-only action also returns 402 for specific source URI, line-in resolution, VLI support and synchronization failures.",
        "fault_sites": [
         "0x102fc944"
        ],
        "conditions": [
         {
-         "description": "The wrapper does not issue its own 402. It forwards a nonzero engine error; field parsing is performed through the request adapter in the base engine.",
+         "description": "The base engine returns 402 if a required argument is missing during exact-name materialization or if the OtherMembers framing fails after materialization. A present value is not rejected by materialization just because conversion yields zero or the queue-list consumer rejects its contents. After parsing, the coordinator-only action also returns 402 for specific source URI, line-in resolution, VLI support and synchronization failures.",
          "evidence": [
           {
            "type": "firmware",
@@ -41961,6 +41961,54 @@
            "build": "86.10-80260",
            "address": "0x102de804",
            "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+           "function": "0x102de740"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f9e58",
+           "notes": "The adapter calls request +8 after registering all argument records, including separate required type-8 records for SharedQueueTrackList and PrivateQueueTrackList. It returns 402 on zero at 0x102f9e78.",
+           "function": "0x102f9c00"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x107304b4",
+           "notes": "TRequest +8 materializes each record by its registered name via parsed-body slot +8 at 0x10730490. A lookup miss leaves the finalized byte +0x31 clear and the required record (optional byte +0x30 clear) makes materialization fail. A present value runs f_10560a58, which sets finalized at 0x10560a74 before type-specific work; neither conversion results nor the type-8 destination callback result are tested as parse success.",
+           "function": "0x10730414"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102deb20",
+           "notes": "After successful materialization and the zero-InstanceID check, a zero return from f_102ab92c on the OtherMembers text sets the worker result to 402.",
+           "function": "0x102de740"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102deeec",
+           "notes": "On this category arm, a zero f_10688070 result on CurrentURI is rejected. It calls f_10687e54 to parse an x-sonos-vli URI.",
+           "function": "0x102de740"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102df0cc",
+           "notes": "When f_1066e538 does not extract a source UUID from the transport snapshot, f_10293270 tries the URI. If both fail the worker returns 402 at either 0x102df0cc or the common assignment 0x102deb20, depending on logging.",
+           "function": "0x102de740"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102df05c",
+           "notes": "The VLI capability rejection is mapped to 402; separately the synchronization callback at 0x102df164 has a zero success contract and nonzero maps to 402 at 0x102df1b0.",
            "function": "0x102de740"
           }
          ]
@@ -41982,10 +42030,59 @@
          "address": "0x102de804",
          "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
          "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f9e58",
+         "notes": "The adapter calls request +8 after registering all argument records, including separate required type-8 records for SharedQueueTrackList and PrivateQueueTrackList. It returns 402 on zero at 0x102f9e78.",
+         "function": "0x102f9c00"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "TRequest +8 materializes each record by its registered name via parsed-body slot +8 at 0x10730490. A lookup miss leaves the finalized byte +0x31 clear and the required record (optional byte +0x30 clear) makes materialization fail. A present value runs f_10560a58, which sets finalized at 0x10560a74 before type-specific work; neither conversion results nor the type-8 destination callback result are tested as parse success.",
+         "function": "0x10730414"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102deb20",
+         "notes": "After successful materialization and the zero-InstanceID check, a zero return from f_102ab92c on the OtherMembers text sets the worker result to 402.",
+         "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102deeec",
+         "notes": "On this category arm, a zero f_10688070 result on CurrentURI is rejected. It calls f_10687e54 to parse an x-sonos-vli URI.",
+         "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df0cc",
+         "notes": "When f_1066e538 does not extract a source UUID from the transport snapshot, f_10293270 tries the URI. If both fail the worker returns 402 at either 0x102df0cc or the common assignment 0x102deb20, depending on logging.",
+         "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df05c",
+         "notes": "The VLI capability rejection is mapped to 402; separately the synchronization callback at 0x102df164 has a zero success contract and nonzero maps to 402 at 0x102df1b0.",
+         "function": "0x102de740"
         }
        ],
        "todo": [
-        "Identify the exact lazy materialization failure conditions and any action-specific late 402 exits."
+        "Established: absent required fields, invalid OtherMembers framing, rejected VLI URI, failed line-in UUID resolution, unavailable VLI and nonzero synchronization callback can each return 402.",
+        "Trace the URI category branches entering each late check and bind the concrete synchronization slot +8 implementation at 0x102df164 to name its failure conditions."
        ]
       }
      ],
@@ -42057,8 +42154,8 @@
      "args_verified_empty": true,
      "implementation_notes": " Handler 0x102fc8b0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
      "todo": [
-      "Established: the engine parses fields lazily after topology checks and requests two distinct queue lists.",
-      "Verify each serialized argument's acceptance and consuming state changes, including parser handling of the advertised versus requested queue fields and the remaining post-materialization faults."
+      "Established: the adapter resolves the two required queue arguments by exact name and does not use CurrentQueueTrackList as an alias. The base action has separate parse, OtherMembers, source URI, VLI and synchronization 402 paths.",
+      "Finish the serialized argument consumers and the URI category and synchronization predicates that select the late failure paths."
      ],
      "resolved_findings": [
       "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer.",
@@ -43473,7 +43570,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102df4d8",
-         "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+         "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
          "function": "0x102df410"
         },
         {
@@ -43708,7 +43805,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102df4d8",
-        "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+        "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
         "function": "0x102df410"
        },
        {
@@ -43726,11 +43823,43 @@
         "address": "0x102df6f4",
         "notes": "The post-materialization failure tail calls f_102d4e80 with no candidate or output buffers, discards its result, cleans up under the worker lock, and returns the original error from r25.",
         "function": "0x102df410"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102fa114",
+        "notes": "The adapter calls request +8 after registering all argument records, including separate required type-8 records for SharedQueueTrackList and PrivateQueueTrackList. It returns 402 on zero at 0x102fa134.",
+        "function": "0x102f9e9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107304b4",
+        "notes": "TRequest +8 materializes each record by its registered name via parsed-body slot +8 at 0x10730490. A lookup miss leaves the finalized byte +0x31 clear and the required record (optional byte +0x30 clear) makes materialization fail. A present value runs f_10560a58, which sets finalized at 0x10560a74 before type-specific work; neither conversion results nor the type-8 destination callback result are tested as parse success.",
+        "function": "0x10730414"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102df848",
+        "notes": "After successful materialization and the zero-InstanceID check, a zero return from f_102ab92c on the OtherMembers text sets the worker result to 402.",
+        "function": "0x102df410"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102df740",
+        "notes": "The base worker returns r25. The adapter status enters r25 at 0x102df684, and the only action-local 402 assignment to it is the OtherMembers failure at 0x102df848. Standalone fallback at 0x102df6f4 does not overwrite it; neither source-state decode nor indexed resume submits a later SOAP 402.",
+        "function": "0x102df410"
        }
       ],
       "todo": [
        "Established: The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers.",
-       "Trace the exact topology predicate in the derived guard and any behavior of parser callbacks that controls the materialization fault."
+       "Trace the derived topology guard from f_109089f0 and the f_1075c4d0 fallback to the local topology and hardware data that permits promotion."
       ]
      },
      "fault_sites": [
@@ -43771,7 +43900,7 @@
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102df4d8",
-           "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+           "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
            "function": "0x102df410"
           },
           {
@@ -43813,7 +43942,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102df4d8",
-         "notes": "Mode zero with clone false returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
+         "notes": "Nonzero engine mode without the clone header returns 800 before parsing. Otherwise the locked worker starts an indexed session operation and submits an indexed record before asking the request adapter to materialize.",
          "function": "0x102df410"
         },
         {
@@ -43831,6 +43960,38 @@
          "address": "0x102df6f4",
          "notes": "The post-materialization failure tail calls f_102d4e80 with no candidate or output buffers, discards its result, cleans up under the worker lock, and returns the original error from r25.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa114",
+         "notes": "The adapter calls request +8 after registering all argument records, including separate required type-8 records for SharedQueueTrackList and PrivateQueueTrackList. It returns 402 on zero at 0x102fa134.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "TRequest +8 materializes each record by its registered name via parsed-body slot +8 at 0x10730490. A lookup miss leaves the finalized byte +0x31 clear and the required record (optional byte +0x30 clear) makes materialization fail. A present value runs f_10560a58, which sets finalized at 0x10560a74 before type-specific work; neither conversion results nor the type-8 destination callback result are tested as parse success.",
+         "function": "0x10730414"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df848",
+         "notes": "After successful materialization and the zero-InstanceID check, a zero return from f_102ab92c on the OtherMembers text sets the worker result to 402.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df740",
+         "notes": "The base worker returns r25. The adapter status enters r25 at 0x102df684, and the only action-local 402 assignment to it is the OtherMembers failure at 0x102df848. Standalone fallback at 0x102df6f4 does not overwrite it; neither source-state decode nor indexed resume submits a later SOAP 402.",
+         "function": "0x102df410"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x102df410 exits=[232]; promotion worker rc surfaced | worker literal bound [165, 1025, 1640, 4096, 4097, 5489] (ASCII-fragment constants filtered) (worker_err_literals.json)",
@@ -43844,19 +44005,19 @@
        ],
        "todo": [
         "Established: The wrapper reports the nonzero coordinator action result. The group-aware override can return 1023; the base returns 800 for the pre-parse clone guard, 718 for invalid parsed InstanceID, and 402 for materialization or invalid OtherMembers.",
-        "Trace the exact topology predicate in the derived guard and any behavior of parser callbacks that controls the materialization fault."
+        "Trace the derived topology guard from f_109089f0 and the f_1075c4d0 fallback to the local topology and hardware data that permits promotion."
        ]
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "The wrapper does not issue its own 402. It forwards a nonzero engine error; field parsing is performed through the request adapter in the base engine.",
+       "meaning": "The base engine returns 402 if a required argument is missing during exact-name materialization or if the OtherMembers framing fails after materialization. A present value is not rejected by materialization just because conversion yields zero or the queue-list consumer rejects its contents. Either 402 branch can attempt standalone setup without changing the returned fault. The source restore does not introduce a subsequent 402.",
        "fault_sites": [
         "0x102fc464"
        ],
        "conditions": [
         {
-         "description": "The wrapper does not issue its own 402. It forwards a nonzero engine error; field parsing is performed through the request adapter in the base engine.",
+         "description": "The base engine returns 402 if a required argument is missing during exact-name materialization or if the OtherMembers framing fails after materialization. A present value is not rejected by materialization just because conversion yields zero or the queue-list consumer rejects its contents. Either 402 branch can attempt standalone setup without changing the returned fault. The source restore does not introduce a subsequent 402.",
          "evidence": [
           {
            "type": "firmware",
@@ -43872,6 +44033,38 @@
            "build": "86.10-80260",
            "address": "0x102df4e4",
            "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102df7b4 and returns 718. The worker also calls f_102ab92c at 0x102df83c to match the current group.",
+           "function": "0x102df410"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102fa114",
+           "notes": "The adapter calls request +8 after registering all argument records, including separate required type-8 records for SharedQueueTrackList and PrivateQueueTrackList. It returns 402 on zero at 0x102fa134.",
+           "function": "0x102f9e9c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x107304b4",
+           "notes": "TRequest +8 materializes each record by its registered name via parsed-body slot +8 at 0x10730490. A lookup miss leaves the finalized byte +0x31 clear and the required record (optional byte +0x30 clear) makes materialization fail. A present value runs f_10560a58, which sets finalized at 0x10560a74 before type-specific work; neither conversion results nor the type-8 destination callback result are tested as parse success.",
+           "function": "0x10730414"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102df848",
+           "notes": "After successful materialization and the zero-InstanceID check, a zero return from f_102ab92c on the OtherMembers text sets the worker result to 402.",
+           "function": "0x102df410"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102df740",
+           "notes": "The base worker returns r25. The adapter status enters r25 at 0x102df684, and the only action-local 402 assignment to it is the OtherMembers failure at 0x102df848. Standalone fallback at 0x102df6f4 does not overwrite it; neither source-state decode nor indexed resume submits a later SOAP 402.",
            "function": "0x102df410"
           }
          ]
@@ -43893,10 +44086,39 @@
          "address": "0x102df4e4",
          "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102df7b4 and returns 718. The worker also calls f_102ab92c at 0x102df83c to match the current group.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa114",
+         "notes": "The adapter calls request +8 after registering all argument records, including separate required type-8 records for SharedQueueTrackList and PrivateQueueTrackList. It returns 402 on zero at 0x102fa134.",
+         "function": "0x102f9e9c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304b4",
+         "notes": "TRequest +8 materializes each record by its registered name via parsed-body slot +8 at 0x10730490. A lookup miss leaves the finalized byte +0x31 clear and the required record (optional byte +0x30 clear) makes materialization fail. A present value runs f_10560a58, which sets finalized at 0x10560a74 before type-specific work; neither conversion results nor the type-8 destination callback result are tested as parse success.",
+         "function": "0x10730414"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df848",
+         "notes": "After successful materialization and the zero-InstanceID check, a zero return from f_102ab92c on the OtherMembers text sets the worker result to 402.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df740",
+         "notes": "The base worker returns r25. The adapter status enters r25 at 0x102df684, and the only action-local 402 assignment to it is the OtherMembers failure at 0x102df848. Standalone fallback at 0x102df6f4 does not overwrite it; neither source-state decode nor indexed resume submits a later SOAP 402.",
+         "function": "0x102df410"
         }
-       ],
-       "todo": [
-        "Identify the exact lazy materialization failure conditions and any action-specific late 402 exits."
        ]
       }
      ],
@@ -43968,8 +44190,8 @@
      "args_verified_empty": true,
      "implementation_notes": " Handler 0x102fc3a0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
      "todo": [
-      "Established: the lazy adapter requests individual shared and private queue lists and the base engine can continue into standalone setup.",
-      "Verify each serialized argument's acceptance and consuming state changes, including parser handling of the advertised versus requested queue fields and the remaining post-materialization faults."
+      "Established: the adapter resolves the two required queue arguments by exact name and does not use CurrentQueueTrackList as an alias. Materialization and OtherMembers are the two 402 sources; failure can attempt standalone setup without replacing the fault.",
+      "Finish the derived topology guard and the serialized input consumers, including the async resume decision and source-specific queue, sink and notification effects."
      ],
      "resolved_findings": [
       "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer.",
@@ -47632,12 +47854,37 @@
          "address": "0x102cf768",
          "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
          "function": "0x102ceb40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dd88c",
+         "notes": "For a target in the current topology membership, f_104d82ac examines the object's local product info from f_1090ad44 under the +0xf8 lock. f_109089f0 accepts product codes 29, 35, 46, 55 or 59 from info+0xcc. Only then does f_104d82ac return object+0x18c. If this is clear, the action skips the joint local-device/target query and goes straight to the target-only check.",
+         "function": "0x102dd77c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1075c090",
+         "notes": "If the local predicate is set, f_1075bf54 attempts to acquire the live topology reference, looks up the local ID and requires local record bytes +0x1f18 and +0x1f4b and local device state +0x710 equal to 1 (f_10762df8, f_10760d64 and f_10778dc8). Its +0x1c88 record must be marked active; f_1053cb88/f_1053dba0 then requires exactly one exact target ID in its entries (strcmp at 0x1053dbec). A nonzero result bypasses the target-only rejection.",
+         "function": "0x1075bf54"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10747264",
+         "notes": "The target-only query looks up the target and returns false for no record, a clear +0x1f18 or a clear first byte of its +0x1c88 roster. The call supplies zero as the expected boolean, so the copied roster word +0x288 must be zero. For target product codes 29, 35, 46, 55 or 59, the additional roster check f_10745e6c must also return zero. It is the true result of f_1074720c—not a false result—that enters the delegation worker's 402 rejection.",
+         "function": "0x1074720c"
         }
        ],
        "notes": null,
        "buf_cap": 25,
        "todo": [
-        "Identify the live topology predicates behind f_104d82ac, f_1074720c and f_1075bf54."
+        "Established: current membership selects the direct path. A qualifying local roster with exactly one matching target bypasses the second check; otherwise a true target-only roster check rejects it with 402.",
+        "Trace the producer of local byte +0x18c and the target roster validator f_10745e6c to establish the device/topology combinations covered by these checks and the separate home-theater rejoin gate."
        ]
       },
       "RejoinGroup": {
@@ -47819,11 +48066,35 @@
         "address": "0x102cf768",
         "notes": "The URI worker can reach f_102ddbb0 for the home-theater route. It applies a separate target membership and HT capability check; one accepted arm prepares the source to stop, then recursively calls delegation with RejoinGroup=true and ClearSource=false at 0x102ddea0. Zero or 803 can continue into the AVTransport control URI lookup.",
         "function": "0x102ceb40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dd88c",
+        "notes": "For a target in the current topology membership, f_104d82ac examines the object's local product info from f_1090ad44 under the +0xf8 lock. f_109089f0 accepts product codes 29, 35, 46, 55 or 59 from info+0xcc. Only then does f_104d82ac return object+0x18c. If this is clear, the action skips the joint local-device/target query and goes straight to the target-only check.",
+        "function": "0x102dd77c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1075c090",
+        "notes": "If the local predicate is set, f_1075bf54 attempts to acquire the live topology reference, looks up the local ID and requires local record bytes +0x1f18 and +0x1f4b and local device state +0x710 equal to 1 (f_10762df8, f_10760d64 and f_10778dc8). Its +0x1c88 record must be marked active; f_1053cb88/f_1053dba0 then requires exactly one exact target ID in its entries (strcmp at 0x1053dbec). A nonzero result bypasses the target-only rejection.",
+        "function": "0x1075bf54"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10747264",
+        "notes": "The target-only query looks up the target and returns false for no record, a clear +0x1f18 or a clear first byte of its +0x1c88 roster. The call supplies zero as the expected boolean, so the copied roster word +0x288 must be zero. For target product codes 29, 35, 46, 55 or 59, the additional roster check f_10745e6c must also return zero. It is the true result of f_1074720c—not a false result—that enters the delegation worker's 402 rejection.",
+        "function": "0x1074720c"
        }
       ],
       "todo": [
-       "Established: Reads current player and coordinator topology, the target membership/primary predicates, and the current transport/auxiliary state used to prepare a handoff.",
-       "Identify what exact topology metadata controls f_104d82ac, f_1074720c and f_1075bf54."
+       "Established: the member arm checks local product type and a local topology byte, then tests the target against a local or target roster; the target-only predicate can return 402. The nonmember arm copies transport state.",
+       "Bind the local +0x18c writer and target roster validation at f_10745e6c; trace how those predicates differ from the home-theater rejoin capability check."
       ]
      },
      "side_effects": [
