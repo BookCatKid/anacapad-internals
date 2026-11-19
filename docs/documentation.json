@@ -25662,7 +25662,7 @@
      },
      "inputs": {
       "DesiredZoneName": {
-       "description": "Room name. f_105b4574 copies it with f_10906304 into a 0x41-byte buffer (64 characters), trims surrounding whitespace with sonosTrimWhitespace and writes it to selector 0x40000 only when the result is non-empty, so an empty or all-blank value leaves the name unchanged.",
+       "description": "Room name. f_105b4574 copies it with f_10906304 into a 0x41-byte buffer (64 UTF-8 payload bytes), trims surrounding whitespace with sonosTrimWhitespace and writes it to selector 0x40000 only when the result is non-empty, so an empty or all-blank value leaves the name unchanged.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -25672,10 +25672,10 @@
         "via_slot": 28
        },
        "semantic_type": "string argument (type-tag-7 record)",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "any text; longer than 64 characters is truncated",
-       "range": "max 1023 chars",
+       "format": "utf-8 text, buffer cap 1024 bytes (1023 payload bytes plus NUL)",
+       "unit": "UTF-8 bytes (string length)",
+       "accepted_values": "UTF-8 text within the request buffer; the local copy truncates at its byte limit without retaining a partial UTF-8 character",
+       "range": "At most 64 UTF-8 payload bytes in the local write, excluding the terminating NUL",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
@@ -25729,6 +25729,34 @@
          "build": "86.10-80260",
          "address": "0x105b4758",
          "notes": "selector 0x40000"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105b4740",
+         "notes": "Call f_10906304 with space for 64 payload bytes and NUL"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10906334",
+         "notes": "Reserve one byte for NUL"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1090636c",
+         "notes": "Copy one byte per iteration"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x109063f8",
+         "notes": "On truncation call f_10905728, which adjusts the terminator to avoid retaining a partial UTF-8 character"
         }
        ],
        "notes": null,
