@@ -201009,6 +201009,38 @@
      "build": "86.10-80260",
      "address": "0x10299e5c",
      "notes": "worker thread: 32-slot ring + TCP_INFO abort check"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10421e70",
+     "address": "0x10421f70",
+     "notes": "snprintf_chk vararg order: r8=sp+0x19b4c dir-prefix buffer supplies %s; r9=record+0x140 supplies %08X. GUID occupies +0x140..+0x14f; +0x150 flag byte."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10421e70",
+     "address": "0x10421ed8",
+     "notes": "strrchr(arg2,'/') + memcpy_chk builds the directory portion of the item URI into the %s buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x104227c8",
+     "address": "0x10422944",
+     "notes": "Art-write block gated on f_103870d0 x-file-cifs scheme decode, global 0x1109725c nonnull and f_10426ae4 record lookup; +0x150 flag picks GUID vs folder.jpg emit."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1041c9e4",
+     "address": "0x1041cb60",
+     "notes": "f_10502f5c fills the +0x3ac record (GUID +0x140, flags +0x150/+0x151, +0xe7, +0x4c/+0x4d) via field-descriptor table 0x10ede378."
     }
    ],
    "request_grammar": "GET /getaa?{m|s|vli}...&u=<url>[&v=<n>] (query parsed by f_10c3b72c: param names <=32 chars, values <=1024 chars, '&'-separated. Recognized params (compared in order m,s,vli,u via strcmp at 0x100c35cc-0x100c3618): 'm' medium-variant flag, 's' small-variant flag, 'vli' virtual-line-in image flag, 'u' upstream image URL. IMPORTANT: 'u' is the TERMINATOR) when encountered, parsing stops and the request proceeds; any params AFTER u= are never read. 'v' is NOT parsed by the handler at all: it appears in emitted URIs (/getaa?u=%s&v=%u) purely as a client-side cache-buster/etag. Unknown params are skipped silently",
@@ -201016,16 +201048,15 @@
    "async_model": "handler f_100b8c2c is async: logs 'queueing album art request %s %u %u %u', lazily creates the mod_zp_aa server singleton (new 0x428a0, ctor f_10299a48) at 0x11096c98, enqueues the request into a 32-slot ring of 0x2134-byte entries (f_10299c34) and returns. Worker thread f_10299e5c blocks on a condvar, pops slots, probes the client socket with getsockopt(TCP_INFO) and takes an abort path (f_100c34fc slot-discard) when the peer is already in CLOSE/CLOSE_WAIT/CLOSING: clients that give up early are never served",
    "param_semantics": "m/s/vli select the image path BEFORE the request object is built: no flags -> default fetch (u URL streamed direct); m -> f_100c2f94 variant; s -> f_100c31c8 variant; vli -> direct vli-image fetch f_100be6ec. The three u16 fields carried on the request (+0x180/+0x182/+0x184) ride through to the vliStreamImage call - request dimensions/ids, not user params",
    "arturi_cap": "albumArtURI emission capped at 1024 bytes (buffer obj+0x54, len at +0x458, f_10381528); overflow logs 'AlbumArtURI longer than expected.' in the favorites log domain",
-   "todo": [
-    "Residual: the concrete prefix value - it is stored config on the +0x3ac sub-object member +0x140 (likely /jffs or /var cache root set at init); the member chain is proven, the seeding site is init-config data."
-   ],
-   "fetch_path": "Wire grammar '/getaa?u=%s&v=%u' (u = source art URI, v = version); five sites rewrite upnp:albumArtURI values into this form (f_102a1130, f_1034a3e8, f_1034b4f4, f_10425f64, f_1047b7b8). Queuer f_100b8c2c 'queueing album art request %s %u %u %u' (uri + 3 numeric params); fetcher f_100c34fc 'Fetching album art for %s: %s'. Upstream schemes resolved: x-sonos-http: prefixed URIs, old Rhapsody direct-ns.rhapsody.com imageserver '/imageserver/images/%s/300x300' ('Unknown old Rhapsody album art URI type: %s' fallback), rdradio/RDCPA art namespaces ('rdradio:artist:Art.', 'RDCPA:ARTALBUM:', 'RDCPA:ARTCOM...', 'explore:artist:mainreleases::art.%s'). Generated-art filename pattern '%s/AlbumArt_{%08X-...}_Large.jpg'. Metadata serializer f_104387f4 applies 'audiobook'/'podcast' content-type special-casing to art handling; 'omit missing metadata album art: %s' is a user setting; 'AlbumArtURI longer than expected.' is the length guard.",
+   "fetch_path": "Wire grammar '/getaa?u=%s&v=%u' (u = source art URI, v = version); five sites rewrite upnp:albumArtURI values into this form (f_102a1130, f_1034a3e8, f_1034b4f4, f_10425f64, f_1047b7b8). Queuer f_100b8c2c 'queueing album art request %s %u %u %u' (uri + 3 numeric params); fetcher f_100c34fc 'Fetching album art for %s: %s'. Upstream schemes resolved: x-sonos-http: prefixed URIs, old Rhapsody direct-ns.rhapsody.com imageserver '/imageserver/images/%s/300x300' ('Unknown old Rhapsody album art URI type: %s' fallback), rdradio/RDCPA art namespaces ('rdradio:artist:Art.', 'RDCPA:ARTALBUM:', 'RDCPA:ARTCOM...', 'explore:artist:mainreleases::art.%s'). Generated-art filename pattern '%s/AlbumArt_{%08X-...}_Large.jpg' is emitted only inside f_10421e70, where %s is the directory portion of the item URI (x-file-cifs:// tracks) and the GUID comes from the per-item +0x3ac record (+0x140..+0x14f); the alternate branch f_104222e0 emits '<dir>/folder.jpg' when record flag +0x150 is clear. Metadata serializer f_104387f4 applies 'audiobook'/'podcast' content-type special-casing to art handling; 'omit missing metadata album art: %s' is a user setting; 'AlbumArtURI longer than expected.' is the length guard.",
    "resolved_findings": [
     "Resolved: /getaa?u=&v= wire grammar, 5 rewrite sites, queue+fetch functions, upstream scheme map (x-sonos-http/rhapsody-imageserver/rdradio/RDCPA/explore), Large.jpg naming, audiobook/podcast special-casing, omit-missing setting, length guard.",
     "Resolved (partial): the local proxy scheme is '{base}/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg' - art is served by GUID with a '_Large' variant suffix (emit site 0x10421f90). Upstream fetch appends '?albumArt=true' to the item URI (0x10711578); getAlbumArtURI resolves per-item art ('AlbumArtURI longer than expected' bound check). Household feature flag 'enableSecureAlbumArt' (settings table 0x10a5850c) switches to secure/signed art URIs.",
     "Resolved: art cache filename grammar \"%s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg\" @0x10ecd458 - a UUID-braced file under a config-supplied cache dir (%s arg); only the _Large variant is literal, sibling {folder.jpg, Folder.jpg, folder.gif, Folder.gif} names are the local-folder cover fallbacks; MIME map {image/jpg, image/gif}.",
     "Resolved: the full emit grammar is \"%s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg\" (0x10ecd458) - GUID-keyed (uuid fields), and _Large.jpg is the ONLY size suffix in the image (no _Medium/_Small literals exist). Sibling embedded/local-art candidates proven in the same table run: {folder.jpg, Folder.jpg, folder.gif, Folder.gif} with mime {image/jpg, image/gif}.",
-    "Cache-dir prefix source bound: at the emit site f_10421e70 the %s arg is loaded as member[+0x3ac].member[+0x140] (lwz r11,0x3ac(obj); lwz r9,0x140(r11) @0x10421f4c-0x10421f70) - the prefix is a stored config string on a sub-object, not a literal; filename cap 0x43c bytes."
+    "Prefix correction at the sole emit site f_10421e70 (fmt 0x10ecd458 used only at 0x10421f90): __snprintf_chk takes 4 fixed args, so the %s arg is r8 = stack buffer sp+0x19b4c, not member +0x140. That buffer holds the leading bytes of the item URI up to its last '/' (strrchr at 0x10421ed8, __memcpy_chk at 0x10421f40, NUL store at 0x10421f64), i.e. the directory portion of the item URI. Member +0x140 loads r9 = the %08X argument = GUID time_low; with lhz +0x144/+0x146 and lbz +0x148..+0x14f it forms a 16-byte GUID embedded in the +0x3ac record, not a stored config string.",
+    "Record +0x3ac is a per-item stack record built in caller f_104227c8 at sp+0x18 (not a persistent config sub-object): fields +0x134/+0x135(=0x81)/+0x136/+0x138/+0x13c are seeded inline at 0x10422838-0x1042288c, and f_1041c9e4 populates the record through f_10502f5c with field-descriptor table 0x10ede378, including GUID at +0x140 and flags +0x150/+0x151 passed at 0x1041cb60-0x1041cbec. Byte +0x150 selects between two emitters: nonzero -> f_10421e70 writes '<item-dir>/AlbumArt_{GUID}_Large.jpg'; zero -> f_104222e0 writes '<item-dir>/folder.jpg' (literal 0x10ecd4b0). Both prefixes are the item URI dirname computed per call.",
+    "Emission is scheme-gated: caller f_104227c8 runs the art-write block only when f_103870d0 (strncasecmp 'x-file-cifs://' len 14 at 0x103870f0-0x1042294c) decodes the item URI successfully, global store 0x1109725c is nonnull and f_10426ae4 lookup succeeds (0x10422950-0x10422970). Therefore the concrete prefix is the directory of the track's x-file-cifs:// share URI (the generated art file is addressed alongside the media item on the share); no /jffs, /var or init-config cache root participates in this emit. The prior 'stored config on +0x3ac +0x140' claim and the 'seeding site is init-config data' boundary are withdrawn."
    ]
   },
   "muse_route_verbs": {
