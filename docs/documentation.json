@@ -42966,7 +42966,7 @@
        ]
       },
       "CurrentURIMetaData": {
-       "description": "DIDL-Lite metadata for CurrentURI, carried into the new coordinator for track-info continuity across the handoff",
+       "description": "Required metadata text accompanying CurrentURI. The promotion worker stores the materialized text with the current URI; it does not require valid DIDL-Lite to do so. A successful import may also save the text in the restore descriptor, depending on the restored state and URI.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -42976,14 +42976,14 @@
         "via_slot": "request +0x1c lookup followed by +8 materialization"
        },
        "semantic_type": "string argument",
-       "format": "utf-8 text (large blob arg via req slot)",
+       "format": "Text, copied without a DIDL-Lite parse in the adapter",
        "unit": "n/a",
-       "accepted_values": "AVTransportURIMetaData-domain value",
-       "range": "destination buffer: 4097 bytes including space for NUL",
-       "special_values": "none identified",
+       "accepted_values": "Text; the required field may be empty",
+       "range": "At most 4096 bytes retained, plus NUL",
+       "special_values": "Empty text is stored as empty metadata",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "Exact-name materialization into a type 7 buffer; overlong text is truncated rather than rejected by the adapter.",
        "evidence": [
         {
          "type": "firmware",
@@ -42996,7 +42996,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102f9fb4",
-         "notes": "Looks up CurrentURIMetaData and installs a type 7 caller-buffer descriptor (4097 bytes). The capacity describes destination storage, not a separately established truncation or rejection rule.",
+         "notes": "Looks up CurrentURIMetaData by exact name and installs a type 7 caller-buffer descriptor with capacity 4097.",
          "function": "0x102f9e9c"
         },
         {
@@ -43014,14 +43014,42 @@
          "address": "0x102dfa54",
          "notes": "Copies the input URI and metadata to engine +0x5dc/+0x9dd with f_102ed638, then marks +0x4251 and conditionally clears and marks a previously stored next URI. The worker sets mode 2 and marks +0x4658 on that import arm.",
          "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560720",
+         "function": "0x10560708",
+         "notes": "Type 7 copies up to its registered capacity without typed conversion. f_10560a58 terminates the copied text or overwrites the last byte when the buffer is full; the retained limit is capacity minus one."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ed670",
+         "function": "0x102ed638",
+         "notes": "The descriptor helper uses strlcpy for URI (1025), metadata (4097) and the third string (37). The metadata copy at descriptor+0x401 has no parse or normalization step."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df618",
+         "function": "0x102df410",
+         "notes": "Passes sp+0x17bb4 as the CurrentURIMetaData destination. Its sole post-materialization use is the copy at 0x102dfa54; the source-record decode and revival branches join that copy. If an old mode-1 state must be reset, 0x102dff18 does it before rejoining at 0x102dfa3c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dfc80",
+         "function": "0x102df410",
+         "notes": "When f_102b0974 returns nonzero, copy the same current URI and metadata into restore fields +0x2e2a and +0x322b. f_102b0974 tests the restored state object and classifies the URI, not the metadata. The restore path later uses this metadata as the reload argument at 0x102d0940."
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": 4097,
-       "todo": [
-        "Established: the adapter asks for a 4097-byte destination and the accepted import copies metadata into engine +0x9dd",
-        "Trace whether any supported alternate source branch transforms or discards the input metadata."
-       ]
+       "notes": "DIDL-Lite is the advertised metadata convention, not an adapter validation rule.",
+       "buf_cap": 4097
       },
       "SleepTimerState": {
        "description": "Two comma-separated remaining durations: the active timer and the secondary deadline. Empty positions do not arm a timer. The receiver rebuilds its own deadlines and timer generation.",
