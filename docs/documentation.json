@@ -147236,7 +147236,7 @@
    ]
   },
   "scrobbler": {
-   "summary": "Audioscrobbler/Last.fm submission client implementing protocol 1.2 over raw sockets: GET handshake to post.audioscrobbler.com, form-encoded scrobble POSTs, BADTIME Date-header recovery, OK-response check; also embeds ws.audioscrobbler.com/2.0 for the newer API; last.fm REST auth: method 'auth.getMobileSession' + signed '&api_sig=' (md5 constants present); last.fm API key 49f9477923cc3ab8ed90029f6e7e1d9f; timing telemetry '%s failed, ret = %hu, tvStart = %d s %d us, m_tvConnectDone = %d s %d us, m_tvDone = ...'",
+   "summary": "The image contains both legacy Audioscrobbler submission and local Last.fm mobile-session authentication. The latter computes authToken locally through imported MD5 helpers and appends a fixed compiled signature suffix, rather than receiving an unexplained external secret. Legacy submission scheduling and retry/queue behavior still need a complete control-flow join.",
    "anchors": [
     "http://post.audioscrobbler.com/",
     "https://ws.audioscrobbler.com/2.0/",
@@ -147302,6 +147302,24 @@
      "build": "86.10-80260",
      "address": "0x105240c8",
      "notes": "submission builder in f_105236c8"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10713db0 / f_10713ed4 / f_10713d1c / f_10713c7c",
+     "address": "0x10713f58",
+     "callsite": "0x10713f7c / 0x10713f8c / 0x107142fc / 0x10714328",
+     "notes": "Constructor copies user/password; nested hash helper and32-byte update establish authToken. Final signature suffix is unconditional literal update after username, with no further MD5 update before finalization. Raw hex nibble mask at0x10713cd0 retains low4 bits; high nibble uses actual srawi. No credentials were executed or submitted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "libsonoscrypto.so.3 ZZ0062/ZZ0064/ZZ0061",
+     "address": "lib0x6b30 / 0x6c08 / 0x6c4c",
+     "callsite": "lib0x6bd8 / 0x6be0 / 0x6c2c / 0x6ca4",
+     "notes": "Exported symbol bounds and PPC objdump prove selector2 is MD5 init/update/finish, resolving the imported crypto edge missed by the old local-call census."
     }
    ],
    "handshake": "GET /?hs=true&p=1.2&c= HTTP/1.1 to http://post.audioscrobbler.com/ (c= = client id); service token 'lastfm'; on BADTIME response it logs 'BADTIME -- stealing time from Date: header' and resyncs clock from the HTTP Date: response header",
@@ -147309,26 +147327,26 @@
    "transport": "Owns its own connection ('scrobbling openConnection to %s %s failed'), not the shared HTTP client; checks 'OK' status line ('Scrobbling failed. Status returned: %s')",
    "endpoints": [
     "http://post.audioscrobbler.com/ (handshake + legacy submission)",
-    "https://ws.audioscrobbler.com/2.0/ (v2 API, usage unresolved)",
+    "https://ws.audioscrobbler.com/2.0/ (auth.getMobileSession through f_10713ed4)",
     "last.fm-radio-http URI scheme (func ~0x1041d43c)"
    ],
    "result_codes": "R_LASTFM_BAD_ACCOUNT, R_LASTFM_BAD_SUBLEVEL, R_LASTFM_NO_ACCOUNT, R_LASTFM_NO_CONTENT, R_LASTFM_STREAM_LIMIT",
-   "unresolved": "submission trigger policy (when a track scrobbles), queueing/retry on failure, where session creds live (SystemProperties?), which player state gates scrobbling, ws.audioscrobbler.com/2.0 usage",
+   "unresolved": "Legacy scheduling thresholds, early-return predicates, account/session lifetime and retry/queue ownership remain actionable static work; v2 authToken and signature suffix are recovered locally.",
    "endpoint": "https://ws.audioscrobbler.com/2.0/ (Audioscrobbler 2.0 REST); xmlpost CONTENT-LENGTH; \"openConnection to %s failed\"; \"Data overflowed; ignore submit\"",
    "todo": [
-    "Residual: the shared secret feeding api_sig is not a co-located literal (accumulator-seeded or member-supplied); authToken's md5(username+md5(pw)) derivation occurs in the account/crypto boundary it calls into."
+    "Established: local username/password copies, exact nested MD5 authToken derivation, imported MD5 dispatch and fixed compiled api_sig suffix. Original unknown-secret/crypto-boundary residual is resolved. Remaining: trace legacy f_105236c8 eligibility, early returns and transport results back through play-report caller f_104cbf1c, then session state producers and any scheduling/retry owners. Bind caller inputs at0x10714890/0x10714924 to account storage before claiming persistence provenance. The post-call flag at0x104cc458 is not an invocation gate, and absent retry strings do not prove absent retries. This is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: Audioscrobbler 1.2 protocol - handshake GET http://post.audioscrobbler.com/?hs=true&p=1.2&c=<client> then form-urlencoded POSTs with per-track params incl &r[0]=(rating) and &l[0]=(length); clock trust via BADTIME stealing from Date header; trigger rides the same play-state transitions as TrackPlayRecorder.",
-    "Protocol details decoded (literal block at 0x10ee4cxx-0x10ee4exx): handshake GET /?hs=true&p=1.2&c=%s&v=%s&u=%s&t=%s&a=%s to post.audioscrobbler.com over a raw socket (CONNECTION: close), BADTIME recovery steals the Date: response header. Submissions are single form-encoded POSTs carrying the Audioscrobbler 1.2 indexed field set &b[0]=(album) &n[0]=(track-number) &m[0]=(musicbrainz id) &a[0]=(artist) &t[0]=(track) &i[0]=(timestamp) &o[0]=(source) &r[0]=(rating) &l[0]=(length). The submission body at ~0x105236c8 pulls each field through the f_1056fb1c settings-getter family (20+ consecutive calls) then emits scrobbling submission %s / scrobbling openConnection to %s %s failed / Scrobbling failed. Status returned: %s - fire-and-forget with no retry/queue vocabulary in the image.",
-    "Resolved: the scrobble trigger is the play-report submission path in trackplaymonitor (tpm domain) - the sole caller of the submission builder f_105236c8 is f_104cbf1c at 0x104cc454, the same function that logs 'submitting play report for uuid: %s'. The scrobble entry is built with {track obj, stream/service obj, name, elapsedSecs = sonosClockGetTime - playStartTime, 0, flag} and gated by the post-call 'andi. 0x4' flag test at 0x104cc458. So scrobble entries fire on finalized play reports (track end), not on track-start events.",
+    "Audioscrobbler1.2 handshake and submission form fields are present, along with BADTIME/Date-header clock recovery. A concrete play-report calling context is recovered below; a complete set of eligibility or play-state predicates is not established by these literals.",
+    "Legacy form fields and socket-response literals identify the submission implementation, but absence of retry vocabulary does not prove fire-and-forget behavior. The repeated f_1056fb1c calls at the start of f_105236c8 initialize temporary objects (zeroing fields), not music-account settings getters. Their former account-provenance interpretation is withdrawn.",
+    "Concrete play-report caller0x104cc454 invokes f_105236c8 with track/source context and elapsed seconds. The andi0x4 test at0x104cc458 occurs after this call and therefore cannot gate its invocation. Finalized reports are one demonstrated calling context, not proof that all submissions occur only at track end. Producer predicates, early returns and failure/retry ownership remain to be traced.",
     "Resolved: the wire protocol is Audioscrobbler/Last.fm submission protocol 1.2 over plain HTTP to http://post.audioscrobbler.com - handshake 'GET /?hs=true&p=1.2&c=<client>&u=<user>&a=<auth-md5>' built piecewise (0x10ee4c38/4c50/4c58), submission 'POST' body carries session 's=' plus per-track arrays &a[0]=artist &t[0]=title &i[0]=timestamp &o[0]=source &r[0]=&l[0]=rating/length &b[0]=album &n[0]=tracknum &m[0]=mbid (f_105236c8); response handling recognizes 'OK'/'BADTIME' and steals the wall-clock from the HTTP Date: header on BADTIME; 'lastfm' (0x10ee4c98) is the account service key.",
     "Resolved: the handshake URL is built by a literal {fmt,value} pointer table @0x10ee4c08 - GET http://post.audioscrobbler.com/?hs=true&p=1.2&c=son&v=1.0&u=<user>&t=<unix %ld>&a=<auth>; wire verbs are \"GET %s HTTP/1.1 / HOST: %s:%d / CONNECTION: close\". Submission uses POST with per-track params &b[0]= &n[0]= &m[0]= (&u= &t= reused); CONTENT-TYPE application/x-www-form-urlencoded. On a clock-unset device the handshake falls back to BADTIME - \"BADTIME -- stealing time from Date: header\" reuses the HTTP Date for &t=.",
-    "Resolved: the account key feeding the handshake is the literal service id \"lastfm\" (0x10ee4c98, inside the scrobbler TU right after BADTIME handling) - so &u=/&a= come from the Last.fm service account record (username + stored auth token). Complete submission param set proven: {&b[0]=, &n[0]=, &m[0]=, &a[0]=, &t[0]=, &i[0]=, &o[0]=, &r[0]=&l[0]=} (0x10ee4ccc-0x10ee4df4) - 9 indexed params per Audioscrobbler 1.2 submission, POST with CONTENT-TYPE: application/x-www-form-urlencoded and CONTENT-LENGTH: %zu.",
-    "Resolved: the a= auth token is NOT derived inside the scrobbler TU - the only MD5 implementations in the image are the two vendored init/transform functions at 0x10d45570/0x10d45e3c and every caller of the reachable one sits inside the 0x10d0/0x10d4 vendored crypto region (HTTP digest + md5WithRSAEncryption); no call from any scrobbler function (0x1052x). So the handshake token arrives precomputed from the music-accounts getter for the lastfm account",
+    "The lastfm service literal and indexed submission-field vocabulary are present. They do not alone establish account storage, the source of legacy handshake credentials or a complete account-selection contract. The former so-credentials-come-from-account-record inference is withdrawn; constructor arguments and their storage producers require explicit joins.",
+    "The no-MD5-outside-vendored-region claim is false because it missed libsonoscrypto imports. f_10713ed4 initializes ZZ0062 with selector2, feeds username at receiver+11, invokes f_10713d1c on password at+92 to obtain a32-character lowercase MD5 hex string, feeds those32 bytes, then finalizes through f_10713c7c. This implements MD5(username || hex(MD5(password))) locally. Constructor f_10713db0 copies the supplied username/password into these fields; caller0x107148c0 constructs the object and0x107148d8 invokes authentication. Persistent account storage before those caller arguments is not established here.",
     "SONOS_DC_* error enum at 0x10ea1684: {SONOS_DC_OK=0, NO_ACCOUNT=1, STALE_ACCOUNT=2, LOGIN_FAILED=3, UNSUPPORTED_SERVICE=4, UNEXPECTED=5}.",
-    "Last.fm auth surface fully literal (f_10713ed4): endpoint https://ws.audioscrobbler.com/2.0/ + legacy http://post.audioscrobbler.com/; method auth.getMobileSession; api_key=49f9477923cc3ab8ed90029f6e7e1d9f (hardcoded Sonos key); request params {authToken, method, username, api_key} each fed through accumulator ZZ0064 then &api_sig= appended - the standard last.fm v2 signature (md5 of sorted params + shared secret). Missing params default to literal d41d8cd98f00b204e9800998ecf8427e = md5(''). authToken is the md5(username+md5(pw)) derivation per the last.fm mobile-session scheme. Separately, 32-hex literal 9b377073ea334637b1406f329ce005de is stored into the identity struct next to the 'Sonos' brand tag at 0x10214110 - a service-side credential id.",
-    "Established: last.fm v2 surface proven - getMobileSession, api_key literal, api_sig = md5(sorted-param concat + secret), md5('') default param, audioscrobbler endpoints."
+    "Mobile-session auth builds api_key/authToken/method/username parameters and a separate MD5 accumulator in that name order. After the username bytes,0x107142ec-0x107142fc unconditionally feeds32 bytes from literal0x10f0e188, the lowercase hexadecimal MD5 of the empty string. This is an actual fixed signing suffix, not a missing-parameter default and not an untraced member-supplied secret. f_10713c7c finalizes the digest and hex-encodes16 bytes;0x10714328 produces api_sig before form encoding it. No additional secret-input call appears between that suffix update and finalization. This describes the shipped computation, not a claim that a server accepts it.",
+    "Crypto boundary verified in shipped libsonoscrypto.so.3: selector2 in ZZ0062 dispatches to mbedtls_md5_init/starts; ZZ0064 dispatches to md5_update; ZZ0061 to md5_finish/free. The in-image wrapper f_10713c7c formats the16 digest bytes using a hexadecimal alphabet and terminates at output+32. Empty strings therefore pass through real MD5, not a missing-credential fallback branch."
    ]
   },
   "semisleep_power": {
