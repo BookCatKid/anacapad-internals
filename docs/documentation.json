@@ -42782,6 +42782,22 @@
          "address": "0x102ed7b4",
          "notes": "If AlarmRunning is false, writes an empty snapshot. Otherwise emits the record from engine fields using the escaped comma-delimited writer with capacity 5489.",
          "function": "0x102ed780"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df628",
+         "notes": "The worker passes sp+0x18bb8 in the argument slot consumed by the AlarmState type 7 registration at 0x102fa020. The alarm import at 0x102dfaa8 reads this same buffer; both playback submit branches test the first byte of this AlarmState string, not a byte from the decoded source-state record.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dfec4",
+         "notes": "The late selector-5 call requires ResumePlayback (or its sink-reset override) and the source-restore branch. If AlarmState is nonempty, it passes the nonzero playback byte and 0 in r6/r7. If AlarmState is empty, both auxiliary arguments are the URI classifier f_10148308. The earlier call at 0x102dfe30 is independent of ResumePlayback for restored record kinds 5 and 8 and uses 1/0 with nonempty AlarmState or two classifier values otherwise. Both calls discard the selector return.",
+         "function": "0x102df410"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
@@ -43160,7 +43176,7 @@
        ]
       },
       "ResumePlayback": {
-       "description": "Requests the indexed PLAYING transition after a successful source-state restore. Some restored source types request the transition earlier and independently of this flag; the sink-reset branch can force the flag true.",
+       "description": "Requests indexed playback after source-state restore. A false value suppresses the later request, but source types 5 and 8 can request playback earlier without it, and sink reset can force a false value to true. Requesting playback is not confirmation that audio has started.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -43253,25 +43269,53 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102dfe30",
-         "notes": "An earlier, separate call to the same selector runs for restored source-record type 5 or 8 under the restore branch, regardless of ResumePlayback. The later call at 0x102dfec4 uses the workspace byte at sp+0x18bb8 to choose between the resume value with a zero second flag, or two copies of the URI classification from f_10148308. The worker ignores the selector return.",
+         "address": "0x10256b0c",
+         "notes": "Selector 5 invokes f_10256604 under the session lock. The state-name table at 0x10ea8534 identifies 5 as PLAYING, 6 as PLAYING_START, and 7 as TRAN_PLAYING. The worker returns success directly for current state 5 or 6; otherwise an accepted transition can write 7 at 0x102568dc and wake the state processing path.",
+         "function": "0x10256a84"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102df628",
+         "notes": "The worker passes sp+0x18bb8 in the argument slot consumed by the AlarmState type 7 registration at 0x102fa020. The alarm import at 0x102dfaa8 reads this same buffer; both playback submit branches test the first byte of this AlarmState string, not a byte from the decoded source-state record.",
          "function": "0x102df410"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10256b0c",
-         "notes": "Selector 5 invokes f_10256604 under the session lock. The state-name table at 0x10ea8534 identifies 5 as PLAYING, 6 as PLAYING_START, and 7 as TRAN_PLAYING. The worker returns success directly for current state 5 or 6; otherwise an accepted transition can write 7 at 0x102568dc and wake the state processing path.",
-         "function": "0x10256a84"
+         "address": "0x102dfec4",
+         "notes": "The late selector-5 call requires ResumePlayback (or its sink-reset override) and the source-restore branch. If AlarmState is nonempty, it passes the nonzero playback byte and 0 in r6/r7. If AlarmState is empty, both auxiliary arguments are the URI classifier f_10148308. The earlier call at 0x102dfe30 is independent of ResumePlayback for restored record kinds 5 and 8 and uses 1/0 with nonempty AlarmState or two classifier values otherwise. Both calls discard the selector return.",
+         "function": "0x102df410"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10148308",
+         "notes": "The auxiliary URI classifier is true for the exact, case-sensitive prefixes x-sonosapi-stream:, x-sonosapi-hls:, hls-aac://, hls-radio:// and x-rincon-mp3radio://, the middle HLS family via f_101475dc.",
+         "function": "0x10148308"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102566c4",
+         "notes": "The selector wrapper forwards the auxiliary arguments into r9/r10 of f_10256604. The first becomes the indexed manager byte +0x327c9; runQueue checks it at 0x1026cafc and publishes a decimal value from +0x327cc through the in-process event helper f_10272030 when set. The second goes to f_1032db8c, which clears subobject+0x296d and writes subobject+0x296e. The frame callback may promote the latter to the former via f_1032dbd4 at 0x1026a67c; the source-state snapshot reader tests +0x296d at 0x1032ded0 and 0x1032e070.",
+         "function": "0x10256604"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1026f4c4",
+         "notes": "The indexed playback loop calls runQueue (f_1026badc). One branch switches state 7 (TRAN_PLAYING) to 5 at 0x1026dd80, while another switches it to 6 (PLAYING_START) at 0x1026ceb8. The frame callback switches 6 to 5 at 0x1026afd4; the loop can instead move to 9 (TRAN_PAUSED) when the PlayTTL check is nonzero at 0x1026cf00. Thus merely reaching the selector does not report playback completion.",
+         "function": "0x1026f3ac"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
-       "buf_cap": 24,
-       "todo": [
-        "Established: only 1, true or yes produce a true input byte; a true byte after state restore can request PLAYING, type 5 or 8 can request it independently, and a sink reset can force the byte true.",
-        "Trace the asynchronous TRAN_PLAYING consumer and the meaning of sp+0x18bb8 from the source workspace, to establish which restored sources actually resume rendering."
-       ]
+       "notes": "Required type 1 descriptor. The parsed boolean gates the late request; AlarmState and the URI class determine the auxiliary flags.",
+       "buf_cap": 24
       }
      },
      "outputs": {},
@@ -43576,6 +43620,14 @@
         "build": "86.10-80260",
         "address": "0x102dfa9c",
         "notes": "Calls f_102b0c98, f_102b0e58 and f_102b1214 on the incoming sleep, alarm and restart strings respectively, then calls f_102b0974 and requests local event processing. These helper results are not used as SOAP fault values at these sites.",
+        "function": "0x102df410"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dfec4",
+        "notes": "The late selector-5 call requires ResumePlayback (or its sink-reset override) and the source-restore branch. If AlarmState is nonempty, it passes the nonzero playback byte and 0 in r6/r7. If AlarmState is empty, both auxiliary arguments are the URI classifier f_10148308. The earlier call at 0x102dfe30 is independent of ResumePlayback for restored record kinds 5 and 8 and uses 1/0 with nonempty AlarmState or two classifier values otherwise. Both calls discard the selector return.",
         "function": "0x102df410"
        }
       ],
