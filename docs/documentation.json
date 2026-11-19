@@ -135714,9 +135714,16 @@
          "build": "86.10-80260",
          "address": "0x100c7ef8",
          "notes": "Provider construction, session invocation 0x100c7f18 and cleanup 0x100c7f24."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106fdf60",
+         "notes": "Synchronous transport chain: f_106fdf60 decomposes the URI (f_1053b4a4) and resolves the host (f_1054a158 via inet_aton/'localhost'/resolver singleton 0x11097370 and gethostbyname_r, cache store f_10579160 TTL<=900s); f_106fdca0 formats the request head; f_1053a390/f_10538ed0 run the response session; f_1053a060 drives 'asio.poll' to completion. Observer 0x11097910 slots are a no-op (f_1064534c) and a 'zpUpnpOp' log call (f_10645368): no credential callback, retry or persistence write."
         }
-       ],
-       "todo": "Established: concrete normal-path outbound request construction/execution and alternate transport selection are decoded. Remaining: trace transport execution, credential/authentication callbacks, retries and persistence/cache writers."
+       ]
       }
      ],
      "events_triggered": {
@@ -136261,10 +136268,16 @@
          "function": "0x106ff03c",
          "address": "0x106ff354",
          "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10562e6c",
+         "notes": "Fault u16 read from response parser at req+0xc040+0x2e2 (fallback +0x2e4 -> 1000). No constant store to +0x2e2 exists anywhere in .text: the fault number is written only from the runtime provider/proxy response, so the residual vocabulary is a proven static boundary."
         }
        ],
-       "code_expr": "nonzero response parser u16 fault, or low16bits of ordinary transport status",
-       "todo": "Tried10724f50 and proxy1072fd50 through shared106ff03c/10562e6c/10c3b8ac: local propagation is traced, but the exact provider-specific SOAP fault values/meanings are supplied in runtime remote responses and are not enumerable from this binary. Capture failing getSessionId responses for each configured provider/proxy to enumerate that external vocabulary; do not assume only402/401 are possible."
+       "code_expr": "nonzero response parser u16 fault, or low16bits of ordinary transport status"
       }
      ],
      "firmware_differences": [],
@@ -136416,7 +136429,10 @@
      ],
      "notes": "Statically traced; no network/device experiment. Remote authentication is synchronous, not deferred service-list refresh.",
      "implementation_notes": "Full concrete lookup/authentication path; output-capacity check corrected from false ServiceId<256 interpretation. All duplicate matches are attempted. Only runtime-supplied provider fault vocabulary remains open in the generic error record. Primary vtable 0x10e768a4 slot +0x0c binds f_100c7fb4. The wrapper passes ServiceId in r4, Username in r5, output buffer in r6 and capacity 0x101 in r7. Entry f_100c7fb4 checks policy-result bytes, then requires unsigned output capacity >0x100 before calling f_100c7c6c. There is no service-ID range check at 0x100c8054. Worker default status is 806; it resolves the descriptor through primary slot +0x20, loads account rows with f_101b688c, matches row+4 against (ServiceId<<8)|7 and row+8 with strcmp(Username), constructs a provider with f_10723e90 and invokes its slot +0x0c with the output pointer and zero. It continues scanning after a match and retains the last matching provider status. Provider session binding is static: constructor f_10723e90 installs embedded vtable 0x10f0e730 at this+0x13d4; f_1071e01c stores this+0x13d4 at this+0x13d0. The account worker loads that member and invokes slot +0x0c, whose entry is f_10724f50. Its normal path builds an outbound Services/1.1 getSessionId request with username and password, binds getSessionIdResult into a 257-byte output buffer and executes f_106ff03c. A feature byte at 0x110a9af4 and zero third argument select an alternate f_1072fd50 path. The account worker always passes zero for that third argument.",
-     "todo": "Remaining: runtime-supplied provider fault vocabulary remains open (generic error record); the f_106fe328 request-execution branch is an unclosed static lead."
+     "resolved_findings": [
+      "f_106fe328 is the shared SMAPI request-object constructor: it installs vtables 0x10f0b7ec/0x10f0b82c/0x10f0b840, seeds connect/send timeouts at +0xa6a8/+0xa6ac, and initializes the custom-header list at +0x8a50. Request execution is f_106ff03c -> f_106fdf60 (URI decompose f_1053b4a4, host resolve f_1054a158 through inet_aton/'localhost'/resolver singleton 0x11097370 plus gethostbyname_r, cache store f_10579160 TTL<=900s) -> head format f_106fdca0 -> response session f_1053a390/f_10538ed0 -> synchronous poll driver f_1053a060 ('asio.poll').",
+      "Status mapping is fully static: f_10c3b8ac covers transport status, flag +0xa47 with http status +0xa48==401 maps to 1037, otherwise f_10562e6c returns the parser fault u16 at req+0xc040+0x2e2 or f_1055f358 reports missing required output as 1000. Transport observer 0x11097910 carries only a no-op notify f_1064534c and a logging hook f_10645368 ('zpUpnpOp'/'upnp'): no credential callbacks, no retries and no SessionId persistence writes exist in this path. Provider fault vocabulary beyond this map is runtime-supplied; the static boundary is reached."
+     ]
     },
     "ListAvailableServices": {
      "description": "Synchronously streams the locally installed musicservices.xml catalog as rewritten descriptor XML, a bounded comma-separated encoded service-type list, and the current device:counter list-version token. It does not fetch the catalog or enumerate only configured accounts on normal fresh SOAP calls.",
