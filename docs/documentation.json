@@ -34813,7 +34813,7 @@
      ]
     },
     "AddURIToQueue": {
-     "description": "Enqueues a single track URI. Impl f_102b6a9c is a thin 718-gate that calls shared enqueue worker f_102b6948(engine, args..., 0). The worker logs \"avt_impl\" \"Add to queue %u; URI: %s\" and \"Add to queue %u; MD: %s\", takes the impl+0x458 lock, and performs the enqueue through the queue/session machinery.",
+     "description": "Resolves one URI into queue entries, then synchronously completes an append to queue 0. Supported playlists/containers can add several entries; an empty or wholly unplayable expansion returns 804. Derived AVTransport slot +0x64 binds f_102b6a9c -> f_102b6948 -> f_102b674c -> f_102b62e8. Ordinary insertion uses kind-1 beginAppend, f_1014f808 staging and kind-2 commitAppend. A matching Spotify-service path can instead initialize/start the service client and report one item. The public action performs no UpdateID check and exposes no revision output.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102facf8",
@@ -34849,7 +34849,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Selects the only AVTransport instance, 0. Parsed nonzero values return 718 before enqueueing.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -34859,14 +34859,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUintArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "format": "Decimal text converted by strtoul(buffer,NULL,10)",
        "unit": "none - dimensionless count/index",
        "accepted_values": "0",
        "range": "0 only; nonzero InstanceID rejected by impl +0x64 with 718",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Required descriptor; nonzero parsed word is rejected by f_102b6a9c, not a null-output-pointer test.",
        "evidence": [
         {
          "type": "firmware",
@@ -34888,19 +34888,39 @@
          "build": "86.10-80260",
          "function": "0x102b6a9c",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10511f34",
+         "address": "0x10edfc1c",
+         "callsite": "0x105123c0",
+         "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b674c",
+         "address": "0x102b67e0",
+         "callsite": "0x102b68a0",
+         "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102facf8",
+         "address": "0x102fad18",
+         "callsite": "0x102fadf8",
+         "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +100 (site 0x102fae44) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +100 (obj r5-in, call site 0x102fae44); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "EnqueuedURI": {
-       "description": "URI to enqueue; logged verbatim into the avt_impl channel by the worker.",
+       "description": "One URI to resolve into queue entries. Supported playlist/container forms can expand to several entries; matching Spotify service contexts can take client-start handling rather than normal local entry writing.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -34910,14 +34930,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosUriArg",
-       "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
+       "format": "Text copied into a 1025-byte buffer including terminator",
        "unit": "n/a - text",
-       "accepted_values": "Any URI string the enqueue worker accepts",
-       "range": "max 1024 chars",
+       "accepted_values": "URI accepted by f_1014f48c and its selected local, playlist, stream or metadata-service resolver",
+       "range": "At most 1024 content bytes retained; longer text truncates before resolution",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "URI to enqueue; logged verbatim into the avt_impl channel by the worker.",
+       "validation": "Required descriptor. LF in retained URI returns 800. Unsupported/resolution failures return the enumerated resolver/capacity faults; empty or wholly unplayable expansion returns 804.",
        "evidence": [
         {
          "type": "firmware",
@@ -34932,13 +34952,49 @@
          "build": "86.10-80260",
          "address": "0x10eb34ac",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102facf8",
+         "address": "0x102fad18",
+         "callsite": "0x102fadf8",
+         "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f4c0",
+         "callsite": "0x1014f984",
+         "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014f99c",
+         "callsite": "0x1014fa04",
+         "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b3a8",
+         "address": "0x1014b4ac",
+         "callsite": "0x1014b588",
+         "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
         }
        ],
        "notes": null,
        "buf_cap": 1025
       },
       "EnqueuedURIMetaData": {
-       "description": "DIDL metadata for the track; logged verbatim alongside the URI.",
+       "description": "Metadata used by URI resolution and per-entry/source metadata handling. Required argument may be empty when the selected resolver can derive the entries.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -34948,14 +35004,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosMetaDataArg",
-       "format": "utf-8 text, buffer cap 4097 bytes (4096 chars + NUL)",
+       "format": "Text copied into 4097 bytes, then LF normalized to spaces in another 4097-byte copy",
        "unit": "n/a - text",
-       "accepted_values": "Any DIDL-Lite string accepted by the worker",
-       "range": "max 4096 chars",
+       "accepted_values": "Metadata accepted by the selected URI resolver, including empty text when that resolver can derive the entries",
+       "range": "At most 4096 content bytes retained",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "DIDL metadata for the track; logged verbatim alongside the URI.",
+       "validation": "Required descriptor, not general wrapper-level DIDL schema validation. Overlength truncates; f_10564cb0 replaces LF before classifier metadata checks.",
        "evidence": [
         {
          "type": "firmware",
@@ -34970,13 +35026,49 @@
          "build": "86.10-80260",
          "address": "0x10eb34b8",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102facf8",
+         "address": "0x102fad18",
+         "callsite": "0x102fadf8",
+         "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b674c",
+         "address": "0x102b67e0",
+         "callsite": "0x102b68a0",
+         "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f4c0",
+         "callsite": "0x1014f984",
+         "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d000",
+         "address": "0x1014d248",
+         "callsite": "0x1014b450",
+         "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
         }
        ],
        "notes": null,
        "buf_cap": 4097
       },
       "DesiredFirstTrackNumberEnqueued": {
-       "description": "Requested 1-based insertion position; actual result reported via FirstTrackNumberEnqueued.",
+       "description": "Requested insertion reference. Masked to 16 bits before commit. Without shuffle, zero appends and a positive value above old length+1 clamps to the end. Shuffle uses a play-order reference and may interleave added entries.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -34988,12 +35080,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "u32 queue position; 0 = append at end (engine worker inserts relative to UpdateID track list)",
-       "range": "parsed u32; worker clamps/validates against the queue record",
-       "special_values": "none observed in this build",
+       "accepted_values": "Parsed unsigned word; low 16 bits determine the commit reference",
+       "range": "uint16(parsed value), capped above old queue length+1",
+       "special_values": "0 appends without shuffle; in shuffle it uses the worker source-head reference. Multiples of 65536 narrow to 0.",
        "required": true,
        "default": "none - required argument",
-       "validation": "Requested 1-based insertion position; actual result reported via FirstTrackNumberEnqueued.",
+       "validation": "Required descriptor. No position-mismatch 1028 check: f_102b66c8 masks, f_1014dc98 normalizes/clamps.",
        "evidence": [
         {
          "type": "firmware",
@@ -35015,19 +35107,39 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "enqueue worker consumes the position when building the insert record"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102facf8",
+         "address": "0x102fad18",
+         "callsite": "0x102fadf8",
+         "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b6948",
+         "address": "0x102b6a4c",
+         "callsite": "0x102b66d4",
+         "notes": "Raw isel 0x7d20579e chooses internal flags 0 for false and 4 for true. Core ORs 2 into staging flags, passes flags bit 2 as kind-2 EnqueueAsNext and leaves kind-16 branch (bit 3) unreachable. Desired position is masked with rlwinm SH=0,MB=16,ME=31 at 0x102b66c8, not right-shifted. In shuffle commit, raw isel at 0x1014def8 tests CR7 from desired==0 at 0x1014de94: next treatment is true for nonzero desired or true EnqueueAsNext, false otherwise. Nonshuffle insertion never tests EnqueueAsNext."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dda0",
+         "callsite": "0x1014df80",
+         "notes": "Desired halfword is capped above old count+1 at 0x1014ddac..0x1014ddb0. Nonshuffle path 0x1014dfe0..0x1014e04c appends for zero/end position; an in-range positive position rotates appended tail via f_101463c8 and shifts the current index when necessary. Shuffle path uses desired-1 when nonzero, otherwise the worker source-head reference normalized against old count; f_101457e0/f_10144fd4 update/interleave the map, with next-treatment flag from desired/EnqueueAsNext. Output is uint16(reference+1) at 0x1014df80; it does not promise contiguous expanded entries in shuffled play order."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `DesiredFirstTrackNumberEnqueued` is parsed then forwarded verbatim to r5-in vfunc +100 (site 0x102fae44) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +100 (obj r5-in, call site 0x102fae44); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "EnqueueAsNext": {
-       "description": "Flag forwarded to the worker requesting next-track insertion.",
+       "description": "Enables next-track treatment in shuffle insertion. Does not override the requested reference or change ordinary nonshuffle placement.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -35037,14 +35149,14 @@
         "via_slot": 28
        },
        "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
+       "format": "Case-insensitive 1/true/yes means true; other present text means false",
        "unit": "none - boolean flag",
-       "accepted_values": "Boolean-ish integer",
+       "accepted_values": "Any present text, parsed to a byte 0 or 1",
        "range": "{0,1}",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Flag forwarded to the worker requesting next-track insertion.",
+       "validation": "Required descriptor. Parsed byte becomes internal flags 0/4 then the kind-2 next-treatment flag. Nonshuffle commit does not test it.",
        "evidence": [
         {
          "type": "firmware",
@@ -35059,6 +35171,33 @@
          "build": "86.10-80260",
          "address": "0x10eb34ec",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102facf8",
+         "address": "0x102fad18",
+         "callsite": "0x102fadf8",
+         "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b6948",
+         "address": "0x102b6a4c",
+         "callsite": "0x102b66d4",
+         "notes": "Raw isel 0x7d20579e chooses internal flags 0 for false and 4 for true. Core ORs 2 into staging flags, passes flags bit 2 as kind-2 EnqueueAsNext and leaves kind-16 branch (bit 3) unreachable. Desired position is masked with rlwinm SH=0,MB=16,ME=31 at 0x102b66c8, not right-shifted. In shuffle commit, raw isel at 0x1014def8 tests CR7 from desired==0 at 0x1014de94: next treatment is true for nonzero desired or true EnqueueAsNext, false otherwise. Nonshuffle insertion never tests EnqueueAsNext."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dda0",
+         "callsite": "0x1014df80",
+         "notes": "Desired halfword is capped above old count+1 at 0x1014ddac..0x1014ddb0. Nonshuffle path 0x1014dfe0..0x1014e04c appends for zero/end position; an in-range positive position rotates appended tail via f_101463c8 and shifts the current index when necessary. Shuffle path uses desired-1 when nonzero, otherwise the worker source-head reference normalized against old count; f_101457e0/f_10144fd4 update/interleave the map, with next-treatment flag from desired/EnqueueAsNext. Output is uint16(reference+1) at 0x1014df80; it does not promise contiguous expanded entries in shuffled play order."
         }
        ],
        "notes": null
@@ -35066,7 +35205,7 @@
      },
      "outputs": {
       "FirstTrackNumberEnqueued": {
-       "description": "Written by the enqueue worker on success.",
+       "description": "Zero-extended commit position halfword: clamped positive desired position, or old length+1 for ordinary append. Shuffle reports normalized reference+1 while added entries can interleave in shuffled order.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -35076,11 +35215,11 @@
        "format": "%u decimal",
        "unit": "none - dimensionless count/index",
        "accepted_values": "queue position actually used by the worker",
-       "range": "0..queue length+1 as applied",
-       "special_values": "none observed in this build",
+       "range": "0..65535 (uint16 result)",
+       "special_values": "0 can remain if void commit exits without writing position, such as append transaction-ID mismatch; this is not independently a SOAP fault",
        "required": false,
-       "default": "none; written on success",
-       "validation": "copied from the worker insert result",
+       "default": "Zero-initialized internally; emitted only on action success",
+       "validation": "Kind-2 output -> local +0x24 -> public uint32 -> %u; not an independent commit-success check.",
        "evidence": [
         {
          "type": "firmware",
@@ -35102,16 +35241,39 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "written back from the worker insert result"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dda0",
+         "callsite": "0x1014df80",
+         "notes": "Desired halfword is capped above old count+1 at 0x1014ddac..0x1014ddb0. Nonshuffle path 0x1014dfe0..0x1014e04c appends for zero/end position; an in-range positive position rotates appended tail via f_101463c8 and shifts the current index when necessary. Shuffle path uses desired-1 when nonzero, otherwise the worker source-head reference normalized against old count; f_101457e0/f_10144fd4 update/interleave the map, with next-treatment flag from desired/EnqueueAsNext. Output is uint16(reference+1) at 0x1014df80; it does not promise contiguous expanded entries in shuffled play order."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014de50",
+         "callsite": "0x1014dfcc",
+         "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b6638",
+         "callsite": "0x102faf18",
+         "notes": "After successful second-worker completion, halfwords +0x24/+0x20/+0x26 are zero-extended to FirstTrackNumberEnqueued/NumTracksAdded/NewQueueLength at 0x102b664c..0x102b6654. Staging writes +0x20; kind-2 receives initially zero position/length locals +0x24/+0x26. Commit writes those only on normal commit. Wrapper formats %u at 0x102faebc/0x102faee0/0x102faf04 and commits at 0x102faf18. Failure emits no outputs. No revision-output argument is exposed by this wrapper."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `FirstTrackNumberEnqueued`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "NumTracksAdded": {
-       "description": "Written by the enqueue worker on success.",
+       "description": "Zero-extended staging count, not input URI count. Expansion can add several entries, including unplayable entries among a partly playable result. Matching Spotify-client handling reports one without normal local entry writing.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -35121,11 +35283,11 @@
        "format": "%u decimal",
        "unit": "none - dimensionless count/index",
        "accepted_values": "count of entries actually enqueued by the worker/expansion",
-       "range": "0..N",
-       "special_values": "none observed in this build",
+       "range": "0..65535 (uint16 staging count)",
+       "special_values": "Ordinary empty or wholly unplayable expansion returns 804 with no outputs, not successful zero-count enqueue",
        "required": false,
-       "default": "none; written on success",
-       "validation": "worker-written count record",
+       "default": "Zero-initialized internally; emitted only on action success",
+       "validation": "f_1014f808 staging count -> local +0x20 -> public output at 0x102b6650. Kind-2 acceptance is not an independent transaction commit guarantee.",
        "evidence": [
         {
          "type": "firmware",
@@ -35147,16 +35309,48 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "enqueue worker produces the count"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d000",
+         "address": "0x1014d248",
+         "callsite": "0x1014b450",
+         "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014f99c",
+         "callsite": "0x1014fa04",
+         "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b3a8",
+         "address": "0x1014b4ac",
+         "callsite": "0x1014b588",
+         "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b6638",
+         "callsite": "0x102faf18",
+         "notes": "After successful second-worker completion, halfwords +0x24/+0x20/+0x26 are zero-extended to FirstTrackNumberEnqueued/NumTracksAdded/NewQueueLength at 0x102b664c..0x102b6654. Staging writes +0x20; kind-2 receives initially zero position/length locals +0x24/+0x26. Commit writes those only on normal commit. Wrapper formats %u at 0x102faebc/0x102faee0/0x102faf04 and commits at 0x102faf18. Failure emits no outputs. No revision-output argument is exposed by this wrapper."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NumTracksAdded`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "NewQueueLength": {
-       "description": "Written by the enqueue worker on success.",
+       "description": "Zero-extended queue count halfword after normal append commit. This is a track count, not a Boolean.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -35164,13 +35358,13 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "none - boolean flag",
-       "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
-       "range": "{0,1}",
-       "special_values": "none observed in this build",
+       "unit": "tracks",
+       "accepted_values": "Unsigned decimal queue count from queue+0x26c8",
+       "range": "0..65535 (uint16 queue count)",
+       "special_values": "0 remains if void commit exits without writing length, including transaction-ID mismatch; this alone does not prove an empty queue",
        "required": false,
-       "default": "none - boolean decoded from request text",
-       "validation": "written from the queue record length after the mutation",
+       "default": "Zero-initialized internally; emitted only on action success",
+       "validation": "f_1014dc98 loads queue+0x26c8 at 0x1014df98, writes the length halfword, and f_102b6654 copies local +0x26 to the wrapper.",
        "evidence": [
         {
          "type": "firmware",
@@ -35185,123 +35379,433 @@
          "build": "86.10-80260",
          "address": "0x10eb3528",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014de50",
+         "callsite": "0x1014dfcc",
+         "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b6638",
+         "callsite": "0x102faf18",
+         "notes": "After successful second-worker completion, halfwords +0x24/+0x20/+0x26 are zero-extended to FirstTrackNumberEnqueued/NumTracksAdded/NewQueueLength at 0x102b664c..0x102b6654. Staging writes +0x20; kind-2 receives initially zero position/length locals +0x24/+0x26. Commit writes those only on normal commit. Wrapper formats %u at 0x102faebc/0x102faee0/0x102faf04 and commits at 0x102faf18. Failure emits no outputs. No revision-output argument is exposed by this wrapper."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewQueueLength`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "See inputs/impl notes",
+      "description": "Required descriptors and parse-layer 402 precede instance/queue checks. Strings truncate by byte capacity; Boolean parsing is not numeric-only; metadata LF is normalized. Desired reference is masked to uint16 and clamped during commit, not rejected with 1028. Entry/storage capacity checks occur before and during staging; unsupported, empty and wholly unplayable results follow the enumerated fault paths.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102facf8",
-        "notes": "wrapper + impl decode"
+        "function": "0x102facf8",
+        "address": "0x102fad18",
+        "callsite": "0x102fadf8",
+        "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc1c",
+        "callsite": "0x105123c0",
+        "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b674c",
+        "address": "0x102b67e0",
+        "callsite": "0x102b68a0",
+        "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f48c",
+        "address": "0x1014f4c0",
+        "callsite": "0x1014f984",
+        "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d000",
+        "address": "0x1014d248",
+        "callsite": "0x1014b450",
+        "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f808",
+        "address": "0x1014f99c",
+        "callsite": "0x1014fa04",
+        "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014dc98",
+        "address": "0x1014dda0",
+        "callsite": "0x1014df80",
+        "notes": "Desired halfword is capped above old count+1 at 0x1014ddac..0x1014ddb0. Nonshuffle path 0x1014dfe0..0x1014e04c appends for zero/end position; an in-range positive position rotates appended tail via f_101463c8 and shifts the current index when necessary. Shuffle path uses desired-1 when nonzero, otherwise the worker source-head reference normalized against old count; f_101457e0/f_10144fd4 update/interleave the map, with next-treatment flag from desired/EnqueueAsNext. Output is uint16(reference+1) at 0x1014df80; it does not promise contiguous expanded entries in shuffled play order."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r29 v[+?]",
+      "description": "All five arguments are required. Parsed InstanceID must be 0, queue ID 0 must match a session queue record, and impl+0x4654 must be 1 or 2. BeginAppend must obtain the append transaction; URI resolution/staging must succeed with something other than empty or wholly unplayable expansion, and both submissions must complete. Desired reference is normalized rather than checked against a queue revision; the public wrapper disables the generic UpdateID gate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102facf8",
-        "notes": "req-vfunc call map: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}"
+        "address": "0x102fad18",
+        "callsite": "0x102fadf8",
+        "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc1c",
+        "callsite": "0x105123c0",
+        "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b674c",
+        "address": "0x102b67e0",
+        "callsite": "0x102b68a0",
+        "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b62e8",
+        "address": "0x102b63a4",
+        "callsite": "0x102b65d0",
+        "notes": "Requires impl+0x4654 in {1,2}; otherwise 800. Allowed path calls f_102b5ddc, builds kind 1 with f_1032e350, waits through f_10255f64 at 0x102b6580, then stages through f_1014f808 (public count=1, no f_1014fb34 container-batch path). First-submission or staging failure builds kind-19 cancelAppend via f_1032e5b4 at 0x102b6698. Successful staging builds kind 2 with f_1032e368 at 0x102b66d4 and waits again. Second-completion failure returns 800 at 0x102b66ac without submitting cancellation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f808",
+        "address": "0x1014f99c",
+        "callsite": "0x1014fa04",
+        "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×5, out-arg write×3, validate×1, commit×1); member delegates: r29 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r29 v[+?]",
+      "description": "Depends on impl+0x580 session and impl+0x458 lock, queue identity/count/capacity, packed-storage budget, append-busy/token state, shuffle map/flags and active-queue equality. Resolvers depend on supplied metadata and service availability; matching Spotify handling also checks service feature/context state. Active insertion uses timed source/packet history. Preparation observes amplifier/group state. Public revision argument is 0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102facf8",
-        "notes": "member vfunc calls: ['r29 v[+?]']"
+        "function": "0x10511f34",
+        "address": "0x10edfc1c",
+        "callsite": "0x105123c0",
+        "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b674c",
+        "address": "0x102b67e0",
+        "callsite": "0x102b68a0",
+        "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d000",
+        "address": "0x1014d248",
+        "callsite": "0x1014b450",
+        "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014dc98",
+        "address": "0x1014de50",
+        "callsite": "0x1014dfcc",
+        "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014dc98",
+        "address": "0x1014dda0",
+        "callsite": "0x1014df80",
+        "notes": "Desired halfword is capped above old count+1 at 0x1014ddac..0x1014ddb0. Nonshuffle path 0x1014dfe0..0x1014e04c appends for zero/end position; an in-range positive position rotates appended tail via f_101463c8 and shifts the current index when necessary. Shuffle path uses desired-1 when nonzero, otherwise the worker source-head reference normalized against old count; f_101457e0/f_10144fd4 update/interleave the map, with next-treatment flag from desired/EnqueueAsNext. Output is uint16(reference+1) at 0x1014df80; it does not promise contiguous expanded entries in shuffled play order."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014b3a8",
+        "address": "0x1014b4ac",
+        "callsite": "0x1014b588",
+        "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025a350",
+        "address": "0x1025a450",
+        "callsite": "0x1026695c",
+        "notes": "Running kind-2 active path calls f_1025a350; inactive calls f_1014dc98 directly at 0x102663d0. Active helper reads timed source-head data via f_10341b9c, passes current-index/head reference to commitAppend, then reconciles buffered mapping via f_103411b0 and, if incompatible, f_10149e68/f_10259c1c. Stopped active branch 0x10268d9c passes current-index state, marks initial-empty metadata refresh and rejoins common f_10267560/f_102642d4 publishing. Neither ordinary append path issues an unconditional Play transition."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b5ddc",
+        "address": "0x102b6530",
+        "callsite": "0x102b7330",
+        "notes": "Preparation queries current URI via impl+0x448 vslot +0xf4, group power via f_10392504/f_102b52d0 and impl+0x5dc/+0xad28 flags. It can preemptively power the amplifier and schedule f_102b7330 through +0xad2c for a 30-second deadline, or call session f_1025eb7c with timing data. This function ends at 0x102b60b0. Later adjacent functions contain alarm-deadline clears but are not part of this public chain: AddURI does not perform deletion actions' impl+0x6ed8 clear."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r29 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r29 v[+?] (call-derived member-method semantics)",
+       "description": "Ordinary resolution stages packed URI/metadata pairs without initially advancing committed queue count. Matching nonzero completion updates visible count, insertion order/shuffle mapping and current-index bookkeeping, then advances named revision once. Staging/first-submission failure requests kind-19 cancellation; second-submission failure does not, so errors do not guarantee atomic rollback. Void commit can abort on token mismatch without turning kind-2 completion into failure. Matching Spotify handling may initialize/start a client instead of normal local entry writing. Preparation can power the amplifier and schedule delayed cleanup; this action does not perform deletion actions' alarm-fallback deadline clear.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102facf8",
-         "notes": "delegate map ['r29 v[+?]']; notify-family calls []"
+         "function": "0x102b62e8",
+         "address": "0x102b63a4",
+         "callsite": "0x102b65d0",
+         "notes": "Requires impl+0x4654 in {1,2}; otherwise 800. Allowed path calls f_102b5ddc, builds kind 1 with f_1032e350, waits through f_10255f64 at 0x102b6580, then stages through f_1014f808 (public count=1, no f_1014fb34 container-batch path). First-submission or staging failure builds kind-19 cancelAppend via f_1032e5b4 at 0x102b6698. Successful staging builds kind 2 with f_1032e368 at 0x102b66d4 and waits again. Second-completion failure returns 800 at 0x102b66ac without submitting cancellation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d000",
+         "address": "0x1014d248",
+         "callsite": "0x1014b450",
+         "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014f99c",
+         "callsite": "0x1014fa04",
+         "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014de50",
+         "callsite": "0x1014dfcc",
+         "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b3a8",
+         "address": "0x1014b4ac",
+         "callsite": "0x1014b588",
+         "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b5ddc",
+         "address": "0x102b6530",
+         "callsite": "0x102b7330",
+         "notes": "Preparation queries current URI via impl+0x448 vslot +0xf4, group power via f_10392504/f_102b52d0 and impl+0x5dc/+0xad28 flags. It can preemptively power the amplifier and schedule f_102b7330 through +0xad2c for a 30-second deadline, or call session f_1025eb7c with timing data. This function ends at 0x102b60b0. Later adjacent functions contain alarm-deadline clears but are not part of this public chain: AddURI does not perform deletion actions' impl+0x6ed8 clear."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r29 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Normal named append commit invokes f_1014d738 once: revision/dirty update and ContentDirectory observer post. ContentDirectory publishes SystemUpdateID/ContainerUpdateIDs under coalescing/time gates. Queue LastChange publishes QueueID/UpdateID from dirty snapshots through the shared sender/producer. Active source/metadata changes separately wake AVTransport; its LastChange reflects timed snapshots and field latches, not simply enqueue success. Transaction abort/cancellation does not itself establish a queue-version event. Core enqueueEvent telemetry is not the GENA event payload.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102facf8",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1014dc98",
+        "address": "0x1014de50",
+        "callsite": "0x1014dfcc",
+        "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014dfcc",
+        "callsite": "0x1014d820",
+        "notes": "Committed named append advances revision +0x70, dirty +0x74 and posts through queue+0x18/f_10117654. ContentDirectory observer f_10304808, registered by f_10304e78 at 0x1030502c/0x103050b4, increments SystemUpdateID and coalesces ContainerUpdateIDs; f_103035c4 emits under pending/time gates with Q:0 delay bypass. Queue snapshot f_10146cc0 -> f_1025bfd4 -> f_102b0908 -> f_10465e28 feeds LastChange f_10465b54. Readiness f_1067d028 -> f_10465aa4 and producer f_10465f74 consume dirty state, subject to subscriptions/coalescing."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e6400",
+        "address": "0x102648c4",
+        "callsite": "0x102e43a0",
+        "notes": "Active session metadata publishing calls f_1067c6ec at 0x102648c4. AVTransport chain f_102e6400 -> f_102e6048 -> f_102e43a0 emits transport/current-track/metadata groups according to source-version and field latches, including impl+0x7785/+0x7786/+0xa094..+0xa09c. Values are timed snapshots, can repeat unchanged grouped fields, and do not imply a SOAP-response-time state transition. Core telemetry enqueueEvent (0x102b64b0..0x102b64bc) is not the GENA LastChange payload."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+?]",
+      "description": "Ordinary append has no unconditional Play or fixed TransportState result. Inactive completion does not reconcile the active packet/source list. Active running completion remaps timed source history and can request resynchronization when buffered mapping is incompatible; stopped active completion updates current-index/initial-empty metadata state and rejoins common metadata publication. Later transport snapshots depend on the prior state and selected URI. Matching Spotify service handling can initialize or start/resume that client, so this action is not universally membership-only. Amplifier preparation is not proof of audible playback or a final PLAYING state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102facf8",
-        "notes": "no transition-literal/store pattern; member delegates: ['r29 v[+?]']"
+        "function": "0x1025a350",
+        "address": "0x1025a450",
+        "callsite": "0x1026695c",
+        "notes": "Running kind-2 active path calls f_1025a350; inactive calls f_1014dc98 directly at 0x102663d0. Active helper reads timed source-head data via f_10341b9c, passes current-index/head reference to commitAppend, then reconciles buffered mapping via f_103411b0 and, if incompatible, f_10149e68/f_10259c1c. Stopped active branch 0x10268d9c passes current-index state, marks initial-empty metadata refresh and rejoins common f_10267560/f_102642d4 publishing. Neither ordinary append path issues an unconditional Play transition."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e6400",
+        "address": "0x102648c4",
+        "callsite": "0x102e43a0",
+        "notes": "Active session metadata publishing calls f_1067c6ec at 0x102648c4. AVTransport chain f_102e6400 -> f_102e6048 -> f_102e43a0 emits transport/current-track/metadata groups according to source-version and field latches, including impl+0x7785/+0x7786/+0xa094..+0xa09c. Values are timed snapshots, can repeat unchanged grouped fields, and do not imply a SOAP-response-time state transition. Core telemetry enqueueEvent (0x102b64b0..0x102b64bc) is not the GENA LastChange payload."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014b3a8",
+        "address": "0x1014b4ac",
+        "callsite": "0x1014b588",
+        "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b5ddc",
+        "address": "0x102b6530",
+        "callsite": "0x102b7330",
+        "notes": "Preparation queries current URI via impl+0x448 vslot +0xf4, group power via f_10392504/f_102b52d0 and impl+0x5dc/+0xad28 flags. It can preemptively power the amplifier and schedule f_102b7330 through +0xad2c for a 30-second deadline, or call session f_1025eb7c with timing data. This function ends at 0x102b60b0. Later adjacent functions contain alarm-deadline clears but are not part of this public chain: AddURI does not perform deletion actions' impl+0x6ed8 clear."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r29 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Waits for worker completion, not merely submission. Code 0 emits three %u outputs and commits the response; errors emit no outputs. Public domain: 402 request validation; 718 instance/queue lookup; 800 mode, submission, resolver or mapped private-client failure; 801/802 documented metadata-fetch branches; 803 entry/storage capacity; 804 empty/all-unplayable expansion; metadata-service errors 1042..1045 retained by their bounded normalizer. Generic revision fault 1028 is unreachable because the wrapper passes revision 0. Kind-2 reports true after void commit without checking a commit-result value, so code 0 alone is not a transaction-ID commit guarantee and position/length can remain zero after abort.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102facf8",
-        "notes": "commit/fault slot usage: {'0x1c': 5, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}"
+        "function": "0x10511f34",
+        "address": "0x10edfc1c",
+        "callsite": "0x105123c0",
+        "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b674c",
+        "address": "0x102b67e0",
+        "callsite": "0x102b68a0",
+        "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b62e8",
+        "address": "0x102b63a4",
+        "callsite": "0x102b65d0",
+        "notes": "Requires impl+0x4654 in {1,2}; otherwise 800. Allowed path calls f_102b5ddc, builds kind 1 with f_1032e350, waits through f_10255f64 at 0x102b6580, then stages through f_1014f808 (public count=1, no f_1014fb34 container-batch path). First-submission or staging failure builds kind-19 cancelAppend via f_1032e5b4 at 0x102b6698. Successful staging builds kind 2 with f_1032e368 at 0x102b66d4 and waits again. Second-completion failure returns 800 at 0x102b66ac without submitting cancellation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f808",
+        "address": "0x1014f99c",
+        "callsite": "0x1014fa04",
+        "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10153a38",
+        "address": "0x10153bf8",
+        "callsite": "0x10153c10",
+        "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014b3a8",
+        "address": "0x1014b4ac",
+        "callsite": "0x1014b588",
+        "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014dc98",
+        "address": "0x1014de50",
+        "callsite": "0x1014dfcc",
+        "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b62e8",
+        "address": "0x102b6638",
+        "callsite": "0x102faf18",
+        "notes": "After successful second-worker completion, halfwords +0x24/+0x20/+0x26 are zero-extended to FirstTrackNumberEnqueued/NumTracksAdded/NewQueueLength at 0x102b664c..0x102b6654. Staging writes +0x20; kind-2 receives initially zero position/length locals +0x24/+0x26. Commit writes those only on normal commit. Wrapper formats %u at 0x102faebc/0x102faee0/0x102faf04 and commits at 0x102faf18. Failure emits no outputs. No revision-output argument is exposed by this wrapper."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -35315,68 +35819,31 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x64)",
-       "meaning": "impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v[+0x1c] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived",
+       "meaning": "Invalid instance or no matching named session queue.",
        "fault_sites": [
         "0x102fae60"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "Parsed InstanceID is nonzero, or queue ID 0 lookup finds no matching session record.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b6a9c",
-           "notes": "bc cr0 check -> r3=0x2ce at 0x102b6ab4"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102b6a9c",
-         "notes": "bc cr0 check -> r3=0x2ce at 0x102b6ab4"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x64)",
-       "meaning": "nonzero engine-insert rc surfaced verbatim; recovered domain: 718 (InstanceID!=0 or missing queue record), 0x404=1028 (insert-position mismatch), 800 (commit-op failure paths), record-write rcs via f_1014f808/f_1014fb34, 0 on success",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the enqueue worker produced a code not covered by the gate",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102b6af0",
-           "notes": "passthrough path"
+           "function": "0x10511f34",
+           "address": "0x10edfc1c",
+           "callsite": "0x105123c0",
+           "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102b674c",
-           "notes": "worker rc paths"
+           "address": "0x102b67e0",
+           "callsite": "0x102b68a0",
+           "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
           }
          ]
         }
@@ -35386,93 +35853,68 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fae60",
-         "notes": "impl vret passthrough site"
+         "function": "0x10511f34",
+         "address": "0x10edfc1c",
+         "callsite": "0x105123c0",
+         "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102b674c",
-         "notes": "insert op rc paths decoded"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102b62e8",
-         "notes": "commit op rc preloads+forwards decoded"
+         "address": "0x102b67e0",
+         "callsite": "0x102b68a0",
+         "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
         }
-       ],
-       "unresolved": {
-        "proven": "enqueue worker f_102b6948 rc returned",
-        "unknown": "impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102b6a9c entry); remaining paths call-derived",
-        "bounded_domain": [
-         718
-        ],
-        "bound_evidence": "worker literal-exit scan: f_102b6948->[718];f_102b6948->[718]",
-        "raw_exit_literals": {
-         "f_102b6948": {
-          "lits": [
-           718
-          ],
-          "pt": 2
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x102b6a9c",
-         "lits": [
-          718,
-          14572
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_102b6948": {
-          "lits": [
-           80,
-           402,
-           718,
-           14572
-          ],
-          "pt": 2
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "literal_bound": [
-        718,
-        800,
-        4097
-       ],
-       "worker_literal_bound": [
-        803,
-        803
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x64); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "code": 800,
+       "code_expr": "vret(r5-in,+0x64)",
+       "meaning": "Enqueue mode, submission or resolver/client failure.",
        "fault_sites": [
         "0x102fae60"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "impl+0x4654 outside {1,2}; first/second worker completion fails; Boolean resolver failure without capacity flag; non-preserved metadata fetch error; or matching Spotify path returns a nonzero private status. Cancellation covers first-submission/staging failure, not second-completion failure.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102facf8",
-           "notes": "parse vcall +0x8 then fault path"
+           "function": "0x102b62e8",
+           "address": "0x102b63a4",
+           "callsite": "0x102b65d0",
+           "notes": "Requires impl+0x4654 in {1,2}; otherwise 800. Allowed path calls f_102b5ddc, builds kind 1 with f_1032e350, waits through f_10255f64 at 0x102b6580, then stages through f_1014f808 (public count=1, no f_1014fb34 container-batch path). First-submission or staging failure builds kind-19 cancelAppend via f_1032e5b4 at 0x102b6698. Successful staging builds kind 2 with f_1032e368 at 0x102b66d4 and waits again. Second-completion failure returns 800 at 0x102b66ac without submitting cancellation."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014f48c",
+           "address": "0x1014f4c0",
+           "callsite": "0x1014f984",
+           "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10153a38",
+           "address": "0x10153bf8",
+           "callsite": "0x10153c10",
+           "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014b3a8",
+           "address": "0x1014b4ac",
+           "callsite": "0x1014b588",
+           "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
           }
          ]
         }
@@ -35482,8 +35924,281 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102facf8",
-         "notes": "wrapper parse + fault path"
+         "function": "0x102b62e8",
+         "address": "0x102b63a4",
+         "callsite": "0x102b65d0",
+         "notes": "Requires impl+0x4654 in {1,2}; otherwise 800. Allowed path calls f_102b5ddc, builds kind 1 with f_1032e350, waits through f_10255f64 at 0x102b6580, then stages through f_1014f808 (public count=1, no f_1014fb34 container-batch path). First-submission or staging failure builds kind-19 cancelAppend via f_1032e5b4 at 0x102b6698. Successful staging builds kind 2 with f_1032e368 at 0x102b66d4 and waits again. Second-completion failure returns 800 at 0x102b66ac without submitting cancellation."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f4c0",
+         "callsite": "0x1014f984",
+         "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153a38",
+         "address": "0x10153bf8",
+         "callsite": "0x10153c10",
+         "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b3a8",
+         "address": "0x1014b4ac",
+         "callsite": "0x1014b588",
+         "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
+        }
+       ]
+      },
+      {
+       "code": 801,
+       "code_expr": "vret(r5-in,+0x64)",
+       "meaning": "Metadata resolver retained its special failure code.",
+       "fault_sites": [
+        "0x102fae60"
+       ],
+       "conditions": [
+        {
+         "description": "f_10153a38 receives 801 with its context+0x1d mode flag set and bypasses generic result normalization at 0x10153c08.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10153a38",
+           "address": "0x10153bf8",
+           "callsite": "0x10153c10",
+           "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153a38",
+         "address": "0x10153bf8",
+         "callsite": "0x10153c10",
+         "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "code_expr": "vret(r5-in,+0x64)",
+       "meaning": "Metadata fetch did not accept the requested result.",
+       "fault_sites": [
+        "0x102fae60"
+       ],
+       "conditions": [
+        {
+         "description": "f_10153e98 completes fetch with code 0 but false acceptance-output byte, selecting 802 at 0x10153fcc.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10153a38",
+           "address": "0x10153bf8",
+           "callsite": "0x10153c10",
+           "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153a38",
+         "address": "0x10153bf8",
+         "callsite": "0x10153c10",
+         "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "code_expr": "vret(r5-in,+0x64)",
+       "meaning": "Queue entry or packed-storage capacity exhausted.",
+       "fault_sites": [
+        "0x102fae60"
+       ],
+       "conditions": [
+        {
+         "description": "Initial committed count is at queue+0x26bc, or per-entry capacity/allocation failure sets context+0x12 and its Boolean failure is mapped to 803.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014d000",
+           "address": "0x1014d248",
+           "callsite": "0x1014b450",
+           "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014f808",
+           "address": "0x1014f99c",
+           "callsite": "0x1014fa04",
+           "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014f48c",
+           "address": "0x1014f4c0",
+           "callsite": "0x1014f984",
+           "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d000",
+         "address": "0x1014d248",
+         "callsite": "0x1014b450",
+         "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014f99c",
+         "callsite": "0x1014fa04",
+         "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f4c0",
+         "callsite": "0x1014f984",
+         "notes": "Retained URI LF is rejected with 800. Public metadata LF was already replaced with spaces by f_10564cb0, so the raw metadata-LF guard is not a separate public rejection. Prefix paths cover x-rincon-playlist:, x-sonosapi-stream:, x-rincon-mp3radio://, x-rincon-cpcontainer:, x-rincon-buzzer: and x-rincon-configmode:, plus metadata-service and playlist classifications. Helpers f_1014f20c/f_1014b934/f_1014b854/f_10146300/f_10144f10/f_1014b700 can expand a URI. Boolean resolver failure maps to 803 if context+0x12 is set, otherwise 800; integer metadata-service results can propagate."
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "code_expr": "vret(r5-in,+0x64)",
+       "meaning": "No resolved entries or no playable entries.",
+       "fault_sites": [
+        "0x102fae60"
+       ],
+       "conditions": [
+        {
+         "description": "After successful traversal, accumulated unplayable count equals uint16(final staging count - initial count), including zero entries. Helper zero-input-count branch is unreachable for public count one.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1014f808",
+           "address": "0x1014f99c",
+           "callsite": "0x1014fa04",
+           "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014f99c",
+         "callsite": "0x1014fa04",
+         "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "code_expr": "metadata service result in [1042,1045]",
+       "meaning": "Bounded propagated metadata-service result: 1042, 1043, 1044 or 1045.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Nonzero metadata-fetch result reaches f_10c3ba54 and satisfies uint32(code-1042)<=3. Other nonzero results map to 800 except the separately preserved 801 branch.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10153a38",
+           "address": "0x10153bf8",
+           "callsite": "0x10153c10",
+           "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153a38",
+         "address": "0x10153bf8",
+         "callsite": "0x10153c10",
+         "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "Required request argument validation failed.",
+       "fault_sites": [
+        "0x102fae60"
+       ],
+       "conditions": [
+        {
+         "description": "f_10730414 rejects the descriptor set before implementation dispatch; wrapper loads 402 at 0x102fae98 and enters the common fault path.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102facf8",
+           "address": "0x102fad18",
+           "callsite": "0x102fadf8",
+           "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102facf8",
+         "address": "0x102fad18",
+         "callsite": "0x102fadf8",
+         "notes": "Five required descriptors: type-4 InstanceID/desired position (24-byte buffers), type-7 URI/metadata buffers of 0x401/0x1001 bytes, type-1 Boolean EnqueueAsNext. f_10560708 stops copying at capacity and f_10560a58 terminates at capacity-1: overlong strings truncate. Type-4 f_10560b40 calls strtoul(buffer,NULL,10), without end-pointer/errno validation. Boolean f_10560b78..0x10560bcc recognizes case-insensitive 1/true/yes; other present text is false. Required-descriptor validation f_10730414 failure loads 402 at 0x102fae98."
         }
        ]
       }
@@ -35511,13 +36226,99 @@
        "build": "86.10-80260",
        "function": "0x102b6a9c",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x64 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10511f34",
+       "address": "0x10edfc1c",
+       "callsite": "0x105123c0",
+       "notes": "Factory calls derived constructor at 0x103fb5d8; constructor calls base f_102c05d8 at 0x1051218c and installs vtable 0x10edfbb8 at 0x105123c0. Slot +0x64 contains f_102b6a9c, called at 0x102fae44. Nonzero InstanceID returns 718 at 0x102b6ab4. Instance 0 passes queue ID 0, revision 0 and a null revision-output pointer to f_102b6948 -> f_102b674c. The worker locks impl+0x458 at 0x102b6a10."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b674c",
+       "address": "0x102b67e0",
+       "callsite": "0x102b68a0",
+       "notes": "Queue ID text is compared with session+0x2d8ec/+0x2fff4, choosing queue objects +0x2d890/+0x2ff98; no match returns 718 at 0x102b68d4. f_10149b24 reads count/revision. Nonzero supplied revision alone reaches comparison 0x102b6930 and fault 1028; this public wrapper hardcodes revision 0. Metadata copy f_10564cb0 at 0x102b6840 replaces LF with space in a 4097-byte local buffer. Core receives one URI and a null container pointer."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b62e8",
+       "address": "0x102b63a4",
+       "callsite": "0x102b65d0",
+       "notes": "Requires impl+0x4654 in {1,2}; otherwise 800. Allowed path calls f_102b5ddc, builds kind 1 with f_1032e350, waits through f_10255f64 at 0x102b6580, then stages through f_1014f808 (public count=1, no f_1014fb34 container-batch path). First-submission or staging failure builds kind-19 cancelAppend via f_1032e5b4 at 0x102b6698. Successful staging builds kind 2 with f_1032e368 at 0x102b66d4 and waits again. Second-completion failure returns 800 at 0x102b66ac without submitting cancellation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014d000",
+       "address": "0x1014d248",
+       "callsite": "0x1014b450",
+       "notes": "Constructor sets queue+4 = queue+0x14, whose vtable is 0x10e936c4 (0x1014d0e0/0x1014d0f0). Slot +8 is f_10149234 -> f_10149118 -> f_101489f0. f_10149118 checks uint16(committed count + staging count) against capacity. Writer allocates packed strings via f_10148964, writes queue+0x26c0 URI/metadata pointer pairs at 0x10148f48..0x10148f5c and 0x10148d58..0x10148d70, then increments context+8 at 0x10148db4, not committed queue count. Allocation/capacity failure sets context+0x12; unplayable entries increment context+0x14 at 0x10148e0c and can still be staged among partly playable expansions."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014f808",
+       "address": "0x1014f99c",
+       "callsite": "0x1014fa04",
+       "notes": "Initial committed count >= queue+0x26bc returns 803 at 0x1014f884. Per-URI context+8 supplies final staging count; context+0x14 supplies accumulated unplayable count. At 0x1014f9f0..0x1014fa04, compare accumulated unplayable count with uint16(final staging count - initial count). Raw 0x7f905000 sets CR7 and 0x7de97f9e is isel r15,r9,r15,30: equality selects 804, inequality selects prior zero result. Empty or wholly unplayable expansion therefore fails, not succeeds with zero entries. The separate zero-input-count 804 branch at 0x1014fb28 is unreachable for this wrapper."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b6948",
+       "address": "0x102b6a4c",
+       "callsite": "0x102b66d4",
+       "notes": "Raw isel 0x7d20579e chooses internal flags 0 for false and 4 for true. Core ORs 2 into staging flags, passes flags bit 2 as kind-2 EnqueueAsNext and leaves kind-16 branch (bit 3) unreachable. Desired position is masked with rlwinm SH=0,MB=16,ME=31 at 0x102b66c8, not right-shifted. In shuffle commit, raw isel at 0x1014def8 tests CR7 from desired==0 at 0x1014de94: next treatment is true for nonzero desired or true EnqueueAsNext, false otherwise. Nonshuffle insertion never tests EnqueueAsNext."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014dc98",
+       "address": "0x1014de50",
+       "callsite": "0x1014dfcc",
+       "notes": "Matching nonzero append commit sets visible count to uint16(old count + staged count) at 0x1014de64, updates storage bookkeeping f_10145fdc, mapping and current-index state, then writes length from queue+0x26c8 at 0x1014df98..0x1014df9c. Named queues invoke f_1014d738 once at 0x1014dfcc. Zero count returns before locking. Token mismatch clears append-busy but exits without publishing count or writing outputs. Kind-2 workers report true after this void helper, without an independent commit-result test."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b62e8",
+       "address": "0x102b6638",
+       "callsite": "0x102faf18",
+       "notes": "After successful second-worker completion, halfwords +0x24/+0x20/+0x26 are zero-extended to FirstTrackNumberEnqueued/NumTracksAdded/NewQueueLength at 0x102b664c..0x102b6654. Staging writes +0x20; kind-2 receives initially zero position/length locals +0x24/+0x26. Commit writes those only on normal commit. Wrapper formats %u at 0x102faebc/0x102faee0/0x102faf04 and commits at 0x102faf18. Failure emits no outputs. No revision-output argument is exposed by this wrapper."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10153a38",
+       "address": "0x10153bf8",
+       "callsite": "0x10153c10",
+       "notes": "f_1014b700/f_10144f10 -> f_10153fe0 -> f_10153ddc/f_10153d24/f_10153e98 reach this metadata-fetch result normalizer. A context+0x1d flag preserves code 801 at 0x10153c08. Otherwise f_10c3ba54 tests uint32(code-1042)<=3: only 1042..1045 are preserved; other nonzero fetch results become 800 through isel at 0x10153c1c. f_10153e98 maps successful fetch with a false acceptance byte to 802 at 0x10153fcc. These integer results pass to the wrapper; private Spotify-client results take a different Boolean path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014b3a8",
+       "address": "0x1014b4ac",
+       "callsite": "0x1014b588",
+       "notes": "Service types 9/12 with matching Spotify context can bypass normal local entry writing: f_1020ca08 checks service type, global feature byte +0x164 and context+0x1e8. Resolving the object ID leads to f_1020ce44 -> f_102148e4, Sonos-client mode 1. That path initializes/reuses the client through f_1022c9e0 and schedules start/resume through f_10225b3c with control value 1 at 0x10214c28/0x10214d40. Private status zero reports staging count 1 and true at 0x1014b5ac; any nonzero private status becomes Boolean failure and hence 800. This is not evidence of a normal local packed-track write or a final PLAYING snapshot."
       }
      ],
-     "notes": "URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks. The Queue service reaches the identical engine worker through queue-manager vtable 0x10ed1bcc -> *(qm+0x128).",
-     "todo": [
-      "Established: direct dispatch to handler 0x102facf8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Public single-URI path only: one URI, null container-batch argument, internal flags 0/4 (plus staging bit 1), queue ID/revision 0, no revision output. Generic container-batch, UpdateID and kind-16 branches must not be copied into this action. Shared queue-mutator ownership remains with the Queue-service slice."
     },
     "AddURIToSavedQueue": {
      "description": "Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.",
