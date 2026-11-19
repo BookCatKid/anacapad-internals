@@ -75825,7 +75825,7 @@
      }
     },
     "RampToVolume": {
-     "description": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime. Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore. Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes. RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds. Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached.",
+     "description": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime. Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore. Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes. RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds. Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached. Each changed ramp step still calls the shared apply worker without checking its result; that worker normally returns one even if audio readiness causes it to skip sound-device requests. Dirty/notification/settings work follows the cached step, not a hardware-completion acknowledgment. Deferred-save generations may supersede older snapshots.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073c834",
@@ -76478,11 +76478,11 @@
       ]
      },
      "state_dependencies": {
-      "description": "Topology snapshot and endpoint sessions; mutex +0x938, fixed-mode/override +0x7ff/+0x801, saved fixed volume +0x7e0, cached Master +0x7da, ramp target/interval/hold/step +0x3c8/+0x3ca/+0x3cc/+0x3d0 and restore flag/value +0x3d4/+0x3d6.",
+      "description": "Topology snapshot and endpoint sessions; mutex +0x938, fixed-mode/override +0x7ff/+0x801, saved fixed volume +0x7e0, cached Master +0x7da, ramp target/interval/hold/step +0x3c8/+0x3ca/+0x3cc/+0x3d0 and restore flag/value +0x3d4/+0x3d6. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish.",
       "todo": [
-       "Established: Local fields and worker binding.",
-       "Unknown: Concrete delegate capabilities and later reset/URI consumers.",
-       "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+       "Established: Direct cache/setup guards and concrete sound-device readiness, deferred state and LED-state dependencies.",
+       "Unknown: Concrete DSP/LED listener registrations and later URI/reset consumers.",
+       "Next: Bind concrete DSP mute/volume/gain observers below f_10d8ca38/f_10d8fdc8/f_10d8c304 and playback consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278 and later readers of reset/URI fields +0x3d8/+0x3d9."
       ],
       "evidence": [
        {
@@ -76533,16 +76533,30 @@
         "build": "86.10-80260",
         "address": "0x1073c998",
         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful RampToVolume still does not acknowledge physical audio completion."
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore. Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes. Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached.",
+       "description": "Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore. Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes. Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached. Each changed ramp step still calls the shared apply worker without checking its result; that worker normally returns one even if audio readiness causes it to skip sound-device requests. Dirty/notification/settings work follows the cached step, not a hardware-completion acknowledgment. Deferred-save generations may supersede older snapshots. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
        "todo": [
-        "Established: Peer requests, setup/cache changes, condition wakeup, cached worker steps and internal requests, including step storage before local 402.",
-        "Unknown: Completed device effects, later URI/reset policy and saved configuration.",
-        "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+        "Established: Mode timing/output arithmetic, saved restore fields, registered stepping loop, concrete sound-device/LED requests and conditional generation-guarded deferred saving.",
+        "Unknown: Concrete DSP/LED listener effects, final remote-session outcomes and remaining settings sinks.",
+        "Next: Bind concrete DSP mute/volume/gain observers below f_10d8ca38/f_10d8fdc8/f_10d8c304 and playback consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278 and later readers of reset/URI fields +0x3d8/+0x3d9. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish f_106ff898."
        ],
        "evidence": [
         {
@@ -76593,16 +76607,37 @@
          "build": "86.10-80260",
          "address": "0x1073c998",
          "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f7078",
+         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful RampToVolume still does not acknowledge physical audio completion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "Alarm/autoplay setup and subsequent cached worker steps mark +0x7f0 and request f_1067c6ec/f_100d993c. The condition signal wakes the registered local ramp thread; it is not a subscriber notification or hardware-completion event.",
+      "description": "Alarm/autoplay setup and subsequent cached worker steps mark +0x7f0 and request f_1067c6ec/f_100d993c. The condition signal wakes the registered local ramp thread; it is not a subscriber notification or hardware-completion event. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
       "todo": [
-       "Established: Local wakeup and notification/deferred-settings request sites.",
-       "Unknown: Concrete RC notification delivery and settings completion.",
-       "Next: Follow f_1067c6ec -> f_1067c46c -> f_10678c50 sender and provider +0x3bc slot +0x14 / f_10167318."
+       "Established: Conditional dirty/source request sites and generation-guarded deferred save with ignored storage booleans.",
+       "Unknown: Concrete subscriber delivery and completion of the separate zones-setting command/storage sink.",
+       "Next: Bind sender worker after f_10678c50; trace command 0x3f and zones-storage+0x5c virtual +0x14 receivers."
       ],
       "evidence": [
        {
@@ -76653,15 +76688,22 @@
         "build": "86.10-80260",
         "address": "0x1073c998",
         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
        }
       ]
      },
      "state_transitions": {
-      "description": "Forwarded sessions finish their bounded wait before local setup. On local success target/metadata may be installed while the worker still has cached steps/hold waits pending. Backend results from initial zeroing and worker steps are discarded. Restore storage follows the selected mode, not a universal automatic-restore rule.",
+      "description": "Forwarded sessions finish their bounded wait before local setup. On local success target/metadata may be installed while the worker still has cached steps/hold waits pending. Backend results from initial zeroing and worker steps are discarded. Restore storage follows the selected mode, not a universal automatic-restore rule. Each changed ramp step still calls the shared apply worker without checking its result; that worker normally returns one even if audio readiness causes it to skip sound-device requests. Dirty/notification/settings work follows the cached step, not a hardware-completion acknowledgment. Deferred-save generations may supersede older snapshots. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
       "todo": [
-       "Established: Ordering and worker termination/equality/shutdown paths.",
-       "Unknown: Later reset/URI policies and completed audio/session states.",
-       "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+       "Established: Each changed ramp step still calls the shared apply worker without checking its result; that worker normally returns one even if audio readiness causes it to skip sound-device requests. Dirty/notification/settings work follows the cached step, not a hardware-completion acknowledgment. Deferred-save generations may supersede older snapshots.",
+       "Unknown: Final DSP/remote completion states and remaining settings receiver transitions, plus later URI/reset policy.",
+       "Next: Bind concrete DSP mute/volume/gain observers below f_10d8ca38/f_10d8fdc8/f_10d8c304 and playback consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278 and later readers of reset/URI fields +0x3d8/+0x3d9. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish f_106ff898."
       ],
       "evidence": [
        {
@@ -76712,11 +76754,32 @@
         "build": "86.10-80260",
         "address": "0x1073c998",
         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful RampToVolume still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
        }
       ]
      },
      "return_behavior": {
-      "description": "Local 702/402 or last nonzero prepared-session status faults through SOAP; successful setup returns computed RampTime, not elapsed or achieved duration. No atomic rollback of earlier peers, initial zeroing or private step storage.",
+      "description": "Local 702/402 or last nonzero prepared-session status faults through SOAP; successful setup returns computed RampTime, not elapsed or achieved duration. No atomic rollback of earlier peers, initial zeroing or private step storage. The worker apply result cannot establish success of an audio step: its concrete normal-return result is always one, and the ramp loop discards it. Deferred-save failures do not change the earlier setup response.",
       "evidence": [
        {
         "type": "firmware",
@@ -76766,6 +76829,20 @@
         "build": "86.10-80260",
         "address": "0x1073c998",
         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful RampToVolume still does not acknowledge physical audio completion."
        }
       ]
      },
@@ -76951,13 +77028,34 @@
        "build": "86.10-80260",
        "address": "0x1073c998",
        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f7078",
+       "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful RampToVolume still does not acknowledge physical audio completion."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d78a4",
+       "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
       }
      ],
      "notes": "Replaces unrelated state-machine event-record attribution. Source requests, cached volume steps, backend acceptance and completed audio application are different stages.",
      "todo": [
-      "Established: Actual proxy, local validation, mode table, restore storage, output arithmetic and registered worker loop.",
-      "Unknown: Concrete backend completion, later URI/reset consumers, final session statuses, saving and delivery.",
-      "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+      "Established: Mode timing/output arithmetic, saved restore fields, registered stepping loop, concrete sound-device/LED requests and conditional generation-guarded deferred saving.",
+      "Unknown: Concrete DSP/LED effects, final session/parser outcomes, remaining settings receivers and subscriber delivery, plus later URI/reset consumers.",
+      "Next: Bind concrete DSP mute/volume/gain observers below f_10d8ca38/f_10d8fdc8/f_10d8c304 and playback consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278 and later readers of reset/URI fields +0x3d8/+0x3d9. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish session f_106ff898 and sender after f_10678c50."
      ],
      "implementation_notes": {
       "primary_vptr": "0x10ed270c",
