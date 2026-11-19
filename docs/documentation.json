@@ -43614,7 +43614,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The engine explicitly requests notification on arm and on cancellation of an active generation. Cancellation with active generation zero skips these initial notify sites.",
+      "description": "Arming or canceling an active timer requests a LastChange update, which can publish r:SleepTimerGeneration (the new generation on arm, zero on cancel). An already-unarmed cancellation does not request a timer update. Separately, the worker can clear running alarm or snooze state and notify those changes.",
       "evidence": [
        {
         "type": "firmware",
@@ -43639,10 +43639,47 @@
         "address": "0x102b4dac",
         "notes": "NULL duration clears active generation +0x5a78 if nonzero and sets dirty byte +0x5a7c. Already-clear timers skip this write and the initial notify. Cancellation does not overwrite the stored deadline.",
         "function": "0x102b4c1c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c4c8",
+        "notes": "f_1067c6ec calls the shared UPnP event scheduler. The scheduler marks the sender pending and requests its event work through f_10678c50, not a synchronous SOAP response or outbound event body.",
+        "function": "0x1067c46c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e61f8",
+        "notes": "Both engine tables bind +0x200 to 0x102e6048 (table words 0x10eaf4ec and 0x10edfdb8). It locks impl+0x458 and calls f_102e43a0 at 0x102e61d4 and 0x102e61f8 for the two subscriber groups, with r7=1 and r7=0 respectively. The formatter opens LastChange for InstanceID 0 at 0x102e47b0.",
+        "function": "0x102e6048"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b5744",
+        "notes": "Samples impl+0x5a7c into pending event byte +0xa098 when not already pending. A consuming pass clears the source dirty byte at 0x102b57c0.",
+        "function": "0x102b5658"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e5050",
+        "notes": "Delta formatter checks the +0xa098 flag at 0x102e502c and emits r:SleepTimerGeneration from impl+0x5a78; a full pass can emit it without requiring the dirty flag.",
+        "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b4c00",
+        "notes": "Post-timer f_102b4b48(impl,1) clears pending snooze +0x6ed0 and/or alarm +0x5a86, marks +0x6ed1/+0x5a87 and requests notification only for a changed value. The delta serializer consumes those markers via +0xa09a/+0xa099 and emits r:SnoozeRunning and r:AlarmRunning from the cleared values at 0x102e5398/0x102e5360.",
+        "function": "0x102b4b48"
        }
-      ],
-      "todo": [
-       "Identify the subscriber reached from f_1067c6ec(impl+0x10) and the fields it publishes for +0x5a7c; trace the extra f_102b4b48 path to distinguish a second notification from the timer's primary update."
       ]
      },
      "state_transitions": {
