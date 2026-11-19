@@ -49058,7 +49058,7 @@
      ]
     },
     "RemoveTrackFromQueue": {
-     "description": "Removes the entry selected by ObjectID from queue selector 1 through implementation f_102aa770, bound at vtable 0x10eaf2ec slot +0x70. InstanceID must be zero. A nonzero UpdateID must match the current queue version. Modes 1 and 2 permit the operation. A kind-3 request is submitted to the session worker and the caller waits for its completion byte; success is not merely submission acceptance. The worker deletes the entry and updates queue bookkeeping. Playback and network-event consequences still need the follow-up traces recorded below.",
+     "description": "Removes the entry selected by ObjectID from queue selector 1 through implementation f_102aa770, bound at vtable 0x10eaf2ec slot +0x70. InstanceID must be zero. A nonzero UpdateID must match the current queue version. Modes 1 and 2 permit the operation. A kind-3 request is submitted to the session worker and the caller waits for its completion byte; success is not merely submission acceptance. The worker deletes the entry and updates queue bookkeeping. The alarm buzzer-fallback deadline clear, ContentDirectory observer chain, Queue event snapshot construction, and source bookkeeping are traced below; final current/last-track playback transitions and Queue/AVTransport event scheduling still have exact residuals.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f9aa8",
@@ -49305,7 +49305,7 @@
      },
      "side_effects": [
       {
-       "description": "Worker kind 3 deletes one entry, compacts queue storage and optional shuffle ordering, reduces count and adjusts supplied current-track bookkeeping. Named queue deletion increments queue+0x70 via f_1014d738. On true completion, impl checks whether URI at +0x5dc begins x-rincon-queue:; if so it clears word +0x6ed8.",
+       "description": "Worker kind 3 deletes one entry, compacts queue storage and optional shuffle ordering, reduces count and adjusts supplied current-track bookkeeping. Named queue deletion increments queue+0x70 via f_1014d738. On true completion, impl checks whether URI at +0x5dc begins x-rincon-queue:; if so it clears word +0x6ed8. This word is an absolute clock-id-1 seconds deadline for alarm buzzer fallback, not a queue revision. Clearing it disables the pending fallback window; it does not itself stop an alarm or assign a transport state. Current-source bookkeeping is detailed in state_transitions.",
        "evidence": [
         {
          "type": "firmware",
@@ -49333,13 +49333,22 @@
          "function": "0x102aa770",
          "callsite": "0x102aa890",
          "notes": "f_1014708c compares first 15 bytes with x-rincon-queue:. Raw isel word 0x7c6a4f9e selects 1 on CR7 EQ, 0 otherwise; nonzero result clears +0x6ed8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d43a0",
+         "address": "0x102d457c",
+         "callsite": "0x102d457c",
+         "notes": "Reads impl+0x6ed8 after clock-id-1 sample; alarm fallback gates at 0x102d44cc..0x102d4530 precede the now<=deadline path setting x-rincon-buzzer:0 through f_102ceb40/f_102cfa50, then clearing deadline at 0x102d45e0. f_102d9ff8 independently reads it at 0x102da444 for playEnd fallback and clears at 0x102da4ac. Timestamp writers f_102cfa50 at 0x102cfe0c/0x102cfecc and f_102dac20 at 0x102db0bc store now+120. Deserialization stores now+3600*h+60*m+s at 0x102b1208. f_102ed780 serializes it at 0x102ed96c under alarm flag +0x5a86 and clear +0x6ed0. The conditional clear in f_102aa770 therefore clears the alarm fallback deadline, not a queue update-id."
         }
        ],
-       "todo": "Established: queue compaction, count/index changes, version increment and conditional +0x6ed8 clear are traced. Residual: identify the semantic role and downstream readers of impl+0x6ed8, and finish active running deletion f_103417dc/f_10259c1c effects before assigning playback consequences."
+       "todo": "Residual: bind session+0x60 methods called by f_10259c1c and finish the observable playback consequences of active-source removal, as detailed in state_transitions. The alarm fallback deadline meaning and its conditional clear are traced."
       }
      ],
      "events_triggered": {
-      "description": "Named queue deletion increments its version and posts an internal change event through queue+0x18 using f_10117654. There is no direct SOAP LastChange or QueueID emission in f_102aa770; this does not establish absence of downstream emissions.",
+      "description": "Named queue deletion increments its version, sets queue+0x74 dirty, and posts CdNotifyUpdateId through queue+0x18 using f_10117654. The registered ContentDirectory observer f_10304808 increments its SystemUpdateID, coalesces the container/version in its changed map, and schedules eventing. ContentDirectory f_103035c4 emits SystemUpdateID and comma-separated ContainerUpdateIDs; incremental emission is gated by pending state and elapsed whole seconds greater than one, with a Q:0 map entry bypassing the delay. Otherwise it schedules the previous timestamp plus two seconds. SystemUpdateID and the container map have separate pending/timing state. Queue service has a separate LastChange builder f_10465b54: Queue-namespace XML carries QueueID from snapshot+0 and UpdateID from snapshot+0x14. f_10465e28 obtains snapshots through f_102b0908 and f_1025bfd4; f_10146cc0 copies queue+0x5c, so version and dirty byte become snapshot+0x14/+0x18. Incremental Queue output requires a changed snapshot; consuming snapshots clears copied dirty flags. This proves payload eligibility, not the still-untraced scheduling link to Queue LastChange. AVTransport has another LastChange producer f_102e43a0, whose incremental latch conditions remain under investigation. There is no direct network-event emission in f_102aa770.",
       "evidence": [
        {
         "type": "firmware",
@@ -49358,12 +49367,57 @@
         "function": "0x102aa770",
         "callsite": "0x102aa808",
         "notes": "Under impl+0x458 lock: InstanceID gate precedes current update-id fetch; nonzero UpdateID mismatch returns 1028; unsigned (mode-1)>1 returns 800; completed false request returns 800, true returns 0. Unlock result is discarded at 0x102aa7cc. Neither 1176 nor 1500 is assigned to r31 on a normal exit; the prior inferred return literals are unsupported."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10304e78",
+        "address": "0x1030502c",
+        "callsite": "0x1030502c",
+        "notes": "Registers cdImpl+0x11c on CdNotifyUpdateId subject 0x1109cfb8; alternate site 0x103050b4. Constructor f_10303de4 installs vtable 0x10eb3fa0 at +0x11c at 0x10303fd8; slot 0 thunk f_10304904 adjusts this to f_10304808. f_10115574 observer delivery invokes slot 0 at 0x10115984..0x10115998. f_10304808 updates map cd+0x4f0 via f_103032fc, increments cd+0x4e0, sets pending cd+0x4e4 and schedules f_1067c6ec(cd+8). Queue event extra string is empty, so its extra-string branch does not call f_1030470c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103035c4",
+        "address": "0x10303aa0",
+        "callsite": "0x10303aa0",
+        "notes": "ContentDirectory event builder, not Queue service: full buffer includes SystemUpdateID; ContainerUpdateIDs uses f_103034e8 comma-separated container/version map. Incremental SystemUpdateID pending flag +0x4e4 requires whole-seconds elapsed>1 or Q:0 in changed map (0x10303aa0..0x10303ac4), otherwise schedules prior timestamp+2 at 0x10303d4c; emission clears pending at 0x10303af8. Container map has independent timer/pending at +0x50c/+0x4f0, Q:0 bypass at 0x1030371c..0x10303778 and delayed scheduling at 0x10303d10. f_103032fc replaces version for an existing container at 0x1030337c; f_103034e8 consume=1 clears map pending byte."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465b54",
+        "address": "0x10465c00",
+        "callsite": "0x10465c00",
+        "notes": "Queue LastChange builder writes Queue namespace and QueueID %.20s from snapshot+0, UpdateID %u from +0x14. Nonempty snapshots only; incremental mode additionally requires f_1014d540(snapshot). Full includes Curated and QueueOwnerID; incremental includes these only for snapshot+0x52b/+0x119 respectively. f_10465e28 calls f_102b0908 and writes full buffer when supplied, incremental only if snapshot helper returns changed. Does not alone prove publisher scheduling."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c0c0",
+        "callsite": "0x1025c0c0",
+        "notes": "f_102b0908 locks impl+0x458 and calls f_1025bfd4. Copies queue 0 at session+0x2d890 and queue 1 at +0x2ff98 via f_10146cc0, ORs f_1014d540(snapshot) into changed result. f_10146cc0 copies 0x2574 bytes from queue+0x5c; queue revision/dirty +0x70/+0x74 become snapshot+0x14/+0x18. consume=1 clears queue+0x6c/+0x74/+0x175/+0x587 after copying. Other records are initialized placeholders; consume also clears session+0x326c4. f_1014d540 tests snapshot dirty bytes +0x10/+0x18/+0x119/+0x52b."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fbc1c",
+        "callsite": "0x103fbc1c",
+        "notes": "Factory+0x1934 assigned impl at 0x103fb680; 0x103fbb78..0x103fbb98 forms weak pair with raw pointer impl+0x10. Passed as session ctor r6 at 0x103fbc1c, copied to session+0x2578/+0x257c at 0x1025f53c..0x1025f54c. Running worker scheduling at 0x10265914..0x10265a08 requires change flags and live weak owner. f_1067c6ec delegates to f_1067c46c setting pending and checking notification sender. AVTransport builder f_102e43a0 is referenced through thunk 0x102e4398 in sub-vtable 0x10eaf5e8 and serializes LastChange at 0x102e4794 onward. Remaining links are Queue scheduling and AVTransport incremental producer latch/registration."
        }
       ],
-      "todo": "Established: internal change event originates at f_1014d738 callsite 0x1014d820 after version bump. Residual: trace subscribers of queue+0x18 and worker postprocessing to exact LastChange/QueueID payloads and emission conditions; f_10117654 event-loop dispatch was inspected but subscriber binding is not yet recovered."
+      "todo": "Residual: connect transport publisher impl+0x10 notification scheduling to Queue producer f_10465e28; finish AVTransport producer f_102e43a0 event-source registration and snapshot/latch predicates for incremental LastChange. ContentDirectory observer registration, SystemUpdateID/ContainerUpdateIDs construction and throttling, and Queue snapshot/payload construction are traced."
      },
      "state_transitions": {
-      "description": "Stopped deletion updates current-track bookkeeping through f_1014ed90; running active deletion uses f_10259f38, with branches for current-item removal and source adjustment. No transport state literal is written directly in f_102aa770.",
+      "description": "Running active deletion uses f_10259f38 and f_103417dc. The latter computes the inclusive removal span, adjusts linked source indexes and shuffle mappings, detaches removed source nodes, returns their identity and flags removal of the list head. This flag is not merely a numeric CurrentTrack equality check. Head removal clears session+0x35184/+0x35188 and +0x327c8, marks changed and calls the track-play monitor with (1,0). Removing another identified source remaps the current index and invokes f_10259c1c; remapping failure sets +0x327d2. f_10259c1c resets saved identity words +0x327d8/+0x327dc to -1, queries session+0x60 slot +0x38, compares identities and either obtains the operation index through slot +0x40 and remaps queue indexes or calls slot +0x48 and stores its byte at +0x327e0. Stopped active deletion uses f_1014ed90 with current-index and removed-current outputs. If removed-current is true, 0x10268e7c clears the same source pair and +0x327c8, resets the source descriptor and notifies the monitor. Successful stopped postprocessing clears playback bookkeeping through f_10261a44 when +0x327c8 is false, refreshes selected-track metadata through f_10267560 when the queue remains nonempty, and publishes session metadata through f_102642d4. The monitor callback is f_104bf2e4, not a direct STOPPED-state setter. No transport state literal is written directly in f_102aa770; the final externally visible current/last-track transitions remain to be traced through session+0x60 and source consumption.",
       "evidence": [
        {
         "type": "firmware",
@@ -49391,9 +49445,45 @@
         "function": "0x10259f38",
         "callsite": "0x10259fb8",
         "notes": "Calls f_103417dc before deleting through f_1014e9a8; paths call f_10259c1c, set session+0x327d2 or invoke session+0x2590 vtable slot +0x30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103417dc",
+        "address": "0x10341b18",
+        "callsite": "0x10341b18",
+        "notes": "Called at 0x10259fb8 with active queue, source identity, inclusive start/end, headRemoved/index/identity outputs. f_103410d8 prunes source list; inclusive span is uint16(end-start+1). Queue+0x26dc bit0 selects shuffle remapping. Adjusts source-node +0x28c/+0x28e indexes; detaches deleted nodes to secondary list at list+4 and returns identity +0x290/+0x294. Head-removed output set at 0x10341b18, not an unconditional CurrentTrack comparison. f_10259f38 head-removal branch 0x1025a09c clears source pair session+0x35184/+0x35188 and +0x327c8, marks changed and invokes monitor; other identified-source branch remaps with f_10149e68, sets +0x327d2 on failure, and calls f_10259c1c. Copies +0x326cc to +0x326fc on return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259ca4",
+        "callsite": "0x10259ca4",
+        "notes": "Sets saved identity +0x327d8/+0x327dc=-1, queries session+0x60 slot+0x38 with identity and out-pointers. Compares returned identity; differing identity calls slot+0x40 (known implementation f_10270ce8 returns object+0x120+1), stores operation index at +0x327d4, remaps using f_10149e68 and f_1045f760. Alternate branch calls slot+0x48 at 0x10259d80 and stores result byte +0x327e0. Concrete session+0x60 binding remains open."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10268e7c",
+        "callsite": "0x10268e7c",
+        "notes": "Stopped active single deletion at 0x10268ce4 calls f_1014ed90 with current index &session+0x326cc and removed-current byte. True byte branches to 0x10268e7c: clear +0x35184/+0x35188, reset source descriptor through f_1045fd34, clear +0x327c8, call session+0x2590 slot+0x30(1,0), set +0x3c540=1 and timestamp +0x3c544. Successful stopped postprocessing 0x10267e00..0x10267ebc calls f_10261a44 when +0x327c8 false, f_10267560(0) if queue nonempty, then f_102642d4(1,sourceDescriptor). These operations do not by themselves identify final TransportState literals."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104c0aa8",
+        "address": "0x104c0b0c",
+        "callsite": "0x104c0b0c",
+        "notes": "Track-play monitor ctor installs vtable 0x10ed8134; slot+0x30 points to f_104bf2e4. Factory constructs it at 0x103faf80 and stores factory+0x1904; session ctor r9 from that field is stored at session+0x2590 (0x1025f598). f_104bf2e4 submits monitor event kind3 through f_104c6264, not a direct AVTransport state assignment."
        }
       ],
-      "todo": "Established: running and stopped kind-3 dispatch and queue bookkeeping are traced. Residual: reverse f_103417dc, f_10259c1c and stopped worker branch 0x10268e7c to enumerate playback transitions when deleting the current track, including last-track deletion."
+      "todo": "Residual: identify concrete session+0x60 implementations of slots +0x38/+0x40/+0x48 used by f_10259c1c, then follow detached-head/source-consumption handling and empty-queue handling to externally visible CurrentTrack/TransportState values for current-track and last-track deletion. The named helper control flow, stopped refresh and track-play monitor binding are traced; the monitor call alone does not establish a transport-state change."
      },
      "return_behavior": {
       "description": "No output arguments. Wrapper commits success on implementation result 0 and faults verbatim on nonzero result. Complete normal implementation result domain is {0,718,1028,800}: 718 for nonzero InstanceID, 1028 for version mismatch, 800 for disallowed mode or false worker completion. Request construction/tagging does not contribute a return code. Stack-check failure aborts rather than returning a SOAP code.",
@@ -49673,7 +49763,7 @@
       }
      ],
      "notes": null,
-     "todo": "Established: concrete vtable/constructor binding, synchronous worker completion, full SOAP return domain, kind-3 queue deletion and version increment are traced. Residual: finish current-track playback branches and internal-event subscribers documented in state_transitions/events_triggered, and identify impl+0x6ed8 readers. These are static follow-up traces, not runtime-injected dispatch barriers."
+     "todo": "Residual: bind session+0x60 methods and source-consumption/empty-queue behavior to final observable current/last-track playback transitions; connect impl+0x10 scheduling to Queue LastChange and finish AVTransport LastChange registration/latch predicates. Alarm fallback deadline readers/writers, ContentDirectory subscriber chain and Queue snapshot/payload construction are traced in the records below."
     },
     "RemoveTrackRangeFromQueue": {
      "description": "Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work (StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector \"0\" via snprintf(\"%u\") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match) selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.",
