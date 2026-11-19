@@ -63270,14 +63270,59 @@
         "function": "0x10466280",
         "address": "0x104663e0",
         "notes": "li r4,0x192 fault"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349640",
+        "address": "0x10349744",
+        "notes": "unknown queue -> NULL -> 701"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466520",
+        "address": "0x104665d0",
+        "notes": "lazy browse at serialisation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b4c",
+        "notes": "count 0 -> unlimited"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014a7cc",
+        "notes": "UpdateID = q+0x70"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014a7d4",
+        "notes": "TotalMatches = queue length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014ac08",
+        "notes": "window loop"
        }
       ],
-      "todo": [
-       "Established: Browse delegates to the shared ContentDirectory browse f_10305a98 on object 'Q:<QueueID>' with StartingIndex/RequestedCount as the window.",
-       "Residual: how f_10305a98 applies StartingIndex/RequestedCount (zero-count meaning, out-of-range start), where it takes the UpdateID it returns, and what it does on a failure during lazy Result serialisation are not traced; next step is to disassemble f_10305a98's BrowseDirectChildren branch (from 0x10305b34)."
-      ],
       "resolved_findings": [
-       "Resolved (front end): all three args must parse (else 402 at 0x104663e0) and object 'Q:<QueueID>' must exist in *(qm+0x12c) (else 701 from f_103042f0). There is no transport-mode gate and no engine lock on this path; qm slot +0x28 never touches the engine at qm+0x128."
+       "Resolved (front end): all three args must parse (else 402 at 0x104663e0) and object 'Q:<QueueID>' must exist in *(qm+0x12c) (else 701 from f_103042f0). There is no transport-mode gate and no engine lock on this path; qm slot +0x28 never touches the engine at qm+0x128.",
+       "Resolved (lazy browse chain): the action handler f_10466280 only checks that the object exists. f_104661fc formats 'Q:%u' (fmt 0x10e94018) and calls f_103042f0, which looks the id up with f_1034a224 -> f_10349d00 ('Q:' prefix -> container node tree+0x354, 0x10349dbc) -> f_10349640. That returns the dirObjQueue sub-node (node+8 or node+0x1a8) whose id matches, or NULL (0x10349744), which gives 701. The Result, NumberReturned, TotalMatches and UpdateID outputs are bound to a writer object (vtable 0x10ed1bb8) at sp+0x44, so the browse itself runs while the response is serialised: the Result getter f_10513580 calls writer slot +8, f_10466618 -> f_10466520 -> f_10305a98(tree, 'Q:n', 'BrowseDirectChildren', filter '', start, count, sort '', &NR, &TM, &UID) (0x104665d0). f_10305a98 maps RequestedCount 0 to 0xffffffff (isel at 0x10305b4c) and calls node slot +0xc. For dirObjQueue (vtable 0x10ebb710) that is f_10347688, which tail-calls the queue engine f_1014a70c(q = node+0x198, node+0x17a, filter, start, count, ctx, &UID, &TM) and drops the sort argument. f_1014a70c locks the queue (f_10149598) and returns 701 if node+0x17a differs from the queue id q+0x5c (0x1014a7bc). Otherwise it sets UpdateID = q+0x70 (0x1014a7cc) and TotalMatches = queue length q+0x26c8 (0x1014a7d4), then writes items from index StartingIndex while the index is below the length and the count is not used up (0x1014ac08..0x1014ac1c). Each item goes through f_10146ee0 (id '%s/%u'), whose f_1054b24c bumps ctx+0x14 (0x1054b2a0); that count becomes NumberReturned (0x10305ba0). In plain terms: RequestedCount 0 means no limit, a StartingIndex at or past the end returns no items with TotalMatches still equal to the queue length, and UpdateID is the queue's own UpdateID."
       ]
      },
      "state_dependencies": {
@@ -63297,14 +63342,59 @@
         "function": "0x104661fc",
         "address": "0x10466240",
         "notes": "lwz r3,0x12c(r31)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349640",
+        "address": "0x10349744",
+        "notes": "unknown queue -> NULL -> 701"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466520",
+        "address": "0x104665d0",
+        "notes": "lazy browse at serialisation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b4c",
+        "notes": "count 0 -> unlimited"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014a7cc",
+        "notes": "UpdateID = q+0x70"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014a7d4",
+        "notes": "TotalMatches = queue length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014ac08",
+        "notes": "window loop"
        }
       ],
-      "todo": [
-       "Established: Browse delegates to the shared ContentDirectory browse f_10305a98 on object 'Q:<QueueID>' with StartingIndex/RequestedCount as the window.",
-       "Residual: how f_10305a98 applies StartingIndex/RequestedCount (zero-count meaning, out-of-range start), where it takes the UpdateID it returns, and what it does on a failure during lazy Result serialisation are not traced; next step is to disassemble f_10305a98's BrowseDirectChildren branch (from 0x10305b34)."
-      ],
       "resolved_findings": [
-       "Resolved (front end): reads the ContentDirectory object tree at *(qm+0x12c) (stored by the qm ctor f_10465fac at 0x104660c8 from its r6 argument, r20 at the call site 0x103fb6dc), looking up 'Q:<QueueID>' via f_1034a224 on cd+0x168."
+       "Resolved (front end): reads the ContentDirectory object tree at *(qm+0x12c) (stored by the qm ctor f_10465fac at 0x104660c8 from its r6 argument, r20 at the call site 0x103fb6dc), looking up 'Q:<QueueID>' via f_1034a224 on cd+0x168.",
+       "Resolved (lazy browse chain): the action handler f_10466280 only checks that the object exists. f_104661fc formats 'Q:%u' (fmt 0x10e94018) and calls f_103042f0, which looks the id up with f_1034a224 -> f_10349d00 ('Q:' prefix -> container node tree+0x354, 0x10349dbc) -> f_10349640. That returns the dirObjQueue sub-node (node+8 or node+0x1a8) whose id matches, or NULL (0x10349744), which gives 701. The Result, NumberReturned, TotalMatches and UpdateID outputs are bound to a writer object (vtable 0x10ed1bb8) at sp+0x44, so the browse itself runs while the response is serialised: the Result getter f_10513580 calls writer slot +8, f_10466618 -> f_10466520 -> f_10305a98(tree, 'Q:n', 'BrowseDirectChildren', filter '', start, count, sort '', &NR, &TM, &UID) (0x104665d0). f_10305a98 maps RequestedCount 0 to 0xffffffff (isel at 0x10305b4c) and calls node slot +0xc. For dirObjQueue (vtable 0x10ebb710) that is f_10347688, which tail-calls the queue engine f_1014a70c(q = node+0x198, node+0x17a, filter, start, count, ctx, &UID, &TM) and drops the sort argument. f_1014a70c locks the queue (f_10149598) and returns 701 if node+0x17a differs from the queue id q+0x5c (0x1014a7bc). Otherwise it sets UpdateID = q+0x70 (0x1014a7cc) and TotalMatches = queue length q+0x26c8 (0x1014a7d4), then writes items from index StartingIndex while the index is below the length and the count is not used up (0x1014ac08..0x1014ac1c). Each item goes through f_10146ee0 (id '%s/%u'), whose f_1054b24c bumps ctx+0x14 (0x1054b2a0); that count becomes NumberReturned (0x10305ba0). In plain terms: RequestedCount 0 means no limit, a StartingIndex at or past the end returns no items with TotalMatches still equal to the queue length, and UpdateID is the queue's own UpdateID."
       ]
      },
      "side_effects": [
@@ -63325,14 +63415,19 @@
          "function": "0x103042f0",
          "address": "0x1030434c",
          "notes": "node->v[+0x28]"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10347050",
+         "address": "0x10347050",
+         "notes": "node slot +0x28 = unlock node+0xe8"
         }
        ],
-       "todo": [
-        "Established: the Queue front end writes no queue or engine state.",
-        "Residual: the effect of node->v[+0x28] called by f_103042f0 after the lookup (expected to release the lookup reference) is not traced; next step is to resolve the node class vtable returned by f_1034a224 and read its slot +0x28."
-       ],
        "resolved_findings": [
-        "Resolved: read-only. f_10466280, f_104661fc and f_10466520 write only stack objects and the response; f_103042f0 calls node->v[+0x28](node) on the looked-up node (0x1030434c) and returns."
+        "Resolved: read-only. f_10466280, f_104661fc and f_10466520 write only stack objects and the response; f_103042f0 calls node->v[+0x28](node) on the looked-up node (0x1030434c) and returns.",
+        "Resolved: node slot +0x28, called by f_103042f0 and f_10305a98 after the lookup, is f_10347050 for dirObjQueue, which unlocks the node mutex at node+0xe8 (f_10988984). The engine browse f_1014a70c only takes and releases the queue lock (f_10149598/f_10149614) and the global lock 0x1109cc70+0xb8 (f_10107e20/f_10107e38). Browse writes no queue state."
        ]
       }
      ],
@@ -63352,14 +63447,19 @@
         "build": "86.10-80260",
         "function": "0x10466280",
         "notes": "bl scan of the chain"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305a98",
+        "notes": "call list: lookup, result context, logging only"
        }
       ],
-      "todo": [
-       "Established: the front end emits no event.",
-       "Residual: f_10305a98 is not yet scanned for event emission; next step is its bl list (it only showed log calls f_109b6fe4/f_109b72ac in a first pass)."
-      ],
       "resolved_findings": [
-       "Resolved: none on the Queue front end; no notify or request-submit call exists in f_10464200, f_10466280, f_104661fc, f_103042f0, f_10466618 or f_10466520."
+       "Resolved: none on the Queue front end; no notify or request-submit call exists in f_10464200, f_10466280, f_104661fc, f_103042f0, f_10466618 or f_10466520.",
+       "Resolved: the whole chain (f_10466280, f_104661fc, f_103042f0, f_10466520, f_10305a98, f_10347688, f_1014a70c, f_10146ee0) calls only lookup, lock, DIDL and result-context helpers and logging. None of them calls the queue event helper f_1014d738 or the event poster f_10117654, so Browse triggers no event."
       ]
      },
      "state_transitions": {
@@ -63402,14 +63502,59 @@
         "function": "0x10466280",
         "address": "0x104663ac",
         "notes": "mr. r4,r3; beq -> outputs"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349640",
+        "address": "0x10349744",
+        "notes": "unknown queue -> NULL -> 701"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10466520",
+        "address": "0x104665d0",
+        "notes": "lazy browse at serialisation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10305a98",
+        "address": "0x10305b4c",
+        "notes": "count 0 -> unlimited"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014a7cc",
+        "notes": "UpdateID = q+0x70"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014a7d4",
+        "notes": "TotalMatches = queue length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014a70c",
+        "address": "0x1014ac08",
+        "notes": "window loop"
        }
       ],
-      "todo": [
-       "Established: Browse delegates to the shared ContentDirectory browse f_10305a98 on object 'Q:<QueueID>' with StartingIndex/RequestedCount as the window.",
-       "Residual: how f_10305a98 applies StartingIndex/RequestedCount (zero-count meaning, out-of-range start), where it takes the UpdateID it returns, and what it does on a failure during lazy Result serialisation are not traced; next step is to disassemble f_10305a98's BrowseDirectChildren branch (from 0x10305b34)."
-      ],
       "resolved_findings": [
-       "Resolved (front end): parse failure -> req->v[+0x14](req, 402) at 0x104663ec; f_104661fc rc nonzero (701 unknown object) -> req->v[+0x14](req, rc) at 0x104663c8; rc 0 -> four lazy output writers registered and req->v[+0x10](req, strbuf) at 0x1046650c. The output values are produced during serialisation, after the fault/commit decision."
+       "Resolved (front end): parse failure -> req->v[+0x14](req, 402) at 0x104663ec; f_104661fc rc nonzero (701 unknown object) -> req->v[+0x14](req, rc) at 0x104663c8; rc 0 -> four lazy output writers registered and req->v[+0x10](req, strbuf) at 0x1046650c. The output values are produced during serialisation, after the fault/commit decision.",
+       "Resolved (lazy browse chain): the action handler f_10466280 only checks that the object exists. f_104661fc formats 'Q:%u' (fmt 0x10e94018) and calls f_103042f0, which looks the id up with f_1034a224 -> f_10349d00 ('Q:' prefix -> container node tree+0x354, 0x10349dbc) -> f_10349640. That returns the dirObjQueue sub-node (node+8 or node+0x1a8) whose id matches, or NULL (0x10349744), which gives 701. The Result, NumberReturned, TotalMatches and UpdateID outputs are bound to a writer object (vtable 0x10ed1bb8) at sp+0x44, so the browse itself runs while the response is serialised: the Result getter f_10513580 calls writer slot +8, f_10466618 -> f_10466520 -> f_10305a98(tree, 'Q:n', 'BrowseDirectChildren', filter '', start, count, sort '', &NR, &TM, &UID) (0x104665d0). f_10305a98 maps RequestedCount 0 to 0xffffffff (isel at 0x10305b4c) and calls node slot +0xc. For dirObjQueue (vtable 0x10ebb710) that is f_10347688, which tail-calls the queue engine f_1014a70c(q = node+0x198, node+0x17a, filter, start, count, ctx, &UID, &TM) and drops the sort argument. f_1014a70c locks the queue (f_10149598) and returns 701 if node+0x17a differs from the queue id q+0x5c (0x1014a7bc). Otherwise it sets UpdateID = q+0x70 (0x1014a7cc) and TotalMatches = queue length q+0x26c8 (0x1014a7d4), then writes items from index StartingIndex while the index is below the length and the count is not used up (0x1014ac08..0x1014ac1c). Each item goes through f_10146ee0 (id '%s/%u'), whose f_1054b24c bumps ctx+0x14 (0x1054b2a0); that count becomes NumberReturned (0x10305ba0). In plain terms: RequestedCount 0 means no limit, a StartingIndex at or past the end returns no items with TotalMatches still equal to the queue length, and UpdateID is the queue's own UpdateID."
       ]
      },
      "fault_sites": [],
@@ -63417,7 +63562,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "rc of f_104661fc/f_103042f0: 701 when ContentDirectory object 'Q:<QueueID>' does not exist (f_103042f0 can also return 402 for a bad browse flag, unreachable here because the flag is the constant 'BrowseDirectChildren')",
+       "meaning": "rc of f_104661fc/f_103042f0: 701 when ContentDirectory object 'Q:<QueueID>' does not exist (f_10349640 returns NULL at 0x10349744). f_103042f0 can also return 402 for a bad browse flag, which is unreachable here because the flag is the constant 'BrowseDirectChildren'. The separate 402 for unparsable arguments is raised directly at 0x104663e0, and errors during lazy Result serialisation are discarded (0x104665d4).",
        "fault_sites": [
         "0x10464200"
        ],
@@ -63464,30 +63609,22 @@
          "function": "0x103042f0",
          "address": "0x10304388",
          "notes": "isel 402 for unknown flag"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10466520",
+         "address": "0x104665d4",
+         "notes": "f_10305a98 result ignored"
         }
        ],
-       "unresolved": {
-        "proven": "queue-manager impl->v[+0x28] rc surfaced",
-        "unknown": "concrete rc vocabulary for this queue operation",
-        "impl_exit_literals": {
-         "function": "0x10466280",
-         "lits": [
-          44
-         ],
-         "passthrough_exits": 4,
-         "note": "queue-manager vfunc forwarder on vtable 0x10ed1bcc -> *(qm+0x128) engine; engine rc is the residual passthrough"
-        }
-       },
        "literal_bound": [
-        402,
-        4096
-       ],
-       "todo": [
-        "Established: the pre-serialisation fault domain is {402 parse, 701 unknown object}.",
-        "Residual: errors raised by f_10305a98 during lazy Result serialisation (e.g. 'Children failed %d' at 0x10305d80) and how they reach the client are not traced; next step is to follow f_10305a98's error exits and the f_10560608 writer contract."
+        701
        ],
        "resolved_findings": [
-        "Resolved: f_103042f0 returns 701 (0x1030430c) when f_1034a224 finds no node, 0 for 'BrowseDirectChildren'/'BrowseMetadata', and 402 (isel at 0x10304388) for any other flag; f_104661fc always passes 'BrowseDirectChildren' (0x10466248), so only 0 or 701 reach the fault at 0x104663c8."
+        "Resolved: f_103042f0 returns 701 (0x1030430c) when f_1034a224 finds no node, 0 for 'BrowseDirectChildren'/'BrowseMetadata', and 402 (isel at 0x10304388) for any other flag; f_104661fc always passes 'BrowseDirectChildren' (0x10466248), so only 0 or 701 reach the fault at 0x104663c8.",
+        "Resolved: an error found while the Result is being serialised cannot become a SOAP fault. f_10466520 discards f_10305a98's return value (0x104665d4), and f_10305a98 only logs 'Children failed %d' (0x10305d80). The only engine error is 701 for a node id that differs from the queue id; it is returned before any item is written, so NumberReturned keeps its initial 0 (0x1046635c..0x10466364) and TotalMatches and UpdateID stay 0. So the client-visible fault domain is 402 for bad arguments and 701 for an unknown QueueID, both raised before serialisation."
        ]
       },
       {
