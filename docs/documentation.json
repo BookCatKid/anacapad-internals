@@ -33897,7 +33897,7 @@
   "/MediaRenderer/AVTransport/Control": {
    "name": "AVTransport",
    "control_path": "/MediaRenderer/AVTransport/Control",
-   "description": "UPnP AVTransport service implemented by the chsrc/transport engine object (*(svc+4)). Impl vfuncs live in a large vtable (A=0x10eaf2ec standalone, B=0x10edfbb8 group-aware; identical except SetAVTransportURI and the three Become*Coordinator* ops). All impls serialize on mutex impl+0x458 and dispatch on the transport-source mode enum at impl+0x4654: 2=indexed/queue (requests submitted to impl+0x580 via f_10255f64/f_10256a84), others reach the streamer session at impl+0x5a0 via op-0x19 submission f_102aff9c on impl+0x5dc.",
+   "description": "UPnP AVTransport service. Its wrapper delegates to the engine at wrapper+4, which has a base vtable (0x10eaf2ec) and a group-capable derived vtable (0x10edfbb8). For SOAP slots the derived table overrides SetAVTransportURI and the three Become*Coordinator* methods. Many transport actions serialize at impl+0x458, and use impl+0x4654 to select indexed (2), streamer (1), or default/source-specific paths.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -33910,7 +33910,7 @@
     }
    },
    "availability": {
-    "notes": "Registered unconditionally at zoneplayer init (ctor f_102fc9c0 for the svc wrapper at ctx+off). Whether the engine impl is the A or B class depends on grouping state - unresolved selection point.",
+    "notes": "The ZonePlayer constructor initializes the wrapper unconditionally; the router's availability byte comes separately from ctx+0x571c XOR 1. Engine A is the base vtable, and the group-capable derived constructor replaces it with B. The presence of B is not itself a test for the zone's current topology; B's overrides make those tests per call.",
     "evidence": [
      {
       "type": "firmware",
@@ -33918,6 +33918,46 @@
       "build": "86.10-80260",
       "function": "0x1018d27c",
       "notes": "registered unconditionally in zone-player composite init"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x101954f0",
+      "notes": "Builds the /MediaRenderer/AVTransport/Control entry, sets the capability mask 0x2000 at 0x1019553c and stores the enable byte ctx[0x571c] XOR 1 at 0x10195684.",
+      "function": "0x101953c8"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018fb70",
+      "notes": "Zoneplayer composite init calls the AVTransport wrapper constructor (f_102fc9c0). That constructor stores 0x10eb300c at wrapper+0 and clears wrapper+4 and +8 before the engine is bound.",
+      "function": "0x1018d27c"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x102c0d30",
+      "notes": "Base engine construction installs 0x10eaf2ec through an address formed at 0x102c0cd8.",
+      "function": "0x102c05d8"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x105123c0",
+      "notes": "The derived constructor calls f_102c05d8 at 0x1051218c then installs 0x10edfbb8 into the same object's vptr. The derived constructor is called at 0x103fb5d8.",
+      "function": "0x10511f34"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x102fa5c4",
+      "notes": "The engine is read via wrapper+4 at dispatch; a matching action with that pointer still null returns 401 instead of entering the action handler.",
+      "function": "0x102fa5c4"
      }
     ],
     "enabled_source": {
@@ -33930,12 +33970,7 @@
     },
     "cap_flags": "0x2000",
     "todo": [
-     "Established: the service registers unconditionally at zoneplayer init (ctor f_102fc9c0 for the svc wrapper).",
-     "Residual: which of the two engine impl classes (A vs B) is selected at runtime - the selection point is unresolved (per the record's notes). (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
-    "resolved_findings": [
-     "Resolved: engine-class selection = the impl resolver picks class A vs B per session/source type at object creation; on a solo/non-coordinator group the member iteration degenerates to a single-member no-op pass.",
-     "Resolved: engine-class selection = the impl resolver picks class A vs B per session/source type at object creation; on a solo/non-coordinator group the member iteration degenerates to a single-member no-op pass."
+     "Trace the engine-to-wrapper +4 assignment and its teardown in the zone lifecycle downstream of 0x103fb5d8. The wrapper constructor, routing bit, dispatch null gate and derived-vtable installation are independently verified."
     ]
    },
    "object": {
@@ -68408,6 +68443,46 @@
      "build": "86.10-80260",
      "address": "0x102fa5c4",
      "notes": "service dispatcher"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101954f0",
+     "notes": "Builds the /MediaRenderer/AVTransport/Control entry, sets the capability mask 0x2000 at 0x1019553c and stores the enable byte ctx[0x571c] XOR 1 at 0x10195684.",
+     "function": "0x101953c8"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018fb70",
+     "notes": "Zoneplayer composite init calls the AVTransport wrapper constructor (f_102fc9c0). That constructor stores 0x10eb300c at wrapper+0 and clears wrapper+4 and +8 before the engine is bound.",
+     "function": "0x1018d27c"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c0d30",
+     "notes": "Base engine construction installs 0x10eaf2ec through an address formed at 0x102c0cd8.",
+     "function": "0x102c05d8"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105123c0",
+     "notes": "The derived constructor calls f_102c05d8 at 0x1051218c then installs 0x10edfbb8 into the same object's vptr. The derived constructor is called at 0x103fb5d8.",
+     "function": "0x10511f34"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102fa5c4",
+     "notes": "The engine is read via wrapper+4 at dispatch; a matching action with that pointer still null returns 401 instead of entering the action handler.",
+     "function": "0x102fa5c4"
     }
    ],
    "notes": [
@@ -68436,8 +68511,7 @@
     ]
    },
    "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
+    "The two static engine tables and four SOAP overrides are verified. Remaining uncertainties are tracked on the specific action records; additionally locate the wrapper+4 lifecycle binding and prove when the derived constructor at 0x10511f34 is selected, rather than assuming live group membership controls it."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
