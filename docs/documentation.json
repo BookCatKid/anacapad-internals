@@ -61465,7 +61465,7 @@
      ]
     },
     "AttachQueue": {
-     "description": "Attaches to an existing queue, returning QueueID and QueueOwnerContext. Note obj=r4-in: the dispatcher binds a different impl member for this action. impl is the queue-manager object (r5-in); the action invokes impl->v[+0x1c](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+     "description": "Attach a controller to the session's default queue. The firmware compares QueueOwnerID with the owner ID stored in the session's default queue record q=s+0x2ff98 (s=*(engine+0x580)) and, on a match, returns that queue's ID and owner context; it changes no state. Chain: wrapper f_104647b8 parses QueueOwnerID (string, cap 0x100, f_1056157c at 0x10464804), then calls qm->v[+0xc](qm, owner, &QueueID, ctxbuf, 0x400) at 0x10464844 on the queue manager passed in r5 (mr r30,r5 at 0x104647c8); qm vtable 0x10ed1bcc slot +0xc is f_10465a54, which loads the engine *(qm+0x128) and tail-branches to f_102b2da4. f_102b2da4 takes a scoped lock on engine+0x458 (guard vptr 0x10eaea90, lock at 0x102b2e48, unlock in guard dtor f_100caad8 at 0x102b2e88) and calls f_102b2cbc (0x102b2e78). f_102b2cbc initialises a stack queue-record copy (f_1014ceec at 0x102b2d00) and fills it with f_10146cc0(the session's default queue record q=s+0x2ff98 (s=*(engine+0x580)), &rec, 0) (0x102b2d18), which is memcpy(rec, q+0x5c, 0x2574). The earlier statements that the action calls v[+0x1c] on a different r4 object and uses UpdateID were wrong: r4 is the request object and AttachQueue has no UpdateID argument.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x104647b8",
@@ -61522,7 +61522,7 @@
        "direction": "in",
        "format": "utf-8 text, buffer cap 256 bytes (255 chars + NUL)",
        "type": "",
-       "accepted": "impl-side grammar applies",
+       "accepted": "any string up to 255 bytes; only an exact match of the default queue's stored owner ID succeeds",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
        "description": "queue owner identifier",
@@ -61534,6 +61534,14 @@
          "build": "86.10-80260",
          "address": "0x104647ec",
          "notes": "in-arg name load + req->v[+0x1c] parse call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b2cbc",
+         "address": "0x102b2d24",
+         "notes": "strcmp(rec+0x19 = q+0x75, QueueOwnerID); nonzero -> 718 at 0x102b2d30"
         }
        ],
        "primitive": {
@@ -61547,14 +61555,14 @@
        "range": "max 255 chars",
        "special_values": "none identified",
        "default": "none - required argument",
-       "validation": "consumed by the impl vfunc",
+       "validation": "must equal (strcmp) the owner ID string at q+0x75 of the default queue record s+0x2ff98, else 718",
        "accepted_values": "impl-side grammar applies",
        "buf_cap": 256
       }
      },
      "outputs": {
       "QueueID": {
-       "description": "Written by the queue-manager impl on success.",
+       "description": "decimal ID of the default queue s+0x2ff98, parsed from its ID string at q+0x5c",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -61590,16 +61598,23 @@
          "build": "86.10-80260",
          "function": "0x102dff24",
          "notes": "create worker"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b2cbc",
+         "address": "0x102b2d84",
+         "notes": "stw r3(strtol),0(r29)"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `QueueID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: on a matching owner f_102b2cbc stores strtol(rec+0, 10) (rec+0 is the queue ID string copied from q+0x5c) through the QueueID pointer (stw at 0x102b2d84); the wrapper emits the wrapper slot sp+0x18 with f_1055fcbc at 0x104648b8. In plain terms: the returned QueueID is the default queue's own decimal ID, the same string AddURI and AddMultipleURIs compare QueueID against."
        ]
       },
       "QueueOwnerContext": {
-       "description": "Written by the queue-manager impl on success.",
+       "description": "owner context string stored at q+0x186 of the default queue, copied with a 0x400-byte bound",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -61628,12 +61643,27 @@
          "build": "86.10-80260",
          "address": "0x10ed1a88",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b2cbc",
+         "address": "0x102b2d94",
+         "notes": "f_10906304(ctx, rec+0x12a, 0x400)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10906304",
+         "address": "0x10906334",
+         "notes": "cap-1 bounded byte copy"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `QueueOwnerContext`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: on a matching owner f_102b2cbc copies rec+0x12a (q+0x186) into the wrapper buffer sp+0x11c with the bounded copy f_10906304(dst, src, 0x400) at 0x102b2d94 (at most 0x3ff bytes plus NUL); the wrapper emits it through req->v[+0x24]('QueueOwnerContext')->v[+0x10] at 0x104648e8. In plain terms: the opaque context string the owner stored with the default queue, returned verbatim (truncated to 1023 bytes)."
        ]
       }
      },
@@ -61650,7 +61680,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+0xc]",
+      "description": "QueueOwnerID equals the default queue's stored owner ID; no transport-mode gate",
       "evidence": [
        {
         "type": "firmware",
@@ -61658,15 +61688,22 @@
         "build": "86.10-80260",
         "function": "0x104647b8",
         "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b2cbc",
+        "address": "0x102b2d30",
+        "notes": "li r3,0x2ce"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, required-arg fetch×1, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: the only requirement is QueueOwnerID == the owner ID at q+0x75 of the default queue (strcmp at 0x102b2d24, else 718 at 0x102b2d30); wrapper parse failure gives 402 (0x10464894). There is no transport-mode gate: f_102b2da4 and f_102b2cbc never read engine+0x4654."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0xc]",
+      "description": "default queue record s+0x2ff98 (owner ID, ID string, owner context) under the engine mutex",
       "evidence": [
        {
         "type": "firmware",
@@ -61674,16 +61711,23 @@
         "build": "86.10-80260",
         "function": "0x104647b8",
         "notes": "member vfunc calls: ['r30 v[+0xc]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b2da4",
+        "address": "0x102b2de8",
+        "notes": "lwz r31,0x3dc(r3)"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: reads only the session pointer *(engine+0x580) (0x102b2d04) and the default queue record at s+0x2ff98 (0x2574 bytes from q+0x5c), under the engine mutex at engine+0x458. f_102b2da4 also copies the string *(engine+0x3dc) (default 0x10ea6a2c when null) into a temporary std::string (f_102ab4dc at 0x102b2e1c) and frees it (f_10807034 at 0x102b2e60) without using it."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0xc] (call-derived member-method semantics)",
+       "description": "none: read-only",
        "evidence": [
         {
          "type": "firmware",
@@ -61691,16 +61735,23 @@
          "build": "86.10-80260",
          "function": "0x104647b8",
          "notes": "delegate map ['r30 v[+0xc]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b2cbc",
+         "address": "0x102b2d08",
+         "notes": "li r5,0 into f_10146cc0"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0xc] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: none. f_10146cc0 is called with r5=0 (0x102b2d08), so its clearing branch (stb 0 to q+0x6c/+0x74/+0x175/+0x587 at 0x10146cf8..0x10146d04) is skipped; f_102b2cbc writes only its stack copy and the caller's output buffers. In plain terms: attaching does not claim, reset or modify the queue."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -61708,15 +61759,21 @@
         "build": "86.10-80260",
         "function": "0x104647b8",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b2cbc",
+        "notes": "bl scan of the chain"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: none. No notify, request-submit (f_10255f64) or event call exists in f_104647b8, f_10465a54, f_102b2da4, f_102b2cbc, f_1014ceec, f_10146cc0 or f_10906304, and no state changes that could trigger one."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc]",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -61724,11 +61781,18 @@
         "build": "86.10-80260",
         "function": "0x104647b8",
         "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0xc]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b2cbc",
+        "address": "0x102b2d18",
+        "notes": "read-only copy"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: none; no store to engine or queue state on this path."
       ]
      },
      "return_behavior": {
@@ -61740,19 +61804,26 @@
         "build": "86.10-80260",
         "function": "0x104647b8",
         "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104647b8",
+        "address": "0x1046484c",
+        "notes": "mr. r4,r3; beq -> outputs"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: 0 -> QueueID (0x104648b8) and QueueOwnerContext (0x104648e8) emitted, then commit req->v[+0xc] at 0x104648fc; nonzero -> req->v[+0x14](req, rc) at 0x10464860 with no outputs. f_102b2cbc returns only 0 (0x102b2d98) or 718 (0x102b2d30); 402 comes from the wrapper parse check (0x10464894)."
       ]
      },
      "fault_sites": [],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret",
-       "meaning": "worker f_102b2da4 - exit producer not r3-adjacent; rc fully call-derived",
+       "code": 718,
+       "code_expr": "li r3,0x2ce at 0x102b2d30",
+       "meaning": "QueueOwnerID does not match the owner ID stored in the default queue record s+0x2ff98",
        "fault_sites": [
         "0x104647b8"
        ],
@@ -61805,6 +61876,14 @@
          "build": "86.10-80260",
          "address": "0x102b2da4",
          "notes": "worker body; derived"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b2cbc",
+         "address": "0x102b2d30",
+         "notes": "sole nonzero literal"
         }
        ],
        "unresolved": {
@@ -61856,9 +61935,8 @@
        "worker_literal_bound": [
         300
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x104647b8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: f_102b2cbc has exactly two exits: 0 after the outputs are written, and 718 when strcmp(q+0x75, QueueOwnerID) is nonzero. f_102b2da4 returns f_102b2cbc's rc unchanged (mr r30,r3 at 0x102b2e7c; mr r3,r30 at 0x102b2e8c)."
        ]
       },
       {
@@ -61909,12 +61987,35 @@
        "build": "86.10-80260",
        "address": "0x10ed1a04",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104647b8",
+       "address": "0x10464844",
+       "notes": "qm->v[+0xc] call; r30 = r5-in"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b2da4",
+       "address": "0x102b2e78",
+       "notes": "bl f_102b2cbc under engine+0x458 guard"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10146cc0",
+       "address": "0x10146ce8",
+       "notes": "memcpy(dst,q+0x5c,0x2574)"
       }
      ],
-     "notes": "Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.",
-     "todo": [
-      "Established: direct dispatch to handler 0x104647b8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "notes": "AttachQueue only reads the default queue record s+0x2ff98; the second queue record s+0x2d890 used by the enqueue actions is never consulted on this path.",
+     "resolved_findings": [
+      "Resolved: the impl chain is fully static. wrapper f_104647b8 parses QueueOwnerID (string, cap 0x100, f_1056157c at 0x10464804), then calls qm->v[+0xc](qm, owner, &QueueID, ctxbuf, 0x400) at 0x10464844 on the queue manager passed in r5 (mr r30,r5 at 0x104647c8); qm vtable 0x10ed1bcc slot +0xc is f_10465a54, which loads the engine *(qm+0x128) and tail-branches to f_102b2da4. f_102b2da4 takes a scoped lock on engine+0x458 (guard vptr 0x10eaea90, lock at 0x102b2e48, unlock in guard dtor f_100caad8 at 0x102b2e88) and calls f_102b2cbc (0x102b2e78). f_102b2cbc initialises a stack queue-record copy (f_1014ceec at 0x102b2d00) and fills it with f_10146cc0(the session's default queue record q=s+0x2ff98 (s=*(engine+0x580)), &rec, 0) (0x102b2d18), which is memcpy(rec, q+0x5c, 0x2574). In plain terms: AttachQueue is an ownership check against the session's one default queue; a matching owner gets the queue's ID and its stored context string back."
      ]
     },
     "Backup": {
