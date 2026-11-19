@@ -67192,7 +67192,7 @@
       }
      ],
      "events_triggered": {
-      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The action and the LastChange collector use the same engine lock, so a collector on that engine cannot run between the mutation and its dirty write. An eligible delta includes both fields, but the dirty write does not directly wake the sender and success does not guarantee a separate event.",
+      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The action and the LastChange collector hold the same engine lock. The action does not wake the notification sender directly; qualifying indexed queue changes wake the AVTransport source. If that wake is skipped, a later pass of the same sender can still collect the change from the registered source. Marking the descriptor dirty does not start a timer or guarantee a standalone notification. A delta reads the URI and metadata together at collection time.",
       "evidence": [
        {
         "type": "firmware",
@@ -67295,13 +67295,49 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102e4d7c",
-        "notes": "f_102b5658 latches impl+0x4252 into pending byte impl+0xa095 at 0x102b56d8 when that byte was clear and clears the source byte only on its consuming path at 0x102b57bc. The delta formatter tests the pending byte at 0x102e4d7c and, when set, reads the current next URI at impl+0x1a03 and metadata at impl+0x1e04.",
+        "notes": "When impl+0xa095 is set, the delta formatter reads the current URI at impl+0x1a03 and metadata at impl+0x1e04. The two tags are emitted together at 0x102e4d88 through 0x102e4ddc; this branch does not clear the pending byte.",
         "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103fbb90",
+        "notes": "ZonePlayer startup selects the AVTransport object at zone+0x1934 plus 0x10 when nonnull (isel r10,r0,r8,30, raw word 0x7d40479e), paired with its owner reference from zone+0x1938. It passes the pair at sp+0x128 in r6 at 0x103fbc3c. f_1025f19c keeps r6 in r24 and copies the pointer to indexed-session+0x2578 and the reference to +0x257c at 0x1025f540 and 0x1025f54c. This is the same AVTransport event-source subobject that the engine initializes with name AVTransport at 0x102c06e4 and that f_102e6048 accesses at 0x102e6190.",
+        "function": "0x103fa434"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067d1c4",
+        "notes": "The active event-source tables at 0x10eaf510 and 0x10edfddc (stored at engine+0x10 at 0x102c0d40 and 0x105123d0) bind slot +0x1c to f_102e6974, which adjusts this and returns 1 through f_102e6964. Thus, on an AVTransport source scan, f_1067d028 returns ready whether source+0x110 is already pending or the override is called. The generic +0x170 and +0x18c/+0x190 subscription deadline walk at 0x1067d148 is for the base-slot implementation, not this override.",
+        "function": "0x1067d028"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067a100",
+        "notes": "The sender clears its pending byte +0x10e before scanning its registered sources. If not pending, it waits on sender+0xb8 without a timeout when the accumulated deadline is zero (0x1067a118), otherwise it waits using the nonzero deadline (0x1067a17c through 0x1067a29c). Consequently a later independent wake or deadline-driven scan can consider AVTransport even when that source's own wake was skipped, but the next-URI dirty byte is not part of this wait decision.",
+        "function": "0x10679b14"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067a220",
+        "notes": "The sender checks the ready source's last-dispatch time from slot +0x10 (f_1067ab74 returns source+0xc4) and its spacing interval from slot +0x0c (f_102aa368 returns the 64-bit value 250 ms). The spacing branch contributes a deferred deadline at 0x1067a0f8 rather than calling the collector yet. Otherwise f_10683da0 records the dispatch time at source+0xc4/+0xc8, clears source+0x110 at 0x10683fdc, and calls slot +0x18 at 0x1068406c for nonempty work batches. Both AVTransport tables bind that slot to f_102e6400, which subtracts 0x10 and branches to the locked collector.",
+        "function": "0x10679b14"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b594c",
+        "notes": "f_102b5658 starts a fresh collection snapshot when impl+0xa0a0 is clear. The 0x2919-byte copy from the initialized stack record to impl+0x7784 resets pending byte +0xa095, then f_102b56d8 latches the dirty byte into it. On the consuming path selected at 0x102b59d8, 0x102b57bc clears +0x4252; the XML writer does not clear +0xa095 after emitting the pair. f_102e6048 clears +0xa0a0 at 0x102e6248 when its continuation test at 0x102e6240 allows it, enabling the next snapshot to reset the pending byte.",
+        "function": "0x102b5658"
        }
-      ],
-      "todo": [
-       "Established: a current-list indexed mutation can schedule a collector that takes the same engine lock before reading the descriptor. The action does not wake the sender directly, and the non-current-list and rejected removal paths skip the current-list scheduling flag.",
-       "Resolve the active-session event-source binding and the notifier's per-source deadline checks in f_1067d028/f_10683da0. Determine when a skipped indexed wake is covered by an independent pending or timed dispatch and when the formatter consumes the next-URI pending bit."
       ]
      },
      "state_transitions": {
