@@ -101464,7 +101464,7 @@
      ]
     },
     "SetString": {
-     "description": "Writes VariableName=StringValue via impl->v[+0x8].",
+     "description": "Validates one case-sensitive property key/value, applies OnlineUpdateBaseURL trailing-slash normalization, then persists through SystemSettings and runs success notifications/refreshers. Several reserved keys are denied; UMTracking cannot be set here.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10731adc",
@@ -101481,13 +101481,13 @@
         "site": "0x10731b88",
         "obj": "*(r3-in+0x4)",
         "slot": 8,
-        "arg4": "sp-0xc14"
+        "arg4": "VariableName at sp+0x1c; r5 StringValue at sp+0x41c"
        },
        {
         "site": "0x10731bec",
         "obj": "*(sp-0xc30+0xc2c)",
         "slot": 12,
-        "arg4": 402
+        "arg4": "none; success commit"
        }
       ],
       "req_vcalls": [
@@ -101500,7 +101500,7 @@
      },
      "inputs": {
       "VariableName": {
-       "description": "property variable name",
+       "description": "Case-sensitive setting key, with reserved-key restrictions before generic persistence.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -101509,50 +101509,73 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "semantic_type": "setting key",
+       "format": "Text copied into1024 bytes, max1023 payload bytes plus NUL; no UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 1023 chars",
-       "special_values": "none identified",
+       "accepted_values": "Present text including empty; reserved keys and X_ prefix have the action-specific faults listed below. Long names truncate before matching.",
+       "range": "0..1023 copied bytes.",
+       "special_values": "R_ThirdPartyCredentials501; R_AccountTransferMode811; R_AvailableSoftwareUpdate812; UMTracking402; X_ prefix606. R_CustomerID, R_ContentFiltering, R_AirplayIncludeLinked, OnlineUpdateBaseURL and O_ZONE_EXPERIMENTS have additional predicates.",
        "required": true,
        "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "validation": "Missing required materialization402. Key comparisons are case-sensitive; generic empty key is not rejected. URL/experiment gates precede writer; X_ denial occurs inside backend.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731b1c",
-         "notes": "in-arg access site"
+         "address": "0x10731b88",
+         "function": "0x10731adc",
+         "notes": "Delegate constructor104b0e84 installs10ed75c4 at104b0f94; handler10732e94 constructed1018e594 stores delegate+4 and vtable10f110a8. Delegate slot+08(table10ed75cc)=1066aa24. Handler10731b88 passes VariableName and StringValue; request validation10731b64 false loads402 at10731bd8. Nonzero delegate status faults10731ba4 verbatim; zero commits10731bec with no outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111a4",
-         "notes": "argument name string"
+         "address": "0x10731b28",
+         "function": "0x10731adc",
+         "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101935f0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x1066aa5c",
+         "function": "0x1066aa24",
+         "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066a9e8",
+         "function": "0x1066a788",
+         "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aaa4",
+         "function": "0x1066aa24",
+         "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066999c",
+         "function": "0x10669844",
+         "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
         }
        ],
-       "notes": null,
+       "notes": "Uses the concrete SystemProperties delegate, not the unrelated shared manager.",
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `VariableName` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +8 (site 0x10731b88) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `VariableName` = verbatim forward to impl vfunc +8 (obj *(r3-in+0x4), call site 0x10731b88); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Bounded handler forwarding is followed by1066a788 reserved-key validation,1066aa24 normalization/UMTracking denial and10669844 X_ denial."
        ]
       },
       "StringValue": {
-       "description": "property string value",
+       "description": "Required text value; most settings retain the bounded original spelling, not a normalized boolean or integer.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -101561,280 +101584,780 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 2048 bytes (2047 chars + NUL)",
+       "semantic_type": "setting value",
+       "format": "Text copied into2048 bytes, max2047 payload bytes plus NUL; OnlineUpdateBaseURL further limited to1024 final bytes.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 2047 chars",
-       "special_values": "none identified",
+       "accepted_values": "Ordinary keys accept present text including empty. R_CustomerID: empty or1..16 digits if previous ID absent/empty/0. R_ContentFiltering: strict signed-decimal numeric0/1. R_AirplayIncludeLinked: whole-string case-insensitive true/false/yes/no or0/1. URL value empty or at most1024 bytes after optional slash append, if gated permission is enabled.",
+       "range": "Ordinary0..2047 copied bytes; CustomerID at most16 digits; URL final0..1024 bytes; no universal numeric range.",
+       "special_values": "Empty string is a stored value, not removal. Content-filtering permits leading libc whitespace and optional sign with complete decimal conversion; trailing text/whitespace, hex and overflow reject. Airplay string parser does not trim whitespace.",
        "required": true,
        "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "validation": "Missing required value402; present empty passes request validation but can fail a key-specific parser. URL slash is the only value rewrite here. Other validated lexical spellings persist as provided after truncation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10731b44",
-         "notes": "in-arg access site"
+         "address": "0x10731b28",
+         "function": "0x10731adc",
+         "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111b4",
-         "notes": "argument name string"
+         "address": "0x1066aa5c",
+         "function": "0x1066aa24",
+         "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101935f0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x1066a9e8",
+         "function": "0x1066a788",
+         "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aaa4",
+         "function": "0x1066aa24",
+         "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1e98",
+         "function": "0x104b1e48",
+         "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
         }
        ],
-       "notes": null,
+       "notes": "A value can be accepted by the Airplay validator yet fail the separate unsigned parser in its post-write event callback. Successful persistence is not proof of feature activation.",
        "buf_cap": 2048,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `StringValue` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +8 (site 0x10731b88) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `StringValue` = verbatim forward to impl vfunc +8 (obj *(r3-in+0x4), call site 0x10731b88); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Concrete1066a788 validates key-specific text,1066aa24 appends only the URL slash, and10669844 persists the resulting value."
        ]
       }
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Request layer only requires both bounded strings. Concrete reserved-key/value checks, devmode option gates, URL final-length normalization, UMTracking denial and backend X_ denial then apply in that order; there is no generic UTF-8 or URL grammar validator.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10731adc",
-        "notes": "wrapper family decode"
+        "address": "0x10731b28",
+        "function": "0x10731adc",
+        "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aa5c",
+        "function": "0x1066aa24",
+        "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a9e8",
+        "function": "0x1066a788",
+        "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aaa4",
+        "function": "0x1066aa24",
+        "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x8]",
+      "description": "Both named arguments must materialize, and normal persistence requires initialized delegate+164 SystemSettings. Reserved keys are not universally writable. OnlineUpdateBaseURL and O_ZONE_EXPERIMENTS require their respective devmode predicates. CustomerID cannot overwrite a nonempty/nonzero saved ID. No universal account, remote connectivity or household membership check is performed here.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731b88",
         "function": "0x10731adc",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Delegate constructor104b0e84 installs10ed75c4 at104b0f94; handler10732e94 constructed1018e594 stores delegate+4 and vtable10f110a8. Delegate slot+08(table10ed75cc)=1066aa24. Handler10731b88 passes VariableName and StringValue; request validation10731b64 false loads402 at10731bd8. Nonzero delegate status faults10731ba4 verbatim; zero commits10731bec with no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10731b28",
+        "function": "0x10731adc",
+        "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aa5c",
+        "function": "0x1066aa24",
+        "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a9e8",
+        "function": "0x1066a788",
+        "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aaa4",
+        "function": "0x1066aa24",
+        "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, validate×1, commit×1); member delegates: *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x8]",
+      "description": "Uses SystemSettings path+a4(default /opt/settings/syssettings.xml), mutex+10, selector4, local-ID+e8, saved LUD+c4, version+e0, recovery-needed+e4 and receiver+ec. CustomerID validation rereads saved XML. Devmode options0x12/0x28 gates URL/experiment overrides. Successful writes update UpdateID/dirty state, override/usage-data/media-server/browse-sort caches, with trial-serial/radio-container/channel-source/Airplay state only for corresponding keys.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731adc",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x8]']"
+        "address": "0x1066aa5c",
+        "function": "0x1066aa24",
+        "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a9e8",
+        "function": "0x1066a788",
+        "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1068ab6c",
+        "function": "0x1068ab6c",
+        "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Every successful SetString callback104b1e48 reaches1066b320: lock+170 increments delegate+204 UpdateID, dirty+200=1;1067c6ec(delegate+8) schedules UPnP source. Serializer1066ad04 via1066af90/1066b0a0/1067ab54 emits CustomerID and dirty UpdateID; full/coalesced snapshot may also include UpdateIDX/ThirdPartyHash. No key/value state variable is emitted for arbitrary settings, nor proven WSS settingsVersionChanged.1066b418 ->1066d22c ->100f14ec queues SystemPropertiesChangeEvent, source sysprop, requested key, actual normalized value, securefalse(selector4!=9); closure1066cdcc delivers to registered local observers. Missing loop or queue failure does not change SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e98",
+        "function": "0x104b1e48",
+        "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to *(impl+0x4)->v[+0x08]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Persists the bounded value (with URL slash normalization) using escaped SystemSettings XML temp-file replacement and version advance. Invalid source can rebuild factory seeds and perform ignored-result recovery-metadata write. Failed main transaction returns800 and omits success callbacks; sync failures and secondary recovery-write failure are not fully propagated. Successful transaction runs owner notifications/cache refreshes, may seed BrowseByFolderSort through a nested write, and executes key-specific trial/radio/channel-source/Airplay work. This command is not an unrestricted generic write or direct UMTracking setter.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10731adc",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x08] (call-derived member-method semantics)"
+         "address": "0x1066aaa4",
+         "function": "0x1066aa24",
+         "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066999c",
+         "function": "0x10669844",
+         "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bfec",
+         "function": "0x1066bee0",
+         "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1019911c",
+         "function": "0x10198e54",
+         "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066b38c",
+         "function": "0x1066b320",
+         "notes": "Every successful SetString callback104b1e48 reaches1066b320: lock+170 increments delegate+204 UpdateID, dirty+200=1;1067c6ec(delegate+8) schedules UPnP source. Serializer1066ad04 via1066af90/1066b0a0/1067ab54 emits CustomerID and dirty UpdateID; full/coalesced snapshot may also include UpdateIDX/ThirdPartyHash. No key/value state variable is emitted for arbitrary settings, nor proven WSS settingsVersionChanged.1066b418 ->1066d22c ->100f14ec queues SystemPropertiesChangeEvent, source sysprop, requested key, actual normalized value, securefalse(selector4!=9); closure1066cdcc delivers to registered local observers. Missing loop or queue failure does not change SOAP status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1ed4",
+         "function": "0x104b1e48",
+         "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b1e98",
+         "function": "0x104b1e48",
+         "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to *(impl+0x4)->v[+0x08]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful transaction advertises local settings version to the replication receiver, conditionally queuing ReplicatedSettingsChangedEvent; advances UPnP UpdateID and schedules SystemProperties propertyset(CustomerID,dirty UpdateID; additional fields in full/coalesced snapshots); queues SystemPropertiesChangeEvent(key,actual normalized value,securefalse). R_VolNormMode/R_CrossfadeDuration can additionally queue ChsrcSysSettingsEvt with reread strings; numeric R_AirplayIncludeLinked can queue AirplayIncludeGroupedEvt(bool). RadioLocation and changed shared media/browse settings submit their respective backend updates. Notification/delivery failure is not a SOAP failure; no direct WSS topic is established.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10731adc",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Every successful SetString callback104b1e48 reaches1066b320: lock+170 increments delegate+204 UpdateID, dirty+200=1;1067c6ec(delegate+8) schedules UPnP source. Serializer1066ad04 via1066af90/1066b0a0/1067ab54 emits CustomerID and dirty UpdateID; full/coalesced snapshot may also include UpdateIDX/ThirdPartyHash. No key/value state variable is emitted for arbitrary settings, nor proven WSS settingsVersionChanged.1066b418 ->1066d22c ->100f14ec queues SystemPropertiesChangeEvent, source sysprop, requested key, actual normalized value, securefalse(selector4!=9); closure1066cdcc delivers to registered local observers. Missing loop or queue failure does not change SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e98",
+        "function": "0x104b1e48",
+        "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8]",
+      "description": "Request text is truncated first, then key-specific validation; only URL nonempty value can gain slash. On successful main replacement, SystemSettings version increments modulo32-bit, LUD becomes local ID and recovery-needed clears; replication cache may accept the advertised version. Delegate UpdateID increments and dirty flag sets; asynchronous serialization clears consumed delta flags. Matching overrides and shared caches refresh; selected key-specific caches/events follow. A same-value write still takes persistence and success callbacks. No general guarantee of immediate feature activation, remote replication or durable media flush.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731b28",
         "function": "0x10731adc",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x8]']"
+        "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aa5c",
+        "function": "0x1066aa24",
+        "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aaa4",
+        "function": "0x1066aa24",
+        "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Every successful SetString callback104b1e48 reaches1066b320: lock+170 increments delegate+204 UpdateID, dirty+200=1;1067c6ec(delegate+8) schedules UPnP source. Serializer1066ad04 via1066af90/1066b0a0/1067ab54 emits CustomerID and dirty UpdateID; full/coalesced snapshot may also include UpdateIDX/ThirdPartyHash. No key/value state variable is emitted for arbitrary settings, nor proven WSS settingsVersionChanged.1066b418 ->1066d22c ->100f14ec queues SystemPropertiesChangeEvent, source sysprop, requested key, actual normalized value, securefalse(selector4!=9); closure1066cdcc delivers to registered local observers. Missing loop or queue failure does not change SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e98",
+        "function": "0x104b1e48",
+        "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 commits an empty response after main write success and callbacks.402: missing argument, invalid CustomerID/ContentFiltering/Airplay text, UMTracking, or URL length violation.501: R_ThirdPartyCredentials.606: X_ prefix.800: protected CustomerID overwrite or main transaction failure.811: R_AccountTransferMode.812: R_AvailableSoftwareUpdate or denied URL/experiment devmode gate. Callback/secondary repair/queue and ignored fflush/fsync failures do not become additional SOAP codes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10731b88",
         "function": "0x10731adc",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Delegate constructor104b0e84 installs10ed75c4 at104b0f94; handler10732e94 constructed1018e594 stores delegate+4 and vtable10f110a8. Delegate slot+08(table10ed75cc)=1066aa24. Handler10731b88 passes VariableName and StringValue; request validation10731b64 false loads402 at10731bd8. Nonzero delegate status faults10731ba4 verbatim; zero commits10731bec with no outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10731b28",
+        "function": "0x10731adc",
+        "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aa5c",
+        "function": "0x1066aa24",
+        "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066a9e8",
+        "function": "0x1066a788",
+        "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066aaa4",
+        "function": "0x1066aa24",
+        "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066999c",
+        "function": "0x10669844",
+        "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bf44",
+        "function": "0x1066bee0",
+        "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066bfec",
+        "function": "0x1066bee0",
+        "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b38c",
+        "function": "0x1066b320",
+        "notes": "Every successful SetString callback104b1e48 reaches1066b320: lock+170 increments delegate+204 UpdateID, dirty+200=1;1067c6ec(delegate+8) schedules UPnP source. Serializer1066ad04 via1066af90/1066b0a0/1067ab54 emits CustomerID and dirty UpdateID; full/coalesced snapshot may also include UpdateIDX/ThirdPartyHash. No key/value state variable is emitted for arbitrary settings, nor proven WSS settingsVersionChanged.1066b418 ->1066d22c ->100f14ec queues SystemPropertiesChangeEvent, source sysprop, requested key, actual normalized value, securefalse(selector4!=9); closure1066cdcc delivers to registered local observers. Missing loop or queue failure does not change SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1ed4",
+        "function": "0x104b1e48",
+        "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b1e98",
+        "function": "0x104b1e48",
+        "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10731ba4",
        "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x8)"
+       "code_expr": "402 request validation or concrete delegate501/402/606/800/811/812"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0x8); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Missing required argument or rejected property value/operation.",
        "fault_sites": [
         "0x10731ba4"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "Missing VariableName/StringValue; UMTracking; invalid/unprotected proposed CustomerID syntax, ContentFiltering or Airplay value; or URL final length would exceed1024 bytes.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10731adc",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10731adc",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10731adc",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10731adc",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "SetString",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "domain_note": "domain fully bounded: impl 0x101935f0 exits=[936, 1240]; impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x8); parse/req-layer; sites: 0x10731ba4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1066a788",
-         "notes": "sp_impl {800,811,812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1028ef24",
-         "notes": "accountsmgr update {803,806,809,810}"
-        }
-       ],
-       "conditions": [
-        {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1066a788",
-           "notes": "sp_impl {800,811,812}"
+           "address": "0x10731b28",
+           "function": "0x10731adc",
+           "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1028ef24",
-           "notes": "accountsmgr update {803,806,809,810}"
+           "address": "0x1066aa5c",
+           "function": "0x1066aa24",
+           "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066aaa4",
+           "function": "0x1066aa24",
+           "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10731b28",
+         "function": "0x10731adc",
+         "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aa5c",
+         "function": "0x1066aa24",
+         "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aaa4",
+         "function": "0x1066aa24",
+         "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "R_ThirdPartyCredentials is not writable through this action.",
+       "fault_sites": [
+        "0x10731ba4"
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x1028ef24 emits constant set {553, 564, 592, 599, 611, 635, 636, 647, 648, 684, 688, 696, 803, 806, 809, 810} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "conditions": [
+        {
+         "description": "Exact key rejected first by1066a788.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066aa5c",
+           "function": "0x1066aa24",
+           "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aa5c",
+         "function": "0x1066aa24",
+         "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+        }
+       ]
+      },
+      {
+       "code": 606,
+       "meaning": "Insecure X_-prefixed setting write denied.",
+       "fault_sites": [
+        "0x10731ba4"
+       ],
+       "conditions": [
+        {
+         "description": "Backend10669844 detects X_ prefix before main writer.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066999c",
+           "function": "0x10669844",
+           "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066999c",
+         "function": "0x10669844",
+         "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "meaning": "Existing CustomerID is protected, or main settings persistence failed.",
+       "fault_sites": [
+        "0x10731ba4"
+       ],
+       "conditions": [
+        {
+         "description": "Saved CustomerID nonempty and not0, even when same proposed value; or writer transaction reports false for open/write/size/close/rename failure. Ignored sync/secondary-repair statuses excluded.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066aa5c",
+           "function": "0x1066aa24",
+           "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066bf44",
+           "function": "0x1066bee0",
+           "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066bfec",
+           "function": "0x1066bee0",
+           "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aa5c",
+         "function": "0x1066aa24",
+         "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bf44",
+         "function": "0x1066bee0",
+         "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066bfec",
+         "function": "0x1066bee0",
+         "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+        }
+       ]
+      },
+      {
+       "code": 811,
+       "meaning": "R_AccountTransferMode cannot be changed through this action.",
+       "fault_sites": [
+        "0x10731ba4"
+       ],
+       "conditions": [
+        {
+         "description": "Exact key at1066a838/1066a840 returns811 unconditionally, not a0/1 parser.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066aa5c",
+           "function": "0x1066aa24",
+           "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066aa5c",
+         "function": "0x1066aa24",
+         "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+        }
+       ]
+      },
+      {
+       "code": 812,
+       "meaning": "Reserved update key or disabled override gate.",
+       "fault_sites": [
+        "0x10731ba4"
+       ],
+       "conditions": [
+        {
+         "description": "Exact R_AvailableSoftwareUpdate, OnlineUpdateBaseURL with devmode option0x12 false, or O_ZONE_EXPERIMENTS with option0x28 false.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1066a9e8",
+           "function": "0x1066a788",
+           "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066a9e8",
+         "function": "0x1066a788",
+         "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+        }
        ]
       }
      ],
@@ -101844,30 +102367,109 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x10731b88",
        "function": "0x10731adc",
-       "address": "0x10731adc",
-       "notes": "action wrapper handler"
+       "notes": "Delegate constructor104b0e84 installs10ed75c4 at104b0f94; handler10732e94 constructed1018e594 stores delegate+4 and vtable10f110a8. Delegate slot+08(table10ed75cc)=1066aa24. Handler10731b88 passes VariableName and StringValue; request validation10731b64 false loads402 at10731bd8. Nonzero delegate status faults10731ba4 verbatim; zero commits10731bec with no outputs."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11198",
-       "notes": "action dispatch table entry"
+       "address": "0x10731b28",
+       "function": "0x10731adc",
+       "notes": "Required named VariableName and StringValue use1056157c tag7 at10731b28/10731b50 with caps1024/2048. Shared10730414/10560708/10560a58 materialize present strings, retaining at most1023/2047 payload bytes plus NUL. Excess truncates, empty present strings are valid, no whitespace/UTF-8/sign/base checks. Missing required materialization fails request validation and produces402 before delegate."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x101935f0",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x08"
+       "address": "0x1066aa5c",
+       "function": "0x1066aa24",
+       "notes": "Calls1066a788(this,key,value), propagating status. Exact R_ThirdPartyCredentials ->501; R_AccountTransferMode ->811; R_AvailableSoftwareUpdate ->812. R_CustomerID reads existing through backend+1c with cap17 into initially empty buffer, ignoring lookup status; nonempty existing except exact0 ->800 even if proposed value identical. Otherwise empty new value accepted; nonempty new value must be1..16 ASCII digits (first checked separately,16-step loop includes terminator), else402. R_AirplayIncludeLinked uses10c397cc: exact case-insensitive true,false,yes,no or exact1/0; no whitespace/sign/empty accepted; rejection402. Validator does not normalize supplied string. R_ContentFiltering calls paranoid_atoi and unsigned-compares result<=1: accepts signed decimal forms whose numeric value is0/1, otherwise402. Strict signed parser already recovered at shared_primitives/paranoid_signed_decimal (library7288 ->71ec ->70fc, signed32 bounds, errno/end-at-NUL; leading libc whitespace and sign allowed, trailing bytes/overflow reject)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066a9e8",
+       "function": "0x1066a788",
+       "notes": "10556eb8(index27) names OnlineUpdateBaseURL:10087318 stores index27,10087324/1008732c supply literal. Nonnull value requires105489fc true, else812.105489fc ->1054bdc8 locked devmode read ->1054bd60 ->ZZ0018(table,option0x12), true iff backend result1. Index3e key is O_ZONE_EXPERIMENTS (literal10eeac88, initializer10087618); requires10548a2c, same devmode read with option0x28, else812. AvailableSoftwareUpdate check follows URL branch; other keys pass. No account/network authorization is added by these predicates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066aaa4",
+       "function": "0x1066aa24",
+       "notes": "After validator, exact OnlineUpdateBaseURL: empty value passes unchanged; nonempty must end in slash, or raw length<1024 before appending slash in1026-byte local buffer. Final length<=1024 required (1066aba4/1066aba8), else402. Already slash allows length1024; no slash allows at most1023 before append. No URL syntax, scheme or host validation. Exact UMTracking after this branch returns402 (1066ab30..68). Other values are persisted verbatim after request truncation, including accepted boolean/numeric spellings. Backend+164 slot+20=10669844 receives one key/value pair at1066ab28."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1068ab6c",
+       "function": "0x1068ab6c",
+       "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066999c",
+       "function": "0x10669844",
+       "notes": "Locks SystemSettings+10. Exact prefix X_ rejected606 before writer; otherwise backend+34=1066bee0 receives one pair. That maps transaction106c6118 false to800 and success to0. On success, unlocks and invokes owner+a0 slot+44=104b1e48 with requested key, actual normalized value and selector4 at106699d4. Equal existing values do not short-circuit this transaction/callback. XML source callback106c6044 omits matching old keys before appending requested nonnull values; preserved unrelated entries use106c5f44 XML escaping. A failed write skips owner success callback, though attempted I/O/temporary-file work can have occurred."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bf44",
+       "function": "0x1066bee0",
+       "notes": "0x106c5944 configures local device ID from backend+0xe8 and version+1;0x106c6118 rewrites escaped Setting Name/Value XML under SystemSettings LastUpdateDevice/Version root, preserving unaffected keys, using path.tmp then rename. Parser/source invalidity rebuilds factory seed R_CustomerID=0,R_HideTuneIn=true and requested values. Failure bool maps800, success0. Writer footer0x106c6418 requires ftell!=-1 and <=32768 bytes; open/write/close/rename failures fail. File close0x1054f0e8 calls fflush/fsync/fclose but ignores fflush/fsync statuses, testing fclose only. Unlink(tmp) status ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066bfec",
+       "function": "0x1066bee0",
+       "notes": "Invalid-source rewrite success calls0x1066ba04(oldVersion,newVersion): writes FileRecoverVersion=\"localID oldVersion\" and, for selector4 with nonempty current CustomerID, R_CustomerID. CustomerID getter10113df0->1064bb10 copies registration cache. Secondary write result ignored by outer writer.0x1066a3c0 copies local ID into+c4, stores version+1 at+e0, clears+e4, then advertises local version through+ec slot+14."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019911c",
+       "function": "0x10198e54",
+       "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066b38c",
+       "function": "0x1066b320",
+       "notes": "Every successful SetString callback104b1e48 reaches1066b320: lock+170 increments delegate+204 UpdateID, dirty+200=1;1067c6ec(delegate+8) schedules UPnP source. Serializer1066ad04 via1066af90/1066b0a0/1067ab54 emits CustomerID and dirty UpdateID; full/coalesced snapshot may also include UpdateIDX/ThirdPartyHash. No key/value state variable is emitted for arbitrary settings, nor proven WSS settingsVersionChanged.1066b418 ->1066d22c ->100f14ec queues SystemPropertiesChangeEvent, source sysprop, requested key, actual normalized value, securefalse(selector4!=9); closure1066cdcc delivers to registered local observers. Missing loop or queue failure does not change SOAP status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1ed4",
+       "function": "0x104b1e48",
+       "notes": "After1066b320, calls10121518 to reread R_ShowRhapUPnP/R_ShowNSSServers (exact1, missingfalse), update+11cd/+11ce, and on change clear server-description cache10760d48, notify source1067c6ec, optionally refresh10741ac4. Calls10110ee0 to reread R_BrowseByFolderSort: Tracknum/Title/File ->global110953e0 values2/0/1; missing/unknown seeds Tracknum with another SetString write. Changed sort refreshes10107dc4, increments share-store+b8 and calls update backend10117654.103c79b8 is empty leaf.1066b320 calls10557388(key), refreshing only a matching override entry when index39 or10556ca8 permits, via105570a4 (backend getter cap1025, replace/free cached value); optional usage-data singleton10707914 ->10707cd4 rereads R_CustomerID and refreshes usageDataSharing via10577870. Callback results are not SOAP errors."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b1e98",
+       "function": "0x104b1e48",
+       "notes": "Additional key-specific branches, not taken for a generic R_RDM: R_TrialZPSerial reads cap32 through backend+24; if found and differs from global110a9ab0,10719e24 strlcpy(cap32) updates trial serial cache, then common callback continues. R_RadioLocation calls1037e40c: increments radio container+12c and submits R: container update via10117654 with backend LUD+c4/version+e0; no extra network request proven. R_VolNormMode or R_CrossfadeDuration reread cap32 through backend+1c; lookup success uses1051a390/1051a3f0 to copy raw strings into event payload with corresponding presence byte, then104b3d64 queues ChsrcSysSettingsEvt through100f14ec at104b45f4. R_AirplayIncludeLinked rereads cap32, requires successful strict paranoid_atoui at104b1ff4, then104b4cf4 queues AirplayIncludeGroupedEvt(bool numeric!=0) through100f14ec at104b548c. Thus accepted lexical true/yes/false/no can persist but do not pass this later unsigned parser; numeric0/1 do. Missing/read-failed values skip those corresponding events. Generic event dispatch copies payload/registered observer snapshot; no configured loop logs/returnsfalse, ignored by caller. No delivery guarantee."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10731adc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "No output arguments. Boolean/value validators do not canonicalize stored spelling, except URL slash insertion. Return0 proves main transaction success, not fsync success, asynchronous delivery or arbitrary feature activation.",
+     "implementation_notes": "Concrete handler10731adc ->delegate slot+08=1066aa24 ->validator1066a788 ->backend10669844 ->writer1066bee0 ->transaction106c6118. Success owner104b1e48 invokes1066b320 plus shared and key-specific callbacks. Null/alternate getter branches in owner do not imply runtime-injected delegate vptrs; construction is statically resolved."
     }
    },
    "state_variables": {
