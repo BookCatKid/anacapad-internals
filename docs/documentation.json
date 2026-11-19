@@ -224136,7 +224136,7 @@
   },
   "zgt_errors": {
    "name": "ZGT error paths",
-   "summary": "\"Handling ReportUnresponsiveDevice %s/%s from %s:%hu\"; GetZoneGroupAttributes {\"No valid UUID in request server\",\"TServer is not valid for request\",\"TRequest is invalid in the control server\"}",
+   "summary": "GetZoneGroupAttributes error handling f_10733878: three log-and-return guards; request vfunc+0x14 is the emit-error slot on both request classes. Direct HTTP class (vtable0x10f10ea4) emits HTTP500 plus the compiled SOAP fault envelope via f_10731560->f_10731464->f_10563b08->f_1056383c; tunneled class (vtable0x10f10f20) delegates the code to the tunnel backend through f_1073029c and never builds XML. Code text is snprintf '%hu' into buf+0x28 by f_10562774; the fault has no errorDescription field.",
    "evidence": [
     {
      "type": "firmware",
@@ -224149,16 +224149,31 @@
      "build": "86.10-80260",
      "address": "0x10733878",
      "notes": "Guard branches0x10733a74/0x10733ab0/0x10733aec; provider+0x24 comparison0x1073395c and output-buffer call0x10733990 versus request+0x14 error dispatch. Default f_1012b9b4 returns0x1f5 without composing XML. Common fault literal0x10eebdcc is formed at0x105638e4 via base+0x148 and queued at0x10563ab4; this common serializer is not yet certified as the concrete request error receiver."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10731560",
+     "notes": "Direct-HTTP request emit-error: vfunc+0x14 slot of vtable0x10f10ea4 (ctor f_10730850 stores the vptr at0x10730880; the alternate vtable0x10f10f20/tunneled ctor f_10730a94 stores at0x10730aa0). sth code at request+0x10, then f_10731464(request+4=conn) writes headers: status via f_100b4614(conn,0x1f4) so every UPnP fault is HTTP500, CONTENT-LENGTH snprintf '%u' of f_105627e8 (=strlen(codetext)+0xdb+envelope-open-len+1), CONTENT-TYPE text/xml; charset=utf-8, empty EXT header at0x10ea6a2c. Then driver f_10563b08 loops serializer f_1056383c into <=0x1000-byte stack chunks and sends each via stream-object vfunc+8 f_107317fc -> socket writer f_100b434c on stream+4. Log: 'UPnP call: %s:%s returned %d to %s:%d' with severity split at code>999 (cmpwi0x3e7)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056383c",
+     "notes": "SOAP fault serializer state machine on buf+8 (states0..7,8=done). State0 emits the124-byte '<s:Envelope xmlns:s=... s:encodingStyle=...>' when buf+4==0 (always, since f_10562774 stores0) else the64-byte xmlns-only variant. States1..6 emit '<s:Body>', the147-byte fault open at0x10eebdcc ending '<errorCode>', strlen(buf+0x28) code text, the43-byte '</errorCode></UPnPError></detail></s:Fault>', '</s:Body>', '</s:Envelope>'. Decimal formatting: f_10562774(buf,code) tail calls snprintf(buf+0x28,16,'%hu',code); the code arrives in r4 inherited from f_10731560's vfunc arg. No errorDescription element is emitted; faultcode is fixed 's:Client' and faultstring fixed 'UPnPError'. Sole consumer chain: f_10731560 -> f_10731464 -> f_10563b08 -> f_1056383c, reachable only through the direct-HTTP request class."
     }
-   ],
-   "todo": [
-    "Established: three non-fault guards, provider default501 versus request error emission, successful output-field path and compiled common SOAP fault fragments with a concrete serializer consumer. Remaining: bind the actual request implementation at f_10733878, its virtual+0x14 error method and response object constructor to the serializer around0x1056383c; recover numeric code formatting, buffer/error propagation and any action-specific description fields. Start with request+0x14 call0x1073390c and literal consumer0x10563ab4. The provider+0x24 stub is not the fault setter, and literal text is not unavailable. This remains actionable static work."
    ],
    "resolved_findings": [
     "GetZoneGroupAttributes handler f_10733878 has three log-and-return0 guards: null request branches to0x10733a74, null request+0x6c to0x10733ab0, and null server+0x178 to0x10733aec. The messages are TRequest is invalid in the control server, TServer is not valid for request, and No valid UUID in request server. These guards do not themselves emit a SOAP fault and must not be mapped individually to402/501.",
     "After those guards the handler calls request virtual+8. Its false path stages402; the true path stages501 as the default implementation outcome, compares the provider virtual+0x24 with f_1012b9b4, and otherwise invokes that provider with output buffers. f_1012b9b4 simply returns501; it is not a fault-envelope setter. A nonzero provider result reaches request virtual+0x14. Provider success instead supplies CurrentZoneGroupName, CurrentZoneGroupID, CurrentZonePlayerUUIDsInGroup and the household identifier through request virtual+0x24, then completes through request virtual+0xc. Those provider and request vtables have different roles.",
-    "A compiled common SOAP fault fragment exists at0x10eebdcc: <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>. The response serializer around0x1056383c constructs its pointer as Response literal0x10eebc84+0x148 and queues0x93 bytes through f_109bec4c at0x10563ab4. Other states queue the numeric-text buffer and </errorCode></UPnPError></detail></s:Fault> followed by body/envelope closures. This disproves the no-static-literal claim; the concrete GetZoneGroupAttributes request+0x14 binding into this serializer still requires a join.",
-    "ReportUnresponsiveDevice has its own request-handling diagnostic vocabulary. That fact does not establish that every unresponsive-device report is a SOAP fault or that the three attribute-request guard messages share its error policy."
+    "A compiled common SOAP fault fragment exists at0x10eebdcc: <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>. The response serializer around0x1056383c constructs its pointer as Response literal0x10eebc84+0x148 and queues0x93 bytes through f_109bec4c at0x10563ab4. Other states queue the numeric-text buffer and </errorCode></UPnPError></detail></s:Fault> followed by body/envelope closures. This disproves the no-static-literal claim; the concrete join is established by the request-class findings below.",
+    "ReportUnresponsiveDevice has its own request-handling diagnostic vocabulary. That fact does not establish that every unresponsive-device report is a SOAP fault or that the three attribute-request guard messages share its error policy.",
+    "Established: the request object reaching f_10733878 implements vfunc+0x14 as the emit-error slot on two sibling request classes. On the direct HTTP class (vtable0x10f10ea4, vptr stored by ctor f_10730850) the slot is f_10731560, which stores the u16 code at request+0x10 and calls f_10731464(request+4) to synchronously write the HTTP500 fault response onto the connection. On the tunneled class (vtable0x10f10f20, vptr stored by ctor f_10730a94) the slot is f_1073029c, which forwards the code to the tunnel backend at request+0x3a78 vfunc+0x10 (f_109f0184 on vtable0x10f98734, marshaling message type0x3f through f_109db5c4) and emits no XML. Both paths log '%s:%s returned %d to %s:%d', distinguished by the 'Tunneled UPnP call' vs 'UPnP call' format strings at0x10f10f88/0x10f11078, and both pick log severity by code>999.",
+    "Established: handler f_10733878 is transport agnostic, so the XML fault serializer f_1056383c is bound to GetZoneGroupAttributes only through the direct-HTTP request class; the tunneled path propagates the numeric code as a tunnel message instead. The emitted fault body is exactly '<s:Envelope ...><s:Body><s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>%hu</errorCode></UPnPError></detail></s:Fault></s:Body></s:Envelope>' under HTTP status500. There is no errorDescription element and no action-specific fault text for this action; the only varying field is the decimal errorCode.",
+    "Established: buffer and propagation mechanics of the direct path. f_105627e8 computes CONTENT-LENGTH as strlen(codetext)+0xdb+envelope-open-len+1, matching the seven emitted literals plus the code text. f_10563b08 drives f_1056383c in a loop over <=0x1000-byte chunks and hands each chunk to the stream object (vtable0x10f10f70, embedded in the direct request class) whose vfunc+8 thunk f_107317fc tail calls socket writer f_100b434c on the connection pointer at stream+4; a send failure or serializer state8 ends the loop.",
+    "Inferred: the request class is chosen at request construction by the accepting front end, since ctor f_10730850 (direct) and ctor f_10730a94 (tunneled) have no direct bl callers and are reached through listener/factory tables. The class names are assigned from their behavior and log strings, not from a symbol or vtable comment."
    ]
   },
   "desired_settings": {
