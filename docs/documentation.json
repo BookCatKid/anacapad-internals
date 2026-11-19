@@ -60535,15 +60535,36 @@
         "function": "0x1014fb34",
         "address": "0x1014fcc0",
         "notes": "per-entry rc passthrough"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014ce8c",
+        "address": "0x1014cecc",
+        "notes": "parser+0xc = 0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10144c50",
+        "address": "0x10144cc4",
+        "notes": "parser+0xc = 1000"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10144650",
+        "address": "0x1014468c",
+        "notes": "parser+0xc = first insert rc"
        }
-      ],
-      "todo": [
-       "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
-       "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
       ],
       "resolved_findings": [
        "Resolved: the engine rc is the wrapper rc. 0 -> four outputs emitted (0x10464fe8..0x10465070) then commit req->v[+0xc] at 0x10465084; nonzero -> req->v[+0x14](req, rc) at 0x10464fbc and no outputs. Codes: 800 (mode gate), 402 (missing arg, zero entries, count mismatch), 718 (unknown QueueID), 1028 (UpdateID mismatch), or the parser's u16 error from parser+0xc.",
-       "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
+       "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045.",
+       "Resolved: The parser code at parser+0xc has exactly three writers: the ctor f_1014ce8c sets it to 0 (0x1014cecc); slot +0x8 f_10144c50 sets it to 1000 (0x3e8, 0x10144cc4) when f_10370508 does not return 3 and no code is stored yet; slot +0xc f_10144650 calls the per-entry insert callback (*(parser+8))->v[+8] (0x10144674) and keeps its result when nonzero and no code is stored yet (0x1014468c). So the parser keeps the first failure. The insert callback is f_1014fb34, whose codes are 0, 800, 801, 802, 803, 804 and 1042..1045. The parser-recorded code is therefore 1000 for a track-list parse failure, or one of 800, 801, 802, 803, 804, 1042, 1043, 1044, 1045."
       ]
      },
      "fault_sites": [],
@@ -60551,7 +60572,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "engine rc from f_102bd324 (AVTransport impl vtable 0x10edfbb8 slot +0xd8): 800 mode gate, 402 missing arg/zero entries/count mismatch, 718 unknown QueueID, 1028 UpdateID mismatch, or parser-recorded u16 code",
+       "meaning": "engine rc from f_102bd324 (AVTransport impl vtable 0x10edfbb8 slot +0xd8): 800 mode gate, 402 missing arg/zero entries/count mismatch, 718 unknown QueueID, 1028 UpdateID mismatch, or parser-recorded u16 code (1000 parse failure, or the insert rc 800, 801, 802, 803, 804, 1042..1045)",
        "fault_sites": [
         "0x10464f34"
        ],
@@ -60636,21 +60657,53 @@
          "function": "0x1014fb34",
          "address": "0x1014fcc0",
          "notes": "per-entry rc passthrough"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014ce8c",
+         "address": "0x1014cecc",
+         "notes": "parser+0xc = 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144c50",
+         "address": "0x10144cc4",
+         "notes": "parser+0xc = 1000"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144650",
+         "address": "0x1014468c",
+         "notes": "parser+0xc = first insert rc"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x1046594c exits=[-8]; literal exits bounded | worker literal bound [718, 800, 4097] (worker_err_literals.json)",
        "literal_bound": [
+        402,
         718,
         800,
+        801,
+        802,
+        803,
+        804,
+        1000,
+        1028,
+        1042,
+        1043,
+        1044,
+        1045,
         4097
-       ],
-       "todo": [
-        "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
-        "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
        ],
        "resolved_findings": [
         "Resolved: the error path is the engine rc surfaced verbatim by req->v[+0x14] at 0x10464fbc; literals at 0x102bd338 (800), 0x105115f8/0x10511908 (402), 0x105116d0 (718), 0x105116b4 (1028).",
-        "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
+        "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045.",
+        "Resolved: The parser code at parser+0xc has exactly three writers: the ctor f_1014ce8c sets it to 0 (0x1014cecc); slot +0x8 f_10144c50 sets it to 1000 (0x3e8, 0x10144cc4) when f_10370508 does not return 3 and no code is stored yet; slot +0xc f_10144650 calls the per-entry insert callback (*(parser+8))->v[+8] (0x10144674) and keeps its result when nonzero and no code is stored yet (0x1014468c). So the parser keeps the first failure. The insert callback is f_1014fb34, whose codes are 0, 800, 801, 802, 803, 804 and 1042..1045. The parser-recorded code is therefore 1000 for a track-list parse failure, or one of 800, 801, 802, 803, 804, 1042, 1043, 1044, 1045."
        ]
       },
       {
@@ -67602,15 +67655,36 @@
         "function": "0x1014fb34",
         "address": "0x1014fcc0",
         "notes": "per-entry rc passthrough"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014ce8c",
+        "address": "0x1014cecc",
+        "notes": "parser+0xc = 0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10144c50",
+        "address": "0x10144cc4",
+        "notes": "parser+0xc = 1000"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10144650",
+        "address": "0x1014468c",
+        "notes": "parser+0xc = first insert rc"
        }
-      ],
-      "todo": [
-       "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
-       "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
       ],
       "resolved_findings": [
        "Resolved: engine rc is the wrapper rc; 0 -> NewQueueLength and NewUpdateID emitted then commit; nonzero -> req->v[+0x14] fault, no outputs. Codes: 800 (mode gate or clear-submit failure), 402, 718, 1028, or the parser's u16 error.",
-       "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
+       "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045.",
+       "Resolved: The parser code at parser+0xc has exactly three writers: the ctor f_1014ce8c sets it to 0 (0x1014cecc); slot +0x8 f_10144c50 sets it to 1000 (0x3e8, 0x10144cc4) when f_10370508 does not return 3 and no code is stored yet; slot +0xc f_10144650 calls the per-entry insert callback (*(parser+8))->v[+8] (0x10144674) and keeps its result when nonzero and no code is stored yet (0x1014468c). So the parser keeps the first failure. The insert callback is f_1014fb34, whose codes are 0, 800, 801, 802, 803, 804 and 1042..1045. The parser-recorded code is therefore 1000 for a track-list parse failure, or one of 800, 801, 802, 803, 804, 1042, 1043, 1044, 1045."
       ]
      },
      "fault_sites": [],
@@ -67618,7 +67692,7 @@
       {
        "code": null,
        "code_expr": "vret",
-       "meaning": "engine rc from f_102bd4f0 (AVTransport impl vtable 0x10edfbb8 slot +0xdc): 800, 402, 718, 1028 or parser-recorded u16 code",
+       "meaning": "engine rc from f_102bd4f0 (AVTransport impl vtable 0x10edfbb8 slot +0xdc): 800, 402, 718, 1028 or parser-recorded u16 code (1000 parse failure, or the insert rc 800, 801, 802, 803, 804, 1042..1045)",
        "fault_sites": [
         "0x10465090"
        ],
@@ -67696,19 +67770,52 @@
          "function": "0x1014fb34",
          "address": "0x1014fcc0",
          "notes": "per-entry rc passthrough"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014ce8c",
+         "address": "0x1014cecc",
+         "notes": "parser+0xc = 0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144c50",
+         "address": "0x10144cc4",
+         "notes": "parser+0xc = 1000"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144650",
+         "address": "0x1014468c",
+         "notes": "parser+0xc = first insert rc"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x10465970 exits=[-8]; literal exits bounded | worker literal bound [800] (worker_err_literals.json)",
        "literal_bound": [
-        800
-       ],
-       "todo": [
-        "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
-        "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
+        402,
+        718,
+        800,
+        801,
+        802,
+        803,
+        804,
+        1000,
+        1028,
+        1042,
+        1043,
+        1044,
+        1045
        ],
        "resolved_findings": [
         "Resolved: literals at 0x102bd504 (800), 0x102f80b0 (800 clear submit), 0x102f7640/0x102f7cb4 (402), 0x102f7788 (718), 0x102f7738 (1028).",
-        "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
+        "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045.",
+        "Resolved: The parser code at parser+0xc has exactly three writers: the ctor f_1014ce8c sets it to 0 (0x1014cecc); slot +0x8 f_10144c50 sets it to 1000 (0x3e8, 0x10144cc4) when f_10370508 does not return 3 and no code is stored yet; slot +0xc f_10144650 calls the per-entry insert callback (*(parser+8))->v[+8] (0x10144674) and keeps its result when nonzero and no code is stored yet (0x1014468c). So the parser keeps the first failure. The insert callback is f_1014fb34, whose codes are 0, 800, 801, 802, 803, 804 and 1042..1045. The parser-recorded code is therefore 1000 for a track-list parse failure, or one of 800, 801, 802, 803, 804, 1042, 1043, 1044, 1045."
        ]
       },
       {
