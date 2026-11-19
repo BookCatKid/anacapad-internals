@@ -68001,7 +68001,7 @@
       }
      ],
      "events_triggered": {
-      "description": "No event is emitted directly by the wrapper or the mode worker. They submit op 11 and wait for its result, or invoke the streamer mode setter. The AVTransport LastChange serializer does emit the corresponding transport snapshot field.",
+      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -68042,11 +68042,43 @@
         "address": "0x102e481c",
         "notes": "The formatter's full transport block writes CurrentPlayMode from the collected string at stack +0x60de and CurrentCrossfadeMode from the collected boolean at stack +0x12522. The formatter calls f_102b5a1c at 0x102e4698 to collect the transport snapshot and can skip the block on a delta when impl+0x7785 is clear.",
         "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10265880",
+        "notes": "Indexed consumers fetch and clear the pending request pointer at session+0x2594. Their offset jump tables at 0x10ea8468 and 0x10ea84d0 select handlers by request+0xe4.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e46b8",
+        "notes": "The LastChange collector calls f_102b5a1c and promotes its nonzero dirty result to impl+0xa0a2. f_102b5658 promotes that flag to the latched +0x7785 at 0x102b56ac and clears the source flag on a consuming pass at 0x102b57a0. The delta branch at 0x102e47d8 tests +0x7785 before emitting the common TransportState, CurrentPlayMode and CurrentCrossfadeMode block.",
+        "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10265ee4",
+        "notes": "The playing op-11 handler compares the requested enum with active-list +0x26dc masked to 7. Equality jumps to 0x10266618, succeeds without setting the change flag and does not call f_10259db0. The stopped/paused op-11 handler calls f_1014da80, which similarly returns 1 for equality, 0 for change and 2 for rejection.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1026050c",
+        "notes": "The indexed snapshot obtains the mode name from f_10145f94 on the active track list. The event formatter uses its returned name at 0x102e4828.",
+        "function": "0x1026021c"
        }
       ],
       "todo": [
-       "Established: No event is emitted directly by the wrapper or the mode worker.",
-       "Trace the indexed op-11 consumer and the streamer object selected by f_106a9e88. Determine when they publish a CurrentPlayMode LastChange field, including calls that set the already-active mode."
+       "Established: both indexed op-11 consumers have a success path that does not change mode, and the common LastChange state block uses the indexed mode name.",
+       "Trace the changed-mode postludes (playing f_10259db0 out flag and stopped/paused f_102642d4) and the f_106a9e88 streamer callback to bound notification and coalescing for changed values."
       ]
      },
      "state_transitions": {
