@@ -1318,7 +1318,7 @@ def render_subsystems(m):
             t = t[:cut + 1]
         return t
 
-    rows = [["[`%s`](#%s)" % (n, n), _e(_gloss(s))]
+    rows = [["[`%s`](#%s)" % (n, n.replace("_", "-")), _e(_gloss(s))]
             for n, s in subs]
     _table(out, ["Subsystem", "Summary"], rows)
     for n, s in subs:
@@ -1331,7 +1331,7 @@ def render_subsystems(m):
         if not raw:
             continue
         first = raw[0] if isinstance(raw, list) else raw
-        open_rows.append(["[`%s`](index.md#%s)" % (n, n),
+        open_rows.append(["[`%s`](index.md#%s)" % (n, n.replace("_", "-")),
                           _e(_snip(first))])
 
     def _first_todo(t):
@@ -1423,6 +1423,14 @@ def render_subsystems(m):
             misc_rows.append(
                 ["muse record `%s`" % k,
                  _e(_snip(_first_todo(v["todo"])))])
+    for slug, _, resources in _muse_resource_groups(
+            (m.muse or {}).get("resources") or {}):
+        for name, resource in resources:
+            if resource.get("todo"):
+                misc_rows.append(
+                    ["muse resource [`%s`](../muse/resources/%s.md#%s)"
+                     % (name, slug, name.lower()),
+                     _e(_snip(_first_todo(resource["todo"])))])
     cl = getattr(m, "cert_layer", None) or {}
     if isinstance(cl, dict) and cl.get("todo"):
         misc_rows.append(
@@ -1518,6 +1526,12 @@ def _muse_resource_body(out, n, r):
     if r.get("client_summary"):
         out.append(_para(r["client_summary"]))
         out.append("")
+    if r.get("description"):
+        out += [_para(r["description"]), ""]
+    for todo in _todo_lines(r.get("todo")):
+        out += ["- **TODO:** %s" % todo, ""]
+    if r.get("evidence"):
+        _details(out, _generic_lines(r["evidence"]), "Evidence")
     rows = []
     seen = set()
     fields_seen = []

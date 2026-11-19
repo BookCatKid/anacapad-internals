@@ -535,6 +535,16 @@ class TodoPolicyTests(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp)
 
+    def test_muse_resource_limits_survive_rendering(self):
+        resource = self.doc["muse"]["resources"]["musicServiceAccounts"]
+        page = self.pages["muse/resources/content.md"]
+        self.assertIn(resource["description"], page)
+        self.assertIn(resource["todo"], page)
+        self.assertIn("0x10b01aac", page)
+        self.assertIn(
+            "muse resource [`musicServiceAccounts`]",
+            self.pages["subsystems/open-work.md"])
+
     # -- helpers ----------------------------------------------------------
     def _incomplete(self, o, path="", _in_skipped=False):
         """Yield (path, signal) for records that still carry structured
