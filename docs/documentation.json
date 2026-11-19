@@ -150943,27 +150943,69 @@
   },
   "mp_autoplay": {
    "name": "media_player_autoplay: VLI autoplay",
-   "summary": "params {vol,useVol,includeZones} + \"airplay include zones: %d\" + AirplayIncludeGroupedEvt; linein types {object.item.audioItem.linein.{homeTheater,airplay,bluetooth}} + x-sonos-vli; target resolution {\"lonely local line-in autoplay\",\"no autoplay target\",\"couldn't determine coordinator/AVT control URI/control URI\",\"Not executing on invisible/node proto incompatible ZP\"}; \"for controlURI [%s] for coordinator [%s]. programURI [%s]\"; \"Autoplay command failed ret=%d\"; \"AutoStop called on unhandled URI\"; http://%s:%u",
+   "summary": "Autoplay resolves line-in/VLI targets using room and group settings; HT silence processing is a separate layer with explicit enable flags and second-based thresholds. Recovered HT config members include revision, dialog/front-satellite delays and per-channel arrays, not anonymous source-only state. Defaults are 10s autoplay silence and 600s autostop silence; base/group latency defaults are 34829us/75000us.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ecb510",
      "notes": "mp_autoplay block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_101bc458 and HT threshold setters",
+     "address": "0x101bca04",
+     "callsite": "0x101bca44 / 0x101bca88 / 0x101bcacc / 0x101bcb10",
+     "notes": "Raw key comparisons bind HTAUsecDelay to thunk 0x1023d294, AutoPlaySec to 0x1023d2b4, AutoStopSec to 0x1023d2c4 and ZPGroupDelayUsec to 0x1023d2a4. Thunks tail-call f_107c92bc/f_107c9db4/f_107c9ecc/f_107c9628. These call strtol base10 with null end pointer and tail-call f_107c91f0/f_107c9ce0/f_107c9df8/f_107c955c respectively. Stores +e4/+198/+19c/+f0 are at 0x107c9228/0x107c9d20/0x107c9e38/0x107c9594. GNU objdump confirms isel r31,r4,r9,29 after unsigned compares at 0x107c9ce4 and 0x107c9dfc, imposing floors 10/20. Unchanged branches 0x107c9d1c/0x107c9e34 skip writes/notifications; changed paths call f_107c919c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107c919c / f_107c8ec8 / f_107c9300 / f_107c9490",
+     "address": "0x107c91c4",
+     "callsite": "0x107c8f1c / 0x107c937c / 0x107c94d8",
+     "notes": "Revision load/increment/store +e0 at 0x107c91c4-0x107c91d4 then notification tail-call f_105d24f8. Reader compares caller revision at 0x107c8f04/0x107c8f08, copies +e0 for 0xcc bytes at 0x107c8f1c, returns zero without copying on equality. Dialog delay f_107c9300 rejects unsigned selector>5 at 0x107c9308/0x107c9320; GNU objdump decodes efscfsi/efsmul/efsctuiz at 0x107c9324/0x107c9340/0x107c9344, selector stored +898 at 0x107c933c, derived ms at +e8 at 0x107c9370 and log Dialog delay %ums at 0x107c93ac. Front delay store +ec at 0x107c94c8 is logged Front sat delay %uus at 0x107c9500."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107c9b18 / f_107c9bfc",
+     "address": "0x107c9b50",
+     "callsite": "0x1023d1c0 / 0x1023d1d0 / 0x107c9ba4 / 0x107c9c88",
+     "notes": "Setters compare and store enable bytes +194 at 0x107c9b44/0x107c9b50 and +195 at 0x107c9c28/0x107c9c34; change helper at 0x107c9b60/0x107c9c44. HT autoplay %s literal 0x10f25200 and HT autostop %s literal 0x10f25210 pair with enabled/disabled branches. Direct thunks 0x1023d1b4/0x1023d1c4 load owner+134 and tail-call the respective setters, disproving the original no-literal-binding premise."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "HT config constructor / f_107c99e4 / surround setter",
+     "address": "0x107c8d28",
+     "callsite": "0x107c8da0 / 0x107c9a94 / 0x107ca908 / 0x107ca94c",
+     "notes": "Ctor clears r31 at 0x107c8cf8. ori 0x880d at 0x107c8d2c feeds base-latency store +e4 at 0x107c8d34; lis1/ori0x24f8 feeds group-latency store +f0 at 0x107c8d48. Loop count 18 from 0x107c8d84 is moved to CTR, not stored +148; stwu zero increments from +104 through +148 and stw +0x48(r9) fills +14c..+190 from word 0x10f250b8=0. Revision/enable/threshold seeds are explicit at 0x107c8d74/0x107c8d94/0x107c8d98/0x107c8dbc/0x107c8dc4. Array copier f_107c99e4 uses +104/+14c indexed by channel*4 at 0x107c9a60-0x107c9a98, mapping channel masks through f_107c820c and 18-word table 0x10f24fac. Surround setter stores left/right delays +114/+118 and gain words +15c/+160 at 0x107ca908/0x107ca910/0x107ca94c/0x107ca954; log at 0x107ca9bc explicitly labels surround delay/gain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "HT config snapshot consumer / f_107dd444",
+     "address": "0x107d6810",
+     "callsite": "0x107d6828 / 0x107d6864",
+     "notes": "Snapshot memcpy destination owner+1f8 at 0x107d6810/0x107d6828. Autostop change branch loads seconds +2b4 at 0x107d6858 and enable +2ad at 0x107d6860 and calls f_107dd444; mulli 1000 at 0x107dd480 converts seconds for +ac milliseconds. These live offsets correspond to config snapshot fields +19c/+195 relative to its +e0 start."
     }
    ],
-   "todo": [
-    "Residual: semantic names of the non-key members (+0xe0, +0xe8/+0xec, +0x148, +0x194/+0x195 flags) are internal-state fields with no literal binding - the seed values are proven, the names are source-only."
-   ],
    "resolved_findings": [
-    "Resolved: candidate ranking = the autoplay table {linked zones -> AutoplayRoomUUID/Volume -> silence gate -> alarm fallback} decoded under autoplay.",
+    "VLI target selection and HT silence/enable configuration are separate layers. The diagnostic strings and settings names do not by themselves establish one total candidate-ranking order combining linked zones, volume, silence and alarm fallback. Keep the room/coordinator control path distinct from the HT configuration state and silence detector described below.",
     "Target-selection algorithm proven (media_player_autoplay.cxx, MpAutoPlay_/MpAp domains): on a linein-class source ({object.item.audioItem.linein.homeTheater, .airplay, .bluetooth} + x-sonos-vli URIs with vliType {RCA,...}) autoplay resolves a target: the group coordinator via autoplay couldnt determine coordinator of %s -> AVT control URI via couldnt determine AVT control URI of coordinator %s -> zone control URI via couldnt determine control URI of zone %s; invisible or proto-incompatible members are skipped (Not executing on invisible/node proto incompatible ZP %s). No target = local fallback (lonely local line-in autoplay %s; no autoplay target for %s). Dispatch: for controlURI [%s] for coordinator [%s]. programURI [%s]. %d - %d sends the program URI to http://%s:%u AVT control; autoplay: %d; become gc: %d decides whether the player becomes coordinator. Params {vol, useVol, includeZones} with airplay include zones: %d + AirplayIncludeGroupedEvt; silence gating via autoplay. Ignore Silence Threshold (%d). Spotify sources take the VLI path (autoplay Spotify using VLI / autoplay Spotify SMAPI URI: %s (%d)); alarms handle autoplay %s (alarm: %d, buzzer fallback: %d)... not playing; autoplay_tv covers the HT input; AutoStop called on unhandled URI %s:%s; autoplay room UUID changed to %s retargets on zone change.",
-    "Resolved (silence-threshold plumbing, htaudio_autoplay.cxx): the auto-stop silence threshold is a caller-supplied SECONDS argument converted inline to milliseconds (mulli 0x3e8 at 0x107dd480) and stored at object +0xac with an enable byte at +0x99 - logged as 'auto stop %s silence threshold %ums' under the 'autoplay_tv' log domain; the parallel 'auto play %s silence threshold %ums' path handles the play side. The setter's single call site (0x107d6858-0x107d6864) sources the seconds from object field +0x2b4 and the enable from +0x2ad - i.e., the default is populated into those fields by config load, not baked as a literal at the setter.",
-    "Resolved (settings-key dispatch): the ht_config key dispatcher @0x101bc458 strcmp's each key and tail-calls a per-key setter: HTASilenceThresholdAutoPlaySec -> f_1023d294 -> f_107c92bc (strtol base-10) -> f_107c91f0 stores parsed seconds at obj+0xe4 (logs 'HT audio base latency %uus' on ht_config - the log string is shared/stale across the setter family); HTASilenceThresholdAutoStopSec -> f_1023d2b4 -> f_107c9db4; HTAZPGroupDelayUsec -> f_1023d2c4 -> f_107c9ecc. So the AutoPlay silence threshold is stored as raw seconds at +0xe4, not ms-converted.",
-    "Resolved: the auto-stop silence threshold member is ht_config +0x19c (not +0xe4) - the setter chain f_1023d2b4 -> f_107c9db4 -> strtol base10 -> f_107c9ce0 stores r31 at +0x19c under a mutex (0x10988558 lock / 0x10988984 unlock) and logs \"auto stop silence threshold %us\" on change; the ht_config ctor seeds +0x19c = 0x258 = 600 (default 600 s) at 0x107c8dc4 and seeds the adjacent member +0x198 = 0xa at 0x107c8dbc, alongside embedded subobject ht_config_sat constructed at +0x1b0.",
-    "Resolved: full HTA key->member table via the dispatch chain (strcmp at f_101bc458 -> thunk row at 0x1023d294..0x1023d324 loading the +0x134 ht_config member -> strtol stage-1 -> inner setter): HTAUsecDelay -> +0xe4 (f_107c91f0 store), HTAZPGroupDelayUsec -> +0xf0 (f_107c955c), HTASilenceThresholdAutoPlaySec -> +0x198 (f_107c9ce0, logs 'auto play silence threshold %us' at 0x107c9d58), HTASilenceThresholdAutoStopSec -> +0x19c (f_107c9df8, logs 'auto stop silence threshold %us' at 0x107c9e70, ctor seed 600s). The XML grammar corroborates: <AutoPlay><Mode>/<SilentSeconds> + <AutoPlaySilenceThresh>%us / <AutoStopSilenceThresh>%us state fields.",
-    "Full dispatcher census (f_101bc458): the household-settings strcmp ladder covers HouseholdID, MuseHouseholdID, LocationID, EQ, ShadowStorageLimit, ChannelMapSet, ActiveZoneID, ChannelMapSetTime, UnpairedLED/ButtonLock/ZoneName/Icon/Configuration, AutoplayIncludeLinked->stb +0x1aa1, AutoplayVolume->sth +0x1abc, UseAutoplayVolume->stb +0x1abe, AmpOffTimerSec, AutoplayRoomUUID, HTSatelliteDefn, the four HTA* keys, IRRepeater->f_10242d00 (strcmp On -> ioctl on member+0x148 object + string copy at +0x1ec), IRControl, IRLEDFeedback, PrimaryMAC. The non-HTA autoplay keys write the large settings object (+0x1a9x..+0x1abx), NOT the +0xe0..+0x195 ht_config member range - so the four HTA* keys are the only key-backed writes into that window; the rest of +0xe0..+0x195 is internal ht_config state.",
-    "ht_config ctor seed map (f_107c8d00, r30=config): +0xe0=1, +0xe4=0 (HTAUsecDelay), +0xe8/+0xec=0, +0xf0=0x10000 (HTAZPGroupDelayUsec default 65536us), bytes +0xf4=+0xf5=+0xfa=1 enables, +0xf6/+0xfb/+0xfc=0, +0xf8=0 (half), +0x100/+0x104=0, +0x148=18, bytes +0x194/+0x195=0, +0x198=10 (HTASilenceThresholdAutoPlaySec), +0x19c=600 (HTASilenceThresholdAutoStopSec), +0x1a0..+0x1a8=0, +0x1ac/+0x1ad=0; sub-object 'ht_config_sat' anchored at +0x1b0.",
-    "Established: full ctor seed map for ht_config +0xe0..+0x1ad (defaults incl. group-delay 0x10000us, silence thresholds 10s/600s, enable bytes at +0xf4/+0xf5/+0xfa, 'ht_config_sat' sub-object at +0x1b0)."
+    "HT settings-key dispatch is now bound end to end, correcting earlier contradictory mappings: HTAUsecDelay -> 0x1023d294 -> f_107c92bc -> f_107c91f0 -> +0xe4 (base latency, us); HTAZPGroupDelayUsec -> 0x1023d2a4 -> f_107c9628 -> f_107c955c -> +0xf0 (group latency, us); HTASilenceThresholdAutoPlaySec -> 0x1023d2b4 -> f_107c9db4 -> f_107c9ce0 -> +0x198 (seconds); HTASilenceThresholdAutoStopSec -> 0x1023d2c4 -> f_107c9ecc -> f_107c9df8 -> +0x19c (seconds). These are base-10 strtol wrappers. The key dispatch is in f_101bc458; its key branches are 0x101bca04-0x101bcb10. AutoPlay does not write +0xe4 and AutoStop does not write +0x198.",
+    "Threshold setters apply unsigned lower bounds: autoplay input <=9 is stored as 10, otherwise unchanged; autostop input <=19 is stored as 20, otherwise unchanged. The raw isel words at 0x107c9d0c/0x107c9e24 select the input on unsigned greater-than, the floor otherwise. They are not shift instructions. A changed value is written under the mutex, bumps config revision and triggers notification; an unchanged value unlocks and returns success without a change notification. The parse wrappers do not supply an end pointer, so empty/nonnumeric input follows strtol zero into the lower bound rather than a distinct parser error. No upper bound is established by these two setters.",
+    "Previously unnamed fields recovered: +0xe0 is a revision counter, initialized to 1 and incremented by f_107c919c on changes; f_107c8ec8 compares a caller revision and copies the 0xcc-byte config snapshot from +0xe0 only when different. +0xe8 is dialog delay in ms, updated by f_107c9300: selector >5 is rejected, otherwise the selector is saved at +0x898 and converted through the SPE float multiplier at 0x10f250bc, with a conditional minimum based on flags +0xfa/+0xfb. +0xec is front-satellite delay in us, written by f_107c9490 and identified by its Front sat delay %uus log. These meanings have concrete consumers/log bindings; they are not unavailable source-only names.",
+    "The bytes +0x194/+0x195 are HT autoplay/autostop enables, not unidentified flags. f_107c9b18 writes +0x194 and logs HT autoplay enabled/disabled; f_107c9bfc writes +0x195 and logs HT autostop enabled/disabled. Direct thunks at 0x1023d1b4/0x1023d1c4 load the HT config member and tail-call these setters. Both preserve the compare/store/change-notify pattern and do not notify on an unchanged value.",
+    "The apparent standalone member +0x148 is entry 17 of the 18-word per-channel array beginning +0x104, not a scalar seeded to 18. A parallel 18-word array begins +0x14c. Construction loops 18 times, zeroing +0x104..+0x148 and copying the zero word at 0x10f250b8 to +0x14c..+0x190. f_107c99e4 reads/writes both arrays at base+4*channel, using channel masks from f_107c820c; the latter bounds indices to 0..17 (mask for index 17 is 0x20000). Concrete surround setters write delay at +0x114/+0x118 (indices 4/5) and gain at +0x15c/+0x160, logging Left/Right surround delay/gain. Thus these are channel-indexed delay/gain state, not an unexplained member constant. No original C++ member spelling is inferred.",
+    "Corrected constructor values from 0x107c8cf0-0x107c8ddc: +0xe0=1; +0xe4=0x880d=34829us, not zero; +0xe8/+0xec=0; +0xf0=0x124f8=75000us, not 65536us; +0xf4/+0xf5/+0xfa bytes=1; +0xf6/+0xfb/+0xfc=0; +0xf8 halfword=0; +0x100=0; both channel arrays zero; +0x194/+0x195=0; +0x198=10 seconds; +0x19c=600 seconds; +0x1a0/+0x1a2/+0x1a4 halfwords=0; +0x1a8=0; +0x1ac/+0x1ad=0. The ht_config_sat subobject begins +0x1b0. The earlier claimed full seed map was incorrect, including +0x148=18, which confused the loop counter with an array entry.",
+    "Runtime silence-threshold conversion remains separate from config storage. Consumer 0x107d6810/0x107d6828 copies a config snapshot into owner+0x1f8; on changed autostop state it loads seconds from +0x2b4 and enable from +0x2ad, then calls f_107dd444 at 0x107d6864. That setter multiplies seconds by 1000 at 0x107dd480 and stores milliseconds at its own +0xac with enable at +0x99, logging the autostop threshold in ms. Config defaults and parsed values remain seconds until this boundary; the constructor defaults are not inferred from the setter alone."
    ]
   },
   "mpmgr": {
