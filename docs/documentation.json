@@ -55294,7 +55294,7 @@
      "notes": "Deletion notice is an exact current-source match followed by an attempted empty SetAVTransportURI, not a membership deletion or asynchronous recovery job. The implementation intentionally hides the inner source-set result."
     },
     "Pause": {
-     "description": "Pauses playback. Impl f_102d2b28 gate (718 on InstanceID!=0) then body f_102d2b38: lock impl+0x458, log 'upnp'/'pause', run f_102b00cc. That worker submits control op 0x19 via f_102aff9c(impl+0x5dc) and, on submission success, invokes the streamer pause vfunc f_106a7880(*(impl+0x5a0)). The worker returns 0 on submission failure or the streamer vfunc result on success. If the worker returned 0 the impl falls back to f_102d0ac8(impl,1,1,-1,-1) and returns its rc.",
+     "description": "Requests pause through the streamer when the control submission succeeds. Otherwise mode 1 performs local source and state updates, and mode 2 requests indexed pause or stop according to the source URI. The fallback returns 701 for an ineligible home-theater source, an unsupported mode or a rejected indexed transition.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8588",
@@ -55480,15 +55480,31 @@
         "address": "0x102d0d20",
         "notes": "The fallback calls f_1067c6ec(impl+0x10) on branches including a nonzero f_102b05e4 result at 0x102d0d14. Absence of the call in the top-level pause function does not imply no notification.",
         "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0d64",
+        "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b06d4",
+        "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
+        "function": "0x102b05e4"
        }
       ],
       "todo": [
-       "Established: The shared fallback can invoke f_1067c6ec after updating local transport state; the fast path delegates to the streamer.",
-       "Resolve the listener at impl+0x10 and the streamer pause callback for the exact changed LastChange fields and delivery conditions."
+       "Established: the local mode-1 fallback can dirty the Pause state record and call f_1067c6ec; the shared home-theater update can independently dirty that record on a state change.",
+       "Trace the subscriber-side readers of impl+0x7760 and the event callback reached from the streamer and indexed pause paths; map the exact fields and suppression conditions."
       ]
      },
      "state_transitions": {
-      "description": "Pause submitted to control target + streamer; submission vs actual pause completion is the accepted/submitted distinction - the SOAP call returns after the streamer vfunc returns, not after audio pauses.",
+      "description": "A streamer acceptance reports success without waiting for audio to pause. A local fallback can record PAUSED_PLAYBACK; an indexed fallback requests PAUSED, or STOPPED for sources classified by f_10148308.",
       "evidence": [
        {
         "type": "firmware",
@@ -55497,19 +55513,59 @@
         "address": "0x102b0134",
         "notes": "streamer vfunc path",
         "function": "f_102b00cc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0d64",
+        "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0b78",
+        "notes": "After the URI guard, mode 1 takes the zero-return local pause arm. For Pause's nonzero first option, modes other than 1 and 2 return 701 at 0x102d0dc4. Mode 2 has a conditional selector-1 arm but the predicates at 0x102d0b90 and 0x102d0ba0 are the same case-sensitive x-sonosapi-radio: test (f_10147928 tail-calls f_101478ec), so that specific arm is not reachable for a stable URI. The f_10148308 stream/HLS/MP3-radio classification can still select indexed stop at 0x102d0bc4.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0c80",
+        "notes": "For other eligible indexed sources the worker sends target 8 (PAUSED) via f_102569dc. The caller accepts results 1 and 2 and maps other results to 701 at 0x102d0c90. f_10256604 returns success for an already-paused state, rejects PAUSED from current state 1 or 3 at 0x1025674c, and can set state 9 (TRAN_PAUSED) at 0x10256724 while a transition completes.",
+        "function": "0x102d0ac8"
        }
       ]
      },
      "return_behavior": {
-      "description": "Success iff worker returned nonzero (submitted + streamer accepted) OR the f_102d0ac8 fallback succeeded; impl rc = fallback rc on the zero path, else 0.",
+      "description": "A nonzero streamer result reports success. Otherwise the shared worker reports zero or 701, with no raw streamer or indexed status exposed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102d2be0",
-        "notes": "fallback call f_102d0ac8(impl,1,1,-1,-1)",
-        "function": "f_102d2bcc"
+        "address": "0x102d0b78",
+        "notes": "After the URI guard, mode 1 takes the zero-return local pause arm. For Pause's nonzero first option, modes other than 1 and 2 return 701 at 0x102d0dc4. Mode 2 has a conditional selector-1 arm but the predicates at 0x102d0b90 and 0x102d0ba0 are the same case-sensitive x-sonosapi-radio: test (f_10147928 tail-calls f_101478ec), so that specific arm is not reachable for a stable URI. The f_10148308 stream/HLS/MP3-radio classification can still select indexed stop at 0x102d0bc4.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0c80",
+        "notes": "For other eligible indexed sources the worker sends target 8 (PAUSED) via f_102569dc. The caller accepts results 1 and 2 and maps other results to 701 at 0x102d0c90. f_10256604 returns success for an already-paused state, rejects PAUSED from current state 1 or 3 at 0x1025674c, and can set state 9 (TRAN_PAUSED) at 0x10256724 while a transition completes.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0d64",
+        "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+        "function": "0x102d0ac8"
        }
       ]
      },
@@ -55564,36 +55620,49 @@
        "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
-       "code": null,
+       "code": 701,
        "code_expr": "vret(r5-in,+0x30)",
-       "meaning": "A false fast-path result enters f_102d0ac8, whose return is propagated. The initial f_102931f0 rejection is 701.",
-       "fault_sites": [],
+       "meaning": "Pause's fallback rejects a recognized home-theater input or a mode outside 1 and 2. An indexed stop returning zero or indexed pause returning outside 1 and 2 also yields 701.",
+       "fault_sites": [
+        "0x102d0b34",
+        "0x102d0bd4",
+        "0x102d0c90",
+        "0x102d0dc4"
+       ],
        "conditions": [
         {
-         "description": "A false fast-path result enters f_102d0ac8, whose return is propagated. The initial f_102931f0 rejection is 701.",
+         "description": "Pause's fallback rejects a recognized home-theater input or a mode outside 1 and 2. An indexed stop returning zero or indexed pause returning outside 1 and 2 also yields 701.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2b98",
-           "notes": "In the mutex scope, tries f_102b00cc. Its successful op-0x19 submission enters streamer pause at 0x102b0134. A nonzero fast-path result is converted to engine success, not returned verbatim.",
-           "function": "0x102d2b38"
+           "address": "0x10293058",
+           "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+           "function": "0x10293014"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2be0",
-           "notes": "A zero fast-path result invokes f_102d0ac8(impl,1,1,-1,-1) and returns its result.",
-           "function": "0x102d2b38"
+           "address": "0x102d0d64",
+           "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+           "function": "0x102d0ac8"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102d0b78",
-           "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
+           "notes": "After the URI guard, mode 1 takes the zero-return local pause arm. For Pause's nonzero first option, modes other than 1 and 2 return 701 at 0x102d0dc4. Mode 2 has a conditional selector-1 arm but the predicates at 0x102d0b90 and 0x102d0ba0 are the same case-sensitive x-sonosapi-radio: test (f_10147928 tail-calls f_101478ec), so that specific arm is not reachable for a stable URI. The f_10148308 stream/HLS/MP3-radio classification can still select indexed stop at 0x102d0bc4.",
+           "function": "0x102d0ac8"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d0c80",
+           "notes": "For other eligible indexed sources the worker sends target 8 (PAUSED) via f_102569dc. The caller accepts results 1 and 2 and maps other results to 701 at 0x102d0c90. f_10256604 returns success for an already-paused state, rejects PAUSED from current state 1 or 3 at 0x1025674c, and can set state 9 (TRAN_PAUSED) at 0x10256724 while a transition completes.",
            "function": "0x102d0ac8"
           }
          ]
@@ -55623,49 +55692,39 @@
          "address": "0x102d0b78",
          "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
          "function": "0x102d0ac8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10293058",
+         "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+         "function": "0x10293014"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0d64",
+         "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+         "function": "0x102d0ac8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0b78",
+         "notes": "After the URI guard, mode 1 takes the zero-return local pause arm. For Pause's nonzero first option, modes other than 1 and 2 return 701 at 0x102d0dc4. Mode 2 has a conditional selector-1 arm but the predicates at 0x102d0b90 and 0x102d0ba0 are the same case-sensitive x-sonosapi-radio: test (f_10147928 tail-calls f_101478ec), so that specific arm is not reachable for a stable URI. The f_10148308 stream/HLS/MP3-radio classification can still select indexed stop at 0x102d0bc4.",
+         "function": "0x102d0ac8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0c80",
+         "notes": "For other eligible indexed sources the worker sends target 8 (PAUSED) via f_102569dc. The caller accepts results 1 and 2 and maps other results to 701 at 0x102d0c90. f_10256604 returns success for an already-paused state, rejects PAUSED from current state 1 or 3 at 0x1025674c, and can set state 9 (TRAN_PAUSED) at 0x10256724 while a transition completes.",
+         "function": "0x102d0ac8"
         }
-       ],
-       "unresolved": {
-        "proven": "fallback rc returned as impl status when streamer path failed",
-        "unknown": "impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102d2b28 entry); remaining paths call-derived",
-        "impl_exit_literals": {
-         "function": "0x102d2b28",
-         "lits": [
-          0,
-          16,
-          701,
-          718
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_102b05e4": {
-          "lits": [
-           0,
-           1,
-           12,
-           16,
-           24,
-           64,
-           1500,
-           30552
-          ],
-          "pt": 0
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "literal_bound": [
-        701
-       ],
-       "worker_literal_bound": [
-        701,
-        701
-       ],
-       "todo": [
-        "Established: A false fast-path result enters f_102d0ac8, whose return is propagated.",
-        "Enumerate the source-specific branches that reach f_102d0ac8's nonzero exits with Pause's fixed (1,1,-1,-1) arguments."
        ]
       },
       {
@@ -55783,13 +55842,49 @@
        "address": "0x102d0d20",
        "notes": "The fallback calls f_1067c6ec(impl+0x10) on branches including a nonzero f_102b05e4 result at 0x102d0d14. Absence of the call in the top-level pause function does not imply no notification.",
        "function": "0x102d0ac8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10293058",
+       "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+       "function": "0x10293014"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0d64",
+       "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+       "function": "0x102d0ac8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0b78",
+       "notes": "After the URI guard, mode 1 takes the zero-return local pause arm. For Pause's nonzero first option, modes other than 1 and 2 return 701 at 0x102d0dc4. Mode 2 has a conditional selector-1 arm but the predicates at 0x102d0b90 and 0x102d0ba0 are the same case-sensitive x-sonosapi-radio: test (f_10147928 tail-calls f_101478ec), so that specific arm is not reachable for a stable URI. The f_10148308 stream/HLS/MP3-radio classification can still select indexed stop at 0x102d0bc4.",
+       "function": "0x102d0ac8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0c80",
+       "notes": "For other eligible indexed sources the worker sends target 8 (PAUSED) via f_102569dc. The caller accepts results 1 and 2 and maps other results to 701 at 0x102d0c90. f_10256604 returns success for an already-paused state, rejects PAUSED from current state 1 or 3 at 0x1025674c, and can set state 9 (TRAN_PAUSED) at 0x10256724 while a transition completes.",
+       "function": "0x102d0ac8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b06d4",
+       "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
+       "function": "0x102b05e4"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: Pause can fall back to f_102d0ac8 with fixed operands after the fast submit path fails.",
-      "Verify the full source-specific return and state matrix of f_102d0ac8 with Pause's fixed (1,1,-1,-1) arguments, then identify notifications from the indexed and streamer methods."
-     ]
+     "notes": null
     },
     "Play": {
      "description": "Starts playback. Impl f_102d4078: InstanceID!=0 -> 718; strcmp(Speed,'1')!=0 -> 717 (speeds other than literal '1' are rejected outright); then locks impl+0x458, logs 'upnp'/'play', and dispatches on source mode. A 'Received play for non-muse source' path rebuilds the source via f_102c350c+f_102b2ee4; the normal path runs f_102b0058 and, when it returns 0, submits play via f_102cfa50(impl,-1,-1,0). A state-changed emit via f_100caad8 follows on the submit path.",
