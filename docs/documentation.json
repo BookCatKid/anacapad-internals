@@ -147802,6 +147802,24 @@
      "build": "86.10-80260",
      "address": "0x10e81dc0",
      "notes": "positioning/telemetryLevel muse route"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "event constructor and endpoint selector",
+     "address": "0x1069d87c",
+     "callsite": "0x1069d9dc / 0x10540328 / 0x10540394 / 0x1053fb88 / 0x10ee7100",
+     "notes": "Selector14 override then fallback service32, stride12 row with msmetrics/ws.sonos.com and https scheme. Conditional compiled fallback distinguished from runtime-selected endpoint and optional discovery."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "event POST writer",
+     "address": "0x1069d270",
+     "callsite": "0x1069d2f4 / 0x1069d2fc / 0x1069d350 / 0x1069d364",
+     "notes": "URL parse gates header formatting; exact header literal10f03b4c and path10f03c34 checked. Binary POST not diagnostic-manifest proof."
     }
    ],
    "channels": "X-Sonos-MessageType: product-data-telemetry header; 'Diagnostic manifest submitted.'; 'Unable to report diagnostic submit status of %s to %s'; submitDiagnostics muse op + playerId,diagnostics,submitDiagnostics route",
@@ -147816,13 +147834,14 @@
    },
    "sdata_category_registry": ".sdata registry @0x11095d88: three fn-table ptrs (0x10fce6d8/0x10fce65c/0x10fce638 - callback blocks in the eSDK code region) followed by {name_ptr, u32=4} pairs naming channels {api, zc, download, audio, esdk}. 'esdk' is referenced by 10 fns in the eSDK region (0x10cf8-0x10d4c); 'api'->f_10331f34; 'download'->f_105a7e78/f_1068baa4; 'audio'->f_107d5b0c. Consistent with the libsonoseventreporter init_event_ctx/report_event channel registry; priority/weight word constant 4.",
    "todo": [
-    "Residual: the concrete metrics host - resolved at runtime from {metricsConfigURL, metricsConfigV2URL, metricsService}; path and header are literals"
+    "Established: concrete POST writer, URL-validation gate, selector14 override and row32 compiled HTTPS fallback msmetrics.ws.sonos.com/data/submit.aspx. Remaining: bind discovery f_1053f8c8 and config producers for ids14/0x25/0x30 to their exact settings/service objects and precedence; join event-client instances to their runtime selectors, consent policies and retry responses separately from diagnostic manifests. Start with f_1069d87c -> f_105402f0 -> f_1053faf8 and f_10556e10. Do not infer that metricsConfigURL/metricsConfigV2URL/metricsService adjacent serializer names are all host strings. This remains actionable static work; the runtime-only-host premise is withdrawn."
    ],
    "resolved_findings": [
-    "Resolved: upload request = Telemetry 1.0 Event field format over the shared report channel tagged X-Sonos-MessageType: product-data-telemetry; submission rides submitDiagnostics/submitQueuedDiagnostic with manifest bundling; opt-out flag optOutExempt exempts mandatory diagnostics; positioning telemetry level is route-controlled; RCB cache lives under sys.",
-    "Submission layer proven via shipped /opt/conf/zpMetricsConfigV2.xml: MetricsConfig version 1.0 rev 13, positionally-parsed ~104-category table {name, uploader-ref, level} - only nowplaying.playReport (optOutExempt uploader), zpAM.maintenance, quarantining ship ON. Envelope X-Sonos-MessageType: product-data-telemetry with Telemetry 1.0 Event field %s = %s fields and %[^/]/%[^/] event names. Cadence is event-driven per category: submitQueuedDiagnostic/SubmitDiagnostics with deferred triggers, bounded queues (submission queue full, result queue full), preserved buffers (/tmp/event_preserve length-prefixed + SHA256-verified, restoreEvents on boot), retry loop attempt %u, retrying in %u seconds; Healthcheck family is server-driven via /ws/diag/diag_instructions.xml?hhid=.",
-    "Resolved: the endpoint decomposes into proven parts - path literal /data/submit.aspx (0x10f03c35, also 0x10f0ce48) appended to a host resolved from settings keys {metricsConfigURL, metricsConfigV2URL, metricsService} (0x10f9bf1c-0x10f9bfcc, the O_-family config table). So URL = <metrics-service host>/data/submit.aspx with X-Sonos-MessageType: product-data-telemetry.",
-    "Established: upload path, header, settings keys, pipeline all proven."
+    "Binary event upload and diagnostic manifest submission are separate paths. The checked event client constructs an HTTP POST carrying product-data-telemetry; shared telemetry vocabulary and nearby diagnostics operations do not prove that these event uploads ride submitDiagnostics or share its exemption policy.",
+    "Shipped zpMetricsConfigV2.xml describes category/uploader/level configuration, but that configuration is not proof of one universal event cadence, all diagnostics permission rules or a shared upload envelope. The old complete-pipeline/only-three-enabled category assertion is not certified by this endpoint trace.",
+    "Event-client constructor f_1069d87c repeatedly requests endpoint selector14 with suffix /data/submit.aspx at0x10f03c34 through f_105402f0. This getter first tries runtime configuration f_10556e10(14,empty); if absent or unusable it falls back through f_1053faf8 using service row32 and scheme https. Row32 at0x10ee7100 supplies msmetrics and ws.sonos.com. With discovery override inactive and suffix/domain overrides empty, this yields compiled fallback https://msmetrics.ws.sonos.com/data/submit.aspx. It is not an unknown runtime-only host.",
+    "f_1053fa2c rejects empty override strings and formatting failure/overflow. Fallback f_1053faf8 can first try discovery resolver f_1053f8c8, then uses the stride12 service table and configuration ids0x25/0x30; these can change the resolved endpoint. Its ordinary formatter at0x1053fbd0 is %s://%s.%s%s. A fallback host is not proof of the host selected on a running player.",
+    "Actual request writer f_1069d270 validates/parses the URL through f_10542d7c with http:// and https:// prefixes. Only the success path formats POST %s HTTP/1.1, HOST with port, connection-close, user-agent, application/octet-stream, payload length and X-Sonos-MessageType: product-data-telemetry using format0x10f03b4c. Invalid URL branches to0x1069d4c8 before that formatting. The former path anchor0x10f03c35 was one byte inside the actual literal, and0x10f0ce48 is only submit.aspx, not independently a full path."
    ]
   },
   "trueplay_tuning": {
