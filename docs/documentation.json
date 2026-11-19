@@ -19860,7 +19860,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x4c is the same function in both vtables. The one-second sleep at 0x10737fe8 runs on the SOAP worker thread after the response has been committed, so a client sees the reply before the follow-up happens."
     },
     "RoomDetectionStartChirping": {
-     "description": "Plays a room-detection chirp through the speaker and returns the identifier of the resulting playback. The wrapper parses Channel (u16), DurationMilliseconds (u32) and ChirpIfPlayingSwappableAudio (boolean) and calls slot +0x50 of runtime vtable 0x10ebc630, f_1035b390. When ChirpIfPlayingSwappableAudio is false the worker first asks the audio-source layer through f_104ad918 whether current playback may be interrupted and returns 0 with PlayId 0xffffffff when it may not. It then requires the room-detection object at impl+0x1ac0 and calls f_104f669c with the channel and the duration converted to whole seconds (multiply-high by 0x10624dd3 then shift right 6, which is unsigned division by 1000) and multiplied back by 1000 inside f_104f669c, finally reading the assigned play id from the object through f_104f6634.",
+     "description": "Plays a room-detection chirp through the speaker and returns the identifier of the resulting playback. The wrapper parses Channel (u16), DurationMilliseconds (u32) and ChirpIfPlayingSwappableAudio (boolean) and calls slot +0x50 of runtime vtable 0x10ebc630, f_1035b390. When ChirpIfPlayingSwappableAudio is nonzero the worker first asks the audio-source layer through f_104ad918 whether current playback may be interrupted and returns 0 with PlayId 0xffffffff when it may not. It then requires the room-detection object at impl+0x1ac0 and calls f_104f669c with the channel and the duration converted to whole seconds (multiply-high by 0x10624dd3 then shift right 6, which is unsigned division by 1000) and multiplied back by 1000 inside f_104f669c, finally reading the assigned play id from the object through f_104f6634.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073730c",
@@ -19948,7 +19948,7 @@
      },
      "inputs": {
       "Channel": {
-       "description": "Channel selector passed straight to the chirp sender as its second argument. f_1035b390 loads it with lhz from the wrapper's 16-bit slot, so only the low 16 bits reach f_104f669c, which logs it as 'Start chirping with unique device value:%d' and forwards it into the chirp stream setup f_104f55e8.",
+       "description": "The wrapper supplies a 16-bit channel/device selector in r4; f_1035b390 forwards it unchanged at 0x1035b3dc. The chirp sender stores only the low byte at 0x104f6714 and passes that byte by address to f_104f55e8 at 0x104f67f4..0x104f6800.",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -19957,11 +19957,11 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "u16 channel/device selector",
+       "semantic_type": "u16 channel/device selector; low byte used for the stream",
        "format": "decimal integer, truncated to 16 bits",
        "unit": "n/a - text",
        "accepted_values": "any value; neither the worker nor f_104f669c rejects a channel number",
-       "range": "0..65535 after truncation",
+       "range": "0..65535 at the wrapper; 0..255 at stream setup",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
@@ -20027,10 +20027,10 @@
        },
        "semantic_type": "u32 duration",
        "format": "decimal integer",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "any u32; no range check exists",
+       "unit": "milliseconds",
+       "accepted_values": "u32 input; the stream constructor limits the resulting byte count",
        "range": "0..4294967295",
-       "special_values": "none identified",
+       "special_values": "A zero rounded duration constructs a source with no bytes to read.",
        "required": true,
        "default": "none; required input",
        "validation": "none beyond the numeric parse",
@@ -20078,13 +20078,13 @@
          "notes": "mulli r28,0x3e8 restores milliseconds in whole seconds"
         }
        ],
-       "notes": "Rounding down to a multiple of 1000 ms is statically certain; how the stream layer treats a zero length is outside f_104f669c.",
+       "notes": "f_104f55e8 loads the signed 64-bit value produced by sign-extending the 32-bit rounded result at 0x104f67dc..0x104f67e4. It converts duration to a byte count by multiplying by 882 and dividing by 10 at 0x104f5b74..0x104f5bc0. The positive overflow guard at 0x104f5d58..0x104f5d9c substitutes byte count 0x0ccccccc. f_1054850c stores the limit at source+0x8 (0x10548524); the installed read callback f_104f5404 uses the remaining byte count and returns a zero-byte read without copying if the limit is zero (0x104f542c..0x104f5448, 0x104f54cc).",
        "resolved_findings": [
         "Resolved: post-parse handling of `DurationMilliseconds` = verbatim forward to impl vfunc +80 (obj r5-in, call site 0x107373dc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "ChirpIfPlayingSwappableAudio": {
-       "description": "When true (nonzero) the chirp starts without consulting current playback. When false the worker calls f_104ad918, which asks the swappable-audio owner (f_104ad4f8 under log category sound_swap) whether the current stream may be swapped out; if the returned byte at sp+0x1b is zero the action returns success with PlayId 0xffffffff and no chirp is played.",
+       "description": "When false (zero) the worker skips the swappable-audio check. When nonzero, the branch at 0x1035b3c4 calls f_104ad918 at 0x1035b46c, which asks the swappable-audio owner (f_104ad4f8 under log category sound_swap) whether the current stream may be swapped out; if the returned byte at sp+0x1b is zero the action returns success with PlayId 0xffffffff and no chirp is played.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -20243,7 +20243,7 @@
       ]
      },
      "requirements": {
-      "description": "Beyond TRequest validation: with the flag false the swappable-audio query f_104ad918 must succeed (otherwise 501) and allow interruption (otherwise success with no chirp). The room-detection member at impl+0x1ac0 must be non-null (otherwise 501). Inside f_104f669c the external chirp audio source at object+0x9c must exist, the chirp volume must be calibrated (f_1090ad44 / f_10908d4c), no chirp may already be playing, and the chirp payload must be supported.",
+      "description": "Beyond TRequest validation: with the flag nonzero the swappable-audio query f_104ad918 must succeed (otherwise 501) and allow interruption (otherwise success with no chirp). The room-detection member at impl+0x1ac0 must be non-null (otherwise 501). Inside f_104f669c the external chirp audio source at object+0x9c must exist, the chirp volume must be calibrated (f_1090ad44 / f_10908d4c), no chirp may already be playing, and the chirp payload must be supported.",
       "evidence": [
        {
         "type": "firmware",
@@ -20290,7 +20290,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads the room-detection object pointer at impl+0x1ac0 and, for the gated case, the zone-player context at impl+0x25c. f_104f669c reads the audio source at object+0x9c and the current play id at object+0x98 under the object+0x8 mutex.",
+      "description": "Reads the room-detection object pointer at impl+0x1ac0 and, for the gated case, the zone-player context at impl+0x25c. f_104f669c reads the audio source at object+0x9c before locking (0x104f6710) and queries current playback through the source's slot +0x30 at 0x104f67b0. After successful start, f_104f6634 reads the stored id at object+0x98 under object+0x8 at 0x104f665c..0x104f6668.",
       "evidence": [
        {
         "type": "firmware",
@@ -20377,7 +20377,10 @@
       }
      ],
      "events_triggered": {
-      "description": "None. Neither wrapper nor worker calls a GENA or in-process event publisher; the chirp state is not exposed as a state variable.",
+      "description": "The wrapper and mapper have no direct publisher. The sender and, for a nonzero flag, the swappable-audio query delegate into the audio layer.",
+      "todo": [
+       "Resolve the chirp audio-source slot +0x1c at 0x104f68f0 and the swappable-audio delegate reached through f_104ad918 at 0x1035b46c to establish whether either path publishes events."
+      ],
       "evidence": [
        {
         "type": "firmware",
@@ -20391,12 +20394,12 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x104f669c",
-        "notes": "only log helpers f_109b6fe4/f_109b72ac"
+        "notes": "Audio-source start delegates through slot +0x1c at 0x104f68f0"
        }
       ]
      },
      "state_transitions": {
-      "description": "On success the room-detection object moves from idle to chirping with the new play id stored at object+0x98; the refused-interruption path leaves it unchanged. The object returns to idle only through RoomDetectionStopChirping.",
+      "description": "On success the room-detection object moves from idle to chirping with the new play id stored at object+0x98; the refused-interruption path leaves it unchanged. The stored id and audible playback are separate: the source has a finite byte budget, and f_104f6414 can clear the stored id either through RoomDetectionStopChirping or through an internal caller at 0x104756d4.",
       "evidence": [
        {
         "type": "firmware",
