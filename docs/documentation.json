@@ -37327,7 +37327,7 @@
      "notes": "Public single-URI path only: one URI, null container-batch argument, internal flags 0/4 (plus staging bit 1), queue ID/revision 0, no revision output. Generic container-batch, UpdateID and kind-16 branches must not be copied into this action. Shared queue-mutator ownership remains with the Queue-service slice."
     },
     "AddURIToSavedQueue": {
-     "description": "Appends a URI to an existing saved queue. Impl f_102bd140 is an arg-shifting 718-gate dispatching into saved-queue worker f_10479fb8. ObjectID, UpdateID, EnqueuedURI/EnqueuedURIMetaData and AddAtIndex are forwarded positionally with the out params.",
+     "description": "Synchronously inserts URI expansion into a positive-ID saved playlist using f_102bd140 -> f_10479fb8. Requires exact per-playlist UpdateID including0; AddAtIndex zero-based with0xffffffff append. Does not alter live queue or playback. Avoid parsed SQ:0: its distinct mode2 path passes a NULL title to strlen rather than providing a valid creation API.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fb2d8",
@@ -37363,7 +37363,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Required instance selector; parsed nonzero returns718 before catalog access.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -37380,41 +37380,34 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Required instance selector; parsed nonzero returns718 before catalog access.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb318",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102bd140",
-         "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a050",
+         "callsite": "0x1047a26c",
+         "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +136 (site 0x102fb43c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "ObjectID": {
-       "description": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "description": "Required uppercase SQ:%d with positive signed numeric ID for normal editing. Negative/malformed801; parsed0 is not rejected but takes unsafe mode2 with NULL title passed to strlen after catalog read. Numeric trailing text is not rejected.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -37424,49 +37417,42 @@
         "via_slot": 28
        },
        "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
+       "format": "sscanf SQ:%d",
        "unit": "n/a - text",
        "accepted_values": "saved-queue container object id string (sq: prefix family)",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "range": "1024-byte buffer including terminator",
+       "special_values": "SQ:0 unsafe NULL-title path; negative/malformed801",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "validation": "Use a positive existing ID; parsed0 selects an unsafe NULL-title path, not an ID allocation shortcut.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb33c",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb32f8",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102bd140",
-         "notes": "impl parses the object id record"
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a050",
+         "callsite": "0x1047a26c",
+         "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
         }
        ],
        "notes": null,
        "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ObjectID` is parsed then forwarded verbatim to r5-in vfunc +136 (site 0x102fb43c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ObjectID` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "UpdateID": {
-       "description": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "description": "Required unsigned numeric revision, compared exactly including0 for existing positive IDs. Zero never bypasses checking.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -37475,49 +37461,42 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "semantic_type": "SonosUintArg",
+       "format": "strtoul(buffer,NULL,10) in24-byte buffer",
        "unit": "n/a - text",
        "accepted_values": "client-held saved-queue UpdateID; stale value -> mismatch at worker level",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "range": "uint32",
+       "special_values": "0 is checked, not an ignore sentinel",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "validation": "Exact unsigned per-playlist revision comparison for positive IDs; zero does not bypass.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb364",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10f14438",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102bd140",
-         "notes": "impl compares against queue record state"
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `UpdateID` is parsed then forwarded verbatim to r5-in vfunc +136 (site 0x102fb43c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "EnqueuedURI": {
-       "description": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "description": "Required URI expansion source; empty produces810 for existing positive IDs. Ordinary resolver errors map814, local .rsq fragment read failure805. SQ:0 is unsafe regardless of empty URI.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -37530,46 +37509,39 @@
        "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
        "unit": "n/a - text",
        "accepted_values": "any URI string <= parse cap; playlist extensions (.asx/.m3u/.pls/.wpl/.rsq/x-file-cifs) auto-expanded by f_104634c4 at enqueue time",
-       "range": "max 1024 chars",
-       "special_values": "none observed in this build",
+       "range": "1025-byte buffer including terminator",
+       "special_values": "Empty URI cannot add to existing playlist",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "validation": "Positive-ID empty URI cannot add tracks; SQ:0 is unsafe rather than a valid empty-create request.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb388",
-         "notes": "in-arg access site"
+         "function": "0x102bd140",
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb34ac",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x104634c4",
-         "notes": "classifier dispatch verified"
+         "function": "0x1047db08",
+         "address": "0x1047db40",
+         "callsite": "0x1047e6a0",
+         "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
         }
        ],
        "notes": null,
        "buf_cap": 1025,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `EnqueuedURI` is parsed then forwarded verbatim to r5-in vfunc +136 (site 0x102fb43c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `EnqueuedURI` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "EnqueuedURIMetaData": {
-       "description": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "description": "Required metadata string used by expansion. Empty allowed; emitted metadata XML-escaped. Literal LF is not normalized before ordinary resolver validation and can cause mapped814.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -37582,46 +37554,39 @@
        "format": "utf-8 text, buffer cap 4097 bytes (4096 chars + NUL)",
        "unit": "n/a - text",
        "accepted_values": "DIDL-Lite XML string <= parse cap; empty permitted",
-       "range": "max 4096 chars",
+       "range": "4097-byte buffer including terminator",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "validation": "Required metadata string used by expansion. Empty allowed; emitted metadata XML-escaped. Literal LF is not normalized before ordinary resolver validation and can cause mapped814.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb3b0",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb34b8",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102bd140",
-         "notes": "metadata string passed to the queue-record builder"
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047db08",
+         "address": "0x1047db40",
+         "callsite": "0x1047e6a0",
+         "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
         }
        ],
        "notes": null,
        "buf_cap": 4097,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `EnqueuedURIMetaData` is parsed then forwarded verbatim to r5-in vfunc +136 (site 0x102fb43c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `EnqueuedURIMetaData` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "AddAtIndex": {
-       "description": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "description": "Required zero-based insertion index in original saved playlist.0 prepends; length appends; unsigned0xffffffff also appends. Other values above length cause no attempt and810. Not narrowed to16 bits at input.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -37634,39 +37599,32 @@
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
        "accepted_values": "u32 insert index into the saved queue; 0/omitted = append",
-       "range": "parsed u32; worker-clamped against the saved-queue length",
-       "special_values": "none observed in this build",
+       "range": "0..N or4294967295",
+       "special_values": "4294967295 append sentinel; zero prepend",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded positionally to the f_10479fb8 subsystem worker.",
+       "validation": "Required zero-based insertion index in original saved playlist.0 prepends; length appends; unsigned0xffffffff also appends. Other values above length cause no attempt and810. Not narrowed to16 bits at input.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb3d8",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb3544",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102bd140",
-         "notes": "impl consumes the index record"
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `AddAtIndex` is parsed then forwarded verbatim to r5-in vfunc +136 (site 0x102fb43c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `AddAtIndex` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -37674,7 +37632,7 @@
      },
      "outputs": {
       "NumTracksAdded": {
-       "description": "Written by the f_10479fb8 worker on success.",
+       "description": "Actual accepted additions from context+0x74; URI expansion can add more than one.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -37684,42 +37642,44 @@
        "format": "%u decimal",
        "unit": "none - dimensionless count/index",
        "accepted_values": "count of entries actually enqueued by the worker/expansion",
-       "range": "0..N",
+       "range": "uint32 saved-playlist count/version",
        "special_values": "none observed in this build",
        "required": false,
-       "default": "none; written on success",
-       "validation": "worker-written count record",
+       "default": "none; emitted only on success",
+       "validation": "Actual accepted additions from context+0x74; URI expansion can add more than one.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb4a8",
-         "notes": "out-arg access site"
+         "function": "0x102bd140",
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3518",
-         "notes": "argument name string"
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102b6948",
-         "notes": "enqueue worker produces the count"
+         "function": "0x10479fb8",
+         "address": "0x1047a278",
+         "callsite": "0x1047a2d4",
+         "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NumTracksAdded`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "NewQueueLength": {
-       "description": "Written by the f_10479fb8 worker on success.",
+       "description": "Actual total emitted saved-playlist tracks from context+0x7c, including preserved old tracks; not live queue length.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -37729,35 +37689,44 @@
        "format": "%u decimal",
        "unit": "none - boolean flag",
        "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
-       "range": "{0,1}",
+       "range": "uint32 saved-playlist count/version",
        "special_values": "none observed in this build",
        "required": false,
-       "default": "none - boolean decoded from request text",
-       "validation": "written from the queue record length after the mutation",
+       "default": "none; emitted only on success",
+       "validation": "Actual total emitted saved-playlist tracks from context+0x7c, including preserved old tracks; not live queue length.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb4cc",
-         "notes": "out-arg access site"
+         "function": "0x102bd140",
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3528",
-         "notes": "argument name string"
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a278",
+         "callsite": "0x1047a2d4",
+         "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewQueueLength`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "NewUpdateID": {
-       "description": "Written by the f_10479fb8 worker on success.",
+       "description": "Saved-playlist Version context+0x80: stored version+1 modulo32 bits after exact match. Not manager catalog revision.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -37767,149 +37736,321 @@
        "format": "%u decimal",
        "unit": "n/a - text",
        "accepted_values": "post-mutation queue UpdateID",
-       "range": "length-bounded by parse-helper buffer cap",
+       "range": "uint32 saved-playlist count/version",
        "special_values": "none",
        "required": false,
-       "default": "none; written on success",
-       "validation": "copied from the queue-record update counter",
+       "default": "none; emitted only on success",
+       "validation": "Read from existing saved-playlist context after successful persistence.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb4f0",
-         "notes": "out-arg access site"
+         "function": "0x102bd140",
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb3538",
-         "notes": "argument name string"
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a278",
+         "callsite": "0x1047a2d4",
+         "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
+        }
+       ],
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "Six required inputs; instance gate, SQ numeric conversion, catalog lookup/exact revision, position-triggered resolution and persistence. Parsed0 bypasses positive-ID mode and reaches unsafe NULL-title serialization.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102bd140",
+        "address": "0x10edfc40",
+        "callsite": "0x102fb43c",
+        "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a050",
+        "callsite": "0x1047a26c",
+        "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e9b8",
+        "callsite": "0x1047ea30",
+        "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Instance0, positive existing SQ numeric ID, exact saved UpdateID, valid insertion position and accepted additions. ParsedID0 is accepted by initial gate but unsafe: mode2 passes NULL title to strlen after normal catalog read. No live source-mode/revision gate.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102bd140",
+        "address": "0x10edfc40",
+        "callsite": "0x102fb43c",
+        "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a050",
+        "callsite": "0x1047a26c",
+        "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e9b8",
+        "callsite": "0x1047ea30",
+        "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2e4",
+        "callsite": "0x1047a3a8",
+        "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Manager lock, saved catalog/Next/per-playlist Version, original track count/order, insertion index, URI/metadata acceptance and optional local saved-file deadline, bounded compressed writer and count repair. No live queue0 dependency.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a050",
+        "callsite": "0x1047a26c",
+        "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e9b8",
+        "callsite": "0x1047ea30",
+        "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047db08",
+        "address": "0x1047db40",
+        "callsite": "0x1047e6a0",
+        "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2e4",
+        "callsite": "0x1047a3a8",
+        "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "Positive-ID edit rewrites inserted accepted tracks/version, optionally repairs count header, then publishes catalog revision. Repair can fault after first rename. SQ:0 is not valid creation: it supplies NULL to title strlen before normal completion. No live membership or playback edit.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a050",
+         "callsite": "0x1047a26c",
+         "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a278",
+         "callsite": "0x1047a2d4",
+         "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2e4",
+         "callsite": "0x1047a3a8",
+         "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10479bb4",
-         "notes": "update counter decoded"
+         "address": "0x10479e28",
+         "callsite": "0x10479e90",
+         "notes": "After successful write(s), increments saved manager catalog revision+0xec, copies device+0xc8 to+0xd0, broadcasts kind2 via manager+0xc0 virtual+0x14, then own virtual+0x14. Constructor f_10476560 installs0x10ed3054; slot+0x14=f_10477bd0 increments manager+0xcc saved-root sequence and posts SQ: CdNotifyUpdateID via manager+8 -> f_10117654 at0x10477cb4. CD registration f_10304e78 at0x1030502c/0x103050b4 connects observer thunk f_10304904 -> f_10304808: increments SystemUpdateID, coalesces container/version, marks pending and schedules. SavedQueuesUpdateID bound to SQ: at0x10304104..0x1030411c; producer f_103035c4 emits it with SystemUpdateID/ContainerUpdateIDs subject to readiness/dirty/timing rules. No live queue revision/dirty mutation, Queue LastChange or AVTransport source/playback transition is performed by this action."
         }
-       ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewUpdateID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     },
-     "validation": {
-      "description": "See inputs/impl notes",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x102fb2d8",
-        "notes": "wrapper + impl decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×3, validate×1, commit×1); member delegates: r30 v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x102fb2d8",
-        "notes": "req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×3, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x102fb2d8",
-        "notes": "member vfunc calls: ['r30 v[+?]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102fb2d8",
-         "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
-        }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Only completed success calls f_1047cd90, reaching SQ: manager/peer update and ContentDirectory SystemUpdateID, ContainerUpdateIDs and SavedQueuesUpdateID under shared coalescing/readiness. Repair failure skips this manager publication. No live Queue LastChange or direct AVTransport state event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fb2d8",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x10479fb8",
+        "address": "0x1047a278",
+        "callsite": "0x1047a2d4",
+        "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479bb4",
+        "address": "0x10479e28",
+        "callsite": "0x10479e90",
+        "notes": "After successful write(s), increments saved manager catalog revision+0xec, copies device+0xc8 to+0xd0, broadcasts kind2 via manager+0xc0 virtual+0x14, then own virtual+0x14. Constructor f_10476560 installs0x10ed3054; slot+0x14=f_10477bd0 increments manager+0xcc saved-root sequence and posts SQ: CdNotifyUpdateID via manager+8 -> f_10117654 at0x10477cb4. CD registration f_10304e78 at0x1030502c/0x103050b4 connects observer thunk f_10304904 -> f_10304808: increments SystemUpdateID, coalesces container/version, marks pending and schedules. SavedQueuesUpdateID bound to SQ: at0x10304104..0x1030411c; producer f_103035c4 emits it with SystemUpdateID/ContainerUpdateIDs subject to readiness/dirty/timing rules. No live queue revision/dirty mutation, Queue LastChange or AVTransport source/playback transition is performed by this action."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "Positive-ID path has no transport/source transition or live queue worker request. Unsupported SQ:0 reaches a NULL-title strlen call; process outcome was not live-tested.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fb2d8",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "function": "0x102bd140",
+        "address": "0x10edfc40",
+        "callsite": "0x102fb43c",
+        "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a050",
+        "callsite": "0x1047a26c",
+        "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a278",
+        "callsite": "0x1047a2d4",
+        "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "0 publishes three saved-playlist values then commits. Faults publish no outputs. Domain402/718/801/701/1028/501/802/805/810/811/814 with exact mode predicates in evidence. Errors after count repair may follow first file commit; no universal atomicity guarantee.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fb2d8",
-        "notes": "commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 3, '0xc': 1}"
+        "function": "0x102bd140",
+        "address": "0x10edfc40",
+        "callsite": "0x102fb43c",
+        "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a050",
+        "callsite": "0x1047a26c",
+        "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047e7d4",
+        "address": "0x1047e9b8",
+        "callsite": "0x1047ea30",
+        "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047db08",
+        "address": "0x1047db40",
+        "callsite": "0x1047e6a0",
+        "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10479fb8",
+        "address": "0x1047a278",
+        "callsite": "0x1047a2d4",
+        "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ee0c",
+        "address": "0x1047f2e4",
+        "callsite": "0x1047a3a8",
+        "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -37922,239 +38063,367 @@
      "errors": [
       {
        "code": 718,
-       "code_expr": "vret(r5-in,+0x88)",
-       "meaning": "InstanceID is nonzero; the impl gate rejects any instance other than 0 for this engine",
-       "fault_sites": [
-        "0x102fb458"
-       ],
+       "code_expr": "request/derived saved manager",
+       "meaning": "Parsed InstanceID is nonzero; only instance0 is accepted by implementation.",
        "conditions": [
         {
-         "description": "InstanceID argument is nonzero",
+         "description": "Parsed InstanceID is nonzero; only instance0 is accepted by implementation.",
          "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102bd140",
-           "notes": "cmpwi r4,0 -> r3=0x2ce"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102bd140",
-         "notes": "cmpwi r4,0 -> r3=0x2ce"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x88)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (gate), saved-queue worker rc fwd",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the subsystem worker produced a code not covered by the gate",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102bd0a0",
-           "notes": "passthrough path"
-          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102bd140",
-           "notes": "rc site"
+           "address": "0x10edfc40",
+           "callsite": "0x102fb43c",
+           "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
           }
          ]
         }
+       ],
+       "fault_sites": [
+        "0x102fb458"
        ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb458",
-         "notes": "impl vret passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102bd140",
-         "notes": "rc producers decoded"
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
         }
-       ],
-       "unresolved": {
-        "proven": "saved-queue worker rc returned",
-        "unknown": "impl entry guard returns 0x2ce (718) when r4 arg/out ptr is null (see 0x102bd140 entry); remaining paths call-derived",
-        "impl_exit_literals": {
-         "function": "0x102bd140",
-         "lits": [
-          -332,
-          718
-         ],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_100c5050": {
-          "lits": [
-           -284,
-           0,
-           1,
-           4,
-           28
-          ],
-          "pt": 1
-         },
-         "f_10557848": {
-          "lits": [
-           0,
-           1,
-           80
-          ],
-          "pt": 3
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "literal_bound": [
-        718
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x88); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
-       "fault_sites": [
-        "0x102fb458"
-       ],
+       "code_expr": "request/derived saved manager",
+       "meaning": "Request parsing/required validation failed.",
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "Request parsing/required validation failed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102fb2d8",
-           "notes": "parse vcall +0x8 then fault path"
+           "function": "0x102bd140",
+           "address": "0x10edfc40",
+           "callsite": "0x102fb43c",
+           "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
           }
          ]
         }
        ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102fb2d8",
-         "notes": "wrapper parse + fault path"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1047ee0c",
-         "notes": "savedqueues.xml save; literal exits {501,701,802-808,810-812}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1047db08",
-         "notes": "add-to-savedqueue worker; {805,814}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10477fe8",
-         "notes": "reorder engine; {600,812,813,850,899}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10476cb4",
-         "notes": "reorder guard returns 899 when positions equal"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10ed2edc",
-         "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
+         "function": "0x102bd140",
+         "address": "0x10edfc40",
+         "callsite": "0x102fb43c",
+         "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
         }
-       ],
+       ]
+      },
+      {
+       "code": 801,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Malformed SQ numeric ObjectID or negative converted ID.",
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Malformed SQ numeric ObjectID or negative converted ID.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1047ee0c",
-           "notes": "savedqueues.xml save; literal exits {501,701,802-808,810-812}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1047db08",
-           "notes": "add-to-savedqueue worker; {805,814}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10477fe8",
-           "notes": "reorder engine; {600,812,813,850,899}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10476cb4",
-           "notes": "reorder guard returns 899 when positions equal"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10ed2edc",
-           "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
+           "function": "0x10479fb8",
+           "address": "0x1047a050",
+           "callsite": "0x1047a26c",
+           "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10479fb8",
+         "address": "0x1047a050",
+         "callsite": "0x1047a26c",
+         "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+        }
+       ]
+      },
+      {
+       "code": 701,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Requested positive saved ID missing, including optional repair lookup.",
+       "conditions": [
+        {
+         "description": "Requested positive saved ID missing, including optional repair lookup.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047e7d4",
+           "address": "0x1047e9b8",
+           "callsite": "0x1047ea30",
+           "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+          }
+         ]
+        }
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        }
+       ]
+      },
+      {
+       "code": 1028,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Existing per-playlist Version differs from UpdateID; zero does not bypass.",
+       "conditions": [
+        {
+         "description": "Existing per-playlist Version differs from UpdateID; zero does not bypass.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047e7d4",
+           "address": "0x1047e9b8",
+           "callsite": "0x1047ea30",
+           "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Saved catalog file/XML/compression finalization or rename failure, including repair after initial replacement.",
+       "conditions": [
+        {
+         "description": "Saved catalog file/XML/compression finalization or rename failure, including repair after initial replacement.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2e4",
+           "callsite": "0x1047a3a8",
+           "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2e4",
+         "callsite": "0x1047a3a8",
+         "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Configured writer limit exceeded.",
+       "conditions": [
+        {
+         "description": "Configured writer limit exceeded.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ee0c",
+           "address": "0x1047f2e4",
+           "callsite": "0x1047a3a8",
+           "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2e4",
+         "callsite": "0x1047a3a8",
+         "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+        }
+       ]
+      },
+      {
+       "code": 805,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Local .rsq fragment reader failed/incomplete.",
+       "conditions": [
+        {
+         "description": "Local .rsq fragment reader failed/incomplete.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047db08",
+           "address": "0x1047db40",
+           "callsite": "0x1047e6a0",
+           "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047db08",
+         "address": "0x1047db40",
+         "callsite": "0x1047e6a0",
+         "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+        }
+       ]
+      },
+      {
+       "code": 810,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Existing-playlist path added no tracks without attempting nonempty URI resolution: empty URI or invalid insertion position.",
+       "conditions": [
+        {
+         "description": "Existing-playlist path added no tracks without attempting nonempty URI resolution: empty URI or invalid insertion position.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047e7d4",
+           "address": "0x1047e9b8",
+           "callsite": "0x1047ea30",
+           "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        }
+       ]
+      },
+      {
+       "code": 811,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Nonempty URI resolution attempted but no accepted saved tracks were emitted.",
+       "conditions": [
+        {
+         "description": "Nonempty URI resolution attempted but no accepted saved tracks were emitted.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047e7d4",
+           "address": "0x1047e9b8",
+           "callsite": "0x1047ea30",
+           "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e9b8",
+         "callsite": "0x1047ea30",
+         "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+        }
+       ]
+      },
+      {
+       "code": 814,
+       "code_expr": "request/derived saved manager",
+       "meaning": "Ordinary URI resolver nonzero mapped by saved adapter.",
+       "conditions": [
+        {
+         "description": "Ordinary URI resolver nonzero mapped by saved adapter.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047db08",
+           "address": "0x1047db40",
+           "callsite": "0x1047e6a0",
+           "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+          }
+         ]
+        }
+       ],
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047db08",
+         "address": "0x1047db40",
+         "callsite": "0x1047e6a0",
+         "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+        }
        ]
       }
      ],
@@ -38164,30 +38433,67 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102fb2d8",
-       "address": "0x102fb2d8",
-       "notes": "action wrapper handler"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
-       "address": "0x10eb3030",
-       "notes": "action dispatch table entry"
-      },
-      {
-       "type": "firmware",
-       "binary": "anacapad",
-       "build": "86.10-80260",
        "function": "0x102bd140",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x88 entry"
+       "address": "0x10edfc40",
+       "callsite": "0x102fb43c",
+       "notes": "Live derived AVTransport table0x10edfbb8+0x88 binds f_102bd140, installed by f_10511f34 at0x105123c0, factory0x103fb5d8. Wrapper0x102fb2d8 parses required InstanceID/UpdateID/AddAtIndex using f_105614e0 at0x102fb320/36c/3e0; ObjectID cap1024 at348, URI cap1025 at394, metadata cap4097 at3bc. Validation0x102fb3f4, fault0x102fb458; numeric outputs f_1055fcbc at4b0/4d4/4f8, commit50c. Implementation nonzero instance718 else singleton0x11096770 -> f_10479fb8 directly, no live worker or mode gate."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10479fb8",
+       "address": "0x1047a050",
+       "callsite": "0x1047a26c",
+       "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047e7d4",
+       "address": "0x1047e9b8",
+       "callsite": "0x1047ea30",
+       "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047db08",
+       "address": "0x1047db40",
+       "callsite": "0x1047e6a0",
+       "notes": "New entry builder f_1047e16c at0x1047e644 formats assigned ID, writes Title unchanged through XML escaping f_10577c40, and invokes URI resolver f_1047db08. Empty URI returns0 before resolution; header has NumTracks=0, so empty creation succeeds. A nonempty URI with case-sensitive .rsq immediately before its last # takes local saved-catalog reader f_1047d8dc; requires file://, percent-decodes path and selects fragment ID. Reader/XML/incomplete/deadline failure maps805; clock-id1 deadline is now+15000ms. Other URIs use f_1014b270/f_1014f48c with callback thunk f_1047d400 -> f_1047d38c. Callback emits accepted URI/metadata only if f_10147da8 URI/format predicate is nonzero; increments context+0x74. Every nonzero ordinary resolver status maps814 at0x1047dd44/0x1047dd58, not its underlying error number. Literal LF in URI/metadata is rejected by f_1014f48c then mapped814. Successful local saved-catalog track callback f_1047d378 -> f_1047d330 emits one entry and increments the same count without ordinary callback filtering. Track XML writer f_1047d214 escapes URI/metadata, omits MD attribute when empty. Corrected rlwinm and branch polarity used; raw isel at0x1047dc40=0x7fca4f9e selects805 when completion status equals0, otherwise0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10479fb8",
+       "address": "0x1047a278",
+       "callsite": "0x1047a2d4",
+       "notes": "Positive-ID success copies context+74 NumTracksAdded, +7c NewQueueLength, +80 incremented per-playlist Version at0x1047a278..2a4. Context+78 triggers mode7 count repair at0x1047a350..3a8. Repair failure faults after first rename, skipping manager publication. Completed success increments manager+ec and calls f_1047cd90 at0x1047a2d4, then wrapper emits three numeric outputs. No AssignedObjectID. SQ:0 must not be treated as a valid creation result because its NULL-title call has no normal guard."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ee0c",
+       "address": "0x1047f2e4",
+       "callsite": "0x1047a3a8",
+       "notes": "Compressed temporary savedqueues.rsq opened flags0x241/mode0600; finalization then rename commits. Ordinary file/read/XML/write/finalize/rename501, writer limit802. fsync/close statuses ignored. SourceNULL bypasses live queue mobile exclusion803/804/806/807/808. Mode6 can return810/811, exact-version1028; mode2 has nonempty zero-result811. Local .rsq reader805 and ordinary resolver814 are adapter statuses from f_1047db08. A count-header repair can fail after initial replacement; not universally atomic. No BackupQueue statvfs/cleanup."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10479bb4",
+       "address": "0x10479e28",
+       "callsite": "0x10479e90",
+       "notes": "After successful write(s), increments saved manager catalog revision+0xec, copies device+0xc8 to+0xd0, broadcasts kind2 via manager+0xc0 virtual+0x14, then own virtual+0x14. Constructor f_10476560 installs0x10ed3054; slot+0x14=f_10477bd0 increments manager+0xcc saved-root sequence and posts SQ: CdNotifyUpdateID via manager+8 -> f_10117654 at0x10477cb4. CD registration f_10304e78 at0x1030502c/0x103050b4 connects observer thunk f_10304904 -> f_10304808: increments SystemUpdateID, coalesces container/version, marks pending and schedules. SavedQueuesUpdateID bound to SQ: at0x10304104..0x1030411c; producer f_103035c4 emits it with SystemUpdateID/ContainerUpdateIDs subject to readiness/dirty/timing rules. No live queue revision/dirty mutation, Queue LastChange or AVTransport source/playback transition is performed by this action."
       }
      ],
-     "notes": "None Shim behavior: validates r4 (arg vector) non-null else returns 0x2ce (718) directly; loads queue-manager singleton 0x11096770 as worker `this`, bumps *(token+4) on session token 0x11096774, calls the 0x1047xxxx worker, then f_100c5050 release. URI arguments flow through the queue-manager singleton (0x11096770) and its f_104634c4 playlist classifier; playlist/metafile URIs (asx, wax, wmx, m3u8, m3u, pls, wpl, x-file-cifs://, .rsq) expand to their contents rather than enqueueing as single tracks.",
-     "todo": [
-      "Established: direct dispatch to handler 0x102fb2d8; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Binary-specific: saved UpdateID zero is an exact revision. SQ:0 selects mode2 with NULL title, not a supported create shortcut; the normal catalog path passes NULL to strlen. No device crash was tested."
     },
     "BackupQueue": {
      "description": "Synchronously backs up primary queue 0 to the configured settings file trackqueue.rsq, without saving a Sonos playlist or changing live membership. Derived AVTransport slot +0x80 binds f_102ab62c. Empty queue is a success no-op. Nonempty queue is filtered and serialized through f_10146e94 -> f_104794d4 -> f_1047ee0c using a temporary file, compressed writer and rename, then a post-write space check and conditional cleanup registration. No public outputs and no queue-worker request kind.",
