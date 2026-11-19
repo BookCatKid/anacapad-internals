@@ -74230,7 +74230,7 @@
      }
     },
     "GetVolume": {
-     "description": "Reads the channel volume through a two-stage impl: shim f_100e43b4 gates InstanceID!=0 -> 702, worker f_100e42a8 acquires an audio-context object (f_10118278/f_1011fdd0 on impl+0x3c4/+0x9c8), locks impl+0x938, checks readiness gate f_102a5028(*(impl+0x3ac)) (fail -> 501), then reads via f_100da830 -> f_102a50b8 -> f_107ea964.",
+     "description": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073bdf0",
@@ -74266,7 +74266,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "Numeric rendering-instance selector; this zone player implements exactly one rendering instance.",
+       "description": "Required rendering-instance selector; only zero is supported.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -74278,39 +74278,25 @@
        "semantic_type": "instance selector (integer)",
        "format": "decimal integer parsed into a type-tag-4 argument record (helper 0x105614e0, 24-byte record)",
        "unit": "none",
-       "accepted_values": [
-        "0"
-       ],
-       "range": {
-        "min": 0,
-        "max": 0
-       },
-       "special_values": {
-        "0": "the only instance implemented; any other value faults with 702"
-       },
+       "accepted_values": "0",
+       "range": "0",
+       "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "Request layer faults 402 if absent/malformed (req vfunc +0x08). Shim f_100e43b4 compares it to zero and returns 0x2be (702) for anything nonzero before calling the worker.",
+       "default": "none: required argument",
+       "validation": "Nonzero returns 702 before selector validation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073be30",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x100d846c",
+         "notes": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh."
         }
        ],
-       "notes": null
+       "notes": "No fallback instance."
       },
       "Channel": {
-       "description": "Audio channel selector string; compared verbatim (strcmp, case-sensitive) by the implementation.",
+       "description": "Required cached setting selector. Exact case-sensitive Master, LF or RF.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -74327,118 +74313,187 @@
         "LF",
         "RF"
        ],
-       "range": "max 1023 chars",
-       "special_values": {
-        "Master": "nominal channel",
-        "any token containing/being 'spatial'": "worker strcmp's a channel-related string against 'spatial' and on match calls f_100e382c for extra processing (exact operand flow unresolved)"
-       },
+       "range": "request buffer capacity 1024; selectors listed above",
+       "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "The channel record pointer is forwarded to f_100da830 inside the worker; the exact accepted set is enforced inside that helper (it shares the SonosRcChannel convention but an additional 'spectral'/'spatial'/sonar-calibration branch exists whose reachability from SOAP is unresolved).",
+       "default": "none: required argument",
+       "validation": "Unknown selector returns 402 when InstanceID is zero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073be54",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x100d846c",
+         "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
         }
        ],
-       "notes": null,
+       "notes": "No numeric selector or general case folding.",
        "buf_cap": 1024
       }
      },
      "outputs": {
       "CurrentVolume": {
-       "description": "populated by worker f_100da830 under the +0x938 lock; spatial channel additionally passes through f_100e382c",
+       "description": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc4c",
         "fmt": null
        },
-       "semantic_type": "unsigned int16",
-       "format": "%u decimal",
-       "unit": "none",
-       "accepted_values": "u16 (device gain units)",
-       "range": "unconstrained",
+       "semantic_type": "ui2",
+       "format": "unsigned 16-bit decimal",
+       "unit": "none: raw cached setting value",
+       "accepted_values": "raw cached halfword; no getter-side clamp",
+       "range": "0..65535 serialization",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "none at the wrapper - value comes from the audio-context object",
+       "validation": "Only emitted on status zero; output formatter normalizes a mute byte by zero/nonzero, or formats the copied halfword.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073bf08",
-         "notes": "out-arg access site"
+         "address": "0x100d846c",
+         "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f08d18",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "nested read: *(this+0x3ac) -> +0x34 -> +0xd0 -> f_107ea964 writes the u16",
-         "function": "0x102a50b8"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e42a8",
-         "address": "0x100e437c",
-         "notes": "bl f_100da830 produces the volume"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e42a8",
-         "address": "0x100e43a8",
-         "notes": "spatial extra call f_100e382c"
+         "address": "0x1073bf0c",
+         "notes": "Success-only output load and formatter."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentVolume`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "No output is returned for invalid InstanceID or selector."
       }
      },
-     "validation": "InstanceID must be 0 (else 702). Channel forwarded to the read helper; rejection there returns its own rc.",
-     "requirements": "audio-context gate f_102a5028(*(impl+0x3ac)) must succeed else 501; impl mutex held during the read.",
-     "state_dependencies": "read traverses context object chain impl+0x3ac -> +0x34 -> +0xd0; gate f_102a5028(*(impl+0x3ac)) fails -> 501 when audio ctx not ready",
+     "validation": {
+      "description": "Required inputs must pass request-layer validation. InstanceID must be zero; otherwise 702 takes precedence over selector validation. Channel must be exactly Master, LF or RF; unknown strings return 402. The mutex is acquired before these implementation checks.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2724",
+        "notes": "Primary 0x10ed270c slot 0x18 contains 0x1047095c; binding store 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1047095c",
+        "notes": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d846c",
+        "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required inputs must pass request-layer validation. InstanceID must be zero; otherwise 702 takes precedence over selector validation. Channel must be exactly Master, LF or RF; unknown strings return 402. The mutex is acquired before these implementation checks.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2724",
+        "notes": "Primary 0x10ed270c slot 0x18 contains 0x1047095c; binding store 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1047095c",
+        "notes": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d846c",
+        "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider. Protected by mutex +0x938.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d846c",
+        "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Builds a query context via f_10118278 + f_1011fdd0(impl+0x3c4,impl+0x9c8), locks +0x938, gates on a state check over impl+0x3ac (f_102a5028; nonzero -> 501), then reads channel volume via f_100da830 with special handling for channel 'spatial' (extra f_100e382c call).",
+       "description": "Acquires/releases mutex +0x938 and writes caller-owned output storage only on a valid selector. No renderer setting, dirty byte, event source or member request is changed.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e43b4",
-         "address": "0x100e430c",
-         "notes": "f_102a5028(impl+0x3ac) gate; strcmp 'spatial' at 0x100e4388"
+         "address": "0x100d846c",
+         "notes": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh."
         }
        ]
       }
      ],
-     "events_triggered": "none - pure read",
-     "state_transitions": "none",
-     "return_behavior": "Success is signaled by the implementation leaving cr0.eq=1 at return (the callee performs a cr0-writing op such as 'mr. r30,r3' on its status); the wrapper then emits outputs via req vfunc +0x24 and commits via +0x14. Any other path calls req vfunc +0x14 with r4 = implementation return code, producing a SOAP fault whose numeric code equals the impl return value. CurrentVolume is the u16 written by the nested-object read; a 'spatial' channel match triggers extra handling f_100e382c (purpose unresolved).",
+     "events_triggered": "none: no event-source, observer or scheduler call in the complete getter path.",
+     "state_transitions": "none: cached settings and renderer operation state are unchanged.",
+     "return_behavior": {
+      "description": "Implementation returns 0 for a valid cached read, 702 for nonzero InstanceID, or 402 for invalid selector. The wrapper emits output only on 0 and forwards numeric failures. Request validation separately selects 402; dispatcher null service+4 or unknown action selects 401.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2724",
+        "notes": "Primary 0x10ed270c slot 0x18 contains 0x1047095c; binding store 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1047095c",
+        "notes": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d846c",
+        "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bea4",
+        "notes": "Wrapper uses fresh mr. r4,r3 to test numeric status; nonzero faults and zero emits output."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073bf0c",
+        "notes": "Output load and formatter on the success branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d8724",
+        "notes": "Raw 0x10a11b21/0x10c11321 are evstdd saves of r5/r6 to sp+0x18/+0x10; corresponding evldd restore after lock acquisition. Channel and output are preserved, not discarded."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073beb8",
@@ -74449,21 +74504,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -74473,29 +74527,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported.",
        "fault_sites": [
         "0x1073beb8"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073beb8"
+           "address": "0x1073beb8",
+           "notes": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported."
           }
          ]
         }
@@ -74505,110 +74557,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073beb8"
+         "address": "0x1073beb8",
+         "notes": "Request-layer validation failed, or InstanceID is zero and the selector is unsupported."
         }
-       ],
-       "unresolved": null,
-       "notes": null
-      },
-      {
-       "code": 501,
-       "code_expr": null,
-       "meaning": "Audio context not ready: f_102a5028(*(impl+0x3ac)) returned failure inside worker f_100e42a8.",
-       "fault_sites": [
-        "0x1073beb8"
-       ],
-       "conditions": [
-        {
-         "description": "context/state gate failed (source not active or audio ctx absent)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073beb8"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073beb8"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "bl f_102a5028; failure branch selects r3=0x1f5 (501)",
-         "address": "0x100e4310",
-         "function": "0x100e42a8"
-        }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 702,
-       "code_expr": null,
-       "meaning": "InstanceID nonzero at the impl shim f_100e43b4.",
-       "fault_sites": [
-        "0x1073beb8"
-       ],
-       "conditions": [
-        {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073beb8"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073beb8"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "cmpwi instID,0; bne -> return 0x2be",
-         "function": "0x100e43b4"
-        }
-       ],
-       "unresolved": null,
-       "notes": null
-      },
-      {
-       "code": null,
-       "code_expr": "impl_rc",
-       "meaning": "impl-level return surfaced as the SOAP error code",
+       "meaning": "InstanceID is nonzero; checked before selector validation.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "impl returns nonzero - see rc vocabulary",
+         "description": "InstanceID is nonzero; checked before selector validation.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x100e43b4",
-           "address": "0x100e42a8",
-           "notes": "impl return paths"
+           "address": "0x100d846c",
+           "notes": "InstanceID is nonzero; checked before selector validation."
           }
          ]
         }
@@ -74618,59 +74585,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site; code = impl return value (r3)",
-         "address": "0x1073beb8"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "special-case branch on *out and r7 string arg the SOAP wrapper never sets",
-         "function": "0x100da830"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e43b4",
-         "address": "0x100e43b4",
-         "notes": "impl return path disasm"
+         "address": "0x100d846c",
+         "notes": "InstanceID is nonzero; checked before selector validation."
         }
-       ],
-       "unresolved": {
-        "proven": "Nonzero return from the read helper f_100da830 propagates to the SOAP fault.",
-        "unknown": "The helper contains a 'spectral'/'spatial'/'rc_impl' sonar-calibration branch (arg r7 not supplied by this wrapper - likely a dead/latent path) and its remaining failure conditions are unmapped.",
-        "return_path": "HT spatial coefficients worker ('Will apply HT spatial coefficients', spectral/spatial) - HT rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_100da830": {
-          "lits": [
-           20,
-           2360
-          ],
-          "pt": 5
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x100e43b4",
-         "lits": [
-          -8,
-          0,
-          702
-         ],
-         "passthrough_exits": 18
-        }
-       },
-       "notes": "concrete rc vocabulary: 0 (success, worker rc forwarded), 702 null out ptr (0x100e43b4), 501 impl+0x3ac state check fail (0x100e4314-0x100e432c); worker f_100da830 return propagated verbatim as r30",
-       "literal_bound": [
-        0,
-        702
-       ],
-       "resolved_note": "RESOLVED via impl FUN_100e43b4: param_2!=0 -> 0x2be=702; else FUN_100e42a8 volume-read worker rc surfaced.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: impl_rc; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
@@ -74680,37 +74597,52 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073bdf0",
-       "address": "0x1073bdf0",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2724",
+       "notes": "Primary 0x10ed270c slot 0x18 contains 0x1047095c; binding store 0x104d4dc0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11df4",
-       "notes": "action dispatch table entry"
+       "address": "0x1047095c",
+       "notes": "The concrete +0x18 thunk f_1047095c reaches f_100d86f4, which preserves Channel/output using SPE stack saves, acquires mutex +0x938 and calls f_100d846c. The worker checks InstanceID zero, then exact Channel Master/LF/RF, copying cached halfwords +0x7da/+0x7dc/+0x7de. It returns 702 for nonzero InstanceID, 402 for unknown Channel, or 0. SOAP formats the stored halfword as unsigned 16-bit; there is no getter-side clamp, dB conversion, topology call or hardware refresh."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "impl shim: instID gate -> tail f_100e42a8",
-       "function": "0x100e43b4"
+       "address": "0x100d846c",
+       "notes": "Cached volume halfwords: Master +0x7da, LF +0x7dc, RF +0x7de. This path does not substitute fixed-output saved volume +0x7e0 or query a VLI provider."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "worker: ctx acquire, lock +0x938, gate f_102a5028, call f_100da830, strcmp 'spatial' -> f_100e382c",
-       "function": "0x100e42a8"
+       "address": "0x1073bea4",
+       "notes": "Wrapper uses fresh mr. r4,r3 to test numeric status; nonzero faults and zero emits output."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073bf0c",
+       "notes": "Output load and formatter on the success branch."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8724",
+       "notes": "Raw 0x10a11b21/0x10c11321 are evstdd saves of r5/r6 to sp+0x18/+0x10; corresponding evldd restore after lock acquisition. Channel and output are preserved, not discarded."
       }
      ],
-     "notes": "Error code differs from AVTransport: nonzero InstanceID yields 702 here vs 718 in Seek.",
-     "todo": [
-      "Established: direct dispatch to handler 0x1073bdf0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The cached read does not establish that an earlier setter completed downstream audio application.",
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x18",
+      "function": "0x1047095c",
+      "worker": "0x100d846c"
+     }
     },
     "GetVolumeDB": {
      "description": "The concrete primary slot 0x24 points to 0x100d65ac. The complete seven-instruction implementation compares InstanceID with zero, prepares statuses 702 and 800, and selects 800 for zero or 702 otherwise. It ignores Channel and all output pointers; no helper, renderer read, setting write or notification occurs. The wrapper explicitly tests the returned value using mr. r4,r3, so its output-emission path is unreachable. This is not a volume read or a mode-select volume-worker thunk.",
