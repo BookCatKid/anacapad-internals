@@ -37401,10 +37401,7 @@
          "notes": "ObjectID sscanf SQ:%d accepts exactly one conversion and nonnegative value, else801; numeric trailing junk allowed. Manager+0x28 lock protects rewrite. Positive ID mode6; parsed0 selects mode2 at0x1047a344 BUT requested/actual ID remain0 and Title context+0x4c=NULL. Header f_1047cc9c allocates Next only if actualID<0 (0x1047ccfc), so it does NOT allocate for0. After normal catalog read, corrected rlwinm. at0x1047ef48 clears bit1: mode2 selects f_1047e16c ->0x1047e644 ->f_1047d408 with NULL Title ->f_10577c40 ->strlen(NULL) at0x10577c5c. No normal SOAP error check protects that call. Runtime process outcome is not live-tested. Context sp18 expectedUpdate+48, URI+60, MD+64, index+68, sourcequeue+5c=NULL; filename savedqueues.rsq, writer0x40000/memory48000."
         }
        ],
-       "notes": null,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "ObjectID": {
        "description": "Required uppercase SQ:%d with positive signed numeric ID for normal editing. Negative/malformed801; parsed0 is not rejected but takes unsafe mode2 with NULL title passed to strlen after catalog read. Numeric trailing text is not rejected.",
@@ -37419,7 +37416,7 @@
        "semantic_type": "SonosStringArg",
        "format": "sscanf SQ:%d",
        "unit": "n/a - text",
-       "accepted_values": "saved-queue container object id string (sq: prefix family)",
+       "accepted_values": "Uppercase SQ:%d with positive existing ID for normal editing; parsed0 takes unsafe NULL-title path",
        "range": "1024-byte buffer including terminator",
        "special_values": "SQ:0 unsafe NULL-title path; negative/malformed801",
        "required": true,
@@ -37446,10 +37443,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 1024,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ObjectID` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1024
       },
       "UpdateID": {
        "description": "Required unsigned numeric revision, compared exactly including0 for existing positive IDs. Zero never bypasses checking.",
@@ -37463,7 +37457,7 @@
        },
        "semantic_type": "SonosUintArg",
        "format": "strtoul(buffer,NULL,10) in24-byte buffer",
-       "unit": "n/a - text",
+       "unit": "saved-playlist revision",
        "accepted_values": "client-held saved-queue UpdateID; stale value -> mismatch at worker level",
        "range": "uint32",
        "special_values": "0 is checked, not an ignore sentinel",
@@ -37490,10 +37484,7 @@
          "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
         }
        ],
-       "notes": null,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `UpdateID` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "EnqueuedURI": {
        "description": "Required URI expansion source; empty produces810 for existing positive IDs. Ordinary resolver errors map814, local .rsq fragment read failure805. SQ:0 is unsafe regardless of empty URI.",
@@ -37508,7 +37499,7 @@
        "semantic_type": "SonosUriArg",
        "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "any URI string <= parse cap; playlist extensions (.asx/.m3u/.pls/.wpl/.rsq/x-file-cifs) auto-expanded by f_104634c4 at enqueue time",
+       "accepted_values": "Nonempty URI passed to local saved-file reader or ordinary expansion; empty yields810 for existing positive ID",
        "range": "1025-byte buffer including terminator",
        "special_values": "Empty URI cannot add to existing playlist",
        "required": true,
@@ -37535,10 +37526,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 1025,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `EnqueuedURI` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1025
       },
       "EnqueuedURIMetaData": {
        "description": "Required metadata string used by expansion. Empty allowed; emitted metadata XML-escaped. Literal LF is not normalized before ordinary resolver validation and can cause mapped814.",
@@ -37553,7 +37541,7 @@
        "semantic_type": "SonosMetaDataArg",
        "format": "utf-8 text, buffer cap 4097 bytes (4096 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "DIDL-Lite XML string <= parse cap; empty permitted",
+       "accepted_values": "Metadata text passed to selected URI reader/resolver; empty permitted",
        "range": "4097-byte buffer including terminator",
        "special_values": "none observed in this build",
        "required": true,
@@ -37580,10 +37568,7 @@
         }
        ],
        "notes": null,
-       "buf_cap": 4097,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `EnqueuedURIMetaData` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 4097
       },
       "AddAtIndex": {
        "description": "Required zero-based insertion index in original saved playlist.0 prepends; length appends; unsigned0xffffffff also appends. Other values above length cause no attempt and810. Not narrowed to16 bits at input.",
@@ -37598,7 +37583,7 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "u32 insert index into the saved queue; 0/omitted = append",
+       "accepted_values": "Required zero-based position0..N or4294967295 append sentinel;0 prepends",
        "range": "0..N or4294967295",
        "special_values": "4294967295 append sentinel; zero prepend",
        "required": true,
@@ -37624,10 +37609,7 @@
          "notes": "Mode6 ID match marks found+6f, reads stored per-playlist Version with strtol(NULL endptr), compares exact unsigned expectedUpdate at context+48; mismatch1028 at0x1047e9e0, including expected0 against nonzero. Missing Version defaults initialized0. Equal increments modulo32 bits at0x1047ea20..ea30 and writes Version string. Missing positive ID701 via0x1047f288. AddAtIndex is zero-based: f_1047dd68 at0x1047def8 compares index+68 to emitted old count+8 before copying each old Track, then calls f_1047db08. End callback f_1047df28 at0x1047e144 invokes append when index equals final count or equals-1. Thus0 prepends,N appends,0xffffffff appends; greater-than-N other values do not attempt insertion. f_1047f4c8..f4e8: zero accepted additions returns810 if attempt flag+84==0 (including empty URI or invalid index),811 if attempted nonempty URI accepted none. Raw comparison/mask and branch polarity checked; mode2 SQ:0 uses new-entry behavior instead."
         }
        ],
-       "notes": null,
-       "resolved_findings": [
-        "Resolved: post-parse handling of `AddAtIndex` = verbatim forward to impl vfunc +136 (obj r5-in, call site 0x102fb43c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       }
      },
      "outputs": {
@@ -37642,7 +37624,7 @@
        "format": "%u decimal",
        "unit": "none - dimensionless count/index",
        "accepted_values": "count of entries actually enqueued by the worker/expansion",
-       "range": "uint32 saved-playlist count/version",
+       "range": "uint32 accepted addition count",
        "special_values": "none observed in this build",
        "required": false,
        "default": "none; emitted only on success",
@@ -37687,9 +37669,9 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "none - boolean flag",
-       "accepted_values": "\"0\" or \"1\" via bool-style parse helper; literal semantics under action validation",
-       "range": "uint32 saved-playlist count/version",
+       "unit": "tracks",
+       "accepted_values": "Actual emitted saved-playlist track count",
+       "range": "uint32 saved track count",
        "special_values": "none observed in this build",
        "required": false,
        "default": "none; emitted only on success",
@@ -37734,9 +37716,9 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "n/a - text",
-       "accepted_values": "post-mutation queue UpdateID",
-       "range": "uint32 saved-playlist count/version",
+       "unit": "saved-playlist revision",
+       "accepted_values": "Incremented saved-playlist Version",
+       "range": "uint32 saved version",
        "special_values": "none",
        "required": false,
        "default": "none; emitted only on success",
