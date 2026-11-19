@@ -61687,7 +61687,7 @@
      ]
     },
     "SetAVTransportURI": {
-     "description": "Sets the playback URI (class A impl f_102dcb58): a pure 718-gate tail-calling shared URI-set worker f_102dc81c with the URI/metadata args forwarded. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102dcb58) and B (vtable 0x10edfbb8, impl 0x10513230) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+     "description": "Sets the local source URI and metadata through f_102dc81c and its URI worker. The group-capable engine can instead reject a non-group URI on a secondary player (1023), or forward the request to group targets before applying it locally.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fa71c",
@@ -61740,7 +61740,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Send zero. The two known bindings are 0x102dcb58 and 0x10513230; local application validates the ID, while the latter can forward it to group targets before local application.",
        "evidence": [
         {
          "type": "firmware",
@@ -61762,13 +61762,41 @@
          "build": "86.10-80260",
          "function": "0x102dcb58",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fa7fc",
+         "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+         "function": "0x102fa71c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dcb84",
+         "notes": "Standalone vtable +0x08 binds to 0x102dcb58. Nonzero ID returns 718 at 0x102dcb64; zero passes URI, metadata and 0x10ea6a2c to f_102dc81c. Grouped local paths use 0x102dcb2c, which applies the same gate at 0x102dcb38.",
+         "function": "0x102dcb58"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10512cf4",
+         "notes": "Group vtable +0x08 binds to 0x10513230, which supplies the same 0x10ea6a2c pointer in r7. f_10512bc0 separately checks the case-sensitive x-rincon: prefix (f_102aee54), then uses f_1075c21c, f_1075c4d0 and topology-dependent branches for other URIs.",
+         "function": "0x10512bc0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10513088",
+         "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+         "function": "0x10512bc0"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +8 (site 0x102fa7fc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x102fa7fc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -61863,35 +61891,85 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0x8]",
+      "description": "All three arguments must materialize in the wrapper. Local application requires InstanceID 0. The group engine can make a topology rejection or forward arguments before reaching that local gate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa71c",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fa7fc",
+        "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+        "function": "0x102fa71c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dcb84",
+        "notes": "Standalone vtable +0x08 binds to 0x102dcb58. Nonzero ID returns 718 at 0x102dcb64; zero passes URI, metadata and 0x10ea6a2c to f_102dc81c. Grouped local paths use 0x102dcb2c, which applies the same gate at 0x102dcb38.",
+        "function": "0x102dcb58"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10512cf4",
+        "notes": "Group vtable +0x08 binds to 0x10513230, which supplies the same 0x10ea6a2c pointer in r7. f_10512bc0 separately checks the case-sensitive x-rincon: prefix (f_102aee54), then uses f_1075c21c, f_1075c4d0 and topology-dependent branches for other URIs.",
+        "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10512e08",
+        "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+        "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10513088",
+        "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+        "function": "0x10512bc0"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1, commit×1); member delegates: r30 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x8]",
+      "description": "Local logic tests the new and old URI for case-insensitive HTTP(S) before choosing options; group logic checks x-rincon: and live topology before choosing the local, rejection or forwarding path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa71c",
-        "notes": "member vfunc calls: ['r30 v[+0x8]']"
+        "address": "0x102dc8b4",
+        "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+        "function": "0x102dc81c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10512cf4",
+        "notes": "Group vtable +0x08 binds to 0x10513230, which supplies the same 0x10ea6a2c pointer in r7. f_10512bc0 separately checks the case-sensitive x-rincon: prefix (f_102aee54), then uses f_1075c21c, f_1075c4d0 and topology-dependent branches for other URIs.",
+        "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10512e08",
+        "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+        "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10513088",
+        "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+        "function": "0x10512bc0"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
@@ -61913,51 +61991,88 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The wrapper commits a response, not a transport event; local source changes occur in f_102ceb40. A successful forwarded request can be followed by local application.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa71c",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102fa7fc",
+        "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+        "function": "0x102fa71c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dc8b4",
+        "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+        "function": "0x102dc81c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10513088",
+        "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+        "function": "0x10512bc0"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace the specific f_102ceb40 URI changes that reach LastChange, and identify the additional fields published on the group local-success f_102e0fb0 branch at 0x10512c80."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x8]",
+      "description": "The local worker sends a URI descriptor and mode options into f_102ceb40. If both current and new URIs are HTTP(S) it takes the alternate option path, which also checks for indexed state 3 after success.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa71c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x8]']"
+        "address": "0x102dc8b4",
+        "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+        "function": "0x102dc81c"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x8].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Decode the per-scheme source changes inside f_102ceb40 and the subsequent indexed state-3 work from 0x102dcac8; distinguish URI assignment, playback and source restoration."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 for failed request materialization; 718 for nonzero InstanceID on local application; 1023 on the group topology rejection. Group forwarding or local workers can return errors verbatim. Zero commits an empty response.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa71c",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fa7fc",
+        "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+        "function": "0x102fa71c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dcb84",
+        "notes": "Standalone vtable +0x08 binds to 0x102dcb58. Nonzero ID returns 718 at 0x102dcb64; zero passes URI, metadata and 0x10ea6a2c to f_102dc81c. Grouped local paths use 0x102dcb2c, which applies the same gate at 0x102dcb38.",
+        "function": "0x102dcb58"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10512e08",
+        "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+        "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10513088",
+        "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+        "function": "0x10512bc0"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -61971,68 +62086,37 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x8)",
-       "meaning": "impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v[+0x1c] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived",
+       "meaning": "Parsed InstanceID was nonzero when a direct or group-local set reached the local ID gate.",
        "fault_sites": [
         "0x102fa818"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102dcb58",
-           "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102dcb64"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102dcb58",
-         "notes": "cmpwi r4,0 -> r3=0x2ce at 0x102dcb64"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x8)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: URI-set worker f_102dc81c forwards downstream rcs (f_102ceb40, f_102cfa50); no direct constants",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the worker produced a code not covered by the gate",
+         "description": "The standalone path rejects directly and group-local application uses the equivalent f_102dcb2c gate. Group preflight failures may precede that gate.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102dcb84",
-           "notes": "passthrough path"
+           "notes": "Standalone vtable +0x08 binds to 0x102dcb58. Nonzero ID returns 718 at 0x102dcb64; zero passes URI, metadata and 0x10ea6a2c to f_102dc81c. Grouped local paths use 0x102dcb2c, which applies the same gate at 0x102dcb38.",
+           "function": "0x102dcb58"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102dc81c",
-           "notes": "rc site"
+           "address": "0x10512e08",
+           "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+           "function": "0x10512bc0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10513088",
+           "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+           "function": "0x10512bc0"
           }
          ]
         }
@@ -62042,15 +62126,88 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa818",
-         "notes": "impl vret passthrough site"
+         "address": "0x102dcb84",
+         "notes": "Standalone vtable +0x08 binds to 0x102dcb58. Nonzero ID returns 718 at 0x102dcb64; zero passes URI, metadata and 0x10ea6a2c to f_102dc81c. Grouped local paths use 0x102dcb2c, which applies the same gate at 0x102dcb38.",
+         "function": "0x102dcb58"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102dc81c",
-         "notes": "worker rc sites decoded"
+         "address": "0x10512e08",
+         "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+         "function": "0x10512bc0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10513088",
+         "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+         "function": "0x10512bc0"
+        }
+       ]
+      },
+      {
+       "code": null,
+       "code_expr": "vret(r5-in,+0x8)",
+       "meaning": "The local URI worker or the group forwarding path returned a nonzero code; the group topology rejection also has a direct 1023 return.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Group preflight can emit 1023, group forwarding can select a per-target result, and f_102ceb40 supplies the local URI return.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102dc8b4",
+           "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+           "function": "0x102dc81c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10512e08",
+           "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+           "function": "0x10512bc0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10513088",
+           "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+           "function": "0x10512bc0"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dc8b4",
+         "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+         "function": "0x102dc81c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10512e08",
+         "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+         "function": "0x10512bc0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10513088",
+         "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+         "function": "0x10512bc0"
         }
        ],
        "unresolved": {
@@ -62119,8 +62276,7 @@
         701
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x8); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Enumerate the local f_102ceb40 exit codes by scheme and which per-target result conditions reach the grouped nonzero return at 0x10512fc4."
        ]
       },
       {
@@ -62157,34 +62313,67 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "session/streamer rc domain reached through transport vfuncs: propagated codes include {701,702,703,714,717,720,800,801,802,804,808,810} in addition to the documented accumulator exits; per-code trigger sites inside the session layer undecoded",
+       "meaning": "No separate store-commit fault is present in the wrapper. Any such fault from deeper source setup would be part of the forwarded URI-worker result.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b60b0",
-         "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+         "address": "0x102fa7fc",
+         "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+         "function": "0x102fa71c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102dc8b4",
+         "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+         "function": "0x102dc81c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10513088",
+         "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+         "function": "0x10512bc0"
         }
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "The wrapper has one engine-return fault branch. The local setter saves f_102ceb40's result and the forwarding path supplies its own code.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b60b0",
-           "notes": "session-submit rc map {2->800,3->701,else->711} example of verbatim passthrough"
+           "address": "0x102fa7fc",
+           "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+           "function": "0x102fa71c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102dc8b4",
+           "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+           "function": "0x102dc81c"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10513088",
+           "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+           "function": "0x10512bc0"
           }
          ]
         }
        ],
        "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Determine whether f_102ceb40 can actually propagate a store-write result directly, and only retain a store-specific condition if that return is reachable from this action."
        ],
        "resolved_findings": [
         "Resolved at ladder granularity: the upstream worker 0x102b60b0 emits constant set {701, 711, 718, 800, 808} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
@@ -62214,12 +62403,59 @@
        "build": "86.10-80260",
        "function": "0x102dcb58",
        "notes": "AVT impl vtable 0x10eaf2ec (class A) / 0x10edfbb8 B-variant 0x10513230 slot +0x08 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fa7fc",
+       "notes": "Uses request +0x08 at 0x102fa7d4 to materialize InstanceID, CurrentURI and CurrentURIMetaData, then calls engine +0x08. Nonzero engine result goes to request +0x14 at 0x102fa818; zero commits an empty response. Materialization failure emits 402.",
+       "function": "0x102fa71c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102dcb84",
+       "notes": "Standalone vtable +0x08 binds to 0x102dcb58. Nonzero ID returns 718 at 0x102dcb64; zero passes URI, metadata and 0x10ea6a2c to f_102dc81c. Grouped local paths use 0x102dcb2c, which applies the same gate at 0x102dcb38.",
+       "function": "0x102dcb58"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102dc8b4",
+       "notes": "The local worker runs under impl+0x458 and passes URI, metadata, and the auxiliary pointer to f_102ceb40 with a zero-initialized options record. If new and previous URI are both case-insensitive HTTP(S), it instead sets options byte 1 and calls at 0x102dc990.",
+       "function": "0x102dc81c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10512cf4",
+       "notes": "Group vtable +0x08 binds to 0x10513230, which supplies the same 0x10ea6a2c pointer in r7. f_10512bc0 separately checks the case-sensitive x-rincon: prefix (f_102aee54), then uses f_1075c21c, f_1075c4d0 and topology-dependent branches for other URIs.",
+       "function": "0x10512bc0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10512e08",
+       "notes": "On the non-group-URI path, a nonzero f_1075c4d0 plus zero f_105ada48 and zero f_104d82ac reaches 1023 after logging 'AVTransportURI cannot be set to non-group URI on secondary ZPs'. This branch can occur before the shared local InstanceID check.",
+       "function": "0x10512bc0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10513088",
+       "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
+       "function": "0x10512bc0"
       }
      ],
      "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x10513230 - group worker f_10512bc0 with extra descriptor arg 0x10ea6a2c. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
      "todo": [
-      "Established: dispatch to handler 0x102fa71c; engine-class split - group-capable engine dispatches to 0x10513230, group worker f_10512bc0 with descriptor arg 0x10ea6a2c; ungrouped zones get identical treatment.",
-      "Residual: the descriptor arg's role and the group worker's extra behavior. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Both vtables and the group forwarding path are verified. Decode which f_102ceb40 branches read the auxiliary argument passed unchanged from 0x10ea6a2c, and whether the exact same group fan-out target filter applies when switching from an existing x-rincon: URI."
      ],
      "resolved_findings": [
       "Resolved: descriptor 0x10ea6a2c is the URI-descriptor record; f_10512bc0 is the group worker extending the set-URI path with member propagation.",
