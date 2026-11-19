@@ -156613,15 +156613,22 @@
      "type": "firmware",
      "address": "0x10fb135c",
      "notes": "upnputil"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3b8ac",
+     "notes": "Raw andis8200 plus clrlwi16, explicit encoded comparisons and1000/1001/1002 returns checked; caller106ff3a8. GOT base11095ccc and parser call10c3c5e0 independently bound."
     }
    ],
    "todo": [
-    "Residual: per-helper call-site census (the helpers are leaf utilities; consumers span all UPnP code)."
+    "Established: concrete GOT-backed helper identities, request-failure/URL-wrapper callers, non-two-bucket status mapping and URL validation/defaults. Remaining: enumerate callers through wrappers and pointer/indirect edges for these helpers and the distinct UDN/time/escape/token helpers; bind each consumer to its argument/output contract rather than treating a string inventory as a completed call-site map. Start with f_10c3b8ac -> caller0x106ff3a8 and f_10c3af90 -> f_10c3c590. This is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: helper->callsite map = RparseServerLocationAndPort {host/port/scheme validation} + RmapStatusToUPNPRESULT {CANT_CONNECT,...} used by the UPnP client paths.",
-    "Error-code table is a two-bucket map: RmapStatusToUPNPRESULT collapses every transport/status failure into {UPNP_RESULT_CANT_CONNECT, UPNP_RESULT_GENERAL_FAILURE} preserving the original code in the log line (Original error code = 0x%08x). UDN compose format uuid:%s::urn:schemas-upnp-org:device:ZonePlayer:1; time formats {%04hu-%02hu-%02huT%02hu:%02hu:%02hu ISO, compact %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx (UUID-like grouping), %02hu:%02hu:%02hu, %+02d:%02d tz}; loopbackSecurityTokenMutex guards the loopback token; playability enum {UNPLAYABLE, MEMBER, NO-CONTENT, LAN-SWAPPABLE}.",
-    "Established: two-bucket status map, UDN/time formats, loopback token mutex, playability enum."
+    "Concrete RmapStatusToUPNPRESULT entry f_10c3b8ac is reached at0x106ff3a8 from a request failure path. Zero returns0. Nonzero status without bits selected by mask0x82000000 returns status&0xffff unchanged. Encoded exceptions0x81000003/4/5 and0x82000001 map to1001;0x80000025 maps1002; other encoded failures map1000. Thus the old universal two-bucket claim is false.",
+    "Concrete URL helper f_10c3af90 is called by f_10c3c590 at0x10c3c5e0 with16-byte host capacity. It zeroes the output port, requires host length strictly below capacity, permits at most5 explicit port characters, uses paranoid_atoui and rejects values above65535. Without explicit port it accepts case-insensitive http/https and assigns80/443; unsupported scheme or malformed/oversized port returns0. A successful host copy appends NUL and returns1.",
+    "The literals are loaded through private GOT: code0x10c3b0c0 reads slot0x1108dd34 and0x10c3b9dc reads0x1108dd50 using PIC base0x11095ccc. A literal-address-only xref scan misses these reachable helpers. The sampled direct-call scan bounds only these entrypoints, not every UPnP utility consumer."
    ]
   },
   "expat": {
