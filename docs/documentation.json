@@ -148919,23 +148919,47 @@
      "type": "firmware",
      "address": "0x10fe5434",
      "notes": "ampMgr"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d5539c",
+     "address": "0x10d55498",
+     "notes": "hal_amps_hipower(...,1), software latch writes 1 on both normal and logged-failure paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d559ec",
+     "address": "0x10d55aac",
+     "notes": "hal_amps_hipower(...,0), software latch cleared on normal and logged-failure paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d565c8",
+     "address": "0x10d56670",
+     "notes": "Mode setter stores +0xf4 and clears latch only for new mode !=2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d552a0",
+     "address": "0x10d55304",
+     "notes": "Raw conditional branch 0x40beffe4 returns nonzero +0xe2 immediately in mode 2."
     }
    ],
    "todo": [
-    "Residual: the semantic name of mode==2 (the only mode where the armed flag-chain applies) and of flag +0xe2 - the other five flags are now bound to {roff,ofx,unm,pre-gate,nzvplay-gate}; mode names are not printed in-image."
+    "Residual: trace all callers of f_10d565c8 to name modes 0, 1 and 2 and establish their policy semantics. Do not map manager+0xf4 to the unrelated AMP_HI_RAIL/AMP_LO_RAIL/AMP_OFF string order without a call-path binding. The +0xe2 software power latch is now traced through on/off writers; it is not a pending preemptive target."
    ],
    "resolved_findings": [
-    "Resolved: ampPowerOnLocked = the rail sequencer writing device nodes in order {enable, unmute, clock-stable wait}; rail transition order is the fixed power-up sequence with the per-rail delay constants.",
     "Rail transition order proven (ampManager.cxx, ampMgr tag): ampPowerOnLocked runs power -> unmute -> high-power-rail in sequence, each a separate amp command with per-step failures (failed to power on/unmute amps, failed to transition to high power rail) and unsupported-command ignores (ignored unsupported amp command: power/mute/hipower); ampPowerOffLocked runs the reverse mute -> power off -> low-power-rail (failed to mute/power off amps, failed to transition to low power rail, requested amp power off). Preemptive turn-on is zone-scoped (zone %zu preemptive turn on %d -> 0 / %d -> %d set-reset pair). Off is deferred (scheduling off in %d sec) gated on the condition bitmap roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d. Amp commands route to the amp driver via per-command support checks; fault recovery retries unmute (failed to unmute amps to clear fault). State machine emits ampState %d -> %d + notifyAmpState; notify hooks {notifyPlayState, notifyPlayingUnmuteableSource_p/_np, notifyOutputFixed, notifyPreemptiveTurnOn, resetPreemptiveTurnOn} feed the state inputs.",
-    "Resolved: ampState is a 3-value FSM {0,1,2} stored at mgr+0xf4 (setter f_10d565c8 logs 'ampState %d -> %d', notifies observer list at +0xf8, posts AmplifierPowerStateChangedEvent). Entering state 2 clears the preemptive-turn-on byte at +0xe2 -> 2 is the fully-on (HI_RAIL) state; ampPowerOnLocked sequences amp cmds {power, unmute, hipower} ('ignored unsupported amp command: power/mute/hipower'), ampPowerOffLocked mutes then drops to low rail ('scheduling off in %d sec' idle timeout). Rail/vocab names {AMP_OFF, AMP_LO_RAIL, AMP_HI_RAIL} sit in the hw-event name table at 0x10ef5044-0x10ef504c. Input triggers: manageAmpStateLocked_notify{Volume, PlayState, PlayingUnmuteableSource_p/np, OutputFixed, PreemptiveTurnOn, resetPreemptiveTurnOn} ('zone %d volume %f -> %f', 'zone %d is playing %d -> %d', 'zone %zu preemptive turn on %d -> 0').",
-    "Resolved: ampState display names are consecutive entries in the emit-name array at 0x10ef5044: index 0=AMP_HI_RAIL, 1=AMP_LO_RAIL, 2=AMP_OFF - so state 1 is the idle/low-rail state, not an intermediate mute.",
-    "Correction: the earlier 'state 2 = fully-on' inference is inconsistent with the name table - state 2 = AMP_OFF. The transition fn (0x10d56670) clears the flag byte at obj+0xe2 when entering states 0/1 (powered rails) and leaves it on entering 2, consistent with +0xe2 = pending preemptive turn-on rather than powered state.",
-    "The +0xe2 consumer is f_10d552a0 (locked via the +0x48 mutex): it computes a predicate from {+0xdd byte flag, ampState(+0xf4)==2/AMP_OFF, +0xdc byte flag} then reads +0xe2 - if +0xe2==0 the function returns 0; if set it returns the +0xe1 byte. So +0xe2 = preemptive-turn-on armed flag and +0xe1 = the armed target value; the query reports the armed target only while the pending flag is set, which the ampState-2 transition clears.",
-    "+0xe1 semantic proven: the sole non-init writer is manageAmpStateLocked_notifyPlayingUnmuteableSource_np (0x10d54ec4), which stores its amp-state argument (r30=r4) into +0xe1 after comparing against the current value. So +0xe1 is the PENDING TARGET ampState (a {0=HI_RAIL,1=LO_RAIL} rail value) that the preemptive turn-on arms toward; the +0xe2 flag marks the arm. The notification name pins the trigger: an unmuteable source starting playback.",
-    "Kernel side (audiodev.ko, symtab present): the /dev/audioctl ioctl dispatch is audioctl_device_ioctl (.text+0x4924). Amp control surface is named: audioctl_amp_power(+part.3), audioctl_mute, audioctl_limelight_{assert,deassert}_amp_{hiz,pdn,reset}, amp_wq_function/ampctl_work (amp workqueue), audioctl_fpgaIsr + audioctl_initFpgaIrq (amp/FPGA IRQ path). This is the kernel endpoint the amp_state FSM drives; the HI/LO_RAIL/OFF states map onto audioctl_amp_power/limelight_assert calls.",
-    "Armed-check f_10d552a0 decoded under the +0x48 mutex: word +0xf4 is a mode field; mode != 2 returns armed(1) unconditionally, mode == 2 gates on the byte-flag chain {+0xdc, +0xdd, +0xe1, +0xe2} read in order (each branch returns the flag byte as the armed result). The 'preempt' string family is the RAmpManager preempt path.",
-    "Established: armed check = (+0xf4 == 2) ? flag-chain{+0xdc,+0xdd,+0xe1,+0xe2} : armed - the veto applies only in mode 2; the mode field and flag bytes have no naming strings (anonymous struct members).",
-    "Flag names recovered via the debug printf 'roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d' (0x10d5574c, amp domain): args bind roff=+0xf0, ofx=+0xe0, unm=+0xe1 (object bytes); canoff=r28, nzvplay=r30, pre=r27 are computed locals - +0xdd nonzero forces pre=1 (and r28=0), +0xdc gates the nzvplay computation off +0xd8. So the armed-check flag chain {+0xdc,+0xdd,+0xe1,+0xe2} reads {nzvplay-gate, pre-gate, unm, +0xe2} - the veto semantics are now named. Amp command vocabulary from the same region: {hipower, power, mute} dispatch arms, 'scheduling off in %d sec', 'requested amp power off', 'ampPowerOffLocked', 'ampState %d -> %d'/'notifyAmpState' transitions, kernel-side audiodev.ko controls {amp_power, amp-mute, tas5708_*, limelight hiz/pdn/reset}."
+    "Flag names recovered via the debug printf 'roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d' (0x10d5574c, amp domain): args bind roff=+0xf0, ofx=+0xe0, unm=+0xe1 (object bytes); canoff=r28, nzvplay=r30, pre=r27 are computed locals - +0xdd nonzero forces pre=1 (and r28=0), +0xdc gates the nzvplay computation off +0xd8. So the armed-check flag chain {+0xdc,+0xdd,+0xe1,+0xe2} reads {nzvplay-gate, pre-gate, unm, +0xe2} - the veto semantics are now named. Amp command vocabulary from the same region: {hipower, power, mute} dispatch arms, 'scheduling off in %d sec', 'requested amp power off', 'ampPowerOffLocked', 'ampState %d -> %d'/'notifyAmpState' transitions, kernel-side audiodev.ko controls {amp_power, amp-mute, tas5708_*, limelight hiz/pdn/reset}.",
+    "Correction from writer tracing: +0xe2 is a software power-on latch, not preemptive-turn-on armed state. The power-on path calls hal_amps_hipower(handle,1) at 0x10d55498 then stores 1 to +0xe2 at 0x10d554b4. The logged failure path also stores 1 at 0x10d555b4, so this byte does not prove hardware success. The power-off path calls hal_amps_hipower(handle,0) at 0x10d55aac and clears +0xe2 at 0x10d55ac8, including the logged failure path at 0x10d55bc8. Initialization at 0x10d56194 clears it and initializes +0xf4 to 2. f_10d565c8 compares and updates +0xf4, logs ampState, and at 0x10d56684 skips clearing +0xe2 only when the new mode equals 2. f_10d552a0 returns 1 unconditionally when +0xf4 differs from 2; in mode 2 it uses the input flags and latch. At 0x10d55304 raw word 0x40beffe4 is BO=5, BI=30, branching when the preceding +0xe2 comparison is NOT equal to zero; it returns the nonzero latch immediately, not when the latch is zero. Thus earlier descriptions of this function as a veto chain or a pending-target query were incorrect. The hardware event name table is not sufficient evidence to assign these policy modes rail-state names. +0xe1 is the unm input in the local decision diagnostic, not a proven target rail enum."
    ]
   },
   "lla": {
