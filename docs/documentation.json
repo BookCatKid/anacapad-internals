@@ -49888,7 +49888,7 @@
      "notes": null
     },
     "RemoveTrackRangeFromQueue": {
-     "description": "Removes a contiguous range of queue tracks. Impl f_102acca8: InstanceID!=0 -> 718; then two hard rejections BEFORE any work (StartingIndex==0 and NumberOfTracks==0 each return 402 (both arguments are 1-based). The worker f_102aca78 locks impl+0x458, formats the InstanceID-derived selector \"0\" via snprintf(\"%u\") and matches it against the session queue-id strings (session+0x2d8ec skip, +0x2fff4 match) selector mismatch yields 718), fetches the current queue update-id via f_10149b24(session+0x2ff98), enforces the same optimistic UpdateID check (nonzero and != current -> 1028), requires mode 1|2 (else 800), and performs the range removal with NewUpdateID written through the out pointer.",
+     "description": "Removes an inclusive queue span through live derived AVTransport vtable 0x10edfbb8 slot+0x74, f_102acca8 -> f_102aca78. InstanceID must be 0. StartingIndex is 1-based; NumberOfTracks is a positive count, not a1-based index. Zero start/count returns 402. The common body resolves decimal queue ID0, checks optional UpdateID and computed endpoint, requires mode 1/2, submits kind 14 and waits. Success rereads queue revision into NewUpdateID. Endpoint arithmetic is uint32 without checked-add overflow, followed by uint16 worker endpoints.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102faf24",
@@ -49924,7 +49924,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero. It is additionally reused by the worker as the queue selector formatted \"%u\": value 0 selects the default queue.",
+       "description": "Must be 0, otherwise718 before range-zero checks. The common body resolves decimal queue ID0 against session queue identifiers; no match also yields 718.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -49941,7 +49941,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero. It is additionally reused by the worker as the queue selector formatted \"%u\": value 0 selects the default queue.",
+       "validation": "Must be 0, otherwise718 before range-zero checks. The common body resolves decimal queue ID0 against session queue identifiers; no match also yields 718.",
        "evidence": [
         {
          "type": "firmware",
@@ -49956,12 +49956,21 @@
          "build": "86.10-80260",
          "address": "0x10e9aadc",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acca8",
+         "address": "0x102acca8",
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
         }
        ],
        "notes": null
       },
       "UpdateID": {
-       "description": "Optimistic-concurrency token: 0 disables the check; nonzero must equal the current queue update-id else 1028.",
+       "description": "0 skips checking; nonzero must equal selected queue revision+0x70 or1028 is returned before endpoint/mode checks.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -49978,7 +49987,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Optimistic-concurrency token: 0 disables the check; nonzero must equal the current queue update-id else 1028.",
+       "validation": "0 skips checking; nonzero must equal selected queue revision+0x70 or1028 is returned before endpoint/mode checks.",
        "evidence": [
         {
          "type": "firmware",
@@ -49993,12 +50002,21 @@
          "build": "86.10-80260",
          "address": "0x10f14438",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acca8",
+         "address": "0x102acca8",
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
         }
        ],
        "notes": null
       },
       "StartingIndex": {
-       "description": "1-based index of the first track to remove. Value 0 is rejected with 402 before any queue work: the impl treats it as invalid, not as \"first element\".",
+       "description": "1-based start for ordinary valid ranges; zero returns 402 before queue lookup. The computed uint32 inclusive endpoint is checked against queue count, then start/end are narrowed to16 bits. There is no separate overflow-safe upper-bound check on this argument.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -50010,12 +50028,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "1..queue length - 0 faults 402",
-       "range": "1..N",
+       "accepted_values": "Nonzero parsed unsigned value; normal use1..N with start+count-1<=N",
+       "range": "Normal use1..N; uint32 endpoint arithmetic and uint16 worker start",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "1-based index of the first track to remove. Value 0 is rejected with 402 before any queue work: the impl treats it as invalid, not as \"first element\".",
+       "validation": "1-based start for ordinary valid ranges; zero returns 402 before queue lookup. The computed uint32 inclusive endpoint is checked against queue count, then start/end are narrowed to16 bits. There is no separate overflow-safe upper-bound check on this argument.",
        "evidence": [
         {
          "type": "firmware",
@@ -50030,12 +50048,48 @@
          "build": "86.10-80260",
          "address": "0x10eb3270",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acca8",
+         "address": "0x102acca8",
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbc4",
+         "callsite": "0x102acbd4",
+         "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266404",
+         "callsite": "0x102666bc",
+         "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0 (selector scaled by4). Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e9a8",
+         "address": "0x1014eaa0",
+         "callsite": "0x1014ed4c",
+         "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
         }
        ],
        "notes": null
       },
       "NumberOfTracks": {
-       "description": "Count of tracks to remove starting at StartingIndex. Value 0 is rejected with 402.",
+       "description": "Positive count, not an index. Zero returns 402. uint32(start+count-1) must not exceed queue count; overflow is not separately rejected before endpoints are narrowed to16 bits.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -50047,12 +50101,12 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "1..queue length - 0 faults 402",
-       "range": "1..N",
+       "accepted_values": "Nonzero parsed unsigned value; normal use1..N-StartingIndex+1",
+       "range": "Normal use1..N-StartingIndex+1; endpoint calculation is uint32",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Count of tracks to remove starting at StartingIndex. Value 0 is rejected with 402.",
+       "validation": "Positive count, not an index. Zero returns 402. uint32(start+count-1) must not exceed queue count; overflow is not separately rejected before endpoints are narrowed to16 bits.",
        "evidence": [
         {
          "type": "firmware",
@@ -50067,6 +50121,33 @@
          "build": "86.10-80260",
          "address": "0x10eb3280",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102acca8",
+         "address": "0x102acca8",
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbc4",
+         "callsite": "0x102acbd4",
+         "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e9a8",
+         "address": "0x1014eaa0",
+         "callsite": "0x1014ed4c",
+         "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
         }
        ],
        "notes": null
@@ -50074,7 +50155,7 @@
      },
      "outputs": {
       "NewUpdateID": {
-       "description": "New queue update-id written by the worker through the out pointer after a successful removal.",
+       "description": "Selected queue revision word+0x70 reread after true worker completion; emitted as unsigned decimal only on success.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -50082,151 +50163,548 @@
        },
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
-       "unit": "n/a - text",
+       "unit": "none - queue revision",
        "accepted_values": "post-mutation queue UpdateID",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none",
-       "required": false,
+       "range": "0..4294967295",
+       "special_values": "0 formatted normally; no special output branch",
+       "required": true,
        "default": "none; written on success",
-       "validation": "copied from the queue record update counter",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102fb088",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb3538",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102acca8",
-         "notes": "impl writes updated UpdateID"
-        }
-       ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewUpdateID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     },
-     "validation": {
-      "description": "See inputs/impl notes",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x102faf24",
-        "notes": "wrapper + impl decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x74]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x102faf24",
-        "notes": "req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, out-arg write×1, validate×1, commit×1); member delegates: r30 v[+0x74].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x74]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x102faf24",
-        "notes": "member vfunc calls: ['r30 v[+0x74]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x74].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: r30 v[+0x74] (call-derived member-method semantics)",
+       "validation": "f_10149b24 reread at 0x102acbf0, output store 0x102acbfc, wrapper formatting 0x102fb090.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102faf24",
-         "notes": "delegate map ['r30 v[+0x74]']; notify-family calls []"
+         "address": "0x102fb01c",
+         "callsite": "0x102fb090",
+         "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbc4",
+         "callsite": "0x102acbd4",
+         "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10149b24",
+         "address": "0x10149bb8",
+         "callsite": "0x102acbf0",
+         "notes": "With r6=0, helper locks queue and copies revision word+0x70 to first output at 0x10149bb8, count halfword+0x26c8 to second at 0x10149bc0. Post-completion f_102aca78 reread copies revision to caller at 0x102acbfc. NewUpdateID is this reread, not input UpdateID+1."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e9a8",
+         "address": "0x1014eaa0",
+         "callsite": "0x1014ed4c",
+         "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x74] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "Wrapper validates before dispatch. Implementation precedence: nonzero InstanceID, zero start/count, queue lookup, optional version match, computed endpoint bound, mode 1/2, worker completion. Endpoint addition is uint32 and worker endpoints are uint16.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102faf24",
+        "address": "0x102fb01c",
+        "callsite": "0x102fb090",
+        "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acca8",
+        "address": "0x102acca8",
+        "callsite": "0x102accec",
+        "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbc4",
+        "callsite": "0x102acbd4",
+        "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10266404",
+        "callsite": "0x102666bc",
+        "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "InstanceID 0, nonzero start/count and resolvable queue ID0. UpdateID 0 bypasses comparison; nonzero must match. Ordinary inclusive end=start+count-1 must not exceed queue count. Mode1/2 required. Submission waits for worker completion.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10511f34",
+        "address": "0x10edfc2c",
+        "callsite": "0x105123c0",
+        "notes": "Live derived AVTransport vtable 0x10edfbb8 slot+0x74 contains f_102acca8. Factory calls derived constructor at 0x103fb5d8, base constructor at 0x1051218c; derived table installed at 0x105123c0. Wrapper dispatch is 0x102fb01c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102faf24",
+        "address": "0x102fb01c",
+        "callsite": "0x102fb090",
+        "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acca8",
+        "address": "0x102acca8",
+        "callsite": "0x102accec",
+        "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbc4",
+        "callsite": "0x102acbd4",
+        "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10266404",
+        "callsite": "0x102666bc",
+        "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads impl lock+0x458, session+0x580, queue-ID strings and matching queue objects, queue revision/count, mode+0x4654, active queue+0x326c8 and source URI+0x5dc. Active-source removal additionally uses current index, timed source list, packet history and queue/URI eligibility flags; inactive deletion does not drive those playback branches.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acca8",
+        "address": "0x102acca8",
+        "callsite": "0x102accec",
+        "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbc4",
+        "callsite": "0x102acbd4",
+        "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10266404",
+        "callsite": "0x102666bc",
+        "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103417dc",
+        "address": "0x10341b18",
+        "callsite": "0x10341b18",
+        "notes": "Called at 0x10259fb8 with active queue, source identity, inclusive start/end, headRemoved/index/identity outputs. f_103410d8 prunes source list; inclusive span is uint16(end-start+1). Queue+0x26dc bit 0 selects shuffle remapping. Adjusts source-node +0x28c/+0x28e indexes; detaches deleted nodes to secondary list at list+4 and returns identity +0x290/+0x294. Head-removed output set at 0x10341b18, not an unconditional CurrentTrack comparison. f_10259f38 head-removal branch 0x1025a09c clears source pair session+0x35184/+0x35188 and +0x327c8, marks changed and invokes monitor; other identified-source branch remaps with f_10149e68, sets +0x327d2 on failure, and calls f_10259c1c. Copies +0x326cc to +0x326fc on return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259ca4",
+        "callsite": "0x10259ca4",
+        "notes": "Sets saved identity +0x327d8/+0x327dc=-1, queries session+0x60 slot+0x38 with identity and out-pointers. Compares returned identity; differing identity calls slot+0x40 (f_10270ce8 derives the next packet ID from object+0x120, with -1 yielding 1), stores packet ID at +0x327d4, remaps using f_10149e68 and f_1045f760. Alternate branch calls slot+0x48 at 0x10259d80 and stores crossfade-state byte +0x327e0. These are NodeTX packet-history methods, not transport-state setters."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10149e68",
+        "address": "0x10149ed4",
+        "callsite": "0x1025a010",
+        "notes": "For selected index i, reads metadata through f_1014571c, using shuffle bit 0x1 and queue+0x26c4 mapping. If bit 0x4 of queue+0x26dc is set and f_10148230 accepts that metadata, retains i only for 1<=i<=count; invalid i returns false. Otherwise calls f_10149d80, which rejects i=0 or i>count, then searches f_10149bec(i,+1), writing zero-based result+1 on success. No forward match optionally wraps by searching from 0 when queue+0x26dc bit 0x2 is set. Search skips entries rejected by f_10148230. f_1014815c parses URI flags as decimal; f_10148230 rejects mask 0x10, otherwise accepts unless queue+0x26e4 mask 0x40000000 requires URI flag 0x10000 to be clear. If f_10149d80 fails, queue+0x26e4 bit 0x10 clear returns false; with that bit set, second search f_10149bec(i,+1) at 0x10149fcc retains original i and returns true only on result 0xffff, otherwise returns false. This explicit fallback is not an unconditional next-track operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259cac",
+        "callsite": "0x10259d18",
+        "notes": "NodeTX history query true branches to crossfade query for saved packet at 0x10259d6c; false compares both returned identity words at 0x10259cb0/0x10259d5c and also takes crossfade query if equal. False/different identity saves next packet ID and input identity to +0x327d4/+0x327d8/+0x327dc, then calls f_10149e68 with current index and temporary output at 0x10259d18. True invokes f_1045f760(current,selected), false skips remapping; both clear crossfade byte +0x327e0. requestResync at 0x1026cd28 consumes these saved values. Source selection is therefore separate from the timed CurrentTrack/TransportState snapshot. Neither success nor deleting the final numeric position specifies a single immediate playback value."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "One ordinary valid range mutation compacts entries/shuffle mapping, decreases count by requested count, adjusts supplied current index and increments named queue revision once. It posts queue update and marks dirty. Success clears alarm buzzer-fallback deadline+0x6ed8 when selected URI begins x-rincon-queue:. Inactive special queue resets auxiliary session+0x326ce index when beyond the new count.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbc4",
+         "callsite": "0x102acbd4",
+         "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266404",
+         "callsite": "0x102666bc",
+         "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e9a8",
+         "address": "0x1014eaa0",
+         "callsite": "0x1014ed4c",
+         "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d43a0",
+         "address": "0x102d457c",
+         "callsite": "0x102d457c",
+         "notes": "Reads impl+0x6ed8 after clock-id-1 sample; alarm fallback gates at 0x102d44cc..0x102d4530 precede the now<=deadline path setting x-rincon-buzzer:0 through f_102ceb40/f_102cfa50, then clearing deadline at 0x102d45e0. f_102d9ff8 independently reads it at 0x102da444 for playEnd fallback and clears at 0x102da4ac. Timestamp writers f_102cfa50 at 0x102cfe0c/0x102cfecc and f_102dac20 at 0x102db0bc store now+120. Deserialization stores now+3600*h+60*m+s at 0x102b1208. f_102ed780 serializes it at 0x102ed96c under alarm flag +0x5a86 and clear +0x6ed0. The conditional clear in f_102aa770 therefore clears the alarm fallback deadline, not a queue update-id."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Named queue deletion increments its version, sets queue+0x74 dirty, and posts CdNotifyUpdateId through queue+0x18 using f_10117654. The registered ContentDirectory observer f_10304808 increments its SystemUpdateID, coalesces the container/version in its changed map, and schedules eventing. ContentDirectory f_103035c4 emits SystemUpdateID and comma-separated ContainerUpdateIDs; incremental emission is gated by pending state and elapsed whole seconds greater than one, with a Q:0 map entry bypassing the delay. Otherwise it schedules the previous timestamp plus two seconds. SystemUpdateID and the container map have separate pending/timing state. Queue service has a separate LastChange builder f_10465b54: Queue-namespace XML carries QueueID from snapshot+0 and UpdateID from snapshot+0x14. f_10465e28 obtains snapshots through f_102b0908 and f_1025bfd4; f_10146cc0 copies queue+0x5c, so version and dirty byte become snapshot+0x14/+0x18. Incremental Queue output requires a changed snapshot; consuming snapshots clears copied dirty flags. Queue and AVTransport use the same notification sender supplied by the factory. A transport notification wakes that sender, not a direct Queue forwarding callback. The sender tests every registered source with f_1067d028; Queue slot +0x1c reaches f_10465aa4, which takes a nonconsuming snapshot and returns its changed flag. Thus dirty queue snapshots make Queue ready even when its own pending byte is clear. For subscribed sources, the producer dispatch at 0x1068406c calls slot +0x18; Queue adapts this through f_1067ab54 to f_10465f74 and f_10465e28. AVTransport slot +0x18 instead reaches f_102e6400, f_102e6048 and f_102e43a0. Its full buffer bypasses the incremental latch gate; incremental output requires impl+0x7785, +0x7786 or one of +0xa094..+0xa09c. These producer gates do not imply that deletion changes every serialized transport property, or that a notification is sent without a subscription. The deletion source-list change reaches the grouped TransportState, NumberOfTracks, CurrentTrack, CurrentTrackURI and AVTransportURI block through the snapshot-version result and +0x7785 latch; these are not independent per-field comparisons. Conditional nonempty source selection and timed playback-state transitions are detailed in state_transitions. There is no direct network-event emission in f_102aca78. Kind14 uses the same named-queue version/dirty helper and shared sender. Active running success marks source-list change; active stopped success refreshes session metadata. Inactive edits need not change active transport properties.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102faf24",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1026571c",
+        "address": "0x10266404",
+        "callsite": "0x102666bc",
+        "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e9a8",
+        "address": "0x1014eaa0",
+        "callsite": "0x1014ed4c",
+        "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1014eaa0",
+        "function": "0x1014e9a8",
+        "callsite": "0x1014eaa0",
+        "notes": "Deletion compacts entries at queue+0x26c0, adjusts optional shuffle map +0x26c4, decreases count +0x26c8, adjusts current-track index when supplied, sets +0x26e8, and calls f_1014d738 when queue name +0x4c is nonempty. f_1014d738 increments word +0x70 at 0x1014d7bc..0x1014d7c0, sets dirty byte +0x74 and posts an internal event through f_10117654 at 0x1014d820."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10304e78",
+        "address": "0x1030502c",
+        "callsite": "0x1030502c",
+        "notes": "Registers cdImpl+0x11c on CdNotifyUpdateId subject 0x1109cfb8; alternate site 0x103050b4. Constructor f_10303de4 installs vtable 0x10eb3fa0 at +0x11c at 0x10303fd8; slot 0 thunk f_10304904 adjusts this to f_10304808. f_10115574 observer delivery invokes slot 0 at 0x10115984..0x10115998. f_10304808 updates map cd+0x4f0 via f_103032fc, increments cd+0x4e0, sets pending cd+0x4e4 and schedules f_1067c6ec(cd+8). Queue event extra string is empty, so its extra-string branch does not call f_1030470c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103035c4",
+        "address": "0x10303aa0",
+        "callsite": "0x10303aa0",
+        "notes": "ContentDirectory event builder, not Queue service: full buffer includes SystemUpdateID; ContainerUpdateIDs uses f_103034e8 comma-separated container/version map. Incremental SystemUpdateID pending flag +0x4e4 requires whole-seconds elapsed>1 or Q:0 in changed map (0x10303aa0..0x10303ac4), otherwise schedules prior timestamp+2 at 0x10303d4c; emission clears pending at 0x10303af8. Container map has independent timer/pending at +0x50c/+0x4f0, Q:0 bypass at 0x1030371c..0x10303778 and delayed scheduling at 0x10303d10. f_103032fc replaces version for an existing container at 0x1030337c; f_103034e8 consume=1 clears map pending byte."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465b54",
+        "address": "0x10465c00",
+        "callsite": "0x10465c00",
+        "notes": "Queue LastChange builder writes Queue namespace and QueueID %.20s from snapshot+0, UpdateID %u from +0x14. Nonempty snapshots only; incremental mode additionally requires f_1014d540(snapshot). Full includes Curated and QueueOwnerID; incremental includes these only for snapshot+0x52b/+0x119 respectively. f_10465e28 calls f_102b0908 and writes full buffer when supplied, incremental only if snapshot helper returns changed. Does not alone prove publisher scheduling."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c0c0",
+        "callsite": "0x1025c0c0",
+        "notes": "f_102b0908 locks impl+0x458 and calls f_1025bfd4. Copies queue 0 at session+0x2d890 and queue 1 at +0x2ff98 via f_10146cc0, ORs f_1014d540(snapshot) into changed result. f_10146cc0 copies 0x2574 bytes from queue+0x5c; queue revision/dirty +0x70/+0x74 become snapshot+0x14/+0x18. consume=1 clears queue+0x6c/+0x74/+0x175/+0x587 after copying. Other records are initialized placeholders; consume also clears session+0x326c4. f_1014d540 tests snapshot dirty bytes +0x10/+0x18/+0x119/+0x52b."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fbc3c",
+        "callsite": "0x103fbc3c",
+        "notes": "Factory+0x1934 assigned impl at 0x103fb680; 0x103fbb78..0x103fbb98 forms weak pair with raw pointer impl+0x10. r6 is set at 0x103fbc1c before session ctor call 0x103fbc3c; the pair is copied to session+0x2578/+0x257c at 0x1025f53c..0x1025f54c. Running worker scheduling at 0x10265914..0x10265a08 requires change flags and live weak owner. f_1067c6ec delegates to f_1067c46c setting pending and checking notification sender. Actual AVTransport event callback is f_102e6400 -> f_102e6048 -> f_102e43a0, with full and incremental calls at 0x102e61d4/0x102e61f8. Thunk 0x102e4398 instead adjusts r4 and reaches property getter f_102e41a0; it is not the event callback."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fa434",
+        "address": "0x103fb5ac",
+        "callsite": "0x103fb5d8",
+        "notes": "Factory passes r25 common sender as r5 to derived transport constructor f_10511f34 at 0x103fb5d8 and as r4 to Queue constructor f_10465fac at 0x103fb6e4..0x103fb6e8. Transport base ctor calls f_1067aec4(impl+0x10, sender, AVTransport, 11, ...) at 0x102c06e4; Queue ctor calls it on Queue+8 at 0x1046607c. Generic source ctor stores sender weak pair in source+0xb4/+0xb8 at 0x1067af54..0x1067af64. f_1067c46c resolves the weak sender and calls f_10678c50 at 0x1067c5c8; that helper marks sender+0x10e and signals its condition variable. Derived transport ctor installs event-source vtable 0x10edfddc at impl+0x10 at 0x105123d0; slot +0x18 contains f_102e6400. Queue source vtable 0x10ed1c10 has readiness thunk f_10465b4c at +0x1c and producer adapter f_1067ab54 at +0x18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x10679da8",
+        "callsite": "0x10679da8",
+        "notes": "Sender fireNotifications loop loads each source at 0x10679d10..0x10679d18 and calls f_1067d028 at 0x10679da8. A nonzero source+0x110 returns ready. Otherwise 0x1067d0bc..0x1067d1c8 invokes subclass slot +0x1c. Queue f_10465b4c adjusts this by -8 to f_10465aa4, which calls f_102b0908(engine, records, 6, 0) at 0x10465b0c and preserves the changed return through its epilogue. No consume means readiness polling does not clear dirty state. Ready-source dispatch reaches f_10683da0 at 0x10679e54 and source slot +0x18 at 0x10684060..0x1068406c. Queue adapter f_1067ab54 forwards to slot +0x14 = f_10465f74 -> f_10465e28. Thus there is no missing direct AVTransport-to-Queue producer call: the common sender polls Queue snapshot readiness. Actual delivery remains conditional on registered source/subscription state and sender operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e46cc",
+        "callsite": "0x102e46c0",
+        "notes": "f_102e6048 calls f_102e43a0 with r7=1 for supplied full buffer at 0x102e61d4, r7=0 for incremental at 0x102e61f8. At 0x102e46cc..0x102e46dc full mode or impl+0x7785 enters serialization; otherwise 0x102e54a8..0x102e551c tests +0x7786 then +0xa094..+0xa09c. r28 was reassigned impl+0x10000 at 0x102e465c. f_102b5658 updates latches before this gate: +0xa094/+0xa095 latch metadata flags +0x4251/+0x4252 at 0x102b56b4..0x102b56d8; +0xa096/+0xa097 latch capability changes masked by 0x01738000/0xf, with source/mode metadata flags as fallbacks at 0x102b5804..0x102b5828. These are generic gates; deletion-specific snapshot comparisons and their final emitted CurrentTrack/TransportState values remain residual."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e4698",
+        "callsite": "0x102e4698",
+        "notes": "The event builder first calls f_102b5a1c at 0x102e4698; its changed result r27 causes impl+0xa0a2=1 at 0x102e46ac..0x102e46b8 before f_102b5658 latches +0x7785. Mode-2 branch 0x102e55c0 returns to that test, with additional next-URI handling. f_102b5a1c mode 2 calls session snapshot f_1026021c at 0x102b5d7c; that calls f_10341c74 at 0x102602fc. The latter compares source-list version +8 with consumed version +0xc at 0x10341cd0..0x10341cf4, returns changed, and consumes the version only when requested. Running deletion increments this version via f_103410c0 at 0x10265930 before notifying the transport at 0x10265a08. This is a version/snapshot gate, not a separate equality test for every XML property. f_102b5658 additionally consumes session metadata through f_1032dc18 at 0x102b59d4, storing its changed flag in +0x7786; that helper reads metadata+0x296b and clears it when consume is requested at 0x1032dda8..0x1032ddb0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102e43a0",
+        "address": "0x102e47d4",
+        "callsite": "0x102e47d4",
+        "notes": "Full output or latched impl+0x7785 enters the common transport-property block at 0x102e47e4; otherwise 0x102e47e0 skips to 0x102e4d38. The block serializes TransportState at 0x102e47e8, NumberOfTracks at 0x102e4870, CurrentTrack at 0x102e489c, CurrentTrackURI at 0x102e48f4 and AVTransportURI at 0x102e4a50. These values can therefore be repeated unchanged when another source-list change makes the block eligible. f_1026021c puts the source-node +0x28c track number through output-record+4 at 0x10260300..0x1026030c; live active-queue count +0x26c8 goes through record+8 at 0x10260790/0x102603a4, subject to the start-window adjustment at 0x102606b4..0x102607b4. CurrentTrackURI is obtained by f_1014a28c from the selected queue entry at 0x10260470, after invalid indexes are reduced to zero and optional shuffle mapping at 0x102607b8. AVTransportURI is copied from impl+0x5dc at 0x102b5a28..0x102b5a80; deletion does not itself replace that selected source URI. f_10341c74 maps source-head state +0x288 through table 0x10eba220: 0 STOPPED, 1 TRANSITIONING, 2 PLAYING, 3 PAUSED_PLAYBACK. Snapshot timing, not the SOAP return alone, determines which of those values is observed."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x74]",
+      "description": "Active running kind 14 validates narrowed start/end and calls f_10259f38, the same inclusive source-aware helper used for single deletion. It adjusts/detaches timed source nodes via f_103417dc and reconciles packet identity/crossfade via f_10259c1c. Common main-loop handling requests NodeTX resync and can enter PLAYING_START/TRANSITIONING for a normalized remaining source, or completion for empty queue/failed normalization. Empty active queue later progresses TRAN_STOPPED -> STOPPED; SOAP completion does not wait for this snapshot. Active stopped kind 14 uses f_1014e9a8 current-index/removed-current outputs; removed-current clears source bookkeeping, resets descriptor and notifies monitor at 0x10268f38, then common postprocessing refreshes metadata. Timed source head supplies CurrentTrack/TransportState, live active count supplies NumberOfTracks. Selection depends on shuffle, queue policy, URI eligibility and packet history, not just the numeric successor. Inactive edits do not force the active source to stop.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102faf24",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x74]']"
+        "function": "0x1026571c",
+        "address": "0x10266404",
+        "callsite": "0x102666bc",
+        "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e9a8",
+        "address": "0x1014eaa0",
+        "callsite": "0x1014ed4c",
+        "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103417dc",
+        "address": "0x10341b18",
+        "callsite": "0x10341b18",
+        "notes": "Called at 0x10259fb8 with active queue, source identity, inclusive start/end, headRemoved/index/identity outputs. f_103410d8 prunes source list; inclusive span is uint16(end-start+1). Queue+0x26dc bit 0 selects shuffle remapping. Adjusts source-node +0x28c/+0x28e indexes; detaches deleted nodes to secondary list at list+4 and returns identity +0x290/+0x294. Head-removed output set at 0x10341b18, not an unconditional CurrentTrack comparison. f_10259f38 head-removal branch 0x1025a09c clears source pair session+0x35184/+0x35188 and +0x327c8, marks changed and invokes monitor; other identified-source branch remaps with f_10149e68, sets +0x327d2 on failure, and calls f_10259c1c. Copies +0x326cc to +0x326fc on return."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259ca4",
+        "callsite": "0x10259ca4",
+        "notes": "Sets saved identity +0x327d8/+0x327dc=-1, queries session+0x60 slot+0x38 with identity and out-pointers. Compares returned identity; differing identity calls slot+0x40 (f_10270ce8 derives the next packet ID from object+0x120, with -1 yielding 1), stores packet ID at +0x327d4, remaps using f_10149e68 and f_1045f760. Alternate branch calls slot+0x48 at 0x10259d80 and stores crossfade-state byte +0x327e0. These are NodeTX packet-history methods, not transport-state setters."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104c0aa8",
+        "address": "0x104c0b0c",
+        "callsite": "0x104c0b0c",
+        "notes": "Track-play monitor ctor installs vtable 0x10ed8134; slot+0x30 points to f_104bf2e4. Factory constructs it at 0x103faf80 and stores factory+0x1904; session ctor r9 from that field is stored at session+0x2590 (0x1025f598). f_104bf2e4 submits monitor event kind 3 through f_104c6264, not a direct AVTransport state assignment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025f19c",
+        "address": "0x1025f244",
+        "callsite": "0x1025f260",
+        "notes": "Session+0x60 is initialized by f_1066e7d4 at 0x1066e8ac from its r5, but that argument is NOT the session constructor's incoming r5. Session ctor loads incoming stack+0xc at 0x1025f1b8; nonnull passes that override as r5 at 0x1025f244, null branches to 0x1025ffa8 to pass session+0x338. Factory initializes r19=0 at 0x103fbbd4 and stores it in outgoing stack+0xc at 0x103fbc20 before actual ctor call 0x103fbc3c, selecting the embedded object. Session constructs that embedded NodeTX with f_106366c4 at 0x1025f510; NodeTX ctor installs vtable 0x10efb75c at 0x10636724. Its slots +0x38/+0x40/+0x48 contain f_10636bc8/f_10270ce8/f_10636254. This resolves the factory-created session's concrete binding without assuming a runtime-injected source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10636bc8",
+        "address": "0x10636f4c",
+        "callsite": "0x10259ca4",
+        "notes": "NodeTX slot +0x38 scans packet records through f_10633e20 and control frames through f_1063311c. At 0x10636f50..0x10636f68 writes packet number, frame offset, frame payload word and stream identity to supplied outputs; analogous candidate outputs at 0x10636fc8..0x10636fec and 0x10636ffc..0x10637018. Invalid NodeTX packet bounds (+0x120/+0x11c == -1) branch to 0x106370dc and return false. Slot +0x48 f_10636254 looks up packet ID-1 at 0x10636274..0x10636294, parses control frames, returns false for absent/no control frames and tags 0xfa/0xfb (0x1063641c..0x10636460), true for other high-bit control tags (0x10636470..0x10636498). Diagnostic strings explicitly name crossfadeStateForPacketID. Slot +0x40 f_10270ce8 reads NodeTX+0x120, returning the next packet ID or 1 for -1."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026badc",
+        "address": "0x1026cfd0",
+        "callsite": "0x1026cfd0",
+        "notes": "Main queue routine invokes the running worker with source-change output &session+0x327c4 at 0x1026cfd0; true at 0x1026cfd4 branches to 0x1026ccfc. NodeTX slot+0x24 is f_10637d2c (word 0x10efb780); call 0x1026cd28 passes saved packet ID +0x327d4, identity +0x327d8 and crossfade byte +0x327e0. f_10637d2c logs requestResync and forms control type 0xfd for zero packet ID, otherwise chooses 0xfb/0xfe by crossfade flag. Back in the queue routine, 0x1026cd84..0x1026cd9c sends empty queues or remap failure to 0x1026d0ec; nonempty/no-failure calls switchState f_10264be8 with state 6 at 0x1026cdb8. Worker signals request completion at 0x10265910 before returning to these controller branches, so SOAP completion does not wait for subsequent playback or network notification."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026badc",
+        "address": "0x1026e758",
+        "callsite": "0x1026f4c4",
+        "notes": "After completion handling f_10266c68, 0x1026f30c..0x1026f388 returns to queue-end state handling when there are no more tracks. 0x1026e724..0x1026e758 tests active queue count and sets session+0x32800=2 (TRAN_STOPPED) when empty; alternate queue-policy branch 0x1026ebfc..0x1026ec00 also reaches it on zero count. Paused routine f_102690f0 calls stopped worker at 0x102691cc; zero active count sets the same state 2 at 0x10269330. Once f_1026badc returns at outer-loop call 0x1026f4c4, 0x1026f4c8..0x1026f4e8 selects state 1 for state 2 and calls f_10264be8, then stopRoutine f_102693cc at 0x1026f4f0. Raw isel 0x7c8ae71e at 0x1026f4e4 selects r10=3 on CR7 LT, else r28=1; state 2 minus3 is unsigned greater than2, selecting1. This is a conditional later STOPPED transition, not an immediate literal assignment in the deletion implementation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102642d4",
+        "address": "0x1026470c",
+        "callsite": "0x1026470c",
+        "notes": "State recording maps internal states1..8 using words at 0x10ea8740: [0,1,1,1,2,1,1,3], with mapped-state 1 (TRANSITIONING) fallback at 0x102644fc. It clamps an out-of-range selected index to0 at 0x102643a4..0x102643d0, passes mapped state/current index/effective time to f_103420a4 at 0x1026470c. That helper builds a timed source node through f_103404c8 at 0x1034221c, whose writes at 0x10340570..0x10340594 store state+0x288, current index+0x28c and effective time+0x290/+0x294. f_103420a4 inserts/replaces nodes in time order using f_105a8fd4 and increments list version at 0x10342440. Snapshot f_10341c74 first prunes timed source nodes through f_103410d8; f_1034071c reads head+0x28c at 0x103407d4 for CurrentTrack, while f_10341c74 reads state+0x288 at 0x10341d68 and table 0x10eba220 for STOPPED/TRANSITIONING/PLAYING/PAUSED_PLAYBACK. Session-mode snapshot f_1026021c reads queue count separately, so old buffered source state and reduced live count can coexist."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10149e68",
+        "address": "0x10149ed4",
+        "callsite": "0x1025a010",
+        "notes": "For selected index i, reads metadata through f_1014571c, using shuffle bit 0x1 and queue+0x26c4 mapping. If bit 0x4 of queue+0x26dc is set and f_10148230 accepts that metadata, retains i only for 1<=i<=count; invalid i returns false. Otherwise calls f_10149d80, which rejects i=0 or i>count, then searches f_10149bec(i,+1), writing zero-based result+1 on success. No forward match optionally wraps by searching from 0 when queue+0x26dc bit 0x2 is set. Search skips entries rejected by f_10148230. f_1014815c parses URI flags as decimal; f_10148230 rejects mask 0x10, otherwise accepts unless queue+0x26e4 mask 0x40000000 requires URI flag 0x10000 to be clear. If f_10149d80 fails, queue+0x26e4 bit 0x10 clear returns false; with that bit set, second search f_10149bec(i,+1) at 0x10149fcc retains original i and returns true only on result 0xffff, otherwise returns false. This explicit fallback is not an unconditional next-track operation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146d20",
+        "address": "0x10146d20",
+        "callsite": "0x1014ea58",
+        "notes": "Current-index adjustment in f_1014e9a8 converts a supplied 1-based index to uint16(index-1), calls this helper with zero-based inclusive start a/end b and old count n, then converts 0xffff to0 and other results to1-based. Let k=uint16(b-a+1), c be zero-based current. If k==n, writes 0xffff. If c<a, retains c; if c>b, writes uint16(c-k). For c inside the span: if b==n-1, writes uint16(b+1-k); otherwise queue+0x26dc bit 0x2 set selects0, clear selects uint16(a-1). Head-removal path f_10259f38 supplies this pointer at 0x1025a0b8. Identified non-head source path instead uses f_103417dc's index output, calls f_10149e68 after mutation at 0x1025a010, and on false sets session+0x327d2 and restores the source-list result at 0x1025a088; true clears +0x327c8. Both call packet reconciliation f_10259c1c and mark source change."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10259c1c",
+        "address": "0x10259cac",
+        "callsite": "0x10259d18",
+        "notes": "NodeTX history query true branches to crossfade query for saved packet at 0x10259d6c; false compares both returned identity words at 0x10259cb0/0x10259d5c and also takes crossfade query if equal. False/different identity saves next packet ID and input identity to +0x327d4/+0x327d8/+0x327dc, then calls f_10149e68 with current index and temporary output at 0x10259d18. True invokes f_1045f760(current,selected), false skips remapping; both clear crossfade byte +0x327e0. requestResync at 0x1026cd28 consumes these saved values. Source selection is therefore separate from the timed CurrentTrack/TransportState snapshot. Neither success nor deleting the final numeric position specifies a single immediate playback value."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x74].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Normal implementation domain0/718/402/1028/800. Success writes a post-completion revision reread to NewUpdateID and commits. Fault emits no output. 718: nonzero InstanceID or missing queue ID;402: zero start/count or computed endpoint beyond count;1028: nonzero version mismatch;800: mode outside1/2 or false worker completion. Parser can fault402 before dispatch. Builder/destructor/unlock add no normal codes; stack-check abort is not SOAP.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x102faf24",
-        "notes": "commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0x24': 1, '0xc': 1}"
+        "address": "0x102fb01c",
+        "callsite": "0x102fb090",
+        "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102acca8",
+        "address": "0x102acca8",
+        "callsite": "0x102accec",
+        "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbc4",
+        "callsite": "0x102acbd4",
+        "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10266404",
+        "callsite": "0x102666bc",
+        "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10149b24",
+        "address": "0x10149bb8",
+        "callsite": "0x102acbf0",
+        "notes": "With r6=0, helper locks queue and copies revision word+0x70 to first output at 0x10149bb8, count halfword+0x26c8 to second at 0x10149bc0. Post-completion f_102aca78 reread copies revision to caller at 0x102acbfc. NewUpdateID is this reread, not input UpdateID+1."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -50240,20 +50718,22 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x74)",
-       "meaning": "Nonzero InstanceID, or the \"%u\"-formatted selector fails the session queue-id strcmp.",
+       "meaning": "Nonzero InstanceID or queue ID not found.",
        "fault_sites": [
         "0x102fb038"
        ],
        "conditions": [
         {
-         "description": "InstanceID nonzero or selector mismatch at session+0x2fff4",
+         "description": "InstanceID!=0, or decimal queue-ID match fails after zero-range checks.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
+           "function": "0x102acca8",
            "address": "0x102acca8",
-           "notes": "cmpwi r4,0 at 0x102acca8; worker strcmp at 0x102acd94"
+           "callsite": "0x102accec",
+           "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
           }
          ]
         }
@@ -50263,28 +50743,32 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x102acca8",
          "address": "0x102acca8",
-         "notes": "cmpwi r4,0 at 0x102acca8; worker strcmp at 0x102acd94"
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
         }
        ]
       },
       {
        "code": 1028,
        "code_expr": "vret(r5-in,+0x74)",
-       "meaning": "UpdateID argument was nonzero and did not equal the current queue update-id.",
+       "meaning": "Nonzero UpdateID differs from queue revision.",
        "fault_sites": [
         "0x102fb038"
        ],
        "conditions": [
         {
-         "description": "UpdateID!=0 and != session update-id",
+         "description": "UpdateID!=0 and != selected queue+0x70.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
+           "function": "0x102acca8",
            "address": "0x102acca8",
-           "notes": "cmp at 0x102acdd8 -> r28=0x404"
+           "callsite": "0x102accec",
+           "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
           }
          ]
         }
@@ -50294,64 +50778,50 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x102acca8",
          "address": "0x102acca8",
-         "notes": "cmp at 0x102acdd8 -> r28=0x404"
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
         }
        ]
       },
       {
        "code": 800,
        "code_expr": "vret(r5-in,+0x74)",
-       "meaning": "Transport mode impl+0x4654 is not 1 or 2.",
+       "meaning": "Disallowed mode or false worker completion.",
        "fault_sites": [
         "0x102fb038"
        ],
        "conditions": [
         {
-         "description": "(impl+0x4654 - 1) unsigned > 1",
+         "description": "Mode outside1/2, or f_10255f64 returns false, including narrowed active worker-range rejection.",
          "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102acca8",
-           "notes": "cmplwi 0x1 at 0x102acde8 -> r28=0x320"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102acca8",
-         "notes": "cmplwi 0x1 at 0x102acde8 -> r28=0x320"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x74)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: 718 (InstanceID), 402 (null range record); shared worker f_102aca78 domain {402, 800, 718}",
-       "fault_sites": [],
-       "conditions": [
-        {
-         "description": "the removal body produced a code not covered by the enumerated gates",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x102ace58",
-           "notes": "passthrough path"
-          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "function": "0x102acca8",
-           "notes": "rc site"
+           "address": "0x102acca8",
+           "callsite": "0x102accec",
+           "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102aca78",
+           "address": "0x102acbc4",
+           "callsite": "0x102acbd4",
+           "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1026571c",
+           "address": "0x10266404",
+           "callsite": "0x102666bc",
+           "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
           }
          ]
         }
@@ -50361,87 +50831,64 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fb038",
-         "notes": "impl vret passthrough site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
          "function": "0x102acca8",
-         "notes": "worker rc sites decoded"
+         "address": "0x102acca8",
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x102aca78",
-         "notes": "worker rc sites decoded"
+         "address": "0x102acbc4",
+         "callsite": "0x102acbd4",
+         "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266404",
+         "callsite": "0x102666bc",
+         "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
         }
-       ],
-       "unresolved": {
-        "proven": "worker rc surfaced",
-        "unknown": "the actual removal path beyond 0x102ace58 was not fully traced: additional submission codes may exist",
-        "impl_exit_literals": {
-         "function": "0x102acca8",
-         "lits": [
-          24,
-          52,
-          348
-         ],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_10477d3c": {
-          "lits": [
-           0,
-           28,
-           36,
-           52,
-           76,
-           899
-          ],
-          "pt": 4
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "literal_bound": [
-        0,
-        402,
-        718,
-        800,
-        1028
-       ],
-       "worker_literal_bound": [
-        402,
-        718,
-        800
-       ],
-       "resolved_note": "vret(r5,+0x74) -> vfunc 0x102acca8 (both A+B engine vtables): the queue remove-range leaf sharing the FUN_102aca78 family: QueueID->718 not-found, UpdateID!=stored->1028, track-range>len->402, chsrc txn-submit->800.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x74); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "code_expr": "parse/req-layer or vret(r5-in,+0x74)",
+       "meaning": "Argument validation failed, zero start/count, or computed endpoint exceeds live queue count.",
        "fault_sites": [
         "0x102fb038"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "StartingIndex==0 or NumberOfTracks==0; otherwise uint32(start+count-1)>queue count.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102faf24",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "function": "0x102acca8",
+           "address": "0x102acca8",
+           "callsite": "0x102accec",
+           "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+          }
+         ]
+        },
+        {
+         "description": "Request slot+8 false at 0x102fafec chooses402 at 0x102fb068.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102faf24",
+           "address": "0x102fb01c",
+           "callsite": "0x102fb090",
+           "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
           }
          ]
         }
@@ -50451,8 +50898,19 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102faf24",
-         "notes": "wrapper parse + fault path"
+         "function": "0x102acca8",
+         "address": "0x102acca8",
+         "callsite": "0x102accec",
+         "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102faf24",
+         "address": "0x102fb01c",
+         "callsite": "0x102fb090",
+         "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
         }
        ]
       }
@@ -50463,30 +50921,67 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x102faf24",
-       "address": "0x102faf24",
-       "notes": "action wrapper handler"
+       "function": "0x10511f34",
+       "address": "0x10edfc2c",
+       "callsite": "0x105123c0",
+       "notes": "Live derived AVTransport vtable 0x10edfbb8 slot+0x74 contains f_102acca8. Factory calls derived constructor at 0x103fb5d8, base constructor at 0x1051218c; derived table installed at 0x105123c0. Wrapper dispatch is 0x102fb01c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10eb3174",
-       "notes": "action dispatch table entry"
+       "function": "0x102faf24",
+       "address": "0x102fb01c",
+       "callsite": "0x102fb090",
+       "notes": "Wrapper fetches all four inputs using slot+0x1c and type4 unsigned descriptors f_105614e0, validates at 0x102fafec; false validation faults402 at 0x102fb068. Dispatch slot+0x74 passes instance/update/start/count and output pointer. Nonzero implementation result faults verbatim at 0x102fb038; zero formats NewUpdateID via f_1055fcbc at 0x102fb090 and commits. Formatter uses %u and 24-byte buffer."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "function": "0x102acca8",
-       "notes": "AVT impl vtable 0x10eaf2ec slot +0x74 entry"
+       "address": "0x102acca8",
+       "callsite": "0x102accec",
+       "notes": "InstanceID!=0 returns 718 first, StartingIndex 0 or NumberOfTracks 0 returns 402 next, otherwise tail-calls f_102aca78. Under impl+0x458 lock, formats instance as %u and matches session+0x2d8ec then+0x2fff4, selecting queue+0x2d890 or+0x2ff98; neither match returns 718. f_10149b24 reads selected revision/count at 0x102acb44. Nonzero UpdateID mismatch returns 1028 at 0x102acc80. Then uint32 end=StartingIndex+NumberOfTracks-1 is compared with count at 0x102acb60; end>count returns 402. Mode outside1/2 returns 800 at 0x102acb68..0x102acb78. No checked-add overflow test."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102aca78",
+       "address": "0x102acbc4",
+       "callsite": "0x102acbd4",
+       "notes": "f_1032e270 constructs request; f_1032e45c sets kind 14 at+0xe4, uint16 start at+0xfc, uint16 inclusive end at+0xfe and queue selector at+0x100. Recognized queue pointers select 1 or2. f_10255f64 submits and waits through f_1032e658; false completion yields 800. True rereads queue via f_10149b24 at 0x102acbf0 and writes revision to output at 0x102acbfc. Prefix test f_1014708c on impl+0x5dc conditionally clears alarm fallback deadline+0x6ed8 at 0x102acc10. Builder/destructor/unlock do not contribute normal return codes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1026571c",
+       "address": "0x10266404",
+       "callsite": "0x102666bc",
+       "notes": "Relative table 0x10ea8468 entry 14 targets running 0x10266404; stopped table 0x10ea84d0 entry 14 targets 0x102684f8. Request selector+0x100 indexes session+0x326a0, scaled by4; session constructor stores selector 1/2 pointers at 0x1025fc24/0x1025fc1c. Inactive calls f_1014e9a8 at 0x10266458 or 0x10268534 without current outputs. Active running 0x1026668c rejects start0 or start>end, otherwise calls source-aware f_10259f38 at 0x102666bc. Active stopped 0x10268d6c calls f_1014e9a8 with current-index/removed-current outputs at 0x10268d78. True removed-current reaches 0x10268f38, clears source pair/descriptor and+0x327c8, notifies monitor and marks metadata changed. Common completion/event paths 0x10265910/0x10265930/0x10265a08 and 0x10267dfc/0x10267e00."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1014e9a8",
+       "address": "0x1014eaa0",
+       "callsite": "0x1014ed4c",
+       "notes": "Mutator validates uint16(start-1)/uint16(end-1) against count, adjusts supplied current index via f_10146d20, compacts entries+0x26c0 or shuffle mapping+0x26c4, and changes count+0x26c8. Named queue calls f_1014d738 at 0x1014ed4c, incrementing revision+0x70 once, setting dirty+0x74 and posting through queue+0x18. No per-track version loop. Ordinary nonoverflowing valid range reduces count by NumberOfTracks. uint32 endpoint addition precedes uint16 worker truncation; no separately checked StartingIndex upper bound or overflow-safe sum."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10149b24",
+       "address": "0x10149bb8",
+       "callsite": "0x102acbf0",
+       "notes": "With r6=0, helper locks queue and copies revision word+0x70 to first output at 0x10149bb8, count halfword+0x26c8 to second at 0x10149bc0. Post-completion f_102aca78 reread copies revision to caller at 0x102acbfc. NewUpdateID is this reread, not input UpdateID+1."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102faf24; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "ReorderTracksInQueue": {
      "description": "Moves a contiguous block of queue tracks to a new position. Impl f_102acf60: InstanceID!=0 -> 718, then three hard zero-checks before any queue work (StartingIndex==0, NumberOfTracks==0 and InsertBefore==0 each return 402 (all positions are 1-based). Passing those, it tail-calls the shared queue-operation worker family entry f_102accf0 with an operation selector) the same machinery family used by RemoveTrackRangeFromQueue (queue-id selector match, UpdateID concurrency, impl+0x458 lock).",
