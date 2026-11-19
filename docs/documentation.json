@@ -25510,9 +25510,23 @@
       "build": "86.10-80260",
       "address": "0x10390d70",
       "notes": "Primary slot +0x20 writes GroupCoordinatorIsLocal, LocalGroupUUID, VirtualLineInGroupID and SourceAreaIds among its property branches; literal sites include 0x10390e00, 0x10390e24, 0x10390e58 and 0x10390e94."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x103f8c24",
+      "notes": "The owner stores the constructed gm_impl at owner+0x19b0 at 0x103fc100. Registration passes its embedded source (gm_impl+8) and reference owner to f_104017c8, which forwards to f_1067938c with the sender at *(owner+0x228)+4 (dereferenced). The sender inserts the pair into its vector at +0x110 when +0x10d is clear."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10395518",
+      "notes": "The SetSourceAreaIds update path marks gm_impl+0x164 dirty and calls f_1067c6ec on the same embedded source. The shared worker dispatches slot +0x18 at 0x1068406c for a nonempty subscriber group."
      }
     ],
-    "notify_path": "f_103938f0 binds the event source at gm_impl+8 to vtable 0x10ec2c18. Slot +0x18 is f_1067ab54, which forwards to +0x14 (f_10390ae0). That thunk adjusts this by -8 and enters f_10390a04. Its primary slot +0x20 calls f_10390d70 to write the property XML.",
+    "notify_path": "The owner registers gm_impl+8 with f_1067938c via f_104017c8. SetSourceAreaIds can signal that source; with eligible subscribers the shared worker calls source slot +0x18 (f_1067ab54), which forwards to +0x14 (f_10390ae0). That thunk adjusts this by -8 and enters f_10390a04. Its primary slot +0x20 calls f_10390d70 to write the property XML.",
     "wss_registry": [
      {
       "idx": 34,
@@ -25528,10 +25542,10 @@
      }
     ],
     "todo": [
-     "Residual: establish which sender owns the concrete gm_impl+8 source, which producer signals it, and which accepted GroupManagement subscription obtains a live notification. The property renderer and both vtable slots are statically bound; the WSS names are registry entries, not call-site evidence."
+     "Residual: bind the accepted GroupManagement subscription request to an eligible subscriber on this source and verify callback delivery. The sender registration, a producer, and the conditional renderer call are statically traced. The WSS names are registry entries, not publisher evidence."
     ],
     "resolved_findings": [
-     "The notification property renderer is identifiable independently of dispatch of the four SOAP actions. The generic sender and registry alone do not show that this GroupManagement instance reaches the renderer."
+     "GroupManagement uses the shared sender with a concrete, reference-counted event source. SetSourceAreaIds is one producer; its internal change record does not by itself guarantee a GENA event."
     ]
    },
    "errors": [
@@ -25613,7 +25627,7 @@
     "vli_session": "vli session end evt -> VliSessionProcessingCompleteEvent (async task)"
    },
    "todo": [
-    "The GroupManagement property renderer is f_10390d70, reached through the statically bound event source. The remaining service uncertainty is the concrete sender registration and notification delivery, tracked in events."
+    "The GroupManagement property renderer is f_10390d70, reached through the statically bound, registered event source when the subscriber group is nonempty. The remaining service uncertainty is the subscription-to-callback association tracked in events."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
