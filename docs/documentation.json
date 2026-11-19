@@ -96397,7 +96397,7 @@
      },
      "side_effects": [
       {
-       "description": "A matching coordinator is cleared; total count and, for a remote coordinator, remote count are decremented. Group-removed calls f_106ca000(false) and clears +0x388. A mismatch leaves group data unchanged but still reaches the total-count test. If total group count is zero, requests thread state 2, including f_106c9d68 setting transport byte +0x798. Configuration(false) clears embedded NodeTX+0xfc without a call from the setter. On leaving state 3, f_106c9e38 resyncs/ends NodeTX transmission, clears transport+0x70/+0x79c and updates its owning source through transport+0x28. State 2 processes pending snapshots and waits rather than repeating that cleanup.",
+       "description": "A matching coordinator is cleared; total count and, for a remote coordinator, remote count are decremented. Group-removed calls f_106ca000(false) and clears +0x388. A mismatch leaves group data unchanged but still reaches the total-count test. If total group count is zero, requests thread state 2, including f_106c9d68 setting transport byte +0x798. Configuration(false) clears embedded NodeTX+0xfc without a call from the setter. On leaving state 3, f_106c9e38 resyncs/ends NodeTX transmission, clears transport+0x70/+0x79c and updates its owning source through transport+0x28. State 2 processes pending snapshots and waits rather than repeating that cleanup. For a previously active state-3 worker, its exit cleanup f_106c9e38 invokes embedded NodeTX +0x24 with three zero arguments at 0x106c9e80, then +0x28 at 0x106c9e94. The raw table 0x10efb75c maps them to f_10637d2c and f_10637f48. It tests neither result before clearing transport+0x70/+0x79c. This is conditional prior-worker cleanup, not an extra unconditional resync in the state-2 wait loop or a SOAP delivery acknowledgement. The reached null-argument branch of f_10637d2c sets pending packet marker NodeTX+0x534 to 0xffff and pending byte count +0x536 to zero at 0x10637f04/0x10637f08. It constructs a zero-valued three-word payload through f_106334a4, whose return is 12, and invokes NodeTX +0x14 -> f_10637a44 with control type 0xfd at 0x10637e4c. Only a zero control result calls f_10637ca8(1); a nonzero result returns without that flush. f_10637f48 similarly attempts control 0xff and only on zero tail-calls f_10637ca8(0). f_10637a44 constructs the control header through f_10633348, sends/appends its 16 bytes through f_1063777c and, only after a zero header result, processes the optional payload. f_1063777c manages pending buffer +0x134/count +0x536 and invokes f_106374cc to transmit a filled/flushed packet. f_10637ca8 returns zero when pending count is zero; otherwise it zero-pads the remainder, calls f_106374cc and resets marker/count even when that call fails. f_106374cc obtains a packet through f_10634188 or f_10637314, constructs/registers it through f_106337e4/f_10633edc, conditionally calls f_106690c0 and f_10634454, and can invoke optional NodeTX+0x53c listener slots +8/+0xc. These are packet construction/queue/listener boundaries, not a recovered receiver acknowledgement or VLI subscription bridge.",
        "evidence": [
         {
          "type": "firmware",
@@ -96478,13 +96478,41 @@
          "address": "0x106a93c0",
          "function": "0x106a933c",
          "notes": "State-snapshot worker f_106a933c fills the pending transport snapshot through slot +0x60 -> f_106ca360, reads pending snapshot manager+0x2dc and selected descriptor+0x354, and may invoke descriptor context+8 slot +0x24 at 0x106a94a8. The f_1021cd6c no-op target is explicitly bypassed. It calls selected provider+0x34 at 0x106a9440, stores the selected type in snapshot+0x108 at 0x106a9468 (zero if absent), calls f_1066f0c8 and clears manager+0x2dc at 0x106a9478. Context/provider snapshot callbacks are separate from the now-bound NodeTX pointer setter. f_106ca360 selects its inactive/active snapshot branch from current==3: inactive writes snapshot+0xf0 and clears +0xec/+0xf4/+0xf8/+0xfc/+0x100/+0x104; active reads the object at transport+4 through +0x14 then returned interface+0xc, and invokes embedded NodeTX+0x38 -> f_10636bc8 at 0x106ca48c. These snapshot dependencies remain distinct from NodeTX+0x34 attachment."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106c9e80",
+         "notes": "For a previously active state-3 worker, its exit cleanup f_106c9e38 invokes embedded NodeTX +0x24 with three zero arguments at 0x106c9e80, then +0x28 at 0x106c9e94. The raw table 0x10efb75c maps them to f_10637d2c and f_10637f48. It tests neither result before clearing transport+0x70/+0x79c. This is conditional prior-worker cleanup, not an extra unconditional resync in the state-2 wait loop or a SOAP delivery acknowledgement."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10637d2c",
+         "notes": "The reached null-argument branch of f_10637d2c sets pending packet marker NodeTX+0x534 to 0xffff and pending byte count +0x536 to zero at 0x10637f04/0x10637f08. It constructs a zero-valued three-word payload through f_106334a4, whose return is 12, and invokes NodeTX +0x14 -> f_10637a44 with control type 0xfd at 0x10637e4c. Only a zero control result calls f_10637ca8(1); a nonzero result returns without that flush. f_10637f48 similarly attempts control 0xff and only on zero tail-calls f_10637ca8(0)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106374cc",
+         "notes": "f_10637a44 constructs the control header through f_10633348, sends/appends its 16 bytes through f_1063777c and, only after a zero header result, processes the optional payload. f_1063777c manages pending buffer +0x134/count +0x536 and invokes f_106374cc to transmit a filled/flushed packet. f_10637ca8 returns zero when pending count is zero; otherwise it zero-pads the remainder, calls f_106374cc and resets marker/count even when that call fails. f_106374cc obtains a packet through f_10634188 or f_10637314, constructs/registers it through f_106337e4/f_10633edc, conditionally calls f_106690c0 and f_10634454, and can invoke optional NodeTX+0x53c listener slots +8/+0xc. These are packet construction/queue/listener boundaries, not a recovered receiver acknowledgement or VLI subscription bridge."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10637e28",
+         "notes": "The only length mask used in this resync path, raw 0x5466043e at 0x10637e28, has SH=0 MB=16 ME=31 and retains the low halfword of the serializer return (12 here), not a right shift. The null-argument branch bypasses the unrelated opcode select at 0x10637e08."
         }
        ],
-       "todo": "Established: pointer detachment, end-of-state-3 f_106c9e38 mutations and state-2 idle/snapshot loop are traced. Residual: enumerate NodeTX resync f_10637d2c resource effects, selected context+0x24/provider+0x34 snapshot mutations, and non-Spotify tracker stop/session reporting below f_1025149c/f_106c9008. f_106a94b8 itself adds no untraced transport-stop routine. Also finish active snapshot population f_106ca360 -> f_10636bc8."
+       "todo": "Established: pointer detachment, conditional active-worker cleanup controls 0xfd/0xff, buffer reset/flush gates, cache clearing despite control error and the state-2 loop. Unknown: packet backend/listener effects and selected snapshot/tracker mutations. Next: trace f_106690c0/f_10634454, packet pool f_10634188/f_10637314 and NodeTX+0x53c listeners; bind context+0x24/provider+0x34 and tracker f_1025149c/f_106c9008; finish snapshots f_106ca360/f_10636bc8."
       }
      ],
      "events_triggered": {
-      "description": "The synchronous group-removed callback is proven: f_106a7348 -> f_106a6430 -> f_106a6390 -> f_106ca000(false). It is not the controller StopTransmission callback. No particular GENA/WSS delivery follows solely from this call graph. The resolved NodeTX+0x34 target only stores zero and emits nothing. State-2 tracker reporting is skipped for source type 2; other types can submit a stop/session report through f_1025149c. This does not establish VLI subscription delivery.",
+      "description": "The synchronous group-removed callback is proven: f_106a7348 -> f_106a6430 -> f_106a6390 -> f_106ca000(false). It is not the controller StopTransmission callback. No particular GENA/WSS delivery follows solely from this call graph. The resolved NodeTX+0x34 target only stores zero and emits nothing. State-2 tracker reporting is skipped for source type 2; other types can submit a stop/session report through f_1025149c. This does not establish VLI subscription delivery. The recovered cleanup attempts NodeTX control types 0xfd and 0xff. Packet construction can invoke the optional NodeTX+0x53c listener; it is not a bound VLI subscriber notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -96557,12 +96585,19 @@
         "address": "0x106a9514",
         "function": "0x106a94b8",
         "notes": "State-2 worker f_106a94b8 locks manager+0x150, obtains a clock through manager vtable+0x28 at 0x106a9508 and calls playback-tracker f_106c98f0(manager+0x390, clock) at 0x106a9514. It returns when current state is no longer 2 or desired +0x2e4 is nonzero (0x106a9528-0x106a9560). While current remains 2 with no desired transition, it calls f_106a933c at 0x106a9564, waits on +0x1e0 with manager mutex at 0x106a9570, and repeats. Thus it is an idle/snapshot wait loop, not an untraced generic transport-stop worker. f_106c98f0 skips tracker reporting for source type 2; other types construct a stop/session report through f_1025149c at 0x106c99f4 and f_106c9008. End-of-state-3 transport cleanup instead runs f_106c9e38, which calls NodeTX+0x24/+0x28, clears transport+0x70/+0x79c and invokes transport+0x28 at 0x106c9ec0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106374cc",
+        "notes": "f_10637a44 constructs the control header through f_10633348, sends/appends its 16 bytes through f_1063777c and, only after a zero header result, processes the optional payload. f_1063777c manages pending buffer +0x134/count +0x536 and invokes f_106374cc to transmit a filled/flushed packet. f_10637ca8 returns zero when pending count is zero; otherwise it zero-pads the remainder, calls f_106374cc and resets marker/count even when that call fails. f_106374cc obtains a packet through f_10634188 or f_10637314, constructs/registers it through f_106337e4/f_10633edc, conditionally calls f_106690c0 and f_10634454, and can invoke optional NodeTX+0x53c listener slots +8/+0xc. These are packet construction/queue/listener boundaries, not a recovered receiver acknowledgement or VLI subscription bridge."
        }
       ],
-      "todo": "Established: f_106361d4 pointer detachment has no emitter; f_106a94b8 reaches tracker f_106c98f0 and snapshot f_106a933c, while f_106c9e38 performs prior state-3 cleanup. Residual: follow snapshot context+0x24/provider+0x34, NodeTX resync f_10637d2c and tracker f_1025149c to concrete event sinks. Raw direct-branch and allocated-section pointer searches did not link these paths to f_106ab4d4, so no action-specific GENA/WSS delivery is established."
+      "todo": "Established: pointer setter emits nothing; conditional worker cleanup constructs NodeTX resync/end controls and reaches packet queues and optional listeners. Unknown: source/tracker event sinks and any action-specific VLI subscription bridge. Next: bind NodeTX+0x53c listener slots +8/+0xc, f_106690c0/f_10634454, selected context/provider callbacks and tracker f_1025149c; recover an actual incoming path to f_106ab4d4 before attributing metadata delivery."
      },
      "state_transitions": {
-      "description": "When manager+0x368 is zero after the removal attempt, requests numeric source-manager thread state 2 through f_106a81d4. That helper calls transport stop flag setter f_106c9d68 and may wait on +0x1e0. It does not expose its boolean as a SOAP error. A nonzero total group count skips the state request. The thread commits the numeric state handoff before dispatching the state-2 worker. f_106a94b8 waits while current remains 2 and desired is zero, processes snapshots, and returns for a new desired/current state. This acknowledgement is distinct from source-specific audio-loop termination and NodeTX resync completion.",
+      "description": "When manager+0x368 is zero after the removal attempt, requests numeric source-manager thread state 2 through f_106a81d4. That helper calls transport stop flag setter f_106c9d68 and may wait on +0x1e0. It does not expose its boolean as a SOAP error. A nonzero total group count skips the state request. The thread commits the numeric state handoff before dispatching the state-2 worker. f_106a94b8 waits while current remains 2 and desired is zero, processes snapshots, and returns for a new desired/current state. This acknowledgement is distinct from source-specific audio-loop termination and NodeTX resync completion. For a previously active state-3 worker, its exit cleanup f_106c9e38 invokes embedded NodeTX +0x24 with three zero arguments at 0x106c9e80, then +0x28 at 0x106c9e94. The raw table 0x10efb75c maps them to f_10637d2c and f_10637f48. It tests neither result before clearing transport+0x70/+0x79c. This is conditional prior-worker cleanup, not an extra unconditional resync in the state-2 wait loop or a SOAP delivery acknowledgement. The reached null-argument branch of f_10637d2c sets pending packet marker NodeTX+0x534 to 0xffff and pending byte count +0x536 to zero at 0x10637f04/0x10637f08. It constructs a zero-valued three-word payload through f_106334a4, whose return is 12, and invokes NodeTX +0x14 -> f_10637a44 with control type 0xfd at 0x10637e4c. Only a zero control result calls f_10637ca8(1); a nonzero result returns without that flush. f_10637f48 similarly attempts control 0xff and only on zero tail-calls f_10637ca8(0).",
       "evidence": [
        {
         "type": "firmware",
@@ -96635,9 +96670,23 @@
         "address": "0x106a9514",
         "function": "0x106a94b8",
         "notes": "State-2 worker f_106a94b8 locks manager+0x150, obtains a clock through manager vtable+0x28 at 0x106a9508 and calls playback-tracker f_106c98f0(manager+0x390, clock) at 0x106a9514. It returns when current state is no longer 2 or desired +0x2e4 is nonzero (0x106a9528-0x106a9560). While current remains 2 with no desired transition, it calls f_106a933c at 0x106a9564, waits on +0x1e0 with manager mutex at 0x106a9570, and repeats. Thus it is an idle/snapshot wait loop, not an untraced generic transport-stop worker. f_106c98f0 skips tracker reporting for source type 2; other types construct a stop/session report through f_1025149c at 0x106c99f4 and f_106c9008. End-of-state-3 transport cleanup instead runs f_106c9e38, which calls NodeTX+0x24/+0x28, clears transport+0x70/+0x79c and invokes transport+0x28 at 0x106c9ec0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106c9e80",
+        "notes": "For a previously active state-3 worker, its exit cleanup f_106c9e38 invokes embedded NodeTX +0x24 with three zero arguments at 0x106c9e80, then +0x28 at 0x106c9e94. The raw table 0x10efb75c maps them to f_10637d2c and f_10637f48. It tests neither result before clearing transport+0x70/+0x79c. This is conditional prior-worker cleanup, not an extra unconditional resync in the state-2 wait loop or a SOAP delivery acknowledgement."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10637d2c",
+        "notes": "The reached null-argument branch of f_10637d2c sets pending packet marker NodeTX+0x534 to 0xffff and pending byte count +0x536 to zero at 0x10637f04/0x10637f08. It constructs a zero-valued three-word payload through f_106334a4, whose return is 12, and invokes NodeTX +0x14 -> f_10637a44 with control type 0xfd at 0x10637e4c. Only a zero control result calls f_10637ca8(1); a nonzero result returns without that flush. f_10637f48 similarly attempts control 0xff and only on zero tail-calls f_10637ca8(0)."
        }
       ],
-      "todo": "Established: numeric state-2 acknowledgement ordering, worker wait/exit conditions and prior state-3 transport cleanup are traced. Residual: resolve selected source audio-loop termination and NodeTX f_10637d2c resync failure/completion before asserting an end-to-end stopped state. The source-thread handoff and state-2 loop themselves are no longer unresolved."
+      "todo": "Established: state-2 handoff/wait conditions and prior-state-3 cleanup, including local clearing despite resync/end errors and conditional flushes. Unknown: concrete audio-loop termination and packet/receiver acceptance. Next: bind selected source termination and consumers f_106690c0/f_10634454 before claiming an end-to-end stopped state."
      },
      "return_behavior": {
       "description": "402 on wrapper validation failure, empty/null CoordinatorID or invalid InstanceID. Otherwise returns zero and commits with no outputs, even if coordinator removal returned 402. Thread-state and transport-configuration returns are not surfaced as SOAP faults.",
@@ -96951,10 +97000,38 @@
        "address": "0x106a93c0",
        "function": "0x106a933c",
        "notes": "State-snapshot worker f_106a933c fills the pending transport snapshot through slot +0x60 -> f_106ca360, reads pending snapshot manager+0x2dc and selected descriptor+0x354, and may invoke descriptor context+8 slot +0x24 at 0x106a94a8. The f_1021cd6c no-op target is explicitly bypassed. It calls selected provider+0x34 at 0x106a9440, stores the selected type in snapshot+0x108 at 0x106a9468 (zero if absent), calls f_1066f0c8 and clears manager+0x2dc at 0x106a9478. Context/provider snapshot callbacks are separate from the now-bound NodeTX pointer setter. f_106ca360 selects its inactive/active snapshot branch from current==3: inactive writes snapshot+0xf0 and clears +0xec/+0xf4/+0xf8/+0xfc/+0x100/+0x104; active reads the object at transport+4 through +0x14 then returned interface+0xc, and invokes embedded NodeTX+0x38 -> f_10636bc8 at 0x106ca48c. These snapshot dependencies remain distinct from NodeTX+0x34 attachment."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106c9e80",
+       "notes": "For a previously active state-3 worker, its exit cleanup f_106c9e38 invokes embedded NodeTX +0x24 with three zero arguments at 0x106c9e80, then +0x28 at 0x106c9e94. The raw table 0x10efb75c maps them to f_10637d2c and f_10637f48. It tests neither result before clearing transport+0x70/+0x79c. This is conditional prior-worker cleanup, not an extra unconditional resync in the state-2 wait loop or a SOAP delivery acknowledgement."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10637d2c",
+       "notes": "The reached null-argument branch of f_10637d2c sets pending packet marker NodeTX+0x534 to 0xffff and pending byte count +0x536 to zero at 0x10637f04/0x10637f08. It constructs a zero-valued three-word payload through f_106334a4, whose return is 12, and invokes NodeTX +0x14 -> f_10637a44 with control type 0xfd at 0x10637e4c. Only a zero control result calls f_10637ca8(1); a nonzero result returns without that flush. f_10637f48 similarly attempts control 0xff and only on zero tail-calls f_10637ca8(0)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106374cc",
+       "notes": "f_10637a44 constructs the control header through f_10633348, sends/appends its 16 bytes through f_1063777c and, only after a zero header result, processes the optional payload. f_1063777c manages pending buffer +0x134/count +0x536 and invokes f_106374cc to transmit a filled/flushed packet. f_10637ca8 returns zero when pending count is zero; otherwise it zero-pads the remainder, calls f_106374cc and resets marker/count even when that call fails. f_106374cc obtains a packet through f_10634188 or f_10637314, constructs/registers it through f_106337e4/f_10633edc, conditionally calls f_106690c0 and f_10634454, and can invoke optional NodeTX+0x53c listener slots +8/+0xc. These are packet construction/queue/listener boundaries, not a recovered receiver acknowledgement or VLI subscription bridge."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10637e28",
+       "notes": "The only length mask used in this resync path, raw 0x5466043e at 0x10637e28, has SH=0 MB=16 ME=31 and retains the low halfword of the serializer return (12 here), not a right shift. The null-argument branch bypasses the unrelated opcode select at 0x10637e08."
       }
      ],
      "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot.",
-     "todo": "Established: f_106ca000(false) reaches embedded NodeTX setter f_106361d4 and clears NodeTX+0xfc; state-2 f_106a94b8 and end-of-state-3 cleanup f_106c9e38 are traced, including snapshot dispatch and tracker reporting. Residual: finish selected context+0x24/provider+0x34 snapshot workers, NodeTX resync below f_10637d2c and tracker sink f_1025149c/f_106c9008. The remaining work is not an unknown transport+0x6c binding or a generic state-2 stop worker. Active transport-snapshot dependencies below f_106ca360/f_10636bc8 also remain."
+     "todo": "Established: pointer detachment, state-2 wait/snapshot loop, conditional prior-state-3 cleanup, null resync/end controls, buffer handling and ignored cleanup failure. Unknown: source-specific audio termination/snapshots, packet consumption and tracker/event sinks. Next: bind context+0x24/provider+0x34; trace f_106690c0/f_10634454, packet pool f_10634188/f_10637314, optional NodeTX+0x53c listeners, tracker f_1025149c/f_106c9008 and snapshots f_106ca360/f_10636bc8."
     }
    },
    "state_variables": {
