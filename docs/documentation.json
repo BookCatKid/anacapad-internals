@@ -45174,7 +45174,7 @@
        "notes": null
       },
       "NewCoordinator": {
-       "description": "Identity of the member to receive coordination; must be a non-empty string: NULL pointer or empty text faults 402 before the worker runs.",
+       "description": "Target player UUID. Empty strings and the local UUID are rejected; the worker can also reject membership or home-theater capability, or fail to look up the remote control URI.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -45197,19 +45197,40 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa2d8",
-         "notes": "in-arg access site"
+         "address": "0x102fa378",
+         "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
+         "function": "0x102fa26c"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb341c",
-         "notes": "argument name string"
+         "address": "0x102de1f8",
+         "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+         "function": "0x102de180"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ddb1c",
+         "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+         "function": "0x102ddae8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102de104",
+         "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
+         "function": "0x102ddae8"
         }
        ],
        "notes": null,
-       "buf_cap": 25
+       "buf_cap": 25,
+       "todo": [
+        "Map the exact target membership decisions for normal versus home-theater or fallback delegation in f_102ddae8."
+       ]
       },
       "RejoinGroup": {
        "description": "Flag forwarded verbatim to f_102ddae8: requests rejoining the group under the new coordinator.",
@@ -45300,19 +45321,32 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r30 v[+0x58]",
+      "description": "Use a materializable request with ID zero and a nonempty target other than the local player. Target membership and compatible home-theater support are checked when applicable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa26c",
-        "notes": "req-vfunc call map: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fa378",
+        "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
+        "function": "0x102fa26c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102de1f8",
+        "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+        "function": "0x102de180"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ddb1c",
+        "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+        "function": "0x102ddae8"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×4, validate×1, commit×1); member delegates: r30 v[+0x58].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
@@ -45382,19 +45416,43 @@
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Returns 402 for the described request and target checks, or 718 for invalid ID. The worker can return 802 for missing AVTransport URI; other nonzero worker results pass through except 803, which becomes success.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fa26c",
-        "notes": "commit/fault slot usage: {'0x1c': 4, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fa378",
+        "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
+        "function": "0x102fa26c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102de1f8",
+        "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+        "function": "0x102de180"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ddb1c",
+        "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+        "function": "0x102ddae8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102de104",
+        "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
+        "function": "0x102ddae8"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify the exact downstream worker and remote action status domain and classify all fallback results."
       ]
      },
      "fault_sites": [
@@ -45439,32 +45497,37 @@
       {
        "code": 402,
        "code_expr": "vret(r5-in,+0x58)",
-       "meaning": "NewCoordinator was NULL or an empty string.",
+       "meaning": "Materialization failure, missing or empty target, matching the local UUID, or rejection by local target checks.",
        "fault_sites": [
         "0x102fa394"
        ],
        "conditions": [
         {
-         "description": "r5==0 or *r5==0",
+         "description": "Materialization failure, missing or empty target, matching the local UUID, or rejection by local target checks.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102de180",
-           "notes": "cmpwi r5,0 at 0x102de194; lbz check at 0x102de1a0 -> r9=0x192"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
-         "evidence": [
+           "address": "0x102fa378",
+           "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
+           "function": "0x102fa26c"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102fa26c",
-           "notes": "parse vcall slot +0x8 then fault path"
+           "address": "0x102de1f8",
+           "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+           "function": "0x102de180"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102ddb1c",
+           "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+           "function": "0x102ddae8"
           }
          ]
         }
@@ -45474,40 +45537,52 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102de180",
-         "notes": "cmpwi r5,0 at 0x102de194; lbz check at 0x102de1a0 -> r9=0x192"
+         "address": "0x102fa378",
+         "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
+         "function": "0x102fa26c"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa26c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102de1f8",
+         "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+         "function": "0x102de180"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ddb1c",
+         "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+         "function": "0x102ddae8"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x58)",
-       "meaning": "worker rc returned verbatim except 803->0",
+       "meaning": "Worker and remote request faults can propagate. Failed remote control URI lookup returns 802; an engine worker result of 803 is mapped to zero.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "f_102ddae8 returned a nonzero code other than 803",
+         "description": "Worker and remote request faults can propagate. Failed remote control URI lookup returns 802; an engine worker result of 803 is mapped to zero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102de1f8",
-           "notes": "passthrough path"
+           "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+           "function": "0x102de180"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102de180",
-           "notes": "impl return path examined"
+           "address": "0x102de104",
+           "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
+           "function": "0x102ddae8"
           }
          ]
         }
@@ -45517,15 +45592,17 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fa394",
-         "notes": "impl vret passthrough site"
+         "address": "0x102de1f8",
+         "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+         "function": "0x102de180"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102de180",
-         "notes": "impl rc-return semantics as documented; wrapper forwards nonzero rc verbatim"
+         "address": "0x102de104",
+         "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
+         "function": "0x102ddae8"
         }
        ],
        "unresolved": {
@@ -45585,8 +45662,7 @@
         402
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x58); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Enumerate remote fault codes from the delegated actions and conditions that retry or suppress them."
        ]
       }
      ],
@@ -45613,6 +45689,38 @@
        "build": "86.10-80260",
        "function": "0x102de180",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x58 entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fa378",
+       "notes": "Engine +0x58 receives InstanceID, NewCoordinator, RejoinGroup and ClearSource. Failed materialization sets 402 at 0x102fa3cc.",
+       "function": "0x102fa26c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102de1f8",
+       "notes": "Nonzero ID returns 718. A null or empty target returns 402 before locking; otherwise forwards target and both boolean operands to f_102ddae8 under impl+0x458. At 0x102de214, isel returns zero for worker code 803 and returns the worker code otherwise.",
+       "function": "0x102de180"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ddb1c",
+       "notes": "Rejects the local player UUID with 402. Continuation checks group membership and, on the home-theater path, remote HT audio support; rejection paths load 402 at 0x102ddc80 and 0x102ddffc.",
+       "function": "0x102ddae8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102de104",
+       "notes": "Failure to look up the target's AVTransport control URI yields 802. The path at 0x102de160 propagates the remote request fault stored in r29, except for the wrapper's 803 normalization.",
+       "function": "0x102ddae8"
       }
      ],
      "notes": null,
@@ -45624,8 +45732,7 @@
       }
      },
      "todo": [
-      "Established: direct dispatch to handler 0x102fa26c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Trace RejoinGroup and ClearSource across the seamless and stop-and-retry paths, including exact remote calls, 803 production, and local notification fields."
      ]
     },
     "EndDirectControlSession": {
