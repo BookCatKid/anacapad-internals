@@ -61182,7 +61182,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentMute is true exactly when the cached valid-zone count is nonzero and equals the muted-zone count. Empty state returns false; one muted zone does not suffice when another valid zone is unmuted. Fixed-volume zones participate in this mute count. The renderer input pair is media-player+0x1924/+0x1928, passed by f_103fd65c at 0x103fdb24 to f_103a0e28; its concrete constructor f_1046c6a4 installs primary vptr 0x10ed270c. Extra local snapshot helper f_100daab0 derives sonar state from bytes +0x847/+0x849 through leaf f_1011fa00 and updates renderer+0x930 only on change; this extra field does not affect the all-muted expression. The renderer input pair is media-player+0x1924/+0x1928, passed by f_103fd65c at 0x103fdb24 to f_103a0e28; its concrete constructor f_1046c6a4 installs primary vptr 0x10ed270c. Extra local snapshot helper f_100daab0 derives sonar state from bytes +0x847/+0x849 through leaf f_1011fa00 and updates renderer+0x930 only on change; this extra field does not affect the all-muted expression.",
+      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentMute is true exactly when the cached valid-zone count is nonzero and equals the muted-zone count. Empty state returns false; one muted zone does not suffice when another valid zone is unmuted. Fixed-volume zones participate in this mute count. The renderer input pair is media-player+0x1924/+0x1928, passed by f_103fd65c at 0x103fdb24 to f_103a0e28; its concrete constructor f_1046c6a4 installs primary vptr 0x10ed270c. Extra local snapshot helper f_100daab0 derives sonar state from bytes +0x847/+0x849 through leaf f_1011fa00 and updates renderer+0x930 only on change; this extra field does not affect the all-muted expression.",
       "evidence": [
        {
         "type": "firmware",
@@ -61204,26 +61204,12 @@
         "build": "86.10-80260",
         "address": "0x100dab6c",
         "notes": "Sonar state cache store, reached only when the newly derived state differs."
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103fdb24",
-        "notes": "Resolved renderer/configuration input pair to initializer, not runtime-only injected dispatch."
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x100dab6c",
-        "notes": "Sonar state cache store, reached only when the newly derived state differs."
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; it is not an untraced audio command. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; it is not an untraced audio command.",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; this helper does not issue an audio command.",
        "evidence": [
         {
          "type": "firmware",
@@ -61238,20 +61224,13 @@
          "build": "86.10-80260",
          "address": "0x100dab6c",
          "notes": "Complete f_100daab0 through 0x100daba8 performs sonar-state calculation/cache update/logging, not hardware application."
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100dab6c",
-         "notes": "Complete f_100daab0 through 0x100daba8 performs sonar-state calculation/cache update/logging, not hardware application."
         }
        ],
        "todo": "Established: renderer binding, extra sonar snapshot calculation/cache mutation and local GRC cache/dirty updates are traced. Residual: enumerate concrete observer effects at 0x103a5de4 and concrete source sender delivery after f_10678c50; captured-pointer/cancellation handling is not the event receiver."
       }
      ],
      "events_triggered": {
-      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers.",
       "evidence": [
        {
         "type": "firmware",
@@ -61642,7 +61621,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Renderer pair media-player+0x1924/+0x1928 reaches initializer f_103a0e28 at 0x103fdb24; constructor f_1046c6a4 installs concrete RC vptr 0x10ed270c. Extra f_100daab0 reads +0x847/+0x849, calls leaf f_1011fa00 and conditionally updates sonar cache +0x930; that extra field is not used in the current-volume average. Renderer pair media-player+0x1924/+0x1928 reaches initializer f_103a0e28 at 0x103fdb24; constructor f_1046c6a4 installs concrete RC vptr 0x10ed270c. Extra f_100daab0 reads +0x847/+0x849, calls leaf f_1011fa00 and conditionally updates sonar cache +0x930; that extra field is not used in the current-volume average.",
+      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Renderer pair media-player+0x1924/+0x1928 reaches initializer f_103a0e28 at 0x103fdb24; constructor f_1046c6a4 installs concrete RC vptr 0x10ed270c. Extra f_100daab0 reads +0x847/+0x849, calls leaf f_1011fa00 and conditionally updates sonar cache +0x930; that extra field is not used in the current-volume average.",
       "evidence": [
        {
         "type": "firmware",
@@ -61664,26 +61643,12 @@
         "build": "86.10-80260",
         "address": "0x100dab6c",
         "notes": "Conditional sonar cache update, not an unresolved snapshot dependency."
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x103fdb24",
-        "notes": "Resolved concrete renderer input, independent of request-session classes."
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x100dab6c",
-        "notes": "Conditional sonar cache update, not an unresolved snapshot dependency."
        }
       ]
      },
      "side_effects": [
       {
-       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter.",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter.",
        "evidence": [
         {
          "type": "firmware",
@@ -61698,20 +61663,13 @@
          "build": "86.10-80260",
          "address": "0x100daab0",
          "notes": "Full helper through 0x100daba8 reads configuration bytes, calls leaf f_1011fa00, compares/logs/stores +0x930."
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x100daab0",
-         "notes": "Full helper through 0x100daba8 reads configuration bytes, calls leaf f_1011fa00, compares/logs/stores +0x930."
         }
        ],
        "todo": "Established: concrete renderer input, extra sonar snapshot/cache behavior and GRC cache/dirty updates are traced. Residual: enumerate concrete observer effects at 0x103a5de4 and actual source sender delivery after f_10678c50, not the cancellation capture manager."
       }
      ],
      "events_triggered": {
-      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack.",
       "evidence": [
        {
         "type": "firmware",
