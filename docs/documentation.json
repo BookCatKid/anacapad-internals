@@ -64892,7 +64892,7 @@
      ]
     },
     "StartAutoplay": {
-     "description": "Starts an autoplay program (e.g. alarm-triggered playback). Impl f_102e17a8 is a thin 718-gate tail-calling worker f_102e14e0: sibling of the RunAlarm worker family: it parses ProgramURI/program fields via f_10c3cbfc (parse failure -> 402), checks additional flags, and submits the autoplay session.",
+     "description": "Attempts autoplay with the supplied URI, metadata and volume settings. An override bit stops the action with 810. Otherwise it can run group setup, VLI-specific processing, or common startup, and returns success without reporting the downstream startup result.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fc6f4",
@@ -64928,7 +64928,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Must be zero; a nonzero parsed value returns 718 before the worker.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -64945,7 +64945,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "validation": "Must be zero; a nonzero parsed value returns 718 before the worker.",
        "evidence": [
         {
          "type": "firmware",
@@ -64967,19 +64967,20 @@
          "build": "86.10-80260",
          "function": "0x102e17a8",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e17b4",
+         "notes": "Both engine tables bind +0x9c to f_102e17a8. It returns 718 for nonzero parsed ID and otherwise strips the ID and tail-calls f_102e14e0 with the other inputs at 0x102e17d8.",
+         "function": "0x102e17a8"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +156 (site 0x102fc840) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +156 (obj r5-in, call site 0x102fc840); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "ProgramURI": {
-       "description": "Program definition parsed by f_10c3cbfc - rejection faults 402.",
+       "description": "Materialized as a string; used for VLI parsing/classification and forwarded to the startup path. This worker has no separate program-parse SOAP fault.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -64996,7 +64997,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Program definition parsed by f_10c3cbfc - rejection faults 402.",
+       "validation": "Materialized as a string; used for VLI parsing/classification and forwarded to the startup path. This worker has no separate program-parse SOAP fault.",
        "evidence": [
         {
          "type": "firmware",
@@ -65018,20 +65019,45 @@
          "build": "86.10-80260",
          "function": "0x102e14e0",
          "notes": "install path decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fc840",
+         "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+         "function": "0x102fc6f4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1608",
+         "notes": "Calls f_10687e54 with ProgramURI, zero optional pointers, and a 49-byte scratch buffer for VLI parsing. It also calls f_10424ac4 with ProgramMetaData and its own 4097-byte output buffer. Neither helper return is used as a SOAP validation result.",
+         "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1668",
+         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+         "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e168c",
+         "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+         "function": "0x102e14e0"
         }
        ],
        "notes": null,
-       "buf_cap": 1025,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramURI` is parsed then forwarded verbatim to r5-in vfunc +156 (site 0x102fc840) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramURI` = verbatim forward to impl vfunc +156 (obj r5-in, call site 0x102fc840); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1025
       },
       "ProgramMetaData": {
-       "description": "Forwarded to shared autoplay worker f_102e14e0.",
+       "description": "Materialized as a string; passed to f_10424ac4 for preparation and to the selected startup helper.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -65048,7 +65074,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared autoplay worker f_102e14e0.",
+       "validation": "Materialized as a string; passed to f_10424ac4 for preparation and to the selected startup helper.",
        "evidence": [
         {
          "type": "firmware",
@@ -65063,20 +65089,37 @@
          "build": "86.10-80260",
          "address": "0x10eaaea0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fc840",
+         "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+         "function": "0x102fc6f4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1608",
+         "notes": "Calls f_10687e54 with ProgramURI, zero optional pointers, and a 49-byte scratch buffer for VLI parsing. It also calls f_10424ac4 with ProgramMetaData and its own 4097-byte output buffer. Neither helper return is used as a SOAP validation result.",
+         "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1668",
+         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+         "function": "0x102e14e0"
         }
        ],
        "notes": null,
-       "buf_cap": 4097,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramMetaData` is parsed then forwarded verbatim to r5-in vfunc +156 (site 0x102fc840) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramMetaData` = verbatim forward to impl vfunc +156 (obj r5-in, call site 0x102fc840); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 4097
       },
       "Volume": {
-       "description": "Forwarded to shared autoplay worker f_102e14e0.",
+       "description": "Materialized as ui2 and forwarded without a clamp at this stage in r8 to f_102da774; saved there as a halfword at stack +0x56. The mode-zero VLI helper does not receive it.",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -65093,7 +65136,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared autoplay worker f_102e14e0.",
+       "validation": "Materialized as ui2 and forwarded without a clamp at this stage in r8 to f_102da774; saved there as a halfword at stack +0x56. The mode-zero VLI helper does not receive it.",
        "evidence": [
         {
          "type": "firmware",
@@ -65115,19 +65158,28 @@
          "build": "86.10-80260",
          "function": "0x102e14e0",
          "notes": "worker disasm"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fc840",
+         "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+         "function": "0x102fc6f4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1668",
+         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+         "function": "0x102e14e0"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561478) and declared constraints are documented.",
-        "Residual: `Volume` is parsed then forwarded verbatim to r5-in vfunc +156 (site 0x102fc840) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `Volume` = verbatim forward to impl vfunc +156 (obj r5-in, call site 0x102fc840); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "IncludeLinkedZones": {
-       "description": "Forwarded to shared autoplay worker f_102e14e0.",
+       "description": "Materialized as boolean. With an initially nonzero mode, a false value checks the linked-room count and can trigger standalone coordination; true bypasses that check.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -65144,7 +65196,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared autoplay worker f_102e14e0.",
+       "validation": "Materialized as boolean. With an initially nonzero mode, a false value checks the linked-room count and can trigger standalone coordination; true bypasses that check.",
        "evidence": [
         {
          "type": "firmware",
@@ -65166,19 +65218,28 @@
          "build": "86.10-80260",
          "function": "0x102e14e0",
          "notes": "worker"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fc840",
+         "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+         "function": "0x102fc6f4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e16a0",
+         "notes": "Initial source mode 0 invokes f_102d4e80 unconditionally. If mode is nonzero and IncludeLinkedZones is false, calls f_10392644 to count linked rooms, invoking f_102d4e80 only on a nonzero count. If that flag is true, skips that count/promotion step.",
+         "function": "0x102e14e0"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `IncludeLinkedZones` is parsed then forwarded verbatim to r5-in vfunc +156 (site 0x102fc840) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `IncludeLinkedZones` = verbatim forward to impl vfunc +156 (obj r5-in, call site 0x102fc840); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "ResetVolumeAfter": {
-       "description": "Forwarded to shared autoplay worker f_102e14e0.",
+       "description": "Materialized as boolean. The common startup receives it in r10; the mode-zero VLI branch does not pass it.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -65195,7 +65256,7 @@
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "Forwarded to shared autoplay worker f_102e14e0.",
+       "validation": "Materialized as boolean. The common startup receives it in r10; the mode-zero VLI branch does not pass it.",
        "evidence": [
         {
          "type": "firmware",
@@ -65217,16 +65278,25 @@
          "build": "86.10-80260",
          "function": "0x102e14e0",
          "notes": "worker"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fc840",
+         "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+         "function": "0x102fc6f4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1668",
+         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+         "function": "0x102e14e0"
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `ResetVolumeAfter` is parsed then forwarded verbatim to r5-in vfunc +156 (site 0x102fc840) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ResetVolumeAfter` = verbatim forward to impl vfunc +156 (obj r5-in, call site 0x102fc840); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       }
      },
      "outputs": {},
@@ -65243,101 +65313,188 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v[+?]",
+      "description": "The wrapper must materialize all six inputs. The engine requires ID zero and a clear autoplay override bit.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc6f4",
-        "notes": "req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fc840",
+        "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+        "function": "0x102fc6f4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e17b4",
+        "notes": "Both engine tables bind +0x9c to f_102e17a8. It returns 718 for nonzero parsed ID and otherwise strips the ID and tail-calls f_102e14e0 with the other inputs at 0x102e17d8.",
+        "function": "0x102e17a8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e154c",
+        "notes": "Under impl+0x458, impl+0x465c bit 0 suppresses autoplay and returns 810 at 0x102e1590, before any program URI or topology work.",
+        "function": "0x102e14e0"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
+      "description": "Initial engine mode, IncludeLinkedZones and the linked-room count determine whether to run group setup. ProgramURI classification and the resulting mode select VLI or common startup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc6f4",
-        "notes": "member vfunc calls: ['r30 v[+?]']"
+        "address": "0x102e16a0",
+        "notes": "Initial source mode 0 invokes f_102d4e80 unconditionally. If mode is nonzero and IncludeLinkedZones is false, calls f_10392644 to count linked rooms, invoking f_102d4e80 only on a nonzero count. If that flag is true, skips that count/promotion step.",
+        "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e1608",
+        "notes": "Calls f_10687e54 with ProgramURI, zero optional pointers, and a 49-byte scratch buffer for VLI parsing. It also calls f_10424ac4 with ProgramMetaData and its own 4097-byte output buffer. Neither helper return is used as a SOAP validation result.",
+        "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e1668",
+        "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+        "function": "0x102e14e0"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "description": "Non-override path can build new coordination state, prepare a VLI endpoint, and attempt playback. When coordination setup was invoked, forwards the group URI to peers after unlocking.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102fc6f4",
-         "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+         "address": "0x102e16a0",
+         "notes": "Initial source mode 0 invokes f_102d4e80 unconditionally. If mode is nonzero and IncludeLinkedZones is false, calls f_10392644 to count linked rooms, invoking f_102d4e80 only on a nonzero count. If that flag is true, skips that count/promotion step.",
+         "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1668",
+         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+         "function": "0x102e14e0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102e1698",
+         "notes": "After releasing impl+0x458, if the f_102d4e80 setup path was used, calls f_102e0fb0 and returns zero. That helper builds x-rincon:%s and forwards AVTransport:1 SetAVTransportURI to group targets (0x102e1090, 0x102e10e4, 0x102e1340); this is not a local event-publish call.",
+         "function": "0x102e14e0"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Map the f_102da774 volume apply/restore choices and the mode-zero f_102c3a34 sink lifecycle. Do not infer successful playback or volume changes from SOAP success."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The peer-update helper forwards a SetAVTransportURI RPC, not a LastChange event. Local notifications can originate from the called setup or startup operations.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc6f4",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102e16a0",
+        "notes": "Initial source mode 0 invokes f_102d4e80 unconditionally. If mode is nonzero and IncludeLinkedZones is false, calls f_10392644 to count linked rooms, invoking f_102d4e80 only on a nonzero count. If that flag is true, skips that count/promotion step.",
+        "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e1668",
+        "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+        "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e1698",
+        "notes": "After releasing impl+0x458, if the f_102d4e80 setup path was used, calls f_102e0fb0 and returns zero. That helper builds x-rincon:%s and forwards AVTransport:1 SetAVTransportURI to group targets (0x102e1090, 0x102e10e4, 0x102e1340); this is not a local event-publish call.",
+        "function": "0x102e14e0"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Identify local updated transport fields and their publication conditions in f_102d4e80, f_102c3a34 and f_102da774."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "May run group setup before source selection, then follows the resulting transport mode and VLI classification.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc6f4",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "address": "0x102e16a0",
+        "notes": "Initial source mode 0 invokes f_102d4e80 unconditionally. If mode is nonzero and IncludeLinkedZones is false, calls f_10392644 to count linked rooms, invoking f_102d4e80 only on a nonzero count. If that flag is true, skips that count/promotion step.",
+        "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e1668",
+        "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+        "function": "0x102e14e0"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace actual transport-state writes in the mode-zero and nonzero startup helpers and separate them from return-zero-without-start cases."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "402 only if request materialization fails, 718 on nonzero parsed ID, and 810 if the autoplay override bit is set. All other regular returns from this action are zero; downstream failures are not forwarded.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc6f4",
-        "notes": "commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "address": "0x102fc840",
+        "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+        "function": "0x102fc6f4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e17b4",
+        "notes": "Both engine tables bind +0x9c to f_102e17a8. It returns 718 for nonzero parsed ID and otherwise strips the ID and tail-calls f_102e14e0 with the other inputs at 0x102e17d8.",
+        "function": "0x102e17a8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e154c",
+        "notes": "Under impl+0x458, impl+0x465c bit 0 suppresses autoplay and returns 810 at 0x102e1590, before any program URI or topology work.",
+        "function": "0x102e14e0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e168c",
+        "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+        "function": "0x102e14e0"
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -65382,32 +65539,29 @@
       {
        "code": 402,
        "code_expr": "vret(r5-in,+0x9c)",
-       "meaning": "Program fields failed the f_10c3cbfc parse inside the worker.",
+       "meaning": "Required request materialization failed. The autoplay worker does not return 402.",
        "fault_sites": [
         "0x102fc85c"
        ],
        "conditions": [
         {
-         "description": "f_10c3cbfc returned nonzero on the program fields",
+         "description": "Required request materialization failed. The autoplay worker does not return 402.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102e17a8",
-           "notes": "bc at 0x102e18b4 -> r3=0x192"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
-         "evidence": [
+           "address": "0x102fc840",
+           "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+           "function": "0x102fc6f4"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102fc6f4",
-           "notes": "parse vcall +0x8 then fault path"
+           "address": "0x102e168c",
+           "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+           "function": "0x102e14e0"
           }
          ]
         }
@@ -65417,40 +65571,44 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102e17a8",
-         "notes": "bc at 0x102e18b4 -> r3=0x192"
+         "address": "0x102fc840",
+         "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+         "function": "0x102fc6f4"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc6f4",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102e168c",
+         "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+         "function": "0x102e14e0"
         }
        ]
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x9c)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: autoplay worker f_102e14e0 domain {0x32a=810 (override-suppression), callee-fwd rcs}",
+       "meaning": "No additional code is propagated; the non-override autoplay worker returns zero regardless of the startup helper's return.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "the worker produced a code not covered by the gates",
+         "description": "No additional code is propagated; the non-override autoplay worker returns zero regardless of the startup helper's return.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102e17d8",
-           "notes": "passthrough path"
+           "address": "0x102e1668",
+           "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+           "function": "0x102e14e0"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102e14e0",
-           "notes": "rc site"
+           "address": "0x102e168c",
+           "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+           "function": "0x102e14e0"
           }
          ]
         }
@@ -65460,24 +65618,22 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc85c",
-         "notes": "impl vret passthrough site"
+         "address": "0x102e1668",
+         "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+         "function": "0x102e14e0"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102e14e0",
-         "notes": "worker rc sites decoded"
+         "address": "0x102e168c",
+         "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+         "function": "0x102e14e0"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x102e17a8 exits=[402, 718]; autoplay worker f_102e14e0 rc surfaced | worker literal bound [810] (worker_err_literals.json)",
        "literal_bound": [
         810
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x9c); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
@@ -65532,12 +65688,75 @@
        "build": "86.10-80260",
        "function": "0x102e17a8",
        "notes": "AVT impl vtable 0x10eaf2ec slot +0x9c entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fc840",
+       "notes": "Calls engine +0x9c with parsed ID and five arguments: URI, metadata, ui2 Volume, boolean IncludeLinkedZones and boolean ResetVolumeAfter. Request materialization at 0x102fc80c can return 402, engine errors go to request +0x14, and zero commits no outputs at 0x102fc8a4.",
+       "function": "0x102fc6f4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e17b4",
+       "notes": "Both engine tables bind +0x9c to f_102e17a8. It returns 718 for nonzero parsed ID and otherwise strips the ID and tail-calls f_102e14e0 with the other inputs at 0x102e17d8.",
+       "function": "0x102e17a8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e154c",
+       "notes": "Under impl+0x458, impl+0x465c bit 0 suppresses autoplay and returns 810 at 0x102e1590, before any program URI or topology work.",
+       "function": "0x102e14e0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e1608",
+       "notes": "Calls f_10687e54 with ProgramURI, zero optional pointers, and a 49-byte scratch buffer for VLI parsing. It also calls f_10424ac4 with ProgramMetaData and its own 4097-byte output buffer. Neither helper return is used as a SOAP validation result.",
+       "function": "0x102e14e0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e16a0",
+       "notes": "Initial source mode 0 invokes f_102d4e80 unconditionally. If mode is nonzero and IncludeLinkedZones is false, calls f_10392644 to count linked rooms, invoking f_102d4e80 only on a nonzero count. If that flag is true, skips that count/promotion step.",
+       "function": "0x102e14e0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e1668",
+       "notes": "A VLI URI runs f_1039561c. Resulting mode 0 then takes f_102c3a34 for VLI (no common start for non-VLI); nonzero mode runs f_102da774 with the original URI, metadata, ui2 Volume in r8 and ResetVolumeAfter in r10. In f_102da774 the latter two are saved at 0x102da7ec and 0x102da784.",
+       "function": "0x102e14e0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e1698",
+       "notes": "After releasing impl+0x458, if the f_102d4e80 setup path was used, calls f_102e0fb0 and returns zero. That helper builds x-rincon:%s and forwards AVTransport:1 SetAVTransportURI to group targets (0x102e1090, 0x102e10e4, 0x102e1340); this is not a local event-publish call.",
+       "function": "0x102e14e0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102e168c",
+       "notes": "The non-override tail always clears r31 before returning at 0x102e15a4; f_102da774, f_102c3a34 and f_102e0fb0 results are not assigned to r31. No f_10c3cbfc call occurs in this worker; the 402 listed for that parser belongs to another action.",
+       "function": "0x102e14e0"
       }
      ],
      "notes": "None Suppression: engine+0x465c \"operation overridden\" flag returns 0x32a (810) with avt_impl log \"preventing autoplay because operation is overridden\". Mode(engine+0x4654)==0 runs a full session reset before installing the stored autoplay URI via f_102da774.",
      "todo": [
-      "Established: dispatch to handler 0x102fc6f4; the suppression mechanism - engine+0x465c 'operation overridden' flag faults 810; Mode(engine+0x4654)==0 runs a full session reset.",
-      "Residual: the +0x4654 mode semantics and who sets the overridden flag. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Trace the full URI and metadata preprocessing in f_10687e54/f_10424ac4, including malformed or empty program strings, and the effect of Volume and ResetVolumeAfter inside f_102da774. Worker return behavior and topology gates are verified."
      ],
      "resolved_findings": [
       "Resolved: +0x4654 is the autoplay-mode field written by the autoplay-mode producers documented under mp_autoplay; the overridden flag is set when a user op supersedes autoplay.",
