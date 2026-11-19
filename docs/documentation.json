@@ -85216,7 +85216,7 @@
    },
    "actions": {
     "Browse": {
-     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum. Q children use queue order and unsigned paging, with no independent request cap or SortCriteria validation; the native 16-bit queue length is a storage bound, not a paging clamp. The local zone-player exact AI: provider is concretely bound to metadata/children stubs returning deferred backend701, not an unconditional early SOAP701.",
+     "description": "Browses metadata or direct children using bound cd_impl, with a preflight and a separate deferred Result executor. The top-level ObjectID resolver recognizes 0, A:, S:, Q:, R:, AI:, SQ: and FV:, not an arbitrary URI. The root enumeration and outer paging/response machinery are traced; detailed per-container enumeration and item serialization remain explicitly scoped below. R/FV node browsing is traced through its concrete SAX callbacks: Filter and SortCriteria are ignored, eligible entries retain stored order and paging does not impose an independent maximum. Q children use queue order and unsigned paging, with no independent request cap or SortCriteria validation; the native 16-bit queue length is a storage bound, not a paging clamp. The local zone-player exact AI: provider is concretely bound to metadata/children stubs returning deferred backend701, not an unconditional early SOAP701. S child enumerations ignore SortCriteria; indexed child UpdateID is1, remote child UpdateID is0. Remote iterator false maps to deferred720 and true to success, as verified from raw isel.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306b3c",
@@ -85321,6 +85321,38 @@
         "function": "0x10208dcc",
         "address": "0x10208f54",
         "notes": "Concrete local AI root vptr10ea129c entries+8/+0xc are10208ac4/10208ae4; these adjust this by-0x11c and tail-call10208aac/10208acc. Both stubs return701 unconditionally, with no output writes, serialization, Filter/Sort/paging access, content mutation or notifier. Missing provider still makes resolver10348d58 returnNULL and early SOAP701. Present local exact AI: passes object preflight, then deferred metadata/children returns701; coordinator10305a98 logs it rather than converting it into an early SOAP fault. Therefore the stub does NOT prove an unconditional SOAP701: context counters remain their initialized zeros and DIDL body is empty. Zone destructor10209df4 installs10ea11f4 at+0x9a4, but that destructor store is not evidence of a live suffix-zone vptr; its constructor/derived overrides remain to trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10347138",
+        "address": "0x10347368",
+        "notes": "S child adapter percent-decodes path capacity0x401, locks/indexes through10107e20/101068e4 and takes100fe0e4 for indexed paths. Remote branch builds x-file-cifs://, zeroes UpdateID and TotalMatches, creates now+5000ms deadline, and compares Filter exactly with dc:title,res to set receiver+0x24 basic-metadata flag. SortCriteria is only forwarded to indexed worker, whose incoming r8 is overwritten at100fe160 without use; remote branch does not consume it. IMPORTANT status correction: raw10347368=7feaff9e is isel RT31,RA10,RB31,BC30, after cmpwi cr7,r3,0 and r10=720; r31 is already0. Hence FALSE/zero remote iterator ->backend720; NONZERO/true ->success0, not the reverse. Dispatcher104634c4 returns0 for unsupported format; CIFS-directory worker10460814 returns1. Deferred status is logged by outer coordinator, not automatically an early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034b4f4",
+        "address": "0x1034bc24",
+        "notes": "Concrete remote receiver10ebb678: +8=1034b4f4 row callback; +0xc=1034af4c page-interest predicate; +0x10=1034af88 announced-length callback; +0x14=1034afa4 associated-pointer setter. State+4=start,+8=remaining count,+0xc=DIDL writer,+0x10=parent/ObjectID prefix,+0x14=cached prefix length,+0x18=TotalMatches output,+0x1c=cursor,+0x20=associated metadata,+0x24=basic Filter,+0x25=known-length flag.1034af88 marks known length and copies supplied count to TotalMatches. Otherwise each row increments TotalMatches at1034b5ec/f8 even outside page, and every row increments cursor1034b584..90. Rows with cursor<start or remaining=0 skip serialization; selected row opens item1054b068, builds resource/metadata via10421024, closes/counts1054b24c at1034baa8 and decrements remaining1034bab4. NumberReturned comes from writer completions, not TotalMatches. Raw1034af70=7c604f9e is isel RT3,RA0,RB9,BC30: page-interest returns0 before start or when remaining=0, else1 (RA0 means zero); subsequent SH0/MB24/ME31 is a mask, not a shift. Whether each format walker scans all remaining rows or supplies an announced length must still be bound before promising complete TotalMatches for every format."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104634c4",
+        "address": "0x10463758",
+        "notes": "Remote dispatcher uses ASX-family10460320 ->10461e04; M3U/M3U8104603c4 ->10462c80; PLS extension or exact trailing /pls10460448 ->10463164; WPL104604ec ->10462f54; CIFS-directory10460708 ->10460814; saved-queue10460550 ->1047851c. PLS and WPL are separate bounded helpers (10460448 ends104604ec). No Filter/Sort list parsing occurs in dispatcher. WPL worker resets deadline to now+15000ms at1046306c..80, so adapter5000ms is NOT a universal end-to-end deadline. WPL reads4096-byte chunks through10389cd4/virtual+8 into SAX10ed1770; PLS passes into104611c8; M3U uses reader/helper10460764 and ASX uses10545064/10546520. Format-specific grammar, full receiver call accounting and subordinate metadata helpers remain static work, not runtime-only unknowns."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100fe0e4",
+        "address": "0x100fe7b4",
+        "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
        }
       ]
      },
@@ -85875,7 +85907,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific. R/FV reads userradio.xml with 4096-byte reads and a 10-second deadline; its provider version is not the global SystemUpdateID. Malformed stored XML can yield partial output because the existing-file SAX status is ignored. Q read holds wait for mutation flag+0x26b4 and increment reader count+0x26b0 under mutex+0x25d0; release signals when the last reader exits. Optional u16 remap+0x26c4 selected by+0x26dc bit0 changes resource lookup, not visible position/ID ordering. Local AI provider is either absent or the object constructed by10208dcc; its exact-root read stubs leave output words unchanged.",
+      "description": "Directory graph rooted at impl+0x168; root count +0x374 and children array +0x358, queue directory +0x354, favorites +0x34c. Root UpdateID is global cd_impl counter; other node version sources are container-specific. R/FV reads userradio.xml with 4096-byte reads and a 10-second deadline; its provider version is not the global SystemUpdateID. Malformed stored XML can yield partial output because the existing-file SAX status is ignored. Q read holds wait for mutation flag+0x26b4 and increment reader count+0x26b0 under mutex+0x25d0; release signals when the last reader exits. Optional u16 remap+0x26c4 selected by+0x26dc bit0 changes resource lookup, not visible position/ID ordering. Local AI provider is either absent or the object constructed by10208dcc; its exact-root read stubs leave output words unchanged. Indexed S child enumeration reads directory/file catalog under share-index locking and returns literal version1; remote receiver starts version0 and reports announced total length or callback rows seen. Format workers can replace the initial deadline (WPL15seconds).",
       "evidence": [
        {
         "type": "firmware",
@@ -85907,7 +85939,7 @@
         "build": "86.10-80260",
         "function": "0x10347138",
         "address": "0x10347220",
-        "notes": "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Nonzero remote enumeration result normalized720. Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter."
+        "notes": "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Zero/false remote enumeration result maps to720; nonzero/true maps to success0 (raw isel10347368). Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter."
        },
        {
         "type": "firmware",
@@ -85988,6 +86020,38 @@
         "function": "0x10208dcc",
         "address": "0x10208f54",
         "notes": "Concrete local AI root vptr10ea129c entries+8/+0xc are10208ac4/10208ae4; these adjust this by-0x11c and tail-call10208aac/10208acc. Both stubs return701 unconditionally, with no output writes, serialization, Filter/Sort/paging access, content mutation or notifier. Missing provider still makes resolver10348d58 returnNULL and early SOAP701. Present local exact AI: passes object preflight, then deferred metadata/children returns701; coordinator10305a98 logs it rather than converting it into an early SOAP fault. Therefore the stub does NOT prove an unconditional SOAP701: context counters remain their initialized zeros and DIDL body is empty. Zone destructor10209df4 installs10ea11f4 at+0x9a4, but that destructor store is not evidence of a live suffix-zone vptr; its constructor/derived overrides remain to trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10347138",
+        "address": "0x10347368",
+        "notes": "S child adapter percent-decodes path capacity0x401, locks/indexes through10107e20/101068e4 and takes100fe0e4 for indexed paths. Remote branch builds x-file-cifs://, zeroes UpdateID and TotalMatches, creates now+5000ms deadline, and compares Filter exactly with dc:title,res to set receiver+0x24 basic-metadata flag. SortCriteria is only forwarded to indexed worker, whose incoming r8 is overwritten at100fe160 without use; remote branch does not consume it. IMPORTANT status correction: raw10347368=7feaff9e is isel RT31,RA10,RB31,BC30, after cmpwi cr7,r3,0 and r10=720; r31 is already0. Hence FALSE/zero remote iterator ->backend720; NONZERO/true ->success0, not the reverse. Dispatcher104634c4 returns0 for unsupported format; CIFS-directory worker10460814 returns1. Deferred status is logged by outer coordinator, not automatically an early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034b4f4",
+        "address": "0x1034bc24",
+        "notes": "Concrete remote receiver10ebb678: +8=1034b4f4 row callback; +0xc=1034af4c page-interest predicate; +0x10=1034af88 announced-length callback; +0x14=1034afa4 associated-pointer setter. State+4=start,+8=remaining count,+0xc=DIDL writer,+0x10=parent/ObjectID prefix,+0x14=cached prefix length,+0x18=TotalMatches output,+0x1c=cursor,+0x20=associated metadata,+0x24=basic Filter,+0x25=known-length flag.1034af88 marks known length and copies supplied count to TotalMatches. Otherwise each row increments TotalMatches at1034b5ec/f8 even outside page, and every row increments cursor1034b584..90. Rows with cursor<start or remaining=0 skip serialization; selected row opens item1054b068, builds resource/metadata via10421024, closes/counts1054b24c at1034baa8 and decrements remaining1034bab4. NumberReturned comes from writer completions, not TotalMatches. Raw1034af70=7c604f9e is isel RT3,RA0,RB9,BC30: page-interest returns0 before start or when remaining=0, else1 (RA0 means zero); subsequent SH0/MB24/ME31 is a mask, not a shift. Whether each format walker scans all remaining rows or supplies an announced length must still be bound before promising complete TotalMatches for every format."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104634c4",
+        "address": "0x10463758",
+        "notes": "Remote dispatcher uses ASX-family10460320 ->10461e04; M3U/M3U8104603c4 ->10462c80; PLS extension or exact trailing /pls10460448 ->10463164; WPL104604ec ->10462f54; CIFS-directory10460708 ->10460814; saved-queue10460550 ->1047851c. PLS and WPL are separate bounded helpers (10460448 ends104604ec). No Filter/Sort list parsing occurs in dispatcher. WPL worker resets deadline to now+15000ms at1046306c..80, so adapter5000ms is NOT a universal end-to-end deadline. WPL reads4096-byte chunks through10389cd4/virtual+8 into SAX10ed1770; PLS passes into104611c8; M3U uses reader/helper10460764 and ASX uses10545064/10546520. Format-specific grammar, full receiver call accounting and subordinate metadata helpers remain static work, not runtime-only unknowns."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100fe0e4",
+        "address": "0x100fe7b4",
+        "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
        }
       ],
       "todo": [
@@ -86048,7 +86112,7 @@
         }
        ],
        "todo": [
-        "Remaining: Q1014a70c metadata/cache helpers, S100fe0e4 and104634c4/receiver10ebb678, SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+        "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
        ]
       }
      ],
@@ -86105,7 +86169,7 @@
        }
       ],
       "todo": [
-       "Remaining: Q1014a70c metadata/cache helpers, S100fe0e4 and104634c4/receiver10ebb678, SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+       "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ10478e04/10478618 callbacks and A102a21d8 subordinate cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
       ]
      },
      "state_transitions": {
@@ -86138,7 +86202,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults. R/FV deferred backend statuses include 710 for invalid classification, 720 for snapshot-open failure and 701 for missing individual metadata; these are not new early SOAP faults. Q child queue-name mismatch returns deferred backend701 before filling output pointers; exhausted paging emits no children, not a new fault. A present local AI: root returns backend701 only during deferred execution; absent provider returns early SOAP701. Do not conflate these paths.",
+      "description": "Early errors 402/701 raise SOAP fault through request+0x14. Success registers deferred outputs and invokes request+0x10 at 0x103046f0 (f_10730714 -> f_10730524). Result executes f_10305dd0 -> f_10305a98 before numeric output serialization. Deferred child/metadata return codes are logged at 0x10305d80/0x10305d08, not forwarded through the early fault branch; callback finalizes DIDL and releases object. Do not publish backend literal scans as additional SOAP faults. R/FV deferred backend statuses include 710 for invalid classification, 720 for snapshot-open failure and 701 for missing individual metadata; these are not new early SOAP faults. Q child queue-name mismatch returns deferred backend701 before filling output pointers; exhausted paging emits no children, not a new fault. A present local AI: root returns backend701 only during deferred execution; absent provider returns early SOAP701. Do not conflate these paths. S remote iterator boolean false maps to backend720; true maps to0. Indexed overlong copied path returns backend402. These deferred results do not become early SOAP faults.",
       "evidence": [
        {
         "type": "firmware",
@@ -86195,6 +86259,22 @@
         "function": "0x10208dcc",
         "address": "0x10208f54",
         "notes": "Concrete local AI root vptr10ea129c entries+8/+0xc are10208ac4/10208ae4; these adjust this by-0x11c and tail-call10208aac/10208acc. Both stubs return701 unconditionally, with no output writes, serialization, Filter/Sort/paging access, content mutation or notifier. Missing provider still makes resolver10348d58 returnNULL and early SOAP701. Present local exact AI: passes object preflight, then deferred metadata/children returns701; coordinator10305a98 logs it rather than converting it into an early SOAP fault. Therefore the stub does NOT prove an unconditional SOAP701: context counters remain their initialized zeros and DIDL body is empty. Zone destructor10209df4 installs10ea11f4 at+0x9a4, but that destructor store is not evidence of a live suffix-zone vptr; its constructor/derived overrides remain to trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10347138",
+        "address": "0x10347368",
+        "notes": "S child adapter percent-decodes path capacity0x401, locks/indexes through10107e20/101068e4 and takes100fe0e4 for indexed paths. Remote branch builds x-file-cifs://, zeroes UpdateID and TotalMatches, creates now+5000ms deadline, and compares Filter exactly with dc:title,res to set receiver+0x24 basic-metadata flag. SortCriteria is only forwarded to indexed worker, whose incoming r8 is overwritten at100fe160 without use; remote branch does not consume it. IMPORTANT status correction: raw10347368=7feaff9e is isel RT31,RA10,RB31,BC30, after cmpwi cr7,r3,0 and r10=720; r31 is already0. Hence FALSE/zero remote iterator ->backend720; NONZERO/true ->success0, not the reverse. Dispatcher104634c4 returns0 for unsupported format; CIFS-directory worker10460814 returns1. Deferred status is logged by outer coordinator, not automatically an early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x100fe0e4",
+        "address": "0x100fe7b4",
+        "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
        }
       ]
      },
@@ -86395,7 +86475,7 @@
        "build": "86.10-80260",
        "function": "0x10347138",
        "address": "0x10347220",
-       "notes": "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Nonzero remote enumeration result normalized720. Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter."
+       "notes": "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Zero/false remote enumeration result maps to720; nonzero/true maps to success0 (raw isel10347368). Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter."
       },
       {
        "type": "firmware",
@@ -86484,16 +86564,48 @@
        "function": "0x10208dcc",
        "address": "0x10208f54",
        "notes": "Concrete local AI root vptr10ea129c entries+8/+0xc are10208ac4/10208ae4; these adjust this by-0x11c and tail-call10208aac/10208acc. Both stubs return701 unconditionally, with no output writes, serialization, Filter/Sort/paging access, content mutation or notifier. Missing provider still makes resolver10348d58 returnNULL and early SOAP701. Present local exact AI: passes object preflight, then deferred metadata/children returns701; coordinator10305a98 logs it rather than converting it into an early SOAP fault. Therefore the stub does NOT prove an unconditional SOAP701: context counters remain their initialized zeros and DIDL body is empty. Zone destructor10209df4 installs10ea11f4 at+0x9a4, but that destructor store is not evidence of a live suffix-zone vptr; its constructor/derived overrides remain to trace."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10347138",
+       "address": "0x10347368",
+       "notes": "S child adapter percent-decodes path capacity0x401, locks/indexes through10107e20/101068e4 and takes100fe0e4 for indexed paths. Remote branch builds x-file-cifs://, zeroes UpdateID and TotalMatches, creates now+5000ms deadline, and compares Filter exactly with dc:title,res to set receiver+0x24 basic-metadata flag. SortCriteria is only forwarded to indexed worker, whose incoming r8 is overwritten at100fe160 without use; remote branch does not consume it. IMPORTANT status correction: raw10347368=7feaff9e is isel RT31,RA10,RB31,BC30, after cmpwi cr7,r3,0 and r10=720; r31 is already0. Hence FALSE/zero remote iterator ->backend720; NONZERO/true ->success0, not the reverse. Dispatcher104634c4 returns0 for unsupported format; CIFS-directory worker10460814 returns1. Deferred status is logged by outer coordinator, not automatically an early SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1034b4f4",
+       "address": "0x1034bc24",
+       "notes": "Concrete remote receiver10ebb678: +8=1034b4f4 row callback; +0xc=1034af4c page-interest predicate; +0x10=1034af88 announced-length callback; +0x14=1034afa4 associated-pointer setter. State+4=start,+8=remaining count,+0xc=DIDL writer,+0x10=parent/ObjectID prefix,+0x14=cached prefix length,+0x18=TotalMatches output,+0x1c=cursor,+0x20=associated metadata,+0x24=basic Filter,+0x25=known-length flag.1034af88 marks known length and copies supplied count to TotalMatches. Otherwise each row increments TotalMatches at1034b5ec/f8 even outside page, and every row increments cursor1034b584..90. Rows with cursor<start or remaining=0 skip serialization; selected row opens item1054b068, builds resource/metadata via10421024, closes/counts1054b24c at1034baa8 and decrements remaining1034bab4. NumberReturned comes from writer completions, not TotalMatches. Raw1034af70=7c604f9e is isel RT3,RA0,RB9,BC30: page-interest returns0 before start or when remaining=0, else1 (RA0 means zero); subsequent SH0/MB24/ME31 is a mask, not a shift. Whether each format walker scans all remaining rows or supplies an announced length must still be bound before promising complete TotalMatches for every format."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104634c4",
+       "address": "0x10463758",
+       "notes": "Remote dispatcher uses ASX-family10460320 ->10461e04; M3U/M3U8104603c4 ->10462c80; PLS extension or exact trailing /pls10460448 ->10463164; WPL104604ec ->10462f54; CIFS-directory10460708 ->10460814; saved-queue10460550 ->1047851c. PLS and WPL are separate bounded helpers (10460448 ends104604ec). No Filter/Sort list parsing occurs in dispatcher. WPL worker resets deadline to now+15000ms at1046306c..80, so adapter5000ms is NOT a universal end-to-end deadline. WPL reads4096-byte chunks through10389cd4/virtual+8 into SAX10ed1770; PLS passes into104611c8; M3U uses reader/helper10460764 and ASX uses10545064/10546520. Format-specific grammar, full receiver call accounting and subordinate metadata helpers remain static work, not runtime-only unknowns."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100fe0e4",
+       "address": "0x100fe7b4",
+       "notes": "Indexed S child worker copies ObjectID/path into0x401 buffer and returns backend402 when strlen>1023 at100fe178/180. SortCriteria incoming r8 is overwritten by canary load100fe160 without consumption. Exact dc:title,res compared100fe20c. TotalMatches initialized0 at100fe214; enumerates catalog directories10105c18 then entries10105b3c, incrementing TotalMatches regardless of page, while unsigned start/count gates emission100fe298/a8 and100fe3d0/e0. Directory containers serialize dc:title, object.container, x-rincon-playlist resource,1054b24c(close container) at100fe384. NumberReturned is writer count. Successful final100fe7a8..b4 unlocks index, writes literal UpdateID1, returns0. This differs from remote UpdateID0 and is not SystemUpdateID. File metadata/resource optional fields100fe430..790 remain to trace before closing S."
       }
      ],
      "notes": null,
      "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Concrete per-container limits/sort/filter/item serialization are still named residuals, not inferred from standard UPnP semantics.",
      "todo": [
-      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed100fe0e4 and playlist-format104634c4 workers/receiver10ebb678 accounting; SQ root10478e04, playlist10348560 ->10478618 and track103476d8 callbacks; A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
+      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root10478e04, playlist10348560 ->10478618 and track103476d8 callbacks; A graph102a3b74/102a3c80 and child worker102a21d8. Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
      ],
      "resolved_findings": [
       "A: root is fixed seven-entry enumeration, not the complete attribute backend. IDs use A:%s and table10eaded0: ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS,PLAYLISTS. Applies unsigned start/count checks, total counts all seven independently of page, UpdateID zero. DIDL container serializer102a1f18; Filter/Sort not consulted at this root. Attribute node construction/resolution102a3b74/102a3c80 must be followed for deeper library behavior.",
-      "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Nonzero remote enumeration result normalized720. Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter.",
+      "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Zero/false remote enumeration result maps to720; nonzero/true maps to success0 (raw isel10347368). Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter.",
       "Q: root reads queue version text10146cc0 ->decimal strtol, reports total2, pages Q:0/Q:1 via10349424 and metadata serializer103474d8. Q child10347688 is only a tail adapter to1014a70c with node+0x198 manager and node+0x17a queue name, NOT the large following103476d8 SQ-track method. Q metadata adapter103476ac ->1015036c. Real Q paging/filter/caps worker is1014a70c.",
       "SQ provider installs fixed root vptr10ebb7f4, playlist node at provider+8 vptr10ebb7ac, track node at provider+0xa8 vptr10ebb778. Root metadata103483b4/children10348244 ->10478e04; playlist metadata103480bc/children10348560; track metadata103476d8. Prior residual10476690 is only SQ:%d sscanf parser, and10349c40 is resolver selecting these fixed nodes, not enumeration. Playlist children compare exact dc:title,res and call10478618; deeper saved-queue streaming/accounting remains to trace.",
       "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (NULL client descriptor), streaming children1037c92c ->1037c5e8 supplying client descriptor. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. The complete R/FV read-worker evidence below establishes ignored SortCriteria, stored SAX ordering, paging and DIDL accounting.",
