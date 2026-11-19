@@ -82673,7 +82673,7 @@
      "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot."
     },
     "StartTransmission": {
-     "description": "Adds the selected virtual line-in source coordinator through f_106a87c8/f_106a8614, returns transport settings, and requests source-manager thread state 3. Invalid selection/input faults 402; a different occupied coordinator faults 800. Lower transport configuration and asynchronous execution remain partially traced.",
+     "description": "Adds the selected virtual line-in source coordinator through f_106a87c8/f_106a8614, returns transport settings, and requests source-manager thread state 3. Invalid selection/input faults 402; a different occupied coordinator faults 800. Lower transport configuration and asynchronous execution remain partially traced. The group callback attaches a pointer to the embedded NodeTX object; the thread acknowledges numeric state 3 before its audio-input worker runs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073d3f4",
@@ -82889,7 +82889,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads selected descriptor manager+0x354, local player ID +0x128, group record +0x360 and concrete transport +0x358. Thread state is +0x2e0/current and +0x2e4/desired; mutex is +0x150. The transport owns settings at +0x74 and dispatches configuration through its +0x6c object.",
+      "description": "Reads selected descriptor manager+0x354, local player ID +0x128, group record +0x360 and concrete transport +0x358. Thread state is +0x2e0/current and +0x2e4/desired; mutex is +0x150. The transport owns settings at +0x74 and dispatches configuration through its +0x6c object. Transport+0x6c is the embedded NodeTX at transport+0x1b8 with vptr 0x10efb75c, not a runtime-injected transport. State 3 additionally reads selected context+8, provider+4, manager+0x2d4 and playback tracker+0x390.",
       "evidence": [
        {
         "type": "firmware",
@@ -82938,13 +82938,29 @@
         "address": "0x1073d4a4",
         "function": "0x1073d3f4",
         "notes": "Wrapper validates InstanceID/CoordinatorID and passes a 129-byte CurrentTransportSettings buffer (r7=0x81 at 0x1073d488), faulting 402 at 0x1073d4f4 on failed request validation. On zero implementation result it emits that string at 0x1073d524 and commits at 0x1073d538; nonzero goes to 0x1073d4c0. f_106a6e20 invokes transport+0x64 (f_106c9abc), restores output pointer/capacity with SPE loads at 0x106a6e4c/50, then tail-calls f_1066e5e0. That formatter emits empty text when settings+0x1c is zero; otherwise f_1066e3a0 obtains the address text and f_1066e57c uses format at 0x10efed78: \"%d.%d.%d.%d:%d,%s:%d:%d:%d,%s\". No XML or controller playback-completion boolean is returned."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066e8ac",
+        "function": "0x1066e7d4",
+        "notes": "The f_106cb99c constructor forms transport+0xc in r29 (0x106cb9c4) and transport+0x1b8 in r28 (0x106cb9bc), then passes them as this/r5 to f_1066e7d4 at 0x106cba0c. That base constructor saves r5 in r27 and stores it at base+0x60 (raw 0x937f0060 at 0x1066e8ac). Thus transport+0x6c points to embedded transport+0x1b8, not an unresolved injected object. f_106cb99c constructs that embedded object through f_106366c4 at 0x106cbb28; f_106366c4 installs primary vptr 0x10efb75c at 0x10636724. Its +0x34 word 0x10efb790 is f_106361d4. This worker only stores r4 at NodeTX+0xfc (raw 0x908300fc at 0x106361d8) and returns. f_106ca000 calls it under transport+0xd0: true passes the pointer VALUE loaded from transport+0x1b0 at 0x106ca04c; false passes zero. The call is a pointer attachment/detachment, not by itself network startup/shutdown or event delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a98ec",
+        "function": "0x106a95e8",
+        "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
        }
       ],
-      "todo": "Established: manager and transport offsets and concrete table 0x10f07a58 are traced. Residual: identify the concrete object stored at transport+0x6c (called at 0x106ca054) and state-3 worker dependencies in f_106a9c08 -> f_106a9aa4 (state 3: f_106a95e8; state 2: f_106a94b8); source transport internals are not a runtime-only boundary."
+      "todo": "Established: embedded NodeTX binding and all state-3 indirect dispatch sites through 0x106a9940 are identified. Residual: recover concrete selected context+0xc/+0x18 and provider+0x40 dependencies, and manager+0x2d4 interface+8, for each registered source. The inspected constructor and worker no longer leave transport+0x6c unresolved. Include active snapshot dependencies in f_106ca360/f_10636bc8."
      },
      "side_effects": [
       {
-       "description": "f_106a7450 copies a new coordinator and increments total/remote counts. Its group-added thunk f_106a6f5c calls f_106a6e60, enabling concrete transport configuration and setting +0x388. Existing identical coordinator skips adding/count increments. After settings serialization, f_106a81d4 requests thread state 3 and may wait for it; this is not a direct call to controller Play.",
+       "description": "f_106a7450 copies a new coordinator and increments total/remote counts. Its group-added thunk f_106a6f5c calls f_106a6e60, enabling concrete transport configuration and setting +0x388. Existing identical coordinator skips adding/count increments. After settings serialization, f_106a81d4 requests thread state 3 and may wait for it; this is not a direct call to controller Play. Configuration(true) only copies the pointer value at transport+0x1b0 into embedded NodeTX+0xfc. State-3 entry resets transport counters and resyncs/ends the prior NodeTX transmission before configuring the source and passing it a shared transport reference.",
        "evidence": [
         {
          "type": "firmware",
@@ -82993,13 +83009,37 @@
          "address": "0x1073d4a4",
          "function": "0x1073d3f4",
          "notes": "Wrapper validates InstanceID/CoordinatorID and passes a 129-byte CurrentTransportSettings buffer (r7=0x81 at 0x1073d488), faulting 402 at 0x1073d4f4 on failed request validation. On zero implementation result it emits that string at 0x1073d524 and commits at 0x1073d538; nonzero goes to 0x1073d4c0. f_106a6e20 invokes transport+0x64 (f_106c9abc), restores output pointer/capacity with SPE loads at 0x106a6e4c/50, then tail-calls f_1066e5e0. That formatter emits empty text when settings+0x1c is zero; otherwise f_1066e3a0 obtains the address text and f_1066e57c uses format at 0x10efed78: \"%d.%d.%d.%d:%d,%s:%d:%d:%d,%s\". No XML or controller playback-completion boolean is returned."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066e8ac",
+         "function": "0x1066e7d4",
+         "notes": "The f_106cb99c constructor forms transport+0xc in r29 (0x106cb9c4) and transport+0x1b8 in r28 (0x106cb9bc), then passes them as this/r5 to f_1066e7d4 at 0x106cba0c. That base constructor saves r5 in r27 and stores it at base+0x60 (raw 0x937f0060 at 0x1066e8ac). Thus transport+0x6c points to embedded transport+0x1b8, not an unresolved injected object. f_106cb99c constructs that embedded object through f_106366c4 at 0x106cbb28; f_106366c4 installs primary vptr 0x10efb75c at 0x10636724. Its +0x34 word 0x10efb790 is f_106361d4. This worker only stores r4 at NodeTX+0xfc (raw 0x908300fc at 0x106361d8) and returns. f_106ca000 calls it under transport+0xd0: true passes the pointer VALUE loaded from transport+0x1b0 at 0x106ca04c; false passes zero. The call is a pointer attachment/detachment, not by itself network startup/shutdown or event delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a98ec",
+         "function": "0x106a95e8",
+         "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a93c0",
+         "function": "0x106a933c",
+         "notes": "State-snapshot worker f_106a933c fills the pending transport snapshot through slot +0x60 -> f_106ca360, reads pending snapshot manager+0x2dc and selected descriptor+0x354, and may invoke descriptor context+8 slot +0x24 at 0x106a94a8. The f_1021cd6c no-op target is explicitly bypassed. It calls selected provider+0x34 at 0x106a9440, stores the selected type in snapshot+0x108 at 0x106a9468 (zero if absent), calls f_1066f0c8 and clears manager+0x2dc at 0x106a9478. Context/provider snapshot callbacks are separate from the now-bound NodeTX pointer setter. f_106ca360 selects its inactive/active snapshot branch from current==3: inactive writes snapshot+0xf0 and clears +0xec/+0xf4/+0xf8/+0xfc/+0x100/+0x104; active reads the object at transport+4 through +0x14 then returned interface+0xc, and invokes embedded NodeTX+0x38 -> f_10636bc8 at 0x106ca48c. These snapshot dependencies remain distinct from NodeTX+0x34 attachment."
         }
        ],
-       "todo": "Established: group counts/coordinator, group-added thunk, +0x388 flag and desired-state mutation are traced. Residual: trace downstream configuration slot +0x34 at 0x106ca054 and state-3 processing in f_106a9c08 -> f_106a9aa4 (state 3: f_106a95e8; state 2: f_106a94b8) to enumerate transport/resource mutations."
+       "todo": "Established: NodeTX+0xfc attachment, transport counter resets and concrete reset/configuration/cleanup slot targets are traced. Residual: enumerate mutations inside selected context+0xc audio processing, context+0x18 configuration and provider+0x40/+0x34 snapshot callbacks; finish NodeTX resync f_10637d2c and source-specific resource acquisition. These remain below identified callsites 0x106a9884/0x106a9940/0x106a9440, not below the resolved pointer setter. Also finish active transport-snapshot reads below f_106ca360/f_10636bc8."
       }
      ],
      "events_triggered": {
-      "description": "The synchronous group-added callback is proven: group callback+8 -> f_106a6f5c -> f_106a6e60 -> transport f_106ca000(true). No controller AvtVliActionEvent is submitted on this path. No specific GENA or WSS event can yet be attributed to its downstream configuration call.",
+      "description": "The synchronous group-added callback is proven: group callback+8 -> f_106a6f5c -> f_106a6e60 -> transport f_106ca000(true). No controller AvtVliActionEvent is submitted on this path. No specific GENA or WSS event can yet be attributed to its downstream configuration call. The resolved NodeTX+0x34 target f_106361d4 has no call or emitter. Separate worker paths reach playback-tracker session reporting for non-Spotify source types; that reporting is not proof of a VLI GENA/WSS event.",
       "evidence": [
        {
         "type": "firmware",
@@ -83048,12 +83088,28 @@
         "address": "0x1073d4a4",
         "function": "0x1073d3f4",
         "notes": "Wrapper validates InstanceID/CoordinatorID and passes a 129-byte CurrentTransportSettings buffer (r7=0x81 at 0x1073d488), faulting 402 at 0x1073d4f4 on failed request validation. On zero implementation result it emits that string at 0x1073d524 and commits at 0x1073d538; nonzero goes to 0x1073d4c0. f_106a6e20 invokes transport+0x64 (f_106c9abc), restores output pointer/capacity with SPE loads at 0x106a6e4c/50, then tail-calls f_1066e5e0. That formatter emits empty text when settings+0x1c is zero; otherwise f_1066e3a0 obtains the address text and f_1066e57c uses format at 0x10efed78: \"%d.%d.%d.%d:%d,%s:%d:%d:%d,%s\". No XML or controller playback-completion boolean is returned."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066e8ac",
+        "function": "0x1066e7d4",
+        "notes": "The f_106cb99c constructor forms transport+0xc in r29 (0x106cb9c4) and transport+0x1b8 in r28 (0x106cb9bc), then passes them as this/r5 to f_1066e7d4 at 0x106cba0c. That base constructor saves r5 in r27 and stores it at base+0x60 (raw 0x937f0060 at 0x1066e8ac). Thus transport+0x6c points to embedded transport+0x1b8, not an unresolved injected object. f_106cb99c constructs that embedded object through f_106366c4 at 0x106cbb28; f_106366c4 installs primary vptr 0x10efb75c at 0x10636724. Its +0x34 word 0x10efb790 is f_106361d4. This worker only stores r4 at NodeTX+0xfc (raw 0x908300fc at 0x106361d8) and returns. f_106ca000 calls it under transport+0xd0: true passes the pointer VALUE loaded from transport+0x1b0 at 0x106ca04c; false passes zero. The call is a pointer attachment/detachment, not by itself network startup/shutdown or event delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a98ec",
+        "function": "0x106a95e8",
+        "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
        }
       ],
-      "todo": "Established: synchronous group-added callback chain reaches f_106ca000; controller AvtVliActionEvent attribution is removed. Residual: trace transport+0x6c slot +0x34 at 0x106ca054 and asynchronous state-3 processing for actual internal/GENA/WSS emission sites."
+      "todo": "Established: the synchronous NodeTX pointer setter emits nothing; state-3 f_106a95e8 reaches f_106c96f0, source callbacks and NodeTX resync/configuration. Residual: follow context+0xc/+0x18, provider+0x40/+0x34 and tracker f_1025149c to their actual event sinks, then prove any path to VLI metadata emitter f_106ab4d4. No raw direct branch or initialized allocated-section pointer to f_106ab4d4 was found, so the emitter cannot be attributed merely by proximity."
      },
      "state_transitions": {
-      "description": "On accepted add/already-present, requests source-manager thread state 3 through f_106a81d4 at 0x106a87bc. The helper may wait via +0x1e0 until current state matches; its boolean return is ignored. Group-added configuration sets manager+0x388 after the transport call. This does not establish a controller playback-state transition.",
+      "description": "On accepted add/already-present, requests source-manager thread state 3 through f_106a81d4 at 0x106a87bc. The helper may wait via +0x1e0 until current state matches; its boolean return is ignored. Group-added configuration sets manager+0x388 after the transport call. This does not establish a controller playback-state transition. The thread loop copies desired into current, clears desired and signals before dispatching f_106a95e8. That worker runs while current is 3 and cleans up through f_106c9e38 on exit. Acknowledgement therefore does not mean that a source opened or audio reached a destination.",
       "evidence": [
        {
         "type": "firmware",
@@ -83102,9 +83158,25 @@
         "address": "0x1073d4a4",
         "function": "0x1073d3f4",
         "notes": "Wrapper validates InstanceID/CoordinatorID and passes a 129-byte CurrentTransportSettings buffer (r7=0x81 at 0x1073d488), faulting 402 at 0x1073d4f4 on failed request validation. On zero implementation result it emits that string at 0x1073d524 and commits at 0x1073d538; nonzero goes to 0x1073d4c0. f_106a6e20 invokes transport+0x64 (f_106c9abc), restores output pointer/capacity with SPE loads at 0x106a6e4c/50, then tail-calls f_1066e5e0. That formatter emits empty text when settings+0x1c is zero; otherwise f_1066e3a0 obtains the address text and f_1066e57c uses format at 0x10efed78: \"%d.%d.%d.%d:%d,%s:%d:%d:%d,%s\". No XML or controller playback-completion boolean is returned."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a9b5c",
+        "function": "0x106a9aa4",
+        "notes": "Thread entry f_106a9ca0 reaches f_106a9c08, which initializes current state +0x2e0 to 1 at 0x106a9c34 and waits on +0x1e0 while it remains 1. It then calls f_106a8558 and f_106a9aa4. The dispatch loop calls f_106a84f4 at 0x106a9b5c before selecting the current state: 3 -> f_106a95e8 at 0x106a9bc4, 2 -> f_106a94b8 at 0x106a9bd0, 4 -> loop exit. f_106a84f4 copies a nonzero desired +0x2e4 into current +0x2e0 at 0x106a852c (raw 0x913f02e0), clears desired and signals +0x1e0. Therefore the thread-state acknowledgement precedes worker execution; it is not proof that audio startup/cleanup completed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x106a98ec",
+        "function": "0x106a95e8",
+        "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
        }
       ],
-      "todo": "Established: source-manager desired/current state helper and request for numeric state 3 are traced. Residual: follow f_106a9c08 -> f_106a9aa4 (state 3: f_106a95e8; state 2: f_106a94b8) state-3 execution and transport configuration callback to establish worker completion/failure and downstream transport-state transitions."
+      "todo": "Established: current/desired handoff, state-3 worker loop and concrete exit cleanup f_106c9e38 are traced; the thread acknowledgement precedes worker execution. Residual: determine source-specific context+0xc completion/failure and NodeTX resync outcomes before assigning an end-to-end playing/transmitting state. The numeric source-thread transition itself is no longer untraced."
      },
      "return_behavior": {
       "description": "402 for invalid request/ID/selected source/coordinator; 800 for a different occupied coordinator slot. Internal 801 for an identical coordinator is normalized to zero. Proven group-added callback returns zero, so no extra callback fault code is exposed. Success emits CurrentTransportSettings (possibly empty) and commits; state-helper return is ignored.",
@@ -83459,10 +83531,34 @@
        "address": "0x106a8150",
        "function": "0x106a80e4",
        "notes": "Starts the source thread with entry f_106a9ca0 at 0x106a8150. Entry calls f_106a9c08, which establishes startup state 1 and then calls f_106a9aa4 at 0x106a9c68. That loop consumes desired state through f_106a84f4 and dispatches current state 3 to f_106a95e8 (0x106a9bc4), state 2 to f_106a94b8 (0x106a9bd0), and exits on state 4. The residual work is these concrete state workers, not f_106ab4d4, which handles metadata/event snapshots."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066e8ac",
+       "function": "0x1066e7d4",
+       "notes": "The f_106cb99c constructor forms transport+0xc in r29 (0x106cb9c4) and transport+0x1b8 in r28 (0x106cb9bc), then passes them as this/r5 to f_1066e7d4 at 0x106cba0c. That base constructor saves r5 in r27 and stores it at base+0x60 (raw 0x937f0060 at 0x1066e8ac). Thus transport+0x6c points to embedded transport+0x1b8, not an unresolved injected object. f_106cb99c constructs that embedded object through f_106366c4 at 0x106cbb28; f_106366c4 installs primary vptr 0x10efb75c at 0x10636724. Its +0x34 word 0x10efb790 is f_106361d4. This worker only stores r4 at NodeTX+0xfc (raw 0x908300fc at 0x106361d8) and returns. f_106ca000 calls it under transport+0xd0: true passes the pointer VALUE loaded from transport+0x1b0 at 0x106ca04c; false passes zero. The call is a pointer attachment/detachment, not by itself network startup/shutdown or event delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a9b5c",
+       "function": "0x106a9aa4",
+       "notes": "Thread entry f_106a9ca0 reaches f_106a9c08, which initializes current state +0x2e0 to 1 at 0x106a9c34 and waits on +0x1e0 while it remains 1. It then calls f_106a8558 and f_106a9aa4. The dispatch loop calls f_106a84f4 at 0x106a9b5c before selecting the current state: 3 -> f_106a95e8 at 0x106a9bc4, 2 -> f_106a94b8 at 0x106a9bd0, 4 -> loop exit. f_106a84f4 copies a nonzero desired +0x2e4 into current +0x2e0 at 0x106a852c (raw 0x913f02e0), clears desired and signals +0x1e0. Therefore the thread-state acknowledgement precedes worker execution; it is not proof that audio startup/cleanup completed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a98ec",
+       "function": "0x106a95e8",
+       "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
       }
      ],
      "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot.",
-     "todo": "Established: bound f_106a87c8 -> f_106a8614, input gates, group add, settings serialization, 402/800 faults and state-3 request are traced. Residual: finish transport configuration and asynchronous state-3 worker behavior below transport+0x6c slot +0x34 and manager thread dispatch; do not substitute controller Play. Follow f_106ca000 at 0x106ca054 and writers of transport+0x6c, then f_106a9c08 -> f_106a9aa4 (state 3: f_106a95e8; state 2: f_106a94b8) thread dispatch."
+     "todo": "Established: transport+0x6c is embedded transport+0x1b8, vptr 0x10efb75c, and f_106ca000 reaches the pointer-only setter f_106361d4; the source-thread state-3 dispatch, reset/configuration/cleanup calls and acknowledgement ordering are traced. Residual: bind selected context+0xc/+0x18 and provider+0x40/+0x34 for each registered source, finish their audio-loop and snapshot effects plus NodeTX resync below f_10637d2c, and trace resulting notifications. Constructor/base-offset tracing and raw slot words rule out treating the +0x34 setter itself as audio startup. Active snapshot dependencies below f_106ca360/f_10636bc8 also remain."
     },
     "Stop": {
      "description": "Stop is not implemented by this SOAP source manager. Bound 0x106a6070 optionally logs \"Stop\" and returns 401, ignoring its inputs. Request validation failure selects 402; no playback or volume operation occurs.",
