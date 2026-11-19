@@ -131678,19 +131678,19 @@
    "process": "/bin/upgrade_mgr external daemon (not inside anacapad); Netstart-triggered upgrades ('Netstart triggered upgrade 0x%x')",
    "modes": "hh-upgrade household-wide + UserUpdateScheduler/AutoUpdateScheduler; 'User-initiated HH upgrade report' poll; 'guest upgrade not allowed via reauth'",
    "guards": "'Do not update, alarm scheduled soon': alarms defer upgrades; 'Server upgrade does not support multiplex yet'; unknown client/server state handling",
-   "retry": "In anacapad f_102a9764, the retry branch compares the counter at +0x64 unsigned against 4: values 0-4 enter the retry path and log counter+1 out of 5; larger values enter the give-up path. Counter initialization, increment sites and surrounding state gates still need a complete policy trace.",
+   "retry": "The scheduler counter at +0x64 is reset to zero for a new update at 0x102aa268. f_102a9654 increments it before launching the manager. In f_102a9764, unsigned values 0-4 enter the retry-launch branch, whose log prints count+1 out of 5; larger values give up. Thus the normal zero-initialized flow permits five launch attempts including the initial one, not five additional retries. f_102a9654 schedules now+600 seconds after a launch failure; after a successful launch it stores the start time, changes state and schedules a now+900-second status check. Completion/failure exits clear the counter. This is scheduler launch/status behavior, not an exponential network-download backoff.",
    "reporting": "upgrade_mgr{,_user}_report.json, /tmp/upgrade_mgr_info.txt, /jffs/upgrade*.log, upgrade_sys_report*.log; reportFirmwareDownload telemetry; 'Upgrade report has more devices than the maximum supported' household cap; 'Unable to report firmware update; muse error'",
    "files": "/jffs/{upgrade.log,upgrade_prev.log,upgrade_tmp_prev.log,app/log/upgrade_mgr.log}",
    "todo": [
-    "Established: anacapad spawn/report-file path, bounded retry branch, upgrade URL builder/wget exec, certificate-bundle save paths, conditional signature/decrypt calls, product partition gates and libflash delegation are disassembled with evidence. Remaining: map the complete upgrade_mgr-to-upgrade socket/process dispatch and failure propagation, signature acceptance enforcement and key/cipher selection, plus actual erase/write/verify/boot-slot behavior. Trace upgrade_mgr entry/dispatch into upgrade, upgrade f_10009024 and its state handlers, callers of the signature handler f_10004db4 and final accepted-count checks, references to UBI_RED_KEY_WITH_NONCE, ZZ crypto implementations in libsonoscrypto.so.3 and hal_flash_reprogram_flash in libflash.so.1. Until those call chains are decoded, neither a universal no-IPC handshake nor a fully proven verification/flash pipeline is justified."
+    "Established: the manager/device TCP dispatch and startup-script installer launch, final accepted-signature enforcement, root selection/RSA verification, device-derived private-key loading, allowed envelope ciphers, inactive partition selection, block erase/write/error paths and kernel last-block metadata are traced with evidence. Remaining: the bootloader-side interpretation of the written generation/last-block metadata, including exact next-boot selection and power-loss/rollback policy, and whether a deployed redundant-rootfs layout supplies support for ioctl 0x20004d20. The supplied userspace does not set a boot-section flag; the included kernel rejects 0x20004d20 in its generic MTD dispatcher, so library intent cannot establish a successful runtime commit on that conditional path. The extracted-file inventory contains the kernel image but no bootloader image or live flash/partition-table snapshot. Concrete next RE requires the device bootloader/boot-flash dump and the deployed partition table/MTD implementation: trace boot image selection against generation/last-block markers and compare its ioctl dispatcher with the packaged kernel. Re-disassembling the same present installer or libraries cannot supply those absent bootloader and runtime artifacts."
    ],
-   "handshake": "Verified auto-update path: f_102a7c90 calls manifest work f_10676054 and then f_10675dc0 with upgrade_mgr_report.json. f_10675a5c invokes a local-device virtual operation whose failure is logged as BeginSoftwareUpdate failure, then builds argv containing /bin/upgrade_mgr and calls f_1076a8ec. These observations establish a spawn/report-file path, not the absence of every live IPC path. /bin/upgrade itself has a socket command parser for HELLO, DOWNLOAD, FLASHWRITE, REBOOT, PING and QUIT, so its protocol must be kept separate from anacapad report polling. The complete upgrade_mgr-to-upgrade dispatch chain remains to be traced.",
+   "handshake": "anacapad f_102a7c90 performs manifest work and passes upgrade_mgr_report.json to its report path. f_10675a5c invokes the local-device BeginSoftwareUpdate operation and spawns /bin/upgrade_mgr through f_1076a8ec. The manager is a TCP controller, not the demonstrated parent of /bin/upgrade: its per-device connection uses port 4444 and sends HELLO, DOWNLOAD, FLASHWRITE, PING and REBOOT commands. The installer server listens on 4444 and dispatches those commands with phase/state gates. Independently, etc/runanacapa lines 7-16 starts /bin/upgrade when /var/run/upgradeinfo exists, captures/logs its exit status, removes that file and returns the same status. The installer main reads upgradeinfo for its configuration and client/server mode. Report-file polling by anacapad and the live manager/device TCP protocol are separate coordination mechanisms; neither file-only IPC nor a direct upgrade_mgr exec of upgrade is supported.",
    "resolved_findings": [
     "Both /bin/upgrade and /bin/upgrade_mgr are present as stripped 32-bit big-endian PowerPC ELFs in reference/public/files/bin. The upgrade executable, rather than strings attributed to an unavailable binary, was disassembled for the findings below.",
     "/bin/upgrade f_1000a300 builds either the .upd URL \"%s%s-%u-%u.upd?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\" or \"%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\". An absent/empty payload selector falls back to \"default\". Both branches can append &sonosid=%s&householdid=%s, and a separate flag gates &au=1; these suffixes are not unconditional payload-only behavior. f_10007438 forks and execl's /usr/bin/wget with -qC, -T 300 and -O -, with an optional -L 4445 argument pair. The custom wget option meanings have not been inferred from their spelling.",
     "Certificate-bundle path corrected: f_100065d8 parses an embedded bundle with sonosRcbParseHeader and sonosRcbVerifySig, and saves a successfully parsed bundle under /jffs/sys/run/rcb/%s-%s.rcb. /jffs/sys/run/rcb/upd_cert_bundle.rcb is the parse-failure fallback save path, not a proven universal input trust-bundle path.",
-    "Signature and decryption are conditional section paths, not a proven simple verify-then-decrypt pipeline. f_10004db4 parses through ZZ0121 and verifies through ZZ0124; success increments the accepted-signature counter at context +0x224, while a verification failure does not increment it. f_10004998 tests section flag 0x4 before calling f_100045c8 for enveloped decryption, and rejects a section also carrying signature flag 0x1. f_100045c8 uses ZZ0053/ZZ0052/ZZ0050/ZZ0047 for parse/init/update/final. Calling these EVP or naming the exact cipher solely from diagnostics is unsupported. UBI_RED_KEY_WITH_NONCE is present at 0x10040124 but its active key-selection path is not yet established.",
-    "Installation f_100065d8 checks LACKS_M4_PARTITION and LACKS_BOOTSOUND_PARTITION and clears the corresponding section slots when those product flags are true. It initializes libflash, reads partition table, boot section and generation, writes and runs the package upgrade script via /var/upgradescript, then delegates flash reprogramming to hal_flash_reprogram_flash. Erase/write/verify internals reside in libflash.so.1 rather than being demonstrated by error strings alone. FLASHWRITE and FLASHWRITE_DONE are recognized protocol state names in f_1000a108."
+    "The section signature/decryption call chains, final acceptance gate, supported envelope ciphers and key-selection paths are decoded in signature_acceptance, signer_selection, key_and_cipher_selection and envelope_contract. These are library-backed algorithms, not EVP inferred from diagnostics.",
+    "Optional product partition gates, package-script execution and flash delegation are decoded through the library and the packaged kernel in flash_contract and erase_write_verify. FLASHWRITE and FLASHWRITE_DONE remain protocol state names, not a readback-verification guarantee."
    ],
    "evidence": [
     {
@@ -131736,7 +131736,7 @@
      "function": "f_10004db4 / f_10004998 / f_100045c8",
      "address": "0x10004db4",
      "callsite": "0x10004efc, 0x10004fa4-0x10004ff8, 0x10004af4-0x10004b50, 0x10004788-0x100048dc",
-     "notes": "Signature parse/verify and accepted-count increment only on success; encrypted-section flag gates decrypt helper; encrypted signature rejected. ZZ-named crypto calls require library tracing for algorithm claims."
+     "notes": "Signature parse/verify and accepted-count increment only on success; encrypted-section flag gates decrypt helper; encrypted signature rejected. The library implementations and final acceptance gate are traced in the additional evidence below."
     },
     {
      "type": "firmware",
@@ -131754,7 +131754,7 @@
      "function": "f_10009024 / f_1000a108",
      "address": "0x10009024",
      "callsite": "0x10009060, 0x100090c8-0x10009170, 0x1000a234-0x1000a27c",
-     "notes": "Socket-read diagnostic and command parser disprove treating all external-upgrade coordination as file-only. FLASHWRITE/DONE state parsing; peer and manager reachability remain unverified."
+     "notes": "Socket command dispatch and installer state parsing. Server initialization and manager connection evidence below establishes the TCP peer path separately from report-file polling."
     },
     {
      "type": "firmware",
@@ -131764,8 +131764,267 @@
      "address": "0x10540460",
      "callsite": "0x1054055c, 0x103bd054, 0x1015d1c4",
      "notes": "Software-generation firmware URL string at 0x10ee71bc; bitrate log at 0x10ec59a4; user-report filename at 0x10e956ec. These references alone do not define every download or report-field semantic."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102a9654 / f_102a9764",
+     "address": "0x102a9654",
+     "callsite": "0x102a9674-0x102a9758, 0x102a9b6c-0x102a9c1c, 0x102aa25c-0x102aa274",
+     "notes": "Counter reset before initial launch; increment before manager spawn; unsigned >4 give-up. Failure schedules +600 seconds, success +900 status check. Exit paths clear the attempt counter."
+    },
+    {
+     "type": "firmware",
+     "binary": "etc/runanacapa / bin/upgrade",
+     "build": "86.10-80260",
+     "function": "startup script / f_10001fb0",
+     "address": "etc/runanacapa:7-16",
+     "callsite": "etc/runanacapa:7-16; upgrade 0x10002894-0x10002904, 0x10002b40",
+     "notes": "Script starts /bin/upgrade conditional on upgradeinfo, captures and returns exit status and removes the trigger. Installer reads that file and selects its configured mode; no direct upgrade_mgr spawn of the installer was found in its imports/calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "main / f_10003818 / f_10001c8c / f_10001424",
+     "address": "0x10001c8c",
+     "callsite": "0x10000f30-0x10000f48, 0x10001d1c-0x10001db0, 0x10001424-0x10001550",
+     "notes": "Manager event setup, nonblocking IPv4 stream connect to port 0x115c (4444), EINPROGRESS handling and partial-send command path; command pointer table 0x10005228 contains HELLO/DOWNLOAD/FLASHWRITE/PING/REBOOT."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "f_10001684 / f_10001728 / f_1000331c",
+     "address": "0x10001728",
+     "callsite": "0x100016e0, 0x10001880-0x10001c70, 0x1000369c-0x100037c0",
+     "notes": "Newline receive/parser, phase/progress/status, COMPLETE transitions and ERROR fields. Error saved at device +0x270; parser returns -3, transport/protocol failure code 1012; controller receives per-device completion/error."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_1000924c / f_10008270 / f_100085dc / f_10009024",
+     "address": "0x1000924c",
+     "callsite": "0x1000925c-0x1000929c, 0x100082b4-0x10008450, 0x100086ac, 0x100090c8-0x100091cc",
+     "notes": "Installer port 4444 server setup, socket/bind/listen/accept, command dispatch via vtable 0x10023ef4. f_10009340 poll loop invokes parser. Workers reach package processing and flash functions."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_10007a94 / f_10007bb4 / f_10008d18 / f_10008e30",
+     "address": "0x10007a94",
+     "callsite": "0x10007a94-0x10007df8, 0x10008d18-0x10008ef0, 0x100091e0-0x10009244",
+     "notes": "State/previous-result gating, phase transitions, COMPLETE/ERROR formatting and bad-command/transition rejection. No unconditional progress from a failed phase."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_10004db4 / f_10005164 / f_100052bc",
+     "address": "0x10005950",
+     "callsite": "0x10004db4-0x10004ff8, 0x10005164-0x100052bc, 0x100053cc-0x10005400, 0x100054b8-0x10005550, 0x10005780-0x10005988",
+     "notes": "Type 0x11 callback pointer at 0x10022944; seen/accepted counters +0x220/+0x224. Exact signature parse, SHA256 digest/id1/length32 and policy byte1 passed to ZZ0124; only accepted signatures increment counter. Final zero accepted count -> No valid signature/result6. Payload/required-section and post-signature section restrictions are separate checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0125 / ZZ0039 / ZZ0101 / ZZ0109",
+     "address": "0xa384",
+     "callsite": "0xa384-0xa818, 0xbe1c-0xbf98, 0x84e4-0x88c4, 0x8ec4-0x8ff8",
+     "notes": "Signer callback selection; signed-attribute message-digest comparison and canonical hashing; table 0x1fd80 two 20-byte root identifiers. Policy mask0x1 rejects first root. Accepted key parsed via mbedTLS; signature length must match RSA modulus <=512 bytes; PKCS1 v1.5 verify at 0x8fdc. SHA256 mapping is id1; no key bytes included."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_10001fb0 / f_10002f6c / f_100045c8 / f_10004998",
+     "address": "0x10002938",
+     "callsite": "0x10002938-0x10002cf0, 0x10002f6c-0x10002fb8, 0x10004788-0x100048dc, 0x10004af4-0x10004b50",
+     "notes": "Flash MDP/MDP2 and optional /dev/chk seed mixing; CTR_DRBG generated IV/key/password, cipher id1 decrypts embedded 0x540-byte key blob; ZZ0183 stores key at configuration +0xbc, temporary plaintext wiped. Encrypted-section flag gate, missing-key48 and envelope parse/init/update/final failure paths. String at 0x10040124 not used as evidence of active selection."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0183 / ZZ0053 / ZZ0052 / ZZ0075 / ZZ0054 / ZZ0047",
+     "address": "0x6318",
+     "callsite": "0x819c-0x8394, 0x62dc-0x6318, 0x6318-0x66ec, 0x69a8-0x6b14, 0x7c50-0x7dfc, 0x5c8c-0x5e58, 0x4b50-0x4d40, 0x4fa4-0x52d8",
+     "notes": "Private-key parser, envelope magic/version and recipient bounds; identity lookup callback ZZ0070, RSA unwrap (v1.5 or OAEP), key-length validation and key-buffer wipe. PPC 0x546307b8 in ZZ0054 clears bit0x4: accepted content ids1/2/5/6. Registry 0x2004c maps these to mbedTLS types5/14/7/16; decrypt final uses cipher_finish/check_tag."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libmbedcrypto.so.16",
+     "build": "86.10-80260",
+     "function": "mbedtls_cipher_info_from_type / mbedtls_cipher_definitions",
+     "address": "0x18804",
+     "callsite": "0x18804; table 0x6eff0; entries 0x6f008, 0x6f018, 0x6f020, 0x6f030",
+     "notes": "RELATIVE relocations resolve type5->0x6f168->AES-128-CBC, type7->0x6f158->AES-256-CBC, type14->0x6f130->AES-128-GCM, type16->0x6f120->AES-256-GCM. Cipher names independently verified from the shipped library, not guessed enum numbers."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "function": "hal_flash_reprogram_flash / hal_flash_get_bootsection / hal_flash_get_bootgeneration",
+     "address": "0x373c",
+     "callsite": "0x373c-0x3b3c, 0x2ab0-0x2c7c; upgrade 0x10006908-0x100069b0, 0x10006ae8-0x10006c18",
+     "notes": "Raw PPC isel decoding verifies opposite occurrence selection for current selector0/1; kernel/rootfs/FPGA write order. Reads proc boot metadata, runs package script before flash call, propagates errors. Redundant-rootfs branch opens selected MTD partition and issues ioctl0x20004d20, failure15. No explicit bootsection setter or partition-table rewrite in this chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "function": "hal_upgrade_write_partition_platform / f_34c0",
+     "address": "0x3214",
+     "callsite": "0x3214-0x35e8",
+     "notes": "Raw /dev/mtd8 open, capacity check, partition-end seek and ioctl0x20004d26, block MEMERASE, exact-length full-block writes, zero-padded partial block and ioctl before final write. Allocation/seek/erase/ioctl/short-write errors; no userspace readback/compare pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "function": "MTD ioctl dispatcher / partition callback / vnb_set_last_block",
+     "address": "decompressed+0x1ae9e8",
+     "callsite": "decompressed+0x1aed18-0x1aed2c, +0x1af070-0x1af078, +0x1af31c, +0x1af57c-0x1af594, +0x1ac488-0x1ac4d8, +0x1bc140-0x1bc148, +0x1ba048-0x1ba09c, +0x1bb0d4-0x1bb130",
+     "notes": "Addresses are offsets into the gzip-decompressed U-Boot payload, not ELF VAs. 0x20004d26 dispatches file position through MTD+0x194; partition wrapper adjusts offset; VNB callback installation points to vnb_set_last_block (name at decompressed+0x289eb0), which stores last-block offset and write metadata compares it. 0x20004d20 follows generic dispatcher default -25 ENOTTY. This conditional userspace request is not a demonstrated successful boot-slot commit; runtime layout and absent bootloader policy are not inferred."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102a9654 / f_102a9764",
+     "address": "0x102a9654",
+     "callsite": "0x102a9674-0x102a9758, 0x102a9b6c-0x102a9c1c, 0x102aa25c-0x102aa274",
+     "notes": "Counter reset before initial launch; increment before manager spawn; unsigned >4 give-up. Failure schedules +600 seconds, success +900 status check. Exit paths clear the attempt counter."
+    },
+    {
+     "type": "firmware",
+     "binary": "etc/runanacapa / bin/upgrade",
+     "build": "86.10-80260",
+     "function": "startup script / f_10001fb0",
+     "address": "etc/runanacapa:7-16",
+     "callsite": "etc/runanacapa:7-16; upgrade 0x10002894-0x10002904, 0x10002b40",
+     "notes": "Script starts /bin/upgrade conditional on upgradeinfo, captures and returns exit status and removes the trigger. Installer reads that file and selects its configured mode; no direct upgrade_mgr spawn of the installer was found in its imports/calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "main / f_10003818 / f_10001c8c / f_10001424",
+     "address": "0x10001c8c",
+     "callsite": "0x10000f30-0x10000f48, 0x10001d1c-0x10001db0, 0x10001424-0x10001550",
+     "notes": "Manager event setup, nonblocking IPv4 stream connect to port 0x115c (4444), EINPROGRESS handling and partial-send command path; command pointer table 0x10005228 contains HELLO/DOWNLOAD/FLASHWRITE/PING/REBOOT."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "f_10001684 / f_10001728 / f_1000331c",
+     "address": "0x10001728",
+     "callsite": "0x100016e0, 0x10001880-0x10001c70, 0x1000369c-0x100037c0",
+     "notes": "Newline receive/parser, phase/progress/status, COMPLETE transitions and ERROR fields. Error saved at device +0x270; parser returns -3, transport/protocol failure code 1012; controller receives per-device completion/error."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_1000924c / f_10008270 / f_100085dc / f_10009024",
+     "address": "0x1000924c",
+     "callsite": "0x1000925c-0x1000929c, 0x100082b4-0x10008450, 0x100086ac, 0x100090c8-0x100091cc",
+     "notes": "Installer port 4444 server setup, socket/bind/listen/accept, command dispatch via vtable 0x10023ef4. f_10009340 poll loop invokes parser. Workers reach package processing and flash functions."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_10007a94 / f_10007bb4 / f_10008d18 / f_10008e30",
+     "address": "0x10007a94",
+     "callsite": "0x10007a94-0x10007df8, 0x10008d18-0x10008ef0, 0x100091e0-0x10009244",
+     "notes": "State/previous-result gating, phase transitions, COMPLETE/ERROR formatting and bad-command/transition rejection. No unconditional progress from a failed phase."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_10004db4 / f_10005164 / f_100052bc",
+     "address": "0x10005950",
+     "callsite": "0x10004db4-0x10004ff8, 0x10005164-0x100052bc, 0x100053cc-0x10005400, 0x100054b8-0x10005550, 0x10005780-0x10005988",
+     "notes": "Type 0x11 callback pointer at 0x10022944; seen/accepted counters +0x220/+0x224. Exact signature parse, SHA256 digest/id1/length32 and policy byte1 passed to ZZ0124; only accepted signatures increment counter. Final zero accepted count -> No valid signature/result6. Payload/required-section and post-signature section restrictions are separate checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0125 / ZZ0039 / ZZ0101 / ZZ0109",
+     "address": "0xa384",
+     "callsite": "0xa384-0xa818, 0xbe1c-0xbf98, 0x84e4-0x88c4, 0x8ec4-0x8ff8",
+     "notes": "Signer callback selection; signed-attribute message-digest comparison and canonical hashing; table 0x1fd80 two 20-byte root identifiers. Policy mask0x1 rejects first root. Accepted key parsed via mbedTLS; signature length must match RSA modulus <=512 bytes; PKCS1 v1.5 verify at 0x8fdc. SHA256 mapping is id1; no key bytes included."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/upgrade",
+     "build": "86.10-80260",
+     "function": "f_10001fb0 / f_10002f6c / f_100045c8 / f_10004998",
+     "address": "0x10002938",
+     "callsite": "0x10002938-0x10002cf0, 0x10002f6c-0x10002fb8, 0x10004788-0x100048dc, 0x10004af4-0x10004b50",
+     "notes": "Flash MDP/MDP2 and optional /dev/chk seed mixing; CTR_DRBG generated IV/key/password, cipher id1 decrypts embedded 0x540-byte key blob; ZZ0183 stores key at configuration +0xbc, temporary plaintext wiped. Encrypted-section flag gate, missing-key48 and envelope parse/init/update/final failure paths. String at 0x10040124 not used as evidence of active selection."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0183 / ZZ0053 / ZZ0052 / ZZ0075 / ZZ0054 / ZZ0047",
+     "address": "0x6318",
+     "callsite": "0x819c-0x8394, 0x62dc-0x6318, 0x6318-0x66ec, 0x69a8-0x6b14, 0x7c50-0x7dfc, 0x5c8c-0x5e58, 0x4b50-0x4d40, 0x4fa4-0x52d8",
+     "notes": "Private-key parser, envelope magic/version and recipient bounds; identity lookup callback ZZ0070, RSA unwrap (v1.5 or OAEP), key-length validation and key-buffer wipe. PPC 0x546307b8 in ZZ0054 clears bit0x4: accepted content ids1/2/5/6. Registry 0x2004c maps these to mbedTLS types5/14/7/16; decrypt final uses cipher_finish/check_tag."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libmbedcrypto.so.16",
+     "build": "86.10-80260",
+     "function": "mbedtls_cipher_info_from_type / mbedtls_cipher_definitions",
+     "address": "0x18804",
+     "callsite": "0x18804; table 0x6eff0; entries 0x6f008, 0x6f018, 0x6f020, 0x6f030",
+     "notes": "RELATIVE relocations resolve type5->0x6f168->AES-128-CBC, type7->0x6f158->AES-256-CBC, type14->0x6f130->AES-128-GCM, type16->0x6f120->AES-256-GCM. Cipher names independently verified from the shipped library, not guessed enum numbers."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "function": "hal_flash_reprogram_flash / hal_flash_get_bootsection / hal_flash_get_bootgeneration",
+     "address": "0x373c",
+     "callsite": "0x373c-0x3b3c, 0x2ab0-0x2c7c; upgrade 0x10006908-0x100069b0, 0x10006ae8-0x10006c18",
+     "notes": "Raw PPC isel decoding verifies opposite occurrence selection for current selector0/1; kernel/rootfs/FPGA write order. Reads proc boot metadata, runs package script before flash call, propagates errors. Redundant-rootfs branch opens selected MTD partition and issues ioctl0x20004d20, failure15. No explicit bootsection setter or partition-table rewrite in this chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "function": "hal_upgrade_write_partition_platform / f_34c0",
+     "address": "0x3214",
+     "callsite": "0x3214-0x35e8",
+     "notes": "Raw /dev/mtd8 open, capacity check, partition-end seek and ioctl0x20004d26, block MEMERASE, exact-length full-block writes, zero-padded partial block and ioctl before final write. Allocation/seek/erase/ioctl/short-write errors; no userspace readback/compare pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "function": "MTD ioctl dispatcher / partition callback / vnb_set_last_block",
+     "address": "decompressed+0x1ae9e8",
+     "callsite": "decompressed+0x1aed18-0x1aed2c, +0x1af070-0x1af078, +0x1af31c, +0x1af57c-0x1af594, +0x1ac488-0x1ac4d8, +0x1bc140-0x1bc148, +0x1ba048-0x1ba09c, +0x1bb0d4-0x1bb130",
+     "notes": "Addresses are offsets into the gzip-decompressed U-Boot payload, not ELF VAs. 0x20004d26 dispatches file position through MTD+0x194; partition wrapper adjusts offset; VNB callback installation points to vnb_set_last_block (name at decompressed+0x289eb0), which stores last-block offset and write metadata compares it. 0x20004d20 follows generic dispatcher default -25 ENOTTY. This conditional userspace request is not a demonstrated successful boot-slot commit; runtime layout and absent bootloader policy are not inferred."
     }
-   ]
+   ],
+   "protocol_contract": "upgrade_mgr f_10001c8c opens a nonblocking AF_INET/SOCK_STREAM connection to the per-device address on TCP 4444; immediate success or EINPROGRESS is accepted. f_10001424 sends newline-terminated commands and handles partial sends. f_10001684/f_10001728 collect replies and parse HELLO, STATUS, COMPLETE and ERROR, including phase and percent-complete. ERROR parses phase, error-code, internal-data and extra-data, stores the result at device +0x270 and returns -3; receive/protocol failures use internal error 1012. f_1000331c propagates per-device COMPLETE or ERROR with phase/error-code to its controlling client. In upgrade, f_1000924c starts the server with port 4444 through f_10008270; f_100085dc accepts a connection and the poll loop invokes f_10009024. Its vtable dispatch runs HELLO f_10008090, DOWNLOAD f_10008ef0, FLASHWRITE f_10008f8c and REBOOT f_100095ec; PING reports progress and QUIT terminates the connection. f_10007a94 gates operations: HELLO requires initial state 0, DOWNLOAD state 2 or 4 and a zero previous result, FLASHWRITE state 4 and zero result, REBOOT state 6 and zero result. Completion f_10007bb4 moves the corresponding in-progress states 1/3/5/7 to 2/4/6/8 and stores the result. Invalid transitions do not blindly advance: they produce error replies. f_10008d18/f_10008e30 emit COMPLETE?phase=... on success or ERROR?phase=...;error-code=...;internal-data=...;extra-data=... on failure. Download and flash workers reach f_100052bc and f_100065d8 respectively; an installer flash error is propagated as a phase failure.",
+   "signature_acceptance": "The section-dispatch table routes type 0x11 to f_10004db4. It counts encountered signatures separately from successfully accepted signatures (context +0x220 and +0x224). Parsing through ZZ0121 must consume the supplied signature payload exactly. The verifier receives the accumulated SHA-256 image digest, a required digest identifier of 1 and 32-byte length, and signer-policy context byte 1. Only verification success increments +0x224. A failed signature can be logged without immediately aborting that handler, but final package validation in f_100052bc explicitly rejects accepted-count zero with No valid signature and result 6 at 0x10005950-0x10005968. It also checks payload presence and required sections. The section reader permits only further signature sections after the first signature; another section fails as Extra section after signature. Signature sections themselves are excluded from the accumulated image digest. This is section parsing/decryption followed by final package acceptance, not a claim that every input is verified before any decryption.",
+   "signer_selection": "In libsonoscrypto.so.3, ZZ0124 delegates to ZZ0125, which selects a signer through the supplied lookup callback and checks digest type/length. Signed attributes, when present, must contain the matching supplied image digest and are themselves hashed for signature verification; otherwise the supplied digest is verified directly. The upgrade callback ZZ0039 matches a kind-3, 20-byte signer identifier against two embedded root entries at library table 0x1fd80, rejecting an unknown identifier. Its first root is revoked when policy mask 0x1 is set; upgrade sets that mask, so this call path cannot accept that root. An accepted root is loaded through ZZ0101. ZZ0110 delegates to ZZ0109, which requires the signature length to match the RSA modulus size (at most 512 bytes) and calls mbedtls_rsa_rsassa_pkcs1_v15_verify. The upgrade path supplies SHA-256, rather than choosing an algorithm solely from a diagnostic or from the other hash algorithms supported elsewhere in the library. No private key or recovered secret bytes are reproduced here.",
+   "key_and_cipher_selection": "upgrade main constructs its configuration with a null private-key slot at +0xbc. Before processing encrypted sections, it derives DRBG input from flash MDP/MDP2 fields, optionally mixes a word read through /dev/chk ioctl 0x4004f301, generates an IV, a 16-byte symmetric key and a non-NUL/non-newline password, and decrypts the embedded 0x540-byte blob at 0x10021cf8 using library cipher id 1. ZZ0183 parses the decrypted, password-protected RSA private key into configuration +0xbc; temporary plaintext is wiped and freed. Failure leaves encrypted-section processing without a key. f_10004998 decrypts only sections with flag 0x4 and rejects an encrypted signature section (flag 0x1). f_100045c8 parses the envelope with ZZ0053, initializes with ZZ0052 and the configured private key, streams through ZZ0050 and finalizes with ZZ0047. Missing key gives error 48; malformed sizes/headers and decrypt init/update/final failures are rejected, not treated as plaintext. The UBI_RED_KEY_WITH_NONCE text at 0x10040124 has no direct code/address-pointer reference found by the xref scans; its presence is not evidence that it selects the active cipher. The positively traced key path is the configuration slot populated above.",
+   "envelope_contract": "libsonoscrypto ZZ0053 checks envelope magic 0x779b99ca/version 1, bounds its certificate/recipient data, accepts one or two recipient records and at most 512 bytes of wrapped key, and validates wrapping and content algorithm identifiers. ZZ0052 uses the key lookup callback; upgrade supplies ZZ0070, which returns the configured private key rather than looking up a different key for each recipient identifier. The library unwraps the content-encryption key through ZZ0075 and mbedtls_rsa_pkcs1_decrypt: wrapping id 1 uses PKCS#1 v1.5 and id 2 selects OAEP. It checks the content-key length and wipes the temporary unwrapped-key buffer. Content validation ZZ0054 accepts only ids 1, 2, 5 and 6 (the PPC mask clears bit 0x4 before the unsigned range check), even though the generic cipher registry supports seven ids. These map respectively to AES-128-CBC, AES-128-GCM, AES-256-CBC and AES-256-GCM. The mapping is verified against libmbedcrypto.so.16 cipher definitions, not assumed from upstream enum numbering. The streaming wrapper handles the IV/nonce and trailing authentication data; finalization reaches mbedtls_cipher_finish and, for the authenticated mode, mbedtls_cipher_check_tag. Invalid final padding/tag produces failure. Which allowed cipher and signer a particular downloaded package actually uses depends on its bytes, not on strings in the executable.",
+   "flash_contract": "upgrade f_100065d8 checks the optional M4/bootsound partition product flags, reads the partition table, current boot section and generation through libflash, and runs /var/upgradescript before calling hal_flash_reprogram_flash. Nonzero flash results are logged and mapped to installer result 4; success can proceed to the separate application-install path. In libflash.so.1, hal_flash_reprogram_flash at 0x373c scans ten partition-table entries. For type 0x10 (kernel), 0x11 (root filesystem) and 3 (FPGA), current boot-section selector 0 chooses the second matching entry and selector 1 the first: the opposite member of the paired layout. Missing types are skipped. It programs kernel, then root filesystem, then FPGA through f_34c0/hal_upgrade_write_partition_platform, not by rewriting the partition table or explicitly setting a bootsection flag. hal_flash_get_bootsection and hal_flash_get_bootgeneration parse the corresponding /proc/sys/kernel files. This proves target selection in userspace, not the bootloader policy after restart.",
+   "erase_write_verify": "hal_upgrade_write_partition_platform (libflash 0x3214) opens/programs the raw flash device through its caller f_34c0, checks capacity, seeks to the partition end minus one and issues ioctl 0x20004d26, then seeks to the partition start. It erases each block with MEMERASE (0x80084d02), writes a full block and requires an exact-length write. The final partial block is zero-padded in scratch memory and issues the last-block ioctl again before writing. Seek, erase, allocation, ioctl and short-write failures return errors; there is no userspace readback/compare verification pass in this helper. The packaged kernel implements ioctl 0x20004d26 by dispatching the current file offset to the MTD +0x194 callback; its VNB implementation vnb_set_last_block records that offset, and the write path compares it when constructing per-block metadata. Thus this ioctl is last-block metadata, not evidence of a readback verification command. For a redundant rootfs layout the library additionally opens /dev/mtd/(selected-index+1) and issues ioctl 0x20004d20 before writing; an ioctl failure returns 15. In the included kernel generic MTD ioctl dispatcher, that request falls through to -ENOTTY, whereas 0x20004d26 is implemented. This conditional branch is not proof that an observed device actually uses that layout or successfully completes it. No unconditional erase/verify/boot-slot commit guarantee is inferred from API names."
   },
   "content_managers": {
    "favorites": "<Favorites SchemaVersion=\"%d\"> XML + dirObjFavorites; household-replicated ('replicating favorites from %s'); FavoritesUpdateID/RadioFavoritesUpdateID/radioFavoritesMoved; 'Invalid favorites directory state'",
