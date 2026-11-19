@@ -97927,7 +97927,7 @@
      },
      "inputs": {
       "AccountType": {
-       "description": "Required account-type argument registered as request type tag 4; ignored by the concrete unsupported-operation leaf.",
+       "description": "Required named argument, permissively converted to an unsigned 32-bit integer and then ignored by the unsupported-operation leaf.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -97937,14 +97937,14 @@
         "via_slot": 28
        },
        "semantic_type": "account type integer",
-       "format": "request type-tag-4 numeric text",
+       "format": "First23 payload bytes, NUL-terminated, passed to libc strtoul with base10 and no end-pointer check",
        "unit": "none",
-       "accepted_values": "Any value accepted by request type tag 4 reaches the same 800 fault.",
-       "range": "Request parser bounds, not a delegate restriction.",
-       "special_values": "none; no account type enables this operation",
+       "accepted_values": "Every present text value, including empty or malformed numeric text, materializes successfully. Leading libc whitespace and an optional sign are accepted for decimal-prefix conversion; trailing text is ignored.",
+       "range": "Conversion result0..4294967295, not an input rejection range. Overflow produces ULONG_MAX; in-range negative magnitudes wrap modulo2^32.",
+       "special_values": "Empty/nondigit text and 0x10 convert to0; leading zeroes remain decimal. No value enables web-code generation.",
        "required": true,
        "default": "none; required",
-       "validation": "Named required lookup, type-tag-4 descriptor registration, then request validation; delegate never reads the parsed integer.",
+       "validation": "Required AccountType must be found by the input backend. Type4 conversion itself never rejects text: strtoul errno and conversion endpoint are ignored. Over-capacity text truncates to23 payload bytes before conversion. Any materialized value reaches delegate status800.",
        "evidence": [
         {
          "type": "firmware",
@@ -97961,14 +97961,41 @@
          "address": "0x104b0504",
          "function": "0x104b0500",
          "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "TRequest vtable 0x10f10f20 +8: retrieve descriptor argument name, call input backend +8, copy present pointer/length through 0x10560708, normalize through 0x10560a58. Missing required descriptor fails; materialized or optional descriptor continues. Conversion return is not used as validation status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10561500",
+         "function": "0x105614e0",
+         "notes": "Factory stores tag4, destination, inline lexical buffer and capacity24. Handler registers AccountType with this helper at 0x10731e4c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560750",
+         "function": "0x10560708",
+         "notes": "Accumulates at most descriptor capacity bytes; ignores excess. Converter 0x10560a58 writes NUL at length or capacity-1, so capacity24 retains at most23 payload bytes. Truncates rather than rejects."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560b50",
+         "function": "0x10560a58",
+         "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: required type-tag-4 argument is ignored after request validation; every validated value returns fault 800.",
-        "Residual: exact numeric lexical acceptance and overflow bounds of the shared request type-tag-4 parser are not traced here.",
-        "Next step: trace the request validation implementation consuming the descriptor registered by 0x105614e0."
-       ]
+       "notes": "Shared constructor and validator are also documented at request_vtable. shared_primitives/config_parsers is unrelated TOML parsing; this SOAP contract is proven by the descriptor/copy/conversion bodies."
       }
      },
      "outputs": {
@@ -98010,7 +98037,7 @@
       }
      },
      "validation": {
-      "description": "AccountType is required and registered with request type tag 4. If request +8 validation returns zero, fault 402; otherwise the concrete delegate returns 800.",
+      "description": "AccountType is required by name. Missing required materialization makes request +8 return0 and produces402. Present empty, malformed, signed, suffixed, overflowing or truncated numeric text is not rejected by tag4 and reaches constant800.",
       "evidence": [
        {
         "type": "firmware",
@@ -98027,11 +98054,43 @@
         "address": "0x10731e88",
         "function": "0x10731e04",
         "notes": "Delegate +0x14 returns 800; nonzero at 0x10731e90 faults via request +0x14 at 0x10731ea4. WebCode writer and commit require zero and are unreachable with this delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "TRequest vtable 0x10f10f20 +8: retrieve descriptor argument name, call input backend +8, copy present pointer/length through 0x10560708, normalize through 0x10560a58. Missing required descriptor fails; materialized or optional descriptor continues. Conversion return is not used as validation status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10561500",
+        "function": "0x105614e0",
+        "notes": "Factory stores tag4, destination, inline lexical buffer and capacity24. Handler registers AccountType with this helper at 0x10731e4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560750",
+        "function": "0x10560708",
+        "notes": "Accumulates at most descriptor capacity bytes; ignores excess. Converter 0x10560a58 writes NUL at length or capacity-1, so capacity24 retains at most23 payload bytes. Truncates rather than rejects."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b50",
+        "function": "0x10560a58",
+        "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
        }
       ]
      },
      "requirements": {
-      "description": "Required AccountType must pass request validation to reach the delegate. No service account, authentication state, or feature flag is read by the delegate.",
+      "description": "Requires the named AccountType argument to be present, not a lexically valid or in-range unsigned decimal. No account, authentication, feature flag or parsed value is examined by the concrete delegate.",
       "evidence": [
        {
         "type": "firmware",
@@ -98048,6 +98107,38 @@
         "address": "0x104b0504",
         "function": "0x104b0500",
         "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "TRequest vtable 0x10f10f20 +8: retrieve descriptor argument name, call input backend +8, copy present pointer/length through 0x10560708, normalize through 0x10560a58. Missing required descriptor fails; materialized or optional descriptor continues. Conversion return is not used as validation status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10561500",
+        "function": "0x105614e0",
+        "notes": "Factory stores tag4, destination, inline lexical buffer and capacity24. Handler registers AccountType with this helper at 0x10731e4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560750",
+        "function": "0x10560708",
+        "notes": "Accumulates at most descriptor capacity bytes; ignores excess. Converter 0x10560a58 writes NUL at length or capacity-1, so capacity24 retains at most23 payload bytes. Truncates rather than rejects."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b50",
+        "function": "0x10560a58",
+        "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
        }
       ]
      },
@@ -98114,7 +98205,7 @@
       ]
      },
      "return_behavior": {
-      "description": "Failed request validation emits fault 402. Every request reaching the delegate emits fault 800; WebCode output and success commit are unreachable.",
+      "description": "Missing required AccountType materialization produces402. Every materialized AccountType, including malformed or empty numeric text, reaches the constant800 delegate. WebCode output and success commit remain unreachable.",
       "evidence": [
        {
         "type": "firmware",
@@ -98139,6 +98230,38 @@
         "address": "0x104b0504",
         "function": "0x104b0500",
         "notes": "Complete four-instruction leaf returns 0x320 (800); no argument reads, output stores, calls, or conditional branches."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "TRequest vtable 0x10f10f20 +8: retrieve descriptor argument name, call input backend +8, copy present pointer/length through 0x10560708, normalize through 0x10560a58. Missing required descriptor fails; materialized or optional descriptor continues. Conversion return is not used as validation status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10561500",
+        "function": "0x105614e0",
+        "notes": "Factory stores tag4, destination, inline lexical buffer and capacity24. Handler registers AccountType with this helper at 0x10731e4c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560750",
+        "function": "0x10560708",
+        "notes": "Accumulates at most descriptor capacity bytes; ignores excess. Converter 0x10560a58 writes NUL at length or capacity-1, so capacity24 retains at most23 payload bytes. Truncates rather than rejects."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b50",
+        "function": "0x10560a58",
+        "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
        }
       ]
      },
@@ -98157,10 +98280,10 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "Required argument or request validation failed before the delegate.",
+       "meaning": "Required AccountType could not be materialized before delegate dispatch.",
        "conditions": [
         {
-         "description": "Request +8 returns zero after AccountType descriptor registration.",
+         "description": "Request +8 returns0 for a missing nonoptional AccountType record. Numeric lexical errors, overflow and over-capacity text do not cause this402 path.",
          "evidence": [
           {
            "type": "firmware",
@@ -98169,6 +98292,38 @@
            "address": "0x10731ed4",
            "function": "0x10731e04",
            "notes": "Failed request validation loads 0x192 at 0x10731ed8 and branches to fault emitter."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10730480",
+           "function": "0x10730414",
+           "notes": "TRequest vtable 0x10f10f20 +8: retrieve descriptor argument name, call input backend +8, copy present pointer/length through 0x10560708, normalize through 0x10560a58. Missing required descriptor fails; materialized or optional descriptor continues. Conversion return is not used as validation status."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10561500",
+           "function": "0x105614e0",
+           "notes": "Factory stores tag4, destination, inline lexical buffer and capacity24. Handler registers AccountType with this helper at 0x10731e4c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10560750",
+           "function": "0x10560708",
+           "notes": "Accumulates at most descriptor capacity bytes; ignores excess. Converter 0x10560a58 writes NUL at length or capacity-1, so capacity24 retains at most23 payload bytes. Truncates rather than rejects."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10560b50",
+           "function": "0x10560a58",
+           "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
           }
          ]
         }
@@ -98269,6 +98424,38 @@
        "address": "0x1018e594",
        "function": "0x1018d27c",
        "notes": "Handler constructor 0x10732e94 receives allocated delegate from Z+0xaa38 and handler Z+0xaa40; stores delegate at handler+4 and vptr 0x10f110a8 at handler+0. Alternate call 0x101905cc has same arguments."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10730480",
+       "function": "0x10730414",
+       "notes": "TRequest vtable 0x10f10f20 +8: retrieve descriptor argument name, call input backend +8, copy present pointer/length through 0x10560708, normalize through 0x10560a58. Missing required descriptor fails; materialized or optional descriptor continues. Conversion return is not used as validation status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10561500",
+       "function": "0x105614e0",
+       "notes": "Factory stores tag4, destination, inline lexical buffer and capacity24. Handler registers AccountType with this helper at 0x10731e4c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560750",
+       "function": "0x10560708",
+       "notes": "Accumulates at most descriptor capacity bytes; ignores excess. Converter 0x10560a58 writes NUL at length or capacity-1, so capacity24 retains at most23 payload bytes. Truncates rather than rejects."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560b50",
+       "function": "0x10560a58",
+       "notes": "Tag4 relative jump-table target 0x10560b40 calls strtoul(buffer,NULL,10), stores32 bits. No errno/endptr/range check. Empty/nondigit becomes0; decimal-prefix parsing and unsigned overflow semantics are libc behavior, not a SOAP rejection."
       }
      ],
      "notes": "The concrete delegate is statically recoverable, not a runtime-injected unknown. The success-only WebCode writer remains in the wrapper but cannot execute with the constructed delegate."
