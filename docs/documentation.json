@@ -146227,7 +146227,7 @@
    ]
   },
   "media_player_abstraction": {
-   "summary": "source plug-in layer under AVTransport: media_player_mgr + media_player_autoplay + media_player_vli_ctrl + extaudiosrc + ai_impl_base define the source vtable; autoplay system (StartAutoplay, AutoplayRoomUUID, AutoplayVolume, linked-zones expansion, silence thresholds, alarm/buzzer fallback) routes line-in/TV/Spotify-VLI sources to the coordinator; htaudio_autoplay.cxx handles TV autoplay; ChirpExtAudioSrc plugs acoustic input in as an ext source; media_player_mgr runs under 'mediaplayermanager' domain; VLI session control guarded by scopeVliCtrl lock; third linein source class object.item.audioItem.linein.bluetooth present",
+   "summary": "AVTransport reaches source control through concrete local wrappers and a selected-provider interface. VLI selection uses a nine-entry registry and explicit activation/deactivation callbacks. Static vtables exist in this image; per-source interface binding remains incomplete, not proven runtime-only.",
    "anchors": [
     "media_player_mgr.cxx",
     "extaudiosrc.cxx",
@@ -146278,17 +146278,45 @@
      "build": "86.10-80260",
      "address": "0x10f26b80",
      "notes": "<AutoPlay><Mode><SilentSeconds> XML"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_106a77d0 / f_106a7880 / f_106a7930",
+     "address": "0x106a77fc",
+     "callsite": "0x102b00c0 / 0x102b0134 / 0x106a7820 / 0x106a7838",
+     "notes": "AVTransport wrappers load +0x5a0 then use direct bl to f_106a77d0 and f_106a7880. First control wrapper reads +0x354 at 0x106a77fc, provider entry+4 at 0x106a7808, invokes provider+0x2c at 0x106a7820 and returned-interface+8 at 0x106a7838. Null tests at 0x106a7800/0x106a780c/0x106a7824 branch to zero return 0x106a7874. Pause analogously invokes returned-interface+0xc at 0x106a78e8. Seek branch invokes +0x10 at 0x106a79bc when saved r5 is zero. This disproves the former flattened source-slot interpretation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "VLI construction and source selection",
+     "address": "0x106aaf30",
+     "callsite": "0x106a8df4 / 0x106a8d38 / 0x106a9054",
+     "notes": "Constant address 0x10f045c4 at 0x106aaf30/0x106aaf34 is stored as primary vptr at 0x106aaf5c; derived static facet addresses are stored at +8/+0x11c/+0x120/+0x124. Constructor loop 0x106ab078-0x106ab0a4 clears nine stride-12 records at +0x2e8; +0x354 is zeroed at 0x106ab0ac. Selection 0x106a8cac-0x106a8ccc scans nine keys, stores matching entry at 0x106a8df4 and calls entry+4 provider virtual+0x10 at 0x106a8d38. Deactivation uses provider+0x14 at 0x106a9054 and clears +0x354 at 0x106a9064. Concrete registration producers remain residual."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10258ab0 / f_102587b4",
+     "address": "0x10258b14",
+     "notes": "f_10258ab0 locks object+0x208, obtains track information through f_10257704, calls f_102587b4 at 0x10258b14 and returns its mask. The latter references chsrc.cxx at 0x102587f0 and current source/track state at 0x10258810 onward. There is no source-vtable+0x68 dispatch in this function; the earlier alleged universal source slot was not supported."
     }
    ],
    "plugins": "media_player_mgr.cxx (manager), ai_impl_base.cxx/ai_impl (audio-input impl base), extaudiosrc.cxx + extaudiosrc_playid (external sources), media_player_vli_ctrl.cxx (virtual line-in control), htaudio_autoplay.cxx (TV), ChirpExtAudioSrc (acoustic)",
    "autoplay": "StartAutoplay; GetAutoplayRoomUUID/SetAutoplayRoomUUID target room; AutoplayVolume + UseAutoplayVolume + Get/SetUseAutoplayVolume; SetAutoplayLinkedZones + 'Found %zu linked rooms during StartAutoplay'; <AutoPlay><Mode><SilentSeconds> XML + HTASilenceThresholdAutoPlaySec + 'Triggering autoplay. Ignore Silence Threshold'; AutoPlaySettingsEvent; 'lonely local line-in autoplay'; alarm path 'Failure loading autoplay %s (alarm: %d, buzzer fallback: %d)'; DEFAULT_AUTOPLAY_LINEIN + vhautoplaytv/autoplay_tv; 'preventing autoplay because operation is overridden'",
    "vli_autoplay": "'using VLI to autoplay Spotify SMAPI URI: %s', 'setTransportToVLIStreamURI; URI: %s; autoplay: %d; become gc: %d': VLI streams carry external sources including Spotify SMAPI URIs, optionally promoting this player to group coordinator",
    "todo": [
-    "Residual: per-source-type vtable addresses are runtime-installed (mgr registration), so the static image cannot bind each source module to its vfunc table - only the exercised slot map is recoverable."
+    "Established: concrete static VLI vtables, nine-entry provider selection, activation/deactivation slots, and the actual nested dispatch used by AVTransport control wrappers. Still unresolved: the complete per-source-type provider and returned-interface vtable bindings, including which constructors fill each stride-12 entry at controller+0x2e8 and which concrete +0x2c implementation returns each control facet. Trace those registration writes and provider constructors, then enumerate the returned interface methods for seek/next/prev/playmode/state/metadata rather than reusing unrelated wrapper offsets. The old no-static-vtable/runtime-only premise is disproved by 0x106aaf30-0x106aaf6c; this remains static reverse-engineering work."
    ],
    "resolved_findings": [
-    "Resolved: source vtable recovered - the media-player interface is the shared source facet {play,pause,stop,seek,next,prev,uri,metadata,state} implemented per source type by media_player_mgr/media_player_autoplay/media_player_vli_ctrl/extaudiosrc/ai_impl_base; slot order is the uniform source contract; vtable is runtime-injected per source object.",
-    "Interface slot map recovered from call sites (avt_impl media_player pointer at +0x5a0, zeroed in the impl ctor ~0x102c10b4 and bound when a source is activated): vtable slot +0x40 play (f_106a77d0), +0x44 pause (f_106a7880), +0x68 source-capability query used by the seek gate (f_10258ab0), +0x74 seek (f_106a7930), +0x78 next (f_106a7a34), +0x7c prev (f_106a7ae4), +0x84 set-play-mode (f_106a9e88), +0x88 playmode-notify (f_106aa13c); impl r:seek slot +0x98 (f_10258be0). No static vtable exists in rodata - the per-source vtables are installed when each source module registers with media_player_mgr, so slot-to-source mapping is proven for the exercised verbs while the concrete source-type tables remain runtime-bound.",
+    "The previous uniform source-facet slot map is withdrawn: f_106a77d0 and f_106a7880 are directly called wrappers, not evidence that source vtable slots +0x40/+0x44 mean play/pause. AVTransport-side sites 0x102b00bc/0x102b00c0 and 0x102b0130/0x102b0134 load their object from +0x5a0 and call these wrappers directly. The wrappers take the selected entry at controller+0x354, then provider entry+4, call provider virtual +0x2c, and invoke returned-interface +8 or +0xc. Missing selected entry/provider/interface returns zero. These are distinct dispatch levels and their offsets must not be combined into one invented universal table.",
+    "The seek-related wrapper f_106a7930 uses the same selected-provider/+0x2c lookup. With r5 zero it calls returned-interface +0x10 at 0x106a79b4-0x106a79bc; the alternative path is separate. Meanwhile f_10258ab0 calls f_10257704 and f_102587b4 inside the chsrc capability path, not a universal source-vtable +0x68 entry. The source-module filename anchors alone do not establish common slot ordering.",
+    "Concrete static table counterexample: the VLI construction block installs 0x10f045c4 at object+0, 0x10f04644 at +8, 0x10f0466c at +0x11c, 0x10f04684 at +0x120 and 0x10f046c8 at +0x124 (0x106aaf30-0x106aaf6c). Those addresses contain executable method pointers; the same block names ai_vli at 0x106aafa0 and initializes its controller state. Therefore runtime selection does not mean the image lacks static vtables, and manager registration is not evidence of an external implementation.",
+    "Selected VLI provider mechanism: construction clears nine stride-12 entries beginning controller+0x2e8 and zeros controller+0x354. Selection scans nine keys at entry+0 and stores a matching entry address in +0x354 (0x106a8cac-0x106a8ccc/0x106a8df4). Entry+4 is the provider object. Selection calls provider virtual +0x10 (logged onSelect); deactivation calls provider virtual +0x14 and clears the selected pointer (0x106a9038-0x106a9064). Failed selection also clears it at 0x106a8e34. These local transitions explain why the control wrappers may return zero without reaching a provider.",
     "Playback-event id->name table at 0x10ea1cd0: {Play=0, Pause=1, TrackChanged=2, Next=3, Prev=4, ShuffleOn=5, ShuffleOff=6, RepeatOn=7, RepeatOff=8, BecameActive=9, BecameInactive=10, AudioDeliveryDone=13, ContextChanged=14, MetadataChanged=16, NetworkRequired=17, TrackDownloadStalled=18, QueuedTrackAccepted=19} - the player event enum (sparse ids, missing 11/12/15)."
    ]
   },
