@@ -60945,7 +60945,7 @@
   "/MediaRenderer/GroupRenderingControl/Control": {
    "name": "GroupRenderingControl",
    "control_path": "/MediaRenderer/GroupRenderingControl/Control",
-   "description": "Group-scoped rendering control service. Each action delegates to a shared group-impl object (arg5 to the wrappers, service member +0x0) via a sequential vfunc block v[+0x08..+0x1c]. Impl-side log strings ('SetGroupMute: local set to %d rc=%d', 'SetGroupVolume: local:%d netops:%u zones:%u') show the impls fan out to group members: the local zone is set directly while remote zones receive RenderingControl.SetMute/SetVolume UPnP operations, with a GroupVolumeSetActionEvent bookkeeping object in the path.",
+   "description": "Group rendering service with statically bound implementation: media-player+0x192c -> f_104d49e8 -> services-block+0x28 at 0x104d4cf0, aliasing SOAP service+4. Constructor f_1039f2e0 installs primary vptr 0x10ec3824. Slots +8/+0xc/+0x10/+0x14/+0x18/+0x1c select f_1039ccbc, f_103a23b4, f_1039cbf0, f_103a3134, f_103a30a0 and f_1039dc74 respectively. Getters aggregate valid cached rooms after local refresh; setters prepare remote RenderingControl operations and apply selected local operations; snapshot copies current cached volumes into saved baselines. Session tables are not the SOAP implementation. No per-action coordinator-identity gate or universal singleton no-op is present.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -60958,33 +60958,46 @@
     }
    },
    "availability": {
-    "notes": "Registered unconditionally at service-init like the other control services; functional usefulness requires the device to be a group coordinator (impl iterates group members), but no coordinator gate exists in the wrappers themselves.",
+    "notes": "SOAP service is constructed at zone-player+0x3fa50, but routing is conditional. f_101953c8 loads byte zone-player+0x571c at 0x101955a0, XORs 1 at 0x1019564c and stores its low byte into the GRC route enable field at 0x10195688. The route walk tests that byte before comparing the control path and dispatching. Thus value 1 disables this route and value 0 enables it; the router does not establish that all producers restrict the field to boolean values. Capability/reporting mask 0x4000 is a separate field, not this enable predicate. Enabled routing still requires nonnull service+4 and action-specific group/cache conditions. No coordinator-only or singleton-no-op rule follows from member iteration.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "function": "0x1018d27c",
-      "notes": "registered unconditionally in zone-player composite init"
+      "address": "0x1019553c",
+      "notes": "Route path 0x10e76138 stored at stack+0xd0; name at +0xd4 and 0x4000 reporting mask at +0xd8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10195688",
+      "notes": "GRC enable byte at stack+0xdc receives byte(zone-player+0x571c) XOR 1, not unconditional true."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1019573c",
+      "notes": "Route byte load -> 0x1019569c tests nonzero -> strcmp -> matching service dispatch at 0x10195778."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10738d5c",
+      "notes": "Matched action still requires nonnull SOAP implementation pointer; null joins dispatcher 401 reject tail."
      }
     ],
     "enabled_source": {
      "store_pc": "0x10195688",
      "size": "stb",
-     "raw_expr": "xor(*(r3-in+0x571c))",
+     "raw_expr": "byte(zone-player+0x571c) XOR 1; route eligible when the resulting byte is nonzero",
      "kind": "field_inverted",
      "base": "r3-in",
      "off": 22300
     },
-    "cap_flags": "0x4000",
-    "todo": [
-     "Established: the service registers unconditionally at service-init; its functional usefulness requires coordinator role (the impl iterates group members) and no coordinator gate exists in the wrappers themselves.",
-     "Residual: what the impl returns or does when invoked on a non-coordinator member - the group-member iteration's degenerate behavior. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
-    "resolved_findings": [
-     "Resolved: engine-class selection = the impl resolver picks class A vs B per session/source type at object creation; on a solo/non-coordinator group the member iteration degenerates to a single-member no-op pass.",
-     "Resolved: engine-class selection = the impl resolver picks class A vs B per session/source type at object creation; on a solo/non-coordinator group the member iteration degenerates to a single-member no-op pass."
-    ]
+    "cap_flags": "0x4000"
    },
    "object": {
     "expr": "r3-in+0x3fa50",
@@ -61169,7 +61182,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentMute is true exactly when the cached valid-zone count is nonzero and equals the muted-zone count. Empty state returns false; one muted zone does not suffice when another valid zone is unmuted. Fixed-volume zones participate in this mute count.",
+      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentMute is true exactly when the cached valid-zone count is nonzero and equals the muted-zone count. Empty state returns false; one muted zone does not suffice when another valid zone is unmuted. Fixed-volume zones participate in this mute count. The renderer input pair is media-player+0x1924/+0x1928, passed by f_103fd65c at 0x103fdb24 to f_103a0e28; its concrete constructor f_1046c6a4 installs primary vptr 0x10ed270c. Extra local snapshot helper f_100daab0 derives sonar state from bytes +0x847/+0x849 through leaf f_1011fa00 and updates renderer+0x930 only on change; this extra field does not affect the all-muted expression. The renderer input pair is media-player+0x1924/+0x1928, passed by f_103fd65c at 0x103fdb24 to f_103a0e28; its concrete constructor f_1046c6a4 installs primary vptr 0x10ed270c. Extra local snapshot helper f_100daab0 derives sonar state from bytes +0x847/+0x849 through leaf f_1011fa00 and updates renderer+0x930 only on change; this extra field does not affect the all-muted expression.",
       "evidence": [
        {
         "type": "firmware",
@@ -61177,13 +61190,40 @@
         "build": "86.10-80260",
         "address": "0x1039e7d8",
         "notes": "Counter writers and gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d log identify the aggregate fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103fdb24",
+        "notes": "Resolved renderer/configuration input pair to initializer, not runtime-only injected dispatch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dab6c",
+        "notes": "Sonar state cache store, reached only when the newly derived state differs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103fdb24",
+        "notes": "Resolved renderer/configuration input pair to initializer, not runtime-only injected dispatch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dab6c",
+        "notes": "Sonar state cache store, reached only when the newly derived state differs."
        }
-      ],
-      "todo": "Established: cache allocation, validity bits, counter writers and local snapshot consumption are traced. Residual: bind the caller-supplied renderer/configuration pair passed to f_103a0e28 and finish f_100daab0, called by f_100dabac for the extra snapshot field at +0x1c; that field is not consumed by this getter."
+      ]
      },
      "side_effects": [
       {
-       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read.",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; it is not an untraced audio command. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; it is not an untraced audio command.",
        "evidence": [
         {
          "type": "firmware",
@@ -61191,23 +61231,44 @@
          "build": "86.10-80260",
          "address": "0x103a0640",
          "notes": "Refresh callback through 0x103a074c; notification calls at 0x103a0704/0x103a0748 and in-process post at 0x103a0720."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dab6c",
+         "notes": "Complete f_100daab0 through 0x100daba8 performs sonar-state calculation/cache update/logging, not hardware application."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dab6c",
+         "notes": "Complete f_100daab0 through 0x100daba8 performs sonar-state calculation/cache update/logging, not hardware application."
         }
        ],
-       "todo": "Established: local cache updates and conditional notification requests are reachable through this getter. Residual: finish the extra snapshot helper f_100daab0 and in-process receiver callback f_103a3abc reached through f_103a6d74 -> f_100f14ec before enumerating their downstream effects."
+       "todo": "Established: renderer binding, extra sonar snapshot calculation/cache mutation and local GRC cache/dirty updates are traced. Residual: enumerate concrete observer effects at 0x103a5de4 and concrete source sender delivery after f_10678c50; captured-pointer/cancellation handling is not the event receiver."
       }
      ],
      "events_triggered": {
-      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103a0700",
-        "notes": "Getter -> f_1039c5f0 -> f_103a05d0 proves action-specific reachability; post callback address f_103a3abc is installed at 0x103a71f8."
+        "address": "0x103a0720",
+        "notes": "Getter refresh reaches event preparation; work binding at 0x103a5e8c and actual observer call 0x103a5de4 replace the false cancellation-manager receiver attribution."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Event source +0xb4 retained through +0xb8 ownership is woken through f_10678c50 when attached."
        }
       ],
-      "todo": "Established: conditional notification entry points and the in-process post are traced. Residual: follow callback f_103a3abc and bind the event-source sender to the concrete delivery worker; prove any GENA/WSS bridge rather than attributing groupRendering by name."
+      "todo": "Established: refresh emission gates, actual work/cancellation roles, source serializer and attached-sender wakeup are traced. Residual: bind concrete registered observers at 0x103a5de4 and the concrete sender worker/subscriber delivery bridge after f_10678c50; do not infer WSS groupRendering from its name."
      },
      "state_transitions": {
       "description": "Refresh can change local cached validity, fixed/nonfixed classification, volume sum and muted count, and set dirty byte +0x259. The final aggregate read is under mutex +0x1c8. The getter itself requests no playback-state transition or RenderingControl setter.",
@@ -61436,7 +61497,7 @@
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +8 selects f_1039ccbc. InstanceID!=0 returns 702; group lookup miss returns 701. After f_1039c5f0 refresh, mutex +0x1c8 protects the test cache[+0xd28c]!=0 && cache[+0xd28c]==cache[+0xd292], stored as a byte via r5. f_1039e7d8 and f_1039eac0 establish valid-zone and muted-zone counter semantics, including fixed-volume zones. This is an all-muted cache read, not a session destructor or a queue-side AVTransport call.",
-     "todo": "Established: primary GRC vptr 0x10ec3824 slot +0x08 -> 0x1039ccbc, complete getter status domain and exact cached aggregation are traced. CurrentMute is true exactly when the cached valid-zone count is nonzero and equals the muted-zone count. Empty state returns false; one muted zone does not suffice when another valid zone is unmuted. Fixed-volume zones participate in this mute count. Residual: bind the renderer/configuration input to f_103a0e28, finish extra snapshot helper f_100daab0, and follow in-process callback f_103a3abc plus the sender/delivery bridge behind f_1067c6ec. Cache refresh can request notifications; no runtime-only dispatch boundary is asserted."
+     "todo": "Established: concrete getter/local-renderer binding, validity/counter writers, exact all-muted result, complete status domain and refresh side effects including sonar cache +0x930 are traced. Residual: bind concrete registered observers invoked at 0x103a5de4 and the concrete event-source sender worker after f_10678c50, proving subscriber delivery rather than cancellation-functor management or a registry-name match."
     },
     "GetGroupVolume": {
      "description": "Reads the cached group volume after refreshing local rendering information. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise.",
@@ -61581,7 +61642,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise.",
+      "description": "Uses local ID +0x274, group accessor +0x278, local renderer +0x26c, mutex +0x1c8 and cache pointer +0x25c. Initializer f_103a0e28 stores renderer at 0x103a0ee4 and allocates the 0xd298-byte cache at 0x103a0f40..0x103a0f60. Cache entries have stride 0x694; volume +0x690, mute +0x692 and fixed +0x693 contribute after validity flags at +0x68c satisfy flags&7==7. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Renderer pair media-player+0x1924/+0x1928 reaches initializer f_103a0e28 at 0x103fdb24; constructor f_1046c6a4 installs concrete RC vptr 0x10ed270c. Extra f_100daab0 reads +0x847/+0x849, calls leaf f_1011fa00 and conditionally updates sonar cache +0x930; that extra field is not used in the current-volume average. Renderer pair media-player+0x1924/+0x1928 reaches initializer f_103a0e28 at 0x103fdb24; constructor f_1046c6a4 installs concrete RC vptr 0x10ed270c. Extra f_100daab0 reads +0x847/+0x849, calls leaf f_1011fa00 and conditionally updates sonar cache +0x930; that extra field is not used in the current-volume average.",
       "evidence": [
        {
         "type": "firmware",
@@ -61589,13 +61650,40 @@
         "build": "86.10-80260",
         "address": "0x1039e7d8",
         "notes": "Counter writers and gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d log identify the aggregate fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103fdb24",
+        "notes": "Resolved concrete renderer input, independent of request-session classes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dab6c",
+        "notes": "Conditional sonar cache update, not an unresolved snapshot dependency."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x103fdb24",
+        "notes": "Resolved concrete renderer input, independent of request-session classes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dab6c",
+        "notes": "Conditional sonar cache update, not an unresolved snapshot dependency."
        }
-      ],
-      "todo": "Established: cache allocation, validity bits, counter writers and local snapshot consumption are traced. Residual: bind the caller-supplied renderer/configuration pair passed to f_103a0e28 and finish f_100daab0, called by f_100dabac for the extra snapshot field at +0x1c; that field is not consumed by this getter."
+      ]
      },
      "side_effects": [
       {
-       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read.",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter.",
        "evidence": [
         {
          "type": "firmware",
@@ -61603,23 +61691,44 @@
          "build": "86.10-80260",
          "address": "0x103a0640",
          "notes": "Refresh callback through 0x103a074c; notification calls at 0x103a0704/0x103a0748 and in-process post at 0x103a0720."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100daab0",
+         "notes": "Full helper through 0x100daba8 reads configuration bytes, calls leaf f_1011fa00, compares/logs/stores +0x930."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100daab0",
+         "notes": "Full helper through 0x100daba8 reads configuration bytes, calls leaf f_1011fa00, compares/logs/stores +0x930."
         }
        ],
-       "todo": "Established: local cache updates and conditional notification requests are reachable through this getter. Residual: finish the extra snapshot helper f_100daab0 and in-process receiver callback f_103a3abc reached through f_103a6d74 -> f_100f14ec before enumerating their downstream effects."
+       "todo": "Established: concrete renderer input, extra sonar snapshot/cache behavior and GRC cache/dirty updates are traced. Residual: enumerate concrete observer effects at 0x103a5de4 and actual source sender delivery after f_10678c50, not the cancellation capture manager."
       }
      ],
      "events_triggered": {
-      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x103a0700",
-        "notes": "Getter -> f_1039c5f0 -> f_103a05d0 proves action-specific reachability; post callback address f_103a3abc is installed at 0x103a71f8."
+        "address": "0x103a0720",
+        "notes": "Refresh gate reaches GroupVolumeChangedEvent preparation and actual work f_103a5e8c/f_103a59b4, not cancellation handler f_103a3abc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Conditional attached-sender wakeup; concrete serializer secondary binding is recorded at service events."
        }
       ],
-      "todo": "Established: conditional notification entry points and the in-process post are traced. Residual: follow callback f_103a3abc and bind the event-source sender to the concrete delivery worker; prove any GENA/WSS bridge rather than attributing groupRendering by name."
+      "todo": "Established: actual refresh notification gates/work, source serializer and sender wakeup are traced. Residual: bind concrete registered observers at 0x103a5de4 and the concrete sender worker/subscriber bridge after f_10678c50; no GENA/WSS completion follows from the registry name."
      },
      "state_transitions": {
       "description": "Refresh can change local cached validity, fixed/nonfixed classification, volume sum and muted count, and set dirty byte +0x259. The final aggregate read is under mutex +0x1c8. The getter itself requests no playback-state transition or RenderingControl setter.",
@@ -61823,7 +61932,7 @@
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +0x10 selects f_1039cbf0, not f_106fd104 or vptr 0x10ec37b4. InstanceID!=0 returns 702; group lookup miss returns 701. After local refresh, mutex +0x1c8 protects cache+0xd28e nonfixed count, +0xd290 fixed count and +0xd294 current volume sum. Unsigned-to-single conversion, division and truncation produce the nonfixed average; zero nonfixed count falls back to 100 if fixed count is nonzero, else zero. Output is a halfword via r5; r4 is InstanceID, not an output pointer.",
-     "todo": "Established: primary GRC vptr 0x10ec3824 slot +0x10 -> 0x1039cbf0, complete getter status domain and exact cached aggregation are traced. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise. Residual: bind the renderer/configuration input to f_103a0e28, finish extra snapshot helper f_100daab0, and follow in-process callback f_103a3abc plus the sender/delivery bridge behind f_1067c6ec. Cache refresh can request notifications; no runtime-only dispatch boundary is asserted."
+     "todo": "Established: concrete getter/local-renderer binding, nonfixed average/fallback, validity/counter writers, full status domain and extra sonar snapshot/cache effects are traced. Residual: bind concrete registered observers invoked at 0x103a5de4 and concrete event-source sender delivery after f_10678c50, proving a subscriber bridge rather than mistaking cancellation-functor management for successful delivery."
     },
     "SetGroupMute": {
      "description": "Applies the requested mute to the local renderer and prepared remote RenderingControl SetMute requests. Primary GRC vptr 0x10ec3824 slot +0x0c selects f_103a23b4 -> f_103a2160 -> f_103a1b8c. The call waits for its remote batch and local renderer return, aggregates failures into 802/803, and updates cached mute information only for operations reporting zero.",
@@ -62029,7 +62138,7 @@
      },
      "side_effects": [
       {
-       "description": "f_10744d1c enumerates remote IDs; f_10743a60 or a custom session +0x20 prepares endpoint data. Failed preparation skips a member rather than counting it as a failed operation. Each prepared request carries InstanceID 0, Channel Master and DesiredMute; f_106fe8c0 assigns a correlation UUID and f_106fcf50 links it into the batch. The requested clock deadline is now+2000ms before f_106fb998, which also bounds it by global timeout configuration. After that batch returns the worker always calls local RC +0x0c. Zero local/remote statuses update cache entries via f_1039eac0; nonzero statuses are counted and logged. Even with no remote IDs it attempts the local operation. Shared refresh can also update renderer sonar cache +0x930 through f_100daab0.",
+       "description": "f_10744d1c enumerates remote IDs; f_10743a60 or a custom session +0x20 prepares endpoint data. Failed preparation skips a member rather than counting it as a failed operation. Each prepared request carries InstanceID 0, Channel Master and DesiredMute; f_106fe8c0 assigns a correlation UUID and f_106fcf50 links it into the batch. The requested clock deadline is now+2000ms before f_106fb998, which also bounds it by global timeout configuration. After that batch returns the worker always calls local RC +0x0c. Zero local/remote statuses update cache entries via f_1039eac0; nonzero statuses are counted and logged. Even with no remote IDs it attempts the local operation. Shared refresh can also update renderer sonar cache +0x930 through f_100daab0. Deeper local f_100db3fc -> f_100d99b0 stores Master mute at renderer+0x7f1 before backend f_100d7f34, updates cached effective volume +0x3c8, marks mute dirty +0x7f5, requests the RC event source and schedules f_100d7d6c through f_100d993c -> f_10572ab0. The local cached mute store is not rolled back when the backend boolean becomes status 501.",
        "evidence": [
         {
          "type": "firmware",
@@ -62044,9 +62153,16 @@
          "build": "86.10-80260",
          "address": "0x106fb998",
          "notes": "Bounded network batch uses session +8/+0xc/+0x14 callbacks and poll; concrete specialized table resolves to f_106fd104/f_106fd5d4/f_106ff898. f_106fe8c0 is UUID setup, not submission."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9a24",
+         "notes": "Master mute store before backend at 0x100d9a60, local event-source request at 0x100d9a80 and timer scheduling via 0x100d9a88."
         }
        ],
-       "todo": "Established: endpoint preparation, UUID assignment, batch/local ordering and cache updates are traced. Residual: finish stereo fan-out f_1046dff0, its failure cleanup f_1046c3cc -> f_1046c148, and physical renderer mutations below f_100db3fc; enumerate final transport/status effects below session f_106ff898. No completed device operation is inferred merely from a prepared request."
+       "todo": "Established: remote/local fan-out, aggregate accounting and concrete local mute/cache/dirty/notification/timer effects are traced. Residual: finish stereo f_1046dff0 and failure cleanup f_1046c148, conditional VLI f_106a7f44, backend interfaces +0x3ac/+0x3b4 below f_100d7f34, scheduled f_100d7d6c, session transport/status f_106ff898, and concrete observer/sender delivery."
       }
      ],
      "events_triggered": {
@@ -62356,7 +62472,7 @@
      ],
      "notes": null,
      "implementation_notes": "f_1039f2e0 primary vptr 0x10ec3824 -> +0x0c f_103a23b4 -> f_103a2160 -> f_103a1b8c. Concrete local RC vptr 0x10ed270c +0x0c -> f_1046c0b0, conditional VLI interception or +0x9c -> f_1046e50c -> stereo helpers and f_100db3fc. Specialized network session vptr 0x10ec37bc supplies request callbacks, not the SOAP implementation. Full GRC status domain {0,701,702,801,802,803}; remote batch precedes local operation; no automatic rollback on partial failure.",
-     "todo": "Established: concrete SOAP/local-renderer/session bindings, fan-out construction, batch deadline, local fallback, member cache updates, notification request gates and complete GRC status aggregation are traced. Residual: finish stereo-member workers f_1046dff0/f_1046c148 and renderer f_100db3fc (plus conditional VLI f_106a7f44), final session transport/status helper f_106ff898, and bind the concrete observer/sender delivery paths from f_103a59b4/f_1067c6ec. These are static downstream targets, not runtime-only dispatch boundaries."
+     "todo": "Established: primary/local/session bindings, full GRC status domain, remote/local batch ordering, local mute/cache store before backend, dirty/event requests and timer scheduling are traced. Residual: finish stereo f_1046dff0/f_1046c148, conditional VLI f_106a7f44, backend interfaces renderer+0x3ac/+0x3b4 below f_100d7f34, timer f_100d7d6c, final session transport/status f_106ff898 and concrete observer/sender delivery at f_103a59b4/f_10678c50."
     },
     "SetGroupVolume": {
      "description": "Sets a requested group target using saved member-volume baselines. Primary GRC vptr 0x10ec3824 +0x14 -> f_103a3134 -> f_103a2c4c -> f_103a2430 with flags zero. Valid nonfixed cache entries select local/remote targets; member results update cached current volumes. The worker aggregates failures rather than forwarding each member error.",
@@ -62532,7 +62648,7 @@
      },
      "side_effects": [
       {
-       "description": "The public flags-zero path does not run the flag-2 auto-snapshot or flag-1/4 mute helpers. It scans 32 cache entries and prepares RenderingControl SetVolume requests only for valid nonfixed remote entries whose endpoint preparation succeeds. Each request has InstanceID 0, Master and its calculated DesiredVolume; endpoint failures are skipped. A selected local entry records its own calculated target. The remote batch is given now+2000ms, additionally bounded by f_106fb998 configuration, before local application through the RC interface. Successful member statuses call f_1039e958 to update cached current volumes/sums. The concrete +0xa4 worker runs stereo-member fan-out f_1046e57c before f_100dbe90, which locks renderer+0x938 and calls f_100d9d40. Public flags zero do not save a new baseline.",
+       "description": "The public flags-zero path does not run the flag-2 auto-snapshot or flag-1/4 mute helpers. It scans 32 cache entries and prepares RenderingControl SetVolume requests only for valid nonfixed remote entries whose endpoint preparation succeeds. Each request has InstanceID 0, Master and its calculated DesiredVolume; endpoint failures are skipped. A selected local entry records its own calculated target. The remote batch is given now+2000ms, additionally bounded by f_106fb998 configuration, before local application through the RC interface. Successful member statuses call f_1039e958 to update cached current volumes/sums. The concrete +0xa4 worker runs stereo-member fan-out f_1046e57c before f_100dbe90, which locks renderer+0x938 and calls f_100d9d40. Public flags zero do not save a new baseline. Local f_100d9d40 validates InstanceID/channel/target and fixed-output state, stores Master target at renderer+0x7da and effective cached target +0x3c8, calls backend f_100d7f34, marks volume dirty +0x7f0, requests the local RC event source and schedules f_100d7d6c through f_100d993c. Backend failure can return local 501 after these cached stores; GRC counts it as a failed local result without undoing those stores.",
        "evidence": [
         {
          "type": "firmware",
@@ -62547,9 +62663,16 @@
          "build": "86.10-80260",
          "address": "0x10470968",
          "notes": "Concrete RC +0xa4 invokes f_1046e57c at 0x10470998, then f_100dbe90 at 0x104709d4 on its normal path; stereo failures update counter +0xc54 and can enter cleanup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9f00",
+         "notes": "Master target store before backend; effective target +0x3c8 store at 0x100d9f1c; backend at 0x100d9e10, RC notification 0x100d9e30 and timer request 0x100d9e38."
         }
        ],
-       "todo": "Established: public flags-zero behavior, target calculation, remote batch/local ordering, endpoint skips and cache updates are traced. Residual: finish member-specific stereo session effects below f_1046e57c and failure cleanup f_1046c148, physical renderer/property effects below f_100d9d40, conditional VLI interception f_100d8824, and final transport/session status effects below f_106ff898."
+       "todo": "Established: public flags-zero target selection, remote/local and stereo batch submission, local cache/dirty/notification/timer effects and GRC accounting are traced. Residual: finish stereo member enumeration/callback helpers below f_1046e57c and failure cleanup f_1046c148, conditional VLI f_100d8824, backend interfaces renderer+0x3ac/+0x3b4 below f_100d7f34, timer f_100d7d6c, final session f_106ff898 and actual observer/sender delivery."
       }
      ],
      "events_triggered": {
@@ -62889,7 +63012,7 @@
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +0x14 -> f_103a3134 -> f_103a2c4c -> f_103a2430(flags=0). Neither f_106fd5d4 nor session vptr 0x10ec37b4 implements this action. Calculated targets use saved-volume anchor scaling, not uniform desired-volume assignment. Concrete RC primary vptr 0x10ed270c supplies +0x1c/+0xa4; specialized remote session vptr 0x10ec3790 supplies network callbacks. Request submission, counted member success, cached aggregate update and physical/delivery completion remain distinct.",
-     "todo": "Established: primary/local/session bindings, flags-zero reachability, cache validity and saved-baseline anchor formula, complete GRC error domain and notification gates are traced. Residual: finish stereo worker f_1046e57c and failure cleanup f_1046c148, local physical/property worker f_100d9d40 and conditional VLI interception f_100d8824, final session transport/status effects below f_106ff898, and concrete observer/sender delivery bindings from f_103a59b4/f_1067c6ec. No runtime-only dispatch boundary is asserted."
+     "todo": "Established: primary/local/session binding, flags-zero saved-baseline arithmetic, complete GRC error accounting, local cached target storage before backend, dirty/event requests and timer scheduling are traced. Residual: finish stereo member enumeration/callback helpers below f_1046e57c and failure cleanup f_1046c148, conditional VLI f_100d8824, backend interfaces renderer+0x3ac/+0x3b4 below f_100d7f34, timer f_100d7d6c, session f_106ff898 and concrete observer/sender delivery."
     },
     "SetRelativeGroupVolume": {
      "description": "Calculates a requested group-volume target from the cached current group volume plus signed Adjustment, writes NewVolume, then invokes the same flags-zero saved-baseline worker as SetGroupVolume. Primary GRC vptr 0x10ec3824 +0x18 -> f_103a30a0 -> f_103a2d04 -> f_103a2c4c -> f_103a2430. NewVolume is the clamped requested target, not a reread of achieved member levels.",
@@ -63099,7 +63222,7 @@
      },
      "side_effects": [
       {
-       "description": "Refreshes local cached rendering information, computes/writes the target, then executes flags-zero f_103a2430. That worker sets busy +0x258, prepares valid nonfixed remote SetVolume operations with InstanceID 0/Master/calculated member targets, skips failed endpoint preparations, waits for the bounded remote batch and applies any selected local target through concrete RC +0xa4/+0x1c. Successful statuses update cache volume/sums via f_1039e958. It does not automatically snapshot or invoke the optional unmute branches. A zero adjustment still follows this path; no universal no-op optimization is proven.",
+       "description": "Refreshes local cached rendering information, computes/writes the target, then executes flags-zero f_103a2430. That worker sets busy +0x258, prepares valid nonfixed remote SetVolume operations with InstanceID 0/Master/calculated member targets, skips failed endpoint preparations, waits for the bounded remote batch and applies any selected local target through concrete RC +0xa4/+0x1c. Successful statuses update cache volume/sums via f_1039e958. It does not automatically snapshot or invoke the optional unmute branches. A zero adjustment still follows this path; no universal no-op optimization is proven. The shared local path f_100d9d40 stores Master volume at renderer+0x7da/+0x3c8 before backend f_100d7f34, marks dirty +0x7f0, requests the local RC event source and schedules f_100d7d6c through f_100d993c. A failed backend can produce local status 501 after those cached stores; GRC aggregates that status but does not roll back the cached local target.",
        "evidence": [
         {
          "type": "firmware",
@@ -63107,9 +63230,16 @@
          "build": "86.10-80260",
          "address": "0x103a2d98",
          "notes": "Target storage precedes shared setter at 0x103a2dc0; remote batch/local calls and cache updates are the same reachable f_103a2430 flags-zero path as the absolute action."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d9f00",
+         "notes": "Same reachable flags-zero local worker as the absolute action: target cache store precedes backend, notification and timer scheduling."
         }
        ],
-       "todo": "Established: target write, flags-zero fan-out, batch/local ordering and cache updates are traced. Residual: finish member-specific stereo/session effects below f_1046e57c/f_106ff898, failure cleanup f_1046c148, renderer/property mutations below f_100d9d40 and VLI interception f_100d8824."
+       "todo": "Established: relative target/output timing, shared remote/stereo/local batch ordering, local cache/dirty/notification/timer effects and GRC accounting are traced. Residual: finish stereo enumeration/callback helpers below f_1046e57c, cleanup f_1046c148, VLI interception f_100d8824, backend interfaces renderer+0x3ac/+0x3b4 below f_100d7f34, timer f_100d7d6c, final session f_106ff898 and actual observer/sender delivery."
       }
      ],
      "events_triggered": {
@@ -63449,7 +63579,7 @@
      ],
      "notes": null,
      "implementation_notes": "Primary GRC 0x10ec3824 +0x18 -> f_103a30a0 -> f_103a2d04 -> f_103a2c4c -> f_103a2430(flags=0). f_106ff454 and vptr 0x10ec37b4 belong to request-session machinery, not this SOAP delegate. Signed low-32-bit sum is clamped to 0..100 and stored before worker execution. SOAP NewVolume is only emitted on success and denotes the requested target, not measured or recomputed achieved volume.",
-     "todo": "Established: concrete relative/local/session bindings, signed low-32-bit arithmetic/clamp, target-output timing, flags-zero shared worker, exact GRC error domain and event request gates are traced. Residual: finish stereo f_1046e57c/f_1046c148, physical renderer/property f_100d9d40 and conditional VLI f_100d8824, final network/session effects f_106ff898, and concrete observer/sender delivery bindings from f_103a59b4/f_1067c6ec. No runtime-only dispatch boundary is asserted."
+     "todo": "Established: signed relative target and output timing, flags-zero absolute worker, complete GRC status domain, local cached target storage before backend and notification/timer requests are traced. Residual: finish stereo enumeration/callback helpers below f_1046e57c, cleanup f_1046c148, VLI interception f_100d8824, backend interfaces renderer+0x3ac/+0x3b4 below f_100d7f34, timer f_100d7d6c, session f_106ff898 and concrete observer/sender delivery."
     },
     "SnapshotGroupVolume": {
      "description": "Refreshes local rendering information and copies cached current member volumes into saved baselines used by later group-volume scaling. Primary GRC vptr 0x10ec3824 +0x1c -> f_1039dc74 -> f_1039d714. This is an in-memory baseline snapshot, not a volume application, persistent save or network query of every member.",
@@ -63786,7 +63916,7 @@
    "state_variables": {
     "GroupMute": {
      "evented": true,
-     "description": "evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications",
+     "description": "Advertised evented boolean; the concrete serializer emits true exactly when cached valid count is nonzero and equals muted count, including fixed-volume entries. This establishes the property value, not completed subscriber delivery.",
      "data_type": "boolean",
      "allowed_values": null,
      "range": null,
@@ -63800,13 +63930,27 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "notes": "GroupRenderingControl1.xml <stateVariable name=GroupMute sendEvents=yes>boolean: SCPD-advertised (evented)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d240",
+       "notes": "All-muted aggregation emitted through f_10676cb0 at 0x1039d26c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d240",
+       "notes": "All-muted aggregation emitted through f_10676cb0 at 0x1039d26c."
       }
      ],
      "notes": null
     },
     "GroupVolume": {
      "evented": true,
-     "description": "evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications",
+     "description": "Advertised evented ui2 property; serializer uses truncated single-precision currentSum/nonfixedCount, or 100 for fixed-only state and 0 for empty state. This is not proof of a specific LastChange or WSS transport.",
      "data_type": "ui2",
      "allowed_values": null,
      "range": {
@@ -63825,13 +63969,27 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "notes": "GroupRenderingControl1.xml <stateVariable name=GroupVolume sendEvents=yes>ui2: SCPD-advertised (evented)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d1e4",
+       "notes": "Cached average/fallback and f_10676af4 numeric output at 0x1039d214."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d1e4",
+       "notes": "Cached average/fallback and f_10676af4 numeric output at 0x1039d214."
       }
      ],
      "notes": null
     },
     "GroupVolumeChangeable": {
      "evented": true,
-     "description": "evented state variable: appears in GroupRenderingControl LastChange/GENA event notifications",
+     "description": "Advertised evented boolean; serializer computes nonfixedCount>0 or fixedCount==0. Consequently empty valid state is true and fixed-only valid state is false; this property alone is not a successful-volume-operation guarantee.",
      "data_type": "boolean",
      "allowed_values": null,
      "range": null,
@@ -63842,6 +64000,20 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "notes": "GroupRenderingControl1.xml <stateVariable name=GroupVolumeChangeable sendEvents=yes>boolean: SCPD-advertised (evented)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d298",
+       "notes": "Nonfixed/fixed test and f_10676cb0 output at 0x1039d2c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039d298",
+       "notes": "Nonfixed/fixed test and f_10676cb0 output at 0x1039d2c0."
       }
      ],
      "notes": null
@@ -63891,23 +64063,58 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /MediaRenderer/GroupRenderingControl/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "A concrete GroupRenderingControl event source is constructed at impl+8 by f_1067aec4, name 0x10f96fbc and index 35. Its notification request reaches f_1067c46c, which retains the sender through source+0xb8 and wakes source+0xb4 through f_10678c50 when attached. Missing sender logs Event source %s has no notification sender. Wakeup sets sender+0x10e and signals condition +0xb8; that is not completed subscriber delivery. The serializer binding and named-property output are traced separately from the remaining sender/GENA/WSS bridge.",
     "lastchange_template": null,
-    "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
+    "no_template_note": "f_1039d11c directly writes named properties GroupVolume, GroupMute and GroupVolumeChangeable. Absence from a separate LastChange-template registry does not prove this service can never participate in a LastChange payload; no such negative inference or completed delivery claim is made.",
     "wss_event_names": [
      "groupRendering"
     ],
-    "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
+    "wss_note": "groupRendering remains a registry-name candidate only. Index 35/id 137/tag 71 does not by itself prove a call-site bridge from this event source or GroupVolumeChangedEvent to a WSS subscriber.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "address": "0x1039f360",
+      "notes": "Event source name GroupRenderingControl, literal index 0x23 and f_1067aec4 call at 0x1039f36c. Constructor r5 is forwarded as source configuration; media-player constructor supplies its incoming r8 through r25 at 0x103fb3e4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10ec388c",
+      "notes": "Raw slot points to 0x1039d584, event-source secondary +0x14; thunk adjusts this by -8. f_1039d4d4 calls f_1039d430 in full/delta modes; tail to serializer at 0x1039d4b4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1039d1d4",
+      "notes": "GroupVolume serializer; raw EFS conversions/divide/truncation at 0x1039d1fc..0x1039d208: 0x108022d0, 0x11204ad0, 0x108922c9, 0x108022d8. 0x1039d20c is a low-16 mask, not right shift."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1039d298",
+      "notes": "Changeability is nonfixed!=0 or fixed==0; empty cache is true. Delta clear at 0x1039d18c; full-mode branch at 0x1039d2dc skips clear."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067c5bc",
+      "notes": "Attached source sender +0xb4 -> f_10678c50 at 0x1067c5c8; sender sets pending byte and signals a condition, without sending on this stack."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x103a5de4",
+      "notes": "Actual captured observer virtual +0 invocation below f_103a59b4, not cancellation manager f_103a3abc."
      }
     ],
-    "notify_path": "internal event 'GroupVolumeChangedEvent'/'GroupVolumeSetActionEvent' pool -> GENA/WSS; evented var 'GroupVolumeChangeable' literal proven; GroupMute/GroupVolume go through the same group-volume event pool",
+    "notify_path": "Refresh f_103a05d0 and successful setter accounting call f_1067c6ec(impl+8) -> f_1067c46c -> attached sender wakeup f_10678c50. Constructor installs event-source vptr 0x10ec3878; +0x14 points to thunk f_1039d584 -> f_1039d4d4 -> f_1039d430 -> f_1039d11c. Wrapper locks +0x1c8 and can serialize full and delta buffers; f_1039d430 requires a present group and, for delta, dirty +0x259. Serializer emits cached volume average/fallback, all-muted boolean and changeability=(nonfixedCount>0 || fixedCount==0). Empty state is volume 0, mute false, changeable true; fixed-only state is volume 100 and changeable false. Delta serialization clears dirty; full serialization preserves it. When dirty, the serializer also prepares an additional topology/state fragment via f_107491d8 and f_10677b94 at 0x1039d398. Separately f_103a6d74 posts GroupVolumeChangedEvent work through f_100f14ec -> f_103a5e8c -> f_103a59b4, whose concrete observer virtual +0 call is at 0x103a5de4. f_103a3abc manages the captured cancellation functor; f_103a3ce0 only logs cancellation.",
     "wss_registry": [
      {
       "idx": 35,
@@ -63916,32 +64123,38 @@
       "tag": 71
      }
     ],
-    "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `groupRendering`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
-    "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
-    ]
+    "todo": "Established: source name/index/configuration forwarding, static full/delta serializer binding, named-property formulas, dirty consumption, notification wakeup and GroupVolumeChangedEvent dispatch are traced. Residual: follow media-player incoming r8 configuration into source+0xb4/+0xb8 attachment and the concrete sender worker after f_10678c50; bind concrete registered observers invoked at 0x103a5de4; finish the topology/state fragment below f_107491d8/f_10677b94 and prove any GENA/WSS subscriber delivery bridge. Registry-name matches are not that proof."
    },
    "errors": [
     {
      "code": 401,
      "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "meaning": "The dispatcher rejects an unknown action name or a null SOAP implementation pointer with 401 before invoking an action handler.",
      "fault_sites": [
       "0x10738d10"
      ],
      "conditions": [
       {
-       "description": "Request action name matches no entry in the service dispatch table after the name-table search",
+       "description": "Action-name table search finds no match.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10738d10",
-         "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
+         "address": "0x10738cfc",
+         "notes": "Search miss joins the common reject tail; literal 401 at 0x10738d00 and fault call at 0x10738d10."
+        }
+       ]
+      },
+      {
+       "description": "Action name matches, but SOAP service+4 is null.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10738d5c",
+         "notes": "Load service+4, test zero and branch at 0x10738d64 to the same reject tail at 0x10738cfc."
         }
        ]
       }
@@ -63952,17 +64165,10 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x10738d10",
-       "notes": "fault raise site"
+       "notes": "Complete dispatcher f_10738c58..f_10738db0 has one direct fault call, shared by both reject conditions; matched nonnull delegates go through the action-table call at 0x10738da0."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10738d00); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
-     ]
+     "notes": null
     }
    ],
    "evidence": [
@@ -63970,22 +64176,22 @@
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x101953c8",
-     "notes": "service router function"
+     "address": "0x1039f534",
+     "notes": "Primary vptr store; event-source secondary vptr 0x10ec3878 installed at impl+8 at 0x1039f568."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x10f11a9c",
-     "notes": "service vtable"
+     "address": "0x104d4cf0",
+     "notes": "Raw stw 0x913f0028 stores media-player+0x192c implementation into containing services block+0x28 = zone-player+0x3fa54 = GRC service+4."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x10738c58",
-     "notes": "service dispatcher"
+     "address": "0x103a0ee4",
+     "notes": "Initializer f_103a0e28 stores the renderer input pair and allocates cache; caller f_103fd65c at 0x103fdb24 supplies media-player+0x1924/+0x1928 renderer binding."
     }
    ],
    "notes": null,
@@ -63993,21 +64199,15 @@
     "zoneplayer/grc_zpimpl.cxx"
    ],
    "implementation_notes": {
-    "volume_engine": "SetGroupVolume fans to member zones as netops (\"local:%d netops:%u zones:%u\"); normalize formula \"calculateVolume %s: sg:%.4f ng:%u sv:%u nv:%.4f\" + \"gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d\"; per-zone snapshots \"snapshot %s: %u (was %u)\" + \"snapshot sum for %u (of %u) zones\"; states total/partial failure, all-fixed, operation in progress; DesiredVolume/DesiredMute; GroupVolumeSetActionEvent {vol,mute,vligrouping} -> VliVolumeProcessingCompleteEvent",
+    "volume_engine": "Public absolute and relative actions use flags-zero f_103a2430: saved-baseline anchor scaling toward 0/100, roundf, valid nonfixed target selection and bounded remote/local result accounting. Snapshot f_1039d714 is an in-memory baseline copy, not the mechanism used by SetGroupMute.",
     "state_vars": [
-     "OutputFixed",
+     "GroupVolume",
      "GroupMute",
      "GroupVolumeChangeable"
     ],
-    "remote_rc": "remoteRC (%s) proxy logs {fixed,vol,mute} per member"
+    "remote_rc": "Concrete RenderingControl SetMute/SetVolume request sessions are distinct from the primary GRC implementation. Request acceptance, member status, physical completion and subscriber delivery are separate claims."
    },
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
-   "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
-   ]
+   "todo": "Established: six concrete SOAP slots, containing-block binding, local RC input binding, conditional route enablement, cache aggregates/saved baselines, bounded setter status accounting, static event-source serializer and dispatcher reject conditions are traced. Residual: finish stereo/member failure cleanup and physical renderer effects below f_1046dff0/f_1046e57c/f_1046c148 and f_100d7f34, conditional VLI interception f_106a7f44/f_100d8824, timer callback f_100d7d6c, final member network/status effects below f_106ff898, concrete observer registration at 0x103a5de4 and source sender/GENA/WSS delivery binding. Individual action TODOs distinguish these from fully traced getters/snapshot arithmetic and storage."
   },
   "/MediaRenderer/Queue/Control": {
    "name": "Queue",
