@@ -68830,17 +68830,38 @@
          "function": "0x104794d4",
          "address": "0x104798cc",
          "notes": "sscanf 'SQ:%d'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e884",
+         "notes": "loaded entry id compared with the requested index"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047e7d4",
+         "address": "0x1047e908",
+         "notes": "found flag ctx+0x6f = 1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2a0",
+         "notes": "701 when the requested entry was not found"
         }
        ],
        "notes": null,
        "buf_cap": 1024,
-       "todo": [
-        "Established: the ObjectID grammar and the new/replace selection.",
-        "Residual: how f_1047ee0c handles an 'SQ:<n>' index that does not exist is not traced; next step is its replace path."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ObjectID` = verbatim forward to impl vfunc +36 (obj r5-in, call site 0x1046449c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved: empty selects a new saved queue (index -1, 0x10479554); otherwise sscanf(ObjectID, 'SQ:%d') must return 1 or the call returns 801 (0x104798d4); the parsed index makes f_104794d4 run in replace mode (sp+0x60 = 1 at 0x104796d4) for that saved queue."
+        "Resolved: empty selects a new saved queue (index -1, 0x10479554); otherwise sscanf(ObjectID, 'SQ:%d') must return 1 or the call returns 801 (0x104798d4); the parsed index makes f_104794d4 run in replace mode (sp+0x60 = 1 at 0x104796d4) for that saved queue.",
+        "Established (nonexistent SQ:<n>): while the existing savedqueues file is loaded, the per-entry routine f_1047e7d4 converts each saved queue's id with strtol(id, NULL, 10) (0x1047e884) and compares it with the requested index ctx+0x44 (0x1047e88c). Only on a match does it set byte ctx+0x6f = 1 (0x1047e908). After the load f_1047ee0c returns 701 when the requested index ctx+0x40 is 0 or more and ctx+0x6f is still clear (0x1047f288..0x1047f2a0). In plain terms: asking to overwrite SQ:<n> when no saved queue has id n fails with 701 and nothing is written."
        ]
       }
      },
