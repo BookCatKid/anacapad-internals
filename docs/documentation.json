@@ -97072,7 +97072,7 @@
    "events": {
     "mechanism": "Native GENA source named ContentDirectory, constructed by10303de4 through1067aec4, with serializer103035c4. Local directory-update publishers queue CdNotifyUpdateId; the registered cd_impl observer updates counters and wakes the native source. SUBSCRIBE acceptance is separate from change production and delivery.",
     "lastchange_template": null,
-    "no_template_note": "The concrete serializer103035c4 emits individual UPnP event properties, not LastChange. The unrelated LastChange namespace/template registry is not evidence that ContentDirectory lacks native GENA delivery.",
+    "no_template_note": "The concrete serializer103035c4 emits individual UPnP event properties, not LastChange. The unrelated LastChange namespace/template registry is not evidence that ContentDirectory lacks native GENA delivery. Independently verified final source vtable and concrete +0x14 renderer, rather than attributing the shared collector to LastChange.",
     "wss_event_names": [
      "contentDirectory",
      "indexerStatus",
@@ -97143,9 +97143,33 @@
       "function": "0x10098d34",
       "address": "0x10098d50",
       "notes": "Initializes20-byte registry entries at110b8ce8 with names/IDs/tags. Generic lookup109e1044 computes base+20*index. This is only a registry observation; no publisher-to-wire WSS binding follows from the names."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10303de4",
+      "address": "0x10303fd4",
+      "notes": "ContentDirectory source is impl+8, named at10303e8c/98 through1067aec4. Constructor10303fbc/d4 installs10eb3f78 there; table+0x14 (10eb3f8c)=10303d94, table+0x18 (10eb3f90)=1067ab54.10303d94 subtracts8 and tail-calls103035c4.103f8c38..90 registers *(core+0x190c)+8 through104017c8 ->1067938c, retaining the shared owner. Renderer emits individual e:property SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress, ShareIndexLastError and version-token properties, using10676994/10676a44;106769cc literal is <e:property><. No LastChange element is produced by this concrete source."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10683da0",
+      "address": "0x1068406c",
+      "notes": "Conditional native collection, not LastChange attribution: sender registrations1067938c(shared owner) and106795b4(raw pointer) append active sources at sender+0x110/+0x114, gated by shutdown+0x10d.10679b14 processes removals at10679bd4, snapshots active vector10679bd8, skips pending-removal matches through1067a9f0, tests readiness1067d028 at10679da8 and spacing/timestamp slots before calling10683da0 at10679e54.10683e50 ->10684d00 populates subscription groups; group table+8 aliases frame+0x50, so initial zero at10683e0c is NOT invariant. Gates10683fe0/fe8 require a group;10683ff8..10684004 require nonempty eligible subscriber rows.10684058/5c supplies two writer buffers,10684060 loads source-vptr+0x18 and1068406c invokes it. Both services bind1067ab54, which rearranges extra args and tail-dispatches source-vptr+0x14 at1067ab64/70. No common LastChange wrapper is inserted by this adapter."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1068108c",
+      "address": "0x10683900",
+      "notes": "Renderer-to-wire conditional static chain:106841ac/c8 checks whether either rendered writer length+c is nonzero,106841d8 builds selected subscriber rows,106841f0 calls1068108c. It rechecks subscriber eligibility10681210/18 and name/group match1068122c; initial flag10681240/5c permits initial output while unchanged incremental output with empty writer is skipped10681264..78. Nonblocking connection/event-state loop eventually reaches106835ac..f4: subscription initial flag+0x6c chooses the same global writer+0x90 or+0x94, and10677350 formats native NOTIFY headers using10f00628 (NOTIFY %s HTTP/1.1; NT upnp:event; NTS upnp:propchange; SID/SEQ; Content-Length from writer+c). Header bytes go through10683734 -> plaintext write10683900 or TLS write10683768. Body state10683628 chooses that same writer;10683650 ->10677478 sends writer+4 plus progress offset, remaining length writer+c-offset, through plaintext write106774e4 or mbedtls_ssl_write10677538. Thus a conditional static path to actual native socket/TLS writes is proven for both property renderers; source registration alone was not that proof. Requires live source/sender, eligible subscriber, nonempty rendering and successful connection/IO state transitions; does not establish any observed wire receipt, WSS path, or automatic delivery on SOAP success."
      }
     ],
-    "notify_path": "SQ and favorites/radio mutations ->10117654 -> queued boxed callback100e4fb4/10115a38 ->10115574 observer tree1109cfb8 -> impl+11c vptr10eb3fa0 slot0 ->10304904 ->10304808 ->1067c6ec(impl+8). Native source1067c46c sets pending and wakes10678c50; source vptr+14 ->10303d94 ->103035c4 serializes the properties. Separate replication receivers manager+c0 and provider+110 bind10652074, not the GENA serializer.",
+    "notify_path": "SQ and favorites/radio mutations ->10117654 -> queued boxed callback100e4fb4/10115a38 ->10115574 observer tree1109cfb8 -> impl+11c vptr10eb3fa0 slot0 ->10304904 ->10304808 ->1067c6ec(impl+8). Native source1067c46c sets pending and wakes10678c50; source vptr+14 ->10303d94 ->103035c4 serializes the properties. Separate replication receivers manager+c0 and provider+110 bind10652074, not the GENA serializer. Eligible native source scan10679b14 ->10683da0 ->source+0x18=1067ab54 ->source+0x14 renderer; nonempty rendered buffers106841ac..f0 ->1068108c ->10677350(header)/10677478(body) ->native write or mbedtls_ssl_write. Conditional static send path, not observed network receipt.",
     "wss_registry": [
      {
       "idx": 23,
@@ -97172,7 +97196,10 @@
       "tag": 34
      }
     ],
-    "todo": "Established: the native CdNotifyUpdateId registration, concrete receiver, SystemUpdateID/version updates and GENA serializer/wake chain are traced. Remaining: WSS bridge attribution, not the native SOAP implementation. Examined registry initializer10098d34 and lookup109e1044: they install/lookup the names but contain no ContentDirectory publisher callback. Next trace consumers of registry lookup109e10d8/109e12b4 for event IDs80(contentDirectory),152(indexerStatus),115(favoritesVersionChange),195(playlistsVersionChange), then bind their payload producers. No runtime-injection impossibility is claimed."
+    "todo": "Established: the native CdNotifyUpdateId registration, concrete receiver, SystemUpdateID/version updates and GENA serializer/wake chain are traced. Remaining: WSS bridge attribution, not the native SOAP implementation. Examined registry initializer10098d34 and lookup109e1044: they install/lookup the names but contain no ContentDirectory publisher callback. Next trace consumers of registry lookup109e10d8/109e12b4 for event IDs80(contentDirectory),152(indexerStatus),115(favoritesVersionChange),195(playlistsVersionChange), then bind their payload producers. No runtime-injection impossibility is claimed.",
+    "resolved_findings": [
+     "Concrete source renderer 10eb3f78+0x14 ->10303d94 ->103035c4 emits individual event properties, not LastChange. Common source registration and slot+0x18 dispatch do not identify a LastChange producer. Conditional renderer-to-native-write chain is traced through10683da0 ->1067ab54 ->source+0x14, then1068108c ->10677350(header) and10677478(body) ->write/mbedtls_ssl_write. This proves static reachability under subscriber/readiness/IO gates, not live delivery or WSS publication."
+    ]
    },
    "errors": [
     {
@@ -99699,7 +99726,7 @@
    "events": {
     "mechanism": "Native GENA event-source notification at /MusicServices/Event; accepted replacement dirties ServiceListVersion and wakes attached sender. Initial subscriptions serialize current token; incremental output is dirty-gated.",
     "lastchange_template": null,
-    "no_template_note": "Native e:property ServiceListVersion is serialized directly, not inside LastChange. This follows concrete writer literals, not absence from an unrelated three-service LastChange namespace registry.",
+    "no_template_note": "Native e:property ServiceListVersion is serialized directly, not inside LastChange. This follows concrete writer literals, not absence from an unrelated three-service LastChange namespace registry. Independently verified final source vtable and concrete +0x14 renderer, rather than attributing the shared collector to LastChange.",
     "wss_event_names": [
      "musicServices",
      "musicServicesChanged"
@@ -99721,9 +99748,33 @@
       "function": "0x100c7898",
       "address": "0x100c7b78",
       "notes": "After successful rename invalidates descriptor cache impl+0x23c under mutex+0x13a40. Sets eventdirty+0x1d5=1 and calls1067c6ec(impl+8) at100c7b80. Copies device to+0x1d7, version to+0x1f0 at100c7b94, ETag to+0x1f8, conditionalflag+0x1d6=1. Replicationmanager impl+0x1b8 virtual+0x14 receives type6,device,version at100c7bcc. Updates shared service-descriptor cache1071f644 after100c6e20. Notification requested under lock; event serializer100c71d0 acquires same lock before snapshot. Runtime subscribers determine actual receipt, not action success."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x100c6950",
+      "address": "0x100c6a24",
+      "notes": "MusicServices constructor names impl+8 source MusicServices at100c6990/94..100c69c8 and stores final10e76914 at100c6a24. Table+0x14 (10e76928)=100c72bc adjusts-8 ->100c71d0 ->100c7084; +0x18 (10e7692c)=1067ab54. Zone initialization1018f488 constructs inline service;10189ae0 sets base r28=zone+0x30000,10189b80/84 registers zone+0x292c0 source through raw106795b4, not the shared-owner registration helper. Renderer100c7084/100c7150 writes individual e:property ServiceListVersion (literal10e76cd4, property-open10676994, property-close10676a44), initial snapshot or dirty-gated incremental snapshot. Neither this renderer nor common adapter1067ab54 creates LastChange."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10683da0",
+      "address": "0x1068406c",
+      "notes": "Conditional native collection, not LastChange attribution: sender registrations1067938c(shared owner) and106795b4(raw pointer) append active sources at sender+0x110/+0x114, gated by shutdown+0x10d.10679b14 processes removals at10679bd4, snapshots active vector10679bd8, skips pending-removal matches through1067a9f0, tests readiness1067d028 at10679da8 and spacing/timestamp slots before calling10683da0 at10679e54.10683e50 ->10684d00 populates subscription groups; group table+8 aliases frame+0x50, so initial zero at10683e0c is NOT invariant. Gates10683fe0/fe8 require a group;10683ff8..10684004 require nonempty eligible subscriber rows.10684058/5c supplies two writer buffers,10684060 loads source-vptr+0x18 and1068406c invokes it. Both services bind1067ab54, which rearranges extra args and tail-dispatches source-vptr+0x14 at1067ab64/70. No common LastChange wrapper is inserted by this adapter."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1068108c",
+      "address": "0x10683900",
+      "notes": "Renderer-to-wire conditional static chain:106841ac/c8 checks whether either rendered writer length+c is nonzero,106841d8 builds selected subscriber rows,106841f0 calls1068108c. It rechecks subscriber eligibility10681210/18 and name/group match1068122c; initial flag10681240/5c permits initial output while unchanged incremental output with empty writer is skipped10681264..78. Nonblocking connection/event-state loop eventually reaches106835ac..f4: subscription initial flag+0x6c chooses the same global writer+0x90 or+0x94, and10677350 formats native NOTIFY headers using10f00628 (NOTIFY %s HTTP/1.1; NT upnp:event; NTS upnp:propchange; SID/SEQ; Content-Length from writer+c). Header bytes go through10683734 -> plaintext write10683900 or TLS write10683768. Body state10683628 chooses that same writer;10683650 ->10677478 sends writer+4 plus progress offset, remaining length writer+c-offset, through plaintext write106774e4 or mbedtls_ssl_write10677538. Thus a conditional static path to actual native socket/TLS writes is proven for both property renderers; source registration alone was not that proof. Requires live source/sender, eligible subscriber, nonempty rendering and successful connection/IO state transitions; does not establish any observed wire receipt, WSS path, or automatic delivery on SOAP success."
      }
     ],
-    "notify_path": "100c7b80 ->1067c6ec ->1067c46c ->10678c50(sender wake); source10e76914+0x14 ->100c72bc ->100c71d0 ->100c7084 ->10676994/10676a44.",
+    "notify_path": "100c7b80 ->1067c6ec ->1067c46c ->10678c50(sender wake); source10e76914+0x14 ->100c72bc ->100c71d0 ->100c7084 ->10676994/10676a44. Eligible native source scan10679b14 ->10683da0 ->source+0x18=1067ab54 ->source+0x14 renderer; nonempty rendered buffers106841ac..f0 ->1068108c ->10677350(header)/10677478(body) ->native write or mbedtls_ssl_write. Conditional static send path, not observed network receipt.",
     "payload_model": "e:property ServiceListVersion contains device:counter token; initial snapshot unconditionally, incremental onlydirty+0x1d5.",
     "wss_registry": [
      {
@@ -99740,7 +99791,7 @@
      }
     ],
     "resolved_findings": [
-     "Concrete event-source interface, serializer, dirty producer, native property syntax and sender-wake path recovered. WSS registry names are only an inventory, not a substitute for this native binding proof."
+     "Concrete source renderer 10e76914+0x14 ->100c72bc ->100c71d0 ->100c7084 emits individual event properties, not LastChange. Common source registration and slot+0x18 dispatch do not identify a LastChange producer. Conditional renderer-to-native-write chain is traced through10683da0 ->1067ab54 ->source+0x14, then1068108c ->10677350(header) and10677478(body) ->write/mbedtls_ssl_write. This proves static reachability under subscriber/readiness/IO gates, not live delivery or WSS publication."
     ]
    },
    "errors": [
