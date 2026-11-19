@@ -52032,20 +52032,32 @@
       ]
      },
      "state_dependencies": {
-      "description": "Requires a live streamer/control target for the fast path; otherwise the f_102d0ac8 fallback handles (or fails) it.",
+      "description": "The fast path depends on successful submission to the current URI and a nonzero streamer pause result. The fallback checks the current URI and source mode and may send indexed pause work or do local state cleanup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b0134",
-        "notes": "f_106a7880 on *(impl+0x5a0)",
-        "function": "f_102b00cc"
+        "address": "0x102d2b98",
+        "notes": "In the mutex scope, tries f_102b00cc. Its successful op-0x19 submission enters streamer pause at 0x102b0134. A nonzero fast-path result is converted to engine success, not returned verbatim.",
+        "function": "0x102d2b38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d2be0",
+        "notes": "A zero fast-path result invokes f_102d0ac8(impl,1,1,-1,-1) and returns its result.",
+        "function": "0x102d2b38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0b78",
+        "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
+        "function": "0x102d0ac8"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - Requires a live streamer/control target for the fast path; otherwise the f_102d0ac8 fallback handles (or fails) it.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
@@ -52072,19 +52084,35 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The shared fallback can invoke f_1067c6ec after updating local transport state; the fast path delegates to the streamer.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f8588",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x102d2b98",
+        "notes": "In the mutex scope, tries f_102b00cc. Its successful op-0x19 submission enters streamer pause at 0x102b0134. A nonzero fast-path result is converted to engine success, not returned verbatim.",
+        "function": "0x102d2b38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d2be0",
+        "notes": "A zero fast-path result invokes f_102d0ac8(impl,1,1,-1,-1) and returns its result.",
+        "function": "0x102d2b38"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0d20",
+        "notes": "The fallback calls f_1067c6ec(impl+0x10) on branches including a nonzero f_102b05e4 result at 0x102d0d14. Absence of the call in the top-level pause function does not imply no notification.",
+        "function": "0x102d0ac8"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Resolve the listener at impl+0x10 and the streamer pause callback for the exact changed LastChange fields and delivery conditions."
       ]
      },
      "state_transitions": {
@@ -52124,34 +52152,21 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x30)",
-       "meaning": "impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v[+0x1c] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived",
+       "meaning": "The parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f863c"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "The parsed InstanceID was nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x102d2b30",
-           "notes": "li 0x2ce",
-           "function": "f_102d2b28"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x102d2b28",
-           "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+           "notes": "Both engine tables bind +0x30 to 0x102d2b28; a nonzero ID returns 718 without running the pause body.",
+           "function": "0x102d2b28"
           }
          ]
         }
@@ -52162,21 +52177,8 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x102d2b30",
-         "notes": "li 0x2ce",
-         "function": "f_102d2b28"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102d2b28",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+         "notes": "Both engine tables bind +0x30 to 0x102d2b28; a nonzero ID returns 718 without running the pause body.",
+         "function": "0x102d2b28"
         }
        ],
        "unresolved": {
@@ -52219,35 +52221,40 @@
         0,
         718
        ],
-       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x30); sites: 0x102f863c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x30)",
-       "meaning": "nonzero impl/worker rc surfaced verbatim; recovered domain: fallback worker f_102d0ac8 domain {0x2bd=701 (x7 sites), 0}; direct streamer path rcs also surfaced",
+       "meaning": "A false fast-path result enters f_102d0ac8, whose return is propagated. The initial f_102931f0 rejection is 701.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "f_102b00cc returned 0 AND f_102d0ac8 returned nonzero",
+         "description": "A false fast-path result enters f_102d0ac8, whose return is propagated. The initial f_102931f0 rejection is 701.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2be0",
-           "notes": "fallback rc -> r31",
-           "function": "f_102d2bcc"
+           "address": "0x102d2b98",
+           "notes": "In the mutex scope, tries f_102b00cc. Its successful op-0x19 submission enters streamer pause at 0x102b0134. A nonzero fast-path result is converted to engine success, not returned verbatim.",
+           "function": "0x102d2b38"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102d0ac8",
-           "notes": "rc site"
+           "address": "0x102d2be0",
+           "notes": "A zero fast-path result invokes f_102d0ac8(impl,1,1,-1,-1) and returns its result.",
+           "function": "0x102d2b38"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102d0b78",
+           "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
+           "function": "0x102d0ac8"
           }
          ]
         }
@@ -52257,16 +52264,25 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102d2be0",
-         "notes": "fallback call",
-         "function": "f_102d2bcc"
+         "address": "0x102d2b98",
+         "notes": "In the mutex scope, tries f_102b00cc. Its successful op-0x19 submission enters streamer pause at 0x102b0134. A nonzero fast-path result is converted to engine success, not returned verbatim.",
+         "function": "0x102d2b38"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102d0ac8",
-         "notes": "worker rc sites decoded"
+         "address": "0x102d2be0",
+         "notes": "A zero fast-path result invokes f_102d0ac8(impl,1,1,-1,-1) and returns its result.",
+         "function": "0x102d2b38"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0b78",
+         "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
+         "function": "0x102d0ac8"
         }
        ],
        "unresolved": {
@@ -52308,8 +52324,7 @@
         701
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x30); sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Enumerate the source-specific branches that reach f_102d0ac8's nonzero exits with Pause's fixed (1,1,-1,-1) arguments."
        ]
       },
       {
@@ -52387,12 +52402,51 @@
        "build": "86.10-80260",
        "address": "0x10eb3138",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2b30",
+       "notes": "Both engine tables bind +0x30 to 0x102d2b28; a nonzero ID returns 718 without running the pause body.",
+       "function": "0x102d2b28"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2b98",
+       "notes": "In the mutex scope, tries f_102b00cc. Its successful op-0x19 submission enters streamer pause at 0x102b0134. A nonzero fast-path result is converted to engine success, not returned verbatim.",
+       "function": "0x102d2b38"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d2be0",
+       "notes": "A zero fast-path result invokes f_102d0ac8(impl,1,1,-1,-1) and returns its result.",
+       "function": "0x102d2b38"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0b78",
+       "notes": "Fallback first zeroes impl+0x777c and +0x7778, rejects a true f_102931f0 source test with 701, then uses the indexed mode-2, mode-1, or other-mode branch. The indexed path can use f_10256a84 op 1 or f_102569dc depending on source.",
+       "function": "0x102d0ac8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0d20",
+       "notes": "The fallback calls f_1067c6ec(impl+0x10) on branches including a nonzero f_102b05e4 result at 0x102d0d14. Absence of the call in the top-level pause function does not imply no notification.",
+       "function": "0x102d0ac8"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102f8588; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Verify the full source-specific return and state matrix of f_102d0ac8 with Pause's fixed (1,1,-1,-1) arguments, then identify notifications from the indexed and streamer methods."
      ]
     },
     "Play": {
