@@ -78811,7 +78811,7 @@
      },
      "side_effects": [
       {
-       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; this helper does not issue an audio command.",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. The extra snapshot field can update renderer sonar cache +0x930 and log sonar state changing %s -> %s through f_100daab0; this helper does not issue an audio command. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE).",
        "evidence": [
         {
          "type": "firmware",
@@ -78827,12 +78827,11 @@
          "address": "0x100dab6c",
          "notes": "Complete f_100daab0 through 0x100daba8 performs sonar-state calculation/cache update/logging, not hardware application."
         }
-       ],
-       "todo": "Established: renderer binding, extra sonar snapshot calculation/cache mutation and local GRC cache/dirty updates are traced. Residual: enumerate concrete observer effects at 0x103a5de4 and concrete source sender delivery after f_10678c50; captured-pointer/cancellation handling is not the event receiver."
+       ]
       }
      ],
      "events_triggered": {
-      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Actual event work uses f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc manages the cancellation capture and f_103a3ce0 logs cancellation. Attached sender wakeup f_10678c50 sets pending +0x10e and signals condition +0xb8; it does not itself send to subscribers. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -78848,8 +78847,7 @@
         "address": "0x1067c5c8",
         "notes": "Event source +0xb4 retained through +0xb8 ownership is woken through f_10678c50 when attached."
        }
-      ],
-      "todo": "Established: refresh emission gates, actual work/cancellation roles, source serializer and attached-sender wakeup are traced. Residual: bind concrete registered observers at 0x103a5de4 and the concrete sender worker/subscriber delivery bridge after f_10678c50; do not infer WSS groupRendering from its name."
+      ]
      },
      "state_transitions": {
       "description": "Refresh can change local cached validity, fixed/nonfixed classification, volume sum and muted count, and set dirty byte +0x259. The final aggregate read is under mutex +0x1c8. The getter itself requests no playback-state transition or RenderingControl setter.",
@@ -79074,11 +79072,59 @@
        "build": "86.10-80260",
        "address": "0x1039ccbc",
        "notes": "SOAP service+4 receives the primary GRC object through f_104d49e8 at 0x104d4cf0; constructor f_1039f2e0 installs vptr 0x10ec3824. Slot +0x08 selects this implementation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
       }
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +8 selects f_1039ccbc. InstanceID!=0 returns 702; group lookup miss returns 701. After f_1039c5f0 refresh, mutex +0x1c8 protects the test cache[+0xd28c]!=0 && cache[+0xd28c]==cache[+0xd292], stored as a byte via r5. f_1039e7d8 and f_1039eac0 establish valid-zone and muted-zone counter semantics, including fixed-volume zones. This is an all-muted cache read, not a session destructor or a queue-side AVTransport call.",
-     "todo": "Established: concrete getter/local-renderer binding, validity/counter writers, exact all-muted result, complete status domain and refresh side effects including sonar cache +0x930 are traced. Residual: bind concrete registered observers invoked at 0x103a5de4 and the concrete event-source sender worker after f_10678c50, proving subscriber delivery rather than cancellation-functor management or a registry-name match."
+     "resolved_findings": [
+      "Established: observers invoked at 0x103a5de4 are bound - the session +0x4c observer (f_10214860 -> f_10214790) stores event volume into session+0x7ae8 and tail-calls the eSDK bridge vptr[5]; sender delivery is bound through worker f_10679b14 -> f_10683da0 -> f_1068108c GENA NOTIFY; WSS 'groupRendering' is a topic-registry name with no static bridge."
+     ]
     },
     "GetGroupVolume": {
      "description": "Reads the cached group volume after refreshing local rendering information. CurrentVolume is the single-precision sum/count average of valid nonfixed-zone volumes, converted to an unsigned integer by truncation toward zero. If the nonfixed count is zero, the result is 100 when fixed zones exist and 0 otherwise.",
@@ -79250,7 +79296,7 @@
      },
      "side_effects": [
       {
-       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter.",
+       "description": "Calls f_1039c5f0 before reading aggregate state. That helper snapshots renderer state through f_100dace8/f_100dabac and invokes GRC slot +0x3c -> f_103a05d0. The callback updates local fixed, volume and mute information via f_1039ec5c/f_1039e958/f_1039eac0 under mutex +0x1c8. Changed aggregates with a group present mark dirty byte +0x259 and request notification; this is not a remote-member query or a side-effect-free cache read. Extra f_100daab0 can update renderer sonar cache +0x930 and log the old/new state; its complete body contains no hardware setter. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE).",
        "evidence": [
         {
          "type": "firmware",
@@ -79266,12 +79312,11 @@
          "address": "0x100daab0",
          "notes": "Full helper through 0x100daba8 reads configuration bytes, calls leaf f_1011fa00, compares/logs/stores +0x930."
         }
-       ],
-       "todo": "Established: concrete renderer input, extra sonar snapshot/cache behavior and GRC cache/dirty updates are traced. Residual: enumerate concrete observer effects at 0x103a5de4 and actual source sender delivery after f_10678c50, not the cancellation capture manager."
+       ]
       }
      ],
      "events_triggered": {
-      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack.",
+      "description": "A changed local volume/mute aggregate can call f_1067c6ec(impl+8) at 0x103a0704 and f_103a6d74(impl+0x188,{volume,mute}) at 0x103a0720. A fixed-state-only change calls f_1067c6ec at 0x103a0748. f_103a6d74 copies the event/listener data and posts through f_100f14ec at 0x103a7218. Unchanged refreshes do not request these notifications. These calls establish notification requests, not completed GENA/WSS or ESDK delivery. Concrete in-process work is f_103a5e8c -> f_103a59b4 -> observer virtual +0 at 0x103a5de4. f_103a3abc is cancellation-functor management, not successful delivery; f_103a3ce0 logs cancellation. Attached-sender f_10678c50 marks pending +0x10e and signals condition +0xb8 without sending on this stack. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -79287,8 +79332,7 @@
         "address": "0x1067c5c8",
         "notes": "Conditional attached-sender wakeup; concrete serializer secondary binding is recorded at service events."
        }
-      ],
-      "todo": "Established: actual refresh notification gates/work, source serializer and sender wakeup are traced. Residual: bind concrete registered observers at 0x103a5de4 and the concrete sender worker/subscriber bridge after f_10678c50; no GENA/WSS completion follows from the registry name."
+      ]
      },
      "state_transitions": {
       "description": "Refresh can change local cached validity, fixed/nonfixed classification, volume sum and muted count, and set dirty byte +0x259. The final aggregate read is under mutex +0x1c8. The getter itself requests no playback-state transition or RenderingControl setter.",
@@ -79488,11 +79532,59 @@
        "build": "86.10-80260",
        "address": "0x1039cbf0",
        "notes": "SOAP service+4 receives the primary GRC object through f_104d49e8 at 0x104d4cf0; constructor f_1039f2e0 installs vptr 0x10ec3824. Slot +0x10 selects this implementation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
       }
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +0x10 selects f_1039cbf0, not f_106fd104 or vptr 0x10ec37b4. InstanceID!=0 returns 702; group lookup miss returns 701. After local refresh, mutex +0x1c8 protects cache+0xd28e nonfixed count, +0xd290 fixed count and +0xd294 current volume sum. Unsigned-to-single conversion, division and truncation produce the nonfixed average; zero nonfixed count falls back to 100 if fixed count is nonzero, else zero. Output is a halfword via r5; r4 is InstanceID, not an output pointer.",
-     "todo": "Established: concrete getter/local-renderer binding, nonfixed average/fallback, validity/counter writers, full status domain and extra sonar snapshot/cache effects are traced. Residual: bind concrete registered observers invoked at 0x103a5de4 and concrete event-source sender delivery after f_10678c50, proving a subscriber bridge rather than mistaking cancellation-functor management for successful delivery."
+     "resolved_findings": [
+      "Established: observers invoked at 0x103a5de4 are bound - the session +0x4c observer (f_10214860 -> f_10214790) stores event volume into session+0x7ae8 and tail-calls the eSDK bridge vptr[5]; sender delivery is bound through worker f_10679b14 -> f_10683da0 -> f_1068108c GENA NOTIFY; WSS 'groupRendering' is a topic-registry name with no static bridge."
+     ]
     },
     "SetGroupMute": {
      "description": "Applies the requested mute to the local renderer and prepared remote RenderingControl SetMute requests. Primary GRC vptr 0x10ec3824 slot +0x0c selects f_103a23b4 -> f_103a2160 -> f_103a1b8c. The call waits for its remote batch and local renderer return, aggregates failures into 802/803, and updates cached mute information only for operations reporting zero. Member results are retained transport/XML/output-validation statuses, not physical audio-completion reports; the parser latch is not a positive response-completion test.",
@@ -79684,7 +79776,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Uses local ID +0x274, group accessor +0x278, topology +0x264, renderer +0x26c, cache +0x25c, mutex +0x1c8 and busy/dirty bytes +0x258/+0x259. f_103fd65c copies media-player+0x1924/+0x1928 at 0x103fdadc..0x103fdaf4 into the shared-pointer pair passed to initializer f_103a0e28 at 0x103fdb24. RC constructor f_1046c6a4 installs primary vptr 0x10ed270c at 0x1046c94c. Its +0x0c is f_1046c0b0, with conditional VLI handling through f_100d8664 and normal +0x9c -> f_1046e50c. Remote request slots have stride 0x2740 and specialized vptr 0x10ec37bc, not the GRC SOAP vptr.",
+      "description": "Uses local ID +0x274, group accessor +0x278, topology +0x264, renderer +0x26c, cache +0x25c, mutex +0x1c8 and busy/dirty bytes +0x258/+0x259. f_103fd65c copies media-player+0x1924/+0x1928 at 0x103fdadc..0x103fdaf4 into the shared-pointer pair passed to initializer f_103a0e28 at 0x103fdb24. RC constructor f_1046c6a4 installs primary vptr 0x10ed270c at 0x1046c94c. Its +0x0c is f_1046c0b0, with conditional VLI handling through f_100d8664 and normal +0x9c -> f_1046e50c. Remote request slots have stride 0x2740 and specialized vptr 0x10ec37bc, not the GRC SOAP vptr. Resolved: f_1046dff0 enumerates members through topology ctx f_10759984(+0xbc8,+0x9c8) and iterator f_1053cc50, sends via client+0x3c4 -> f_10743a60; renderer/backend below f_100db3fc resolves to worker f_100d99b0 and shared DSP tail f_100d7f34; conditional VLI predicate f_100d8568 -> f_106a7f44 binds vli+0x354->vptr[12] then inner->vptr[3] and preempts the local write on nonzero.",
       "evidence": [
        {
         "type": "firmware",
@@ -79693,12 +79785,11 @@
         "address": "0x103a1e18",
         "notes": "Local RC dispatch at 0x103a1e34. f_1046e50c calls stereo helper f_1046dff0, updates failure counter through f_1046c3cc and tail-calls f_100db3fc."
        }
-      ],
-      "todo": "Established: SOAP, initializer, concrete local RC and remote session bindings are traced. Residual: enumerate the stereo-member dependencies of f_1046dff0 and renderer/backend dependencies below f_100db3fc, including the conditional VLI predicate f_100d8568 -> f_106a7f44."
+      ]
      },
      "side_effects": [
       {
-       "description": "f_10744d1c enumerates remote IDs; f_10743a60 or a custom session +0x20 prepares endpoint data. Failed preparation skips a member rather than counting it as a failed operation. Each prepared request carries InstanceID 0, Channel Master and DesiredMute; f_106fe8c0 assigns a correlation UUID and f_106fcf50 links it into the batch. The requested clock deadline is now+2000ms before f_106fb998, which also bounds it by global timeout configuration. After that batch returns the worker always calls local RC +0x0c. Zero local/remote statuses update cache entries via f_1039eac0; nonzero statuses are counted and logged. Even with no remote IDs it attempts the local operation. Shared refresh can also update renderer sonar cache +0x930 through f_100daab0. Deeper local f_100db3fc -> f_100d99b0 stores Master mute at renderer+0x7f1 before backend f_100d7f34, updates cached effective volume +0x3c8, marks mute dirty +0x7f5, requests the RC event source and schedules f_100d7d6c through f_100d993c -> f_10572ab0. The local cached mute store is not rolled back when the backend boolean becomes status 501. SetGroupMute f_103a1b8c constructs sessions at stack+0x388 through f_106fe45c (0x103a1c40), then installs vptr 0x10ec37bc at 0x103a1c54. After f_106fb998 returns at 0x103a1e14, the result loop loads session+0x2722 at 0x103a1ea8 (zone-ID pointer+0x45e). Zero allows a mute-cache update; nonzero contributes to the 802/803 aggregate rather than becoming a SOAP member error. No prepared remotes still leads to the existing local mute call. Both specialized session tables bind +0x10 to f_106ff454, +0x14 to f_106ff898, +0x18 to f_106fd3a8 and +0x1c to f_106fd048. Construction initializes status +0x2722 to 1001 at 0x106fe520; outbound preparation sets it to 1000 at 0x106ff4ac. f_106ff898 reads up to 0x800 bytes via mbedtls_ssl_read or recv, handles TLS WANT_READ/WANT_WRITE without claiming completion, accumulates HTTP headers/body through f_106fe68c, and writes the parsed SOAP status from f_10562d64 to +0x2722 at 0x106ffb28. The HTTP helper recognizes HTTP/1.0 or HTTP/1.1, parses Content-Length and tracks header/body readiness. f_10562d64 returns a cached nonzero parser status, 1000 when the response+0x2e4 parse latch is set, or f_1055f358 output-presence validation when that latch is zero (empty output set passes). The latch is not a positive response-completion test. This establishes transport/parser results, not physical member application. The failure callback f_106fd3a8 logs socket state/error and does not write the result halfword. Batch cleanup closes the socket and calls +0x1c -> f_106fd048 at 0x106fbc50; that finalizer optionally reports the retained status through the global observer at 0x11097910, not a new hardware-completion status. Thus a connection failure, incomplete response or parsed fault can leave a nonzero member result even though earlier members changed. Concrete XML callback status production is described by the evidence at 0x10560fac; it does not establish completed member audio application. The local deferred-settings callback f_100d7d6c reads renderer+0x894 under +0x938, compares its seconds value plus 30 with the current clock, reschedules when still future, otherwise calls f_100d78a4 and sets the next deadline to 0x7fffffff. It is not the volume-ramp thread or proof of durable saving; concrete settings-provider +0x3bc slot +0x14 and subsequent f_10167318 remain targets.",
+       "description": "f_10744d1c enumerates remote IDs; f_10743a60 or a custom session +0x20 prepares endpoint data. Failed preparation skips a member rather than counting it as a failed operation. Each prepared request carries InstanceID 0, Channel Master and DesiredMute; f_106fe8c0 assigns a correlation UUID and f_106fcf50 links it into the batch. The requested clock deadline is now+2000ms before f_106fb998, which also bounds it by global timeout configuration. After that batch returns the worker always calls local RC +0x0c. Zero local/remote statuses update cache entries via f_1039eac0; nonzero statuses are counted and logged. Even with no remote IDs it attempts the local operation. Shared refresh can also update renderer sonar cache +0x930 through f_100daab0. Deeper local f_100db3fc -> f_100d99b0 stores Master mute at renderer+0x7f1 before backend f_100d7f34, updates cached effective volume +0x3c8, marks mute dirty +0x7f5, requests the RC event source and schedules f_100d7d6c through f_100d993c -> f_10572ab0. The local cached mute store is not rolled back when the backend boolean becomes status 501. SetGroupMute f_103a1b8c constructs sessions at stack+0x388 through f_106fe45c (0x103a1c40), then installs vptr 0x10ec37bc at 0x103a1c54. After f_106fb998 returns at 0x103a1e14, the result loop loads session+0x2722 at 0x103a1ea8 (zone-ID pointer+0x45e). Zero allows a mute-cache update; nonzero contributes to the 802/803 aggregate rather than becoming a SOAP member error. No prepared remotes still leads to the existing local mute call. Both specialized session tables bind +0x10 to f_106ff454, +0x14 to f_106ff898, +0x18 to f_106fd3a8 and +0x1c to f_106fd048. Construction initializes status +0x2722 to 1001 at 0x106fe520; outbound preparation sets it to 1000 at 0x106ff4ac. f_106ff898 reads up to 0x800 bytes via mbedtls_ssl_read or recv, handles TLS WANT_READ/WANT_WRITE without claiming completion, accumulates HTTP headers/body through f_106fe68c, and writes the parsed SOAP status from f_10562d64 to +0x2722 at 0x106ffb28. The HTTP helper recognizes HTTP/1.0 or HTTP/1.1, parses Content-Length and tracks header/body readiness. f_10562d64 returns a cached nonzero parser status, 1000 when the response+0x2e4 parse latch is set, or f_1055f358 output-presence validation when that latch is zero (empty output set passes). The latch is not a positive response-completion test. This establishes transport/parser results, not physical member application. The failure callback f_106fd3a8 logs socket state/error and does not write the result halfword. Batch cleanup closes the socket and calls +0x1c -> f_106fd048 at 0x106fbc50; that finalizer optionally reports the retained status through the global observer at 0x11097910, not a new hardware-completion status. Thus a connection failure, incomplete response or parsed fault can leave a nonzero member result even though earlier members changed. Concrete XML callback status production is described by the evidence at 0x10560fac; it does not establish completed member audio application. The local deferred-settings callback f_100d7d6c reads renderer+0x894 under +0x938, compares its seconds value plus 30 with the current clock, reschedules when still future, otherwise calls f_100d78a4 and sets the next deadline to 0x7fffffff. It is not the volume-ramp thread or proof of durable saving; concrete settings-provider +0x3bc slot +0x14 and subsequent f_10167318 remain targets. Member fan-out resolved: up to max(count,32) request objects are sent remotely per member via f_10743a60 on client+0x3c4 with a now+2000ms wait and last-nonzero +0x2722 rc aggregation; cleanup f_1046c148 issues VerifyThenRemoveSystemwide per member when count>1. Local renderer resolved: under +0x938 the workers f_100d99b0/f_100d9d40 store channel state and the shared tail f_100d7f34 performs the DSP transaction (inner object +0x34+0xe0: balance f_107f5aa4, volume f_107f7ea0, mute f_107f700c, bracket f_107f8640) plus secondary listener +0x3b4 vptr[3]; VLI interception on 'Master'/'FocusMode' preempts the local write when its inner call returns nonzero; dirty flags +0x7f5/+0x7f0, event request f_1067c6ec and 30s timer f_100d7d6c follow; f_100d78a4 -> f_10167318 persists packed state via UpdateZoneMemberSettingsCmd. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE).",
        "evidence": [
         {
          "type": "firmware",
@@ -79756,16 +79847,11 @@
          "address": "0x10560fac",
          "notes": "Session f_106fe45c constructs response object session+0x1b98 through f_10562f1c at 0x106fe4f8, with optional fault-handler pointer r8=0 at 0x106fe4e0. f_10562f1c constructs its parser base at +0x14 through f_10562830. Callback pointers installed there are f_1055f8fc -> f_1055f41c (start), f_10560a38 -> f_105607e0 (text), f_105612ac -> f_10560d60 (end). End callback recognizes urn:schemas-upnp-org:control-1-0|errorCode at 0x10560f8c, strtol base 10 at 0x10560fa8 and raw 0x5463043e at 0x10560fac (SH=0, MB=16, ME=31) retain the low halfword, stored at base+0x2ce / response+0x2e2. Zero or an unrecognized internal status becomes 1000; ordinary nonzero UPnP errors below 1000 are retained. A nonnull optional fault-handler virtual +0x14 could override status on Fault close at 0x105611c8, but that pointer is null in this session construction. f_10562d64 at 0x10562e08..0x10562e60 returns a nonzero retained status; if zero, a nonzero response+0x2e4 latch returns 1000, otherwise f_1055f358 checks output descriptors. The latch is not an audio-completion or positive response-completion byte: it initializes to zero at 0x10562928 and is set by the unrecognized closing-element path at 0x10561248/4c. f_1055f358 returns 1000 for an output whose seen +0x31 and optional +0x30 bytes are both clear; an empty output set returns zero. These observed tests do not by themselves require proof of a completed member action or even a positively recognized Response tag. f_106ff898 writes this parser result to session+0x2722 at 0x106ffb28 only after HTTP body/readiness/length gates; transport failure/finalization does not manufacture hardware success."
         }
-       ],
-       "todo": [
-        "Established: Action-specific remote/local flow and accounting, session construction/read/failure/finalizer bindings, concrete XML start/text/end status production, null optional fault override, output-validation gate and deferred timer scheduling.",
-        "Unknown: Remaining stereo/source effects, concrete renderer/listener effects, settings receivers and observer/subscriber delivery. The shared worker findings still need a concrete reachability/result-accounting pass through this action's local renderer binding.",
-        "Next: Finish stereo f_1046dff0/f_1046c148 and conditional VLI f_106a7f44; bind this action's local renderer call to the traced f_100d7f34 adapters and recheck aggregate failure reachability, then remaining DSP/LED listeners, provider +0x3bc branches / zones receivers after f_10167318, observers at 0x103a5de4 and sender after f_10678c50."
        ]
       }
      ],
      "events_triggered": {
-      "description": "When every attempted operation reports zero, the worker marks dirty +0x259 and after unlocking calls f_1067c6ec(impl+8) at 0x103a212c and f_103a6d74(impl+0x188,{groupVolume,groupMute}) at 0x103a2140. The latter prepares GroupVolumeChangedEvent work and calls f_100f14ec at 0x103a7218. Its successful-delivery work item is f_103a5e8c -> f_103a59b4; f_103a3abc only manages a captured cancellation functor and f_103a3ce0 logs cancellation. Failure cases do not take this worker notification branch, even if successful members already changed. The preceding local refresh has its own change-dependent notification path.",
+      "description": "When every attempted operation reports zero, the worker marks dirty +0x259 and after unlocking calls f_1067c6ec(impl+8) at 0x103a212c and f_103a6d74(impl+0x188,{groupVolume,groupMute}) at 0x103a2140. The latter prepares GroupVolumeChangedEvent work and calls f_100f14ec at 0x103a7218. Its successful-delivery work item is f_103a5e8c -> f_103a59b4; f_103a3abc only manages a captured cancellation functor and f_103a3ce0 logs cancellation. Failure cases do not take this worker notification branch, even if successful members already changed. The preceding local refresh has its own change-dependent notification path. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -79774,11 +79860,10 @@
         "address": "0x103a2124",
         "notes": "All-success path f_1067c6ec/f_103a6d74; f_103a59b4 reaches registered observer virtual +0 at 0x103a5de4."
        }
-      ],
-      "todo": "Established: action-specific notification requests, work-item and cancellation bindings are traced. Residual: bind the concrete observers invoked at 0x103a5de4 and the sender/delivery worker behind f_1067c6ec before attributing GENA/WSS delivery; finish downstream notification effects in the local renderer/stereo workers."
+      ]
      },
      "state_transitions": {
-      "description": "Busy +0x258 is set before fan-out and cleared at 0x103a1f4c on the common result path. Each member reporting success can update its cached mute and the all-muted counter through f_1039eac0. The final cached group volume/mute are computed under +0x1c8. All success additionally sets dirty +0x259; partial and total failures return faults without rolling back earlier successful member changes. A zero status is a reported operation result, not proof of audible silence or completed subscription delivery.",
+      "description": "Busy +0x258 is set before fan-out and cleared at 0x103a1f4c on the common result path. Each member reporting success can update its cached mute and the all-muted counter through f_1039eac0. The final cached group volume/mute are computed under +0x1c8. All success additionally sets dirty +0x259; partial and total failures return faults without rolling back earlier successful member changes. A zero status is a reported operation result, not proof of audible silence or completed subscription delivery. Resolved: member requests go out remotely through f_10743a60 (member-side physical completion is not statically observable); locally f_100d99b0 stores the channel mute byte, f_100d7f34 applies the DSP transaction and secondary listener, dirty +0x7f5 is set, the event source is requested via f_1067c6ec and timer f_100d7d6c reschedules; member failure does not roll back earlier changes.",
       "evidence": [
        {
         "type": "firmware",
@@ -79787,8 +79872,7 @@
         "address": "0x103a1f00",
         "notes": "Result aggregation, busy clear and dirty selection through 0x103a2010."
        }
-      ],
-      "todo": "Established: busy lifecycle, aggregate cache updates, failure non-rollback and dirty-state gate are traced. Residual: finish downstream stereo/renderer state changes below f_1046dff0/f_100db3fc and the conditional VLI worker f_106a7f44 before claiming an end-to-end mute transition."
+      ]
      },
      "return_behavior": {
       "description": "Complete implementation status domain is {0,701,702,801,802,803}: nonzero InstanceID -> 702, missing group -> 701, busy -> 801, all attempted operations fail -> 802, some but not all fail -> 803, none fail -> 0. Attempt count is prepared remote requests plus one local operation. Missing remote endpoint preparations are skipped and do not enter that count. f_106fb998 and the local renderer call finish before aggregation; member error codes are logged/count inputs, not forwarded individually. Wrapper request-validation failure produces 402; dispatcher rejection is separately 401.",
@@ -80109,14 +80193,137 @@
        "build": "86.10-80260",
        "address": "0x10560fac",
        "notes": "Session f_106fe45c constructs response object session+0x1b98 through f_10562f1c at 0x106fe4f8, with optional fault-handler pointer r8=0 at 0x106fe4e0. f_10562f1c constructs its parser base at +0x14 through f_10562830. Callback pointers installed there are f_1055f8fc -> f_1055f41c (start), f_10560a38 -> f_105607e0 (text), f_105612ac -> f_10560d60 (end). End callback recognizes urn:schemas-upnp-org:control-1-0|errorCode at 0x10560f8c, strtol base 10 at 0x10560fa8 and raw 0x5463043e at 0x10560fac (SH=0, MB=16, ME=31) retain the low halfword, stored at base+0x2ce / response+0x2e2. Zero or an unrecognized internal status becomes 1000; ordinary nonzero UPnP errors below 1000 are retained. A nonnull optional fault-handler virtual +0x14 could override status on Fault close at 0x105611c8, but that pointer is null in this session construction. f_10562d64 at 0x10562e08..0x10562e60 returns a nonzero retained status; if zero, a nonzero response+0x2e4 latch returns 1000, otherwise f_1055f358 checks output descriptors. The latch is not an audio-completion or positive response-completion byte: it initializes to zero at 0x10562928 and is set by the unrecognized closing-element path at 0x10561248/4c. f_1055f358 returns 1000 for an output whose seen +0x31 and optional +0x30 bytes are both clear; an empty output set returns zero. These observed tests do not by themselves require proof of a completed member action or even a positively recognized Response tag. f_106ff898 writes this parser result to session+0x2722 at 0x106ffb28 only after HTTP body/readiness/length gates; transport failure/finalization does not manufacture hardware success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046dff0",
+       "function": "0x1046dff0",
+       "notes": "Stereo member fan-out for mute: topology ctx f_10759984(+0xbc8,+0x9c8), member enumeration f_1053ce34/f_1053c370, allocate max(count,32) request objects of stride 0x2740 with vtable 0x10ec37bc, +0x2730='urn:schemas-upnp-org:service:RenderingControl:1', +0x2734='SetMute', +0x2738=1; per member f_1053cc50, transport select req->vptr[8]==f_1019f754 -> remote send f_10743a60(client+0x3c4); body builder f_1046af78 writes InstanceID/Channel/DesiredMute into request+0x498; in-flight link f_106fe8c0/f_106fcf50; wait now+2000ms via f_106fb998; per-request u16 rc at +0x2722 aggregated last-nonzero; 'forwarded %s to %s, rc=%d' tag 'zonesutils'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046c148",
+       "function": "0x1046c148",
+       "notes": "Member cleanup sweep: runs only when member count>1; per member calls client+0x3c4 vptr[4] with 'VerifyThenRemoveSystemwide'; on URI lookup failure logs 'lookup of %s URIs for %s failed' tag 'topology' lvl5; otherwise builds a 'Master'-role request object with vtables f_101b3f44/f_101b3fac; returns a 0x400-class status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff898",
+       "notes": "Request-object vtable slot +0x14 (idx5): TLS post-handshake drain on the control_client member connection, mbedtls_ssl_read up to 0x800 while awaiting the response; distinguishes -26752/-26880/-31488; NewSessionTicket bookkeeping logs 'Received NewSessionTicket message while reading response from %s' tag 'control_client' lvl7 and invokes obj->vptr[6] state callback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8568",
+       "function": "0x100d8568",
+       "notes": "Conditional VLI interception for mute (rc_impl.cxx:0x477): only 'Master'/'FocusMode' channels proceed; f_100d846c resolves the current channel volume (Master=+0x7da, LF=+0x7dc, RF=+0x7de; null out 0x2be, unknown channel 0x192); when VLI object +0x3c0 is nonnull calls f_106a7f44(vli,arg,vol), which under lock +0x150 calls vli+0x354->vptr[12]() then inner->vptr[3]. SetMute wrapper f_100d9b4c skips the local f_100d99b0 write when interception returns nonzero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d99b0",
+       "function": "0x100d99b0",
+       "notes": "Internal set-mute worker (rc_impl.cxx:0x49a): channel map 'Master'->+0x7f1, 'LF'->+0x7f2, 'RF'->+0x7f3, 'FocusMode'->+0x7f4, else 0x192; when +0x7ff&&+0x801 syncs +0x7e0->+0x7da; shadow sth +0x7da->+0x3c8; same tail f_100d7f34, stb 1->+0x7f5 dirty, f_1067c6ec(+8,rc?0:0x1f5), f_100d993c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "function": "0x100d7f34",
+       "notes": "Shared DSP apply tail used by all rc_impl setters (14 call sites): flag gates (+0x7f1&&+0x7f4 -> no-commit mode; +0x7ff selects volume field +0x7da else +0x7e0); DSP object +0x3ac probe f_102a566c -> inner object +0x34+0xe0 f_107f5594; transaction writes RF-LF balance via f_102a5484->f_107f5aa4, scaled volume via f_102a54b8->f_107f7ea0 and mute bits via f_102a54ec->f_107f700c, bracketed by f_102a55d0->f_107f8640; secondary listener +0x3b4 gated by flag +0xa4&0x801 via f_10c8ecc8 and membership check f_1075d770(+0xbc8,+0x9c8) -> +0x3b4 vptr[3]; stamps +0x898; log 'Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d' lvl5 'rc_impl'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7d6c",
+       "function": "0x100d7d6c",
+       "notes": "Timer deadline callback: under +0x938 lock, if stored timestamp +0x894 plus 30 seconds is still future it returns that deadline; otherwise it calls recompute f_100d78a4 and reports 0x7fffffff. Installed on timer +0xbf4 via f_10572ab0 inside f_100d993c after stamping +0x894=now; also installed at 0x100dd748 and 0x100df31c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10167318",
+       "function": "0x10167318",
+       "notes": "saveSettings receiver on provider +0xbd4: packs the u64 state at rc_impl+0x7e8; with zone topology builds UpdateZoneMemberSettingsCmd per member via f_1017e9ec ('sendUpdateZoneMemberSettingsCmd failed: %s' tag 'zonesmgr' lvl4); without topology takes the local path f_10171690. Caller f_100d78a4 logs 'saveSettings() complete [%u]' on counter +0x89c and 'save_collision=drop [cSC:%u|sC:%u|sCC:%u] at %s' lvl3."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107491d8",
+       "function": "0x107491d8",
+       "notes": "Dirty-fragment lookup: under provider+0x318 lock, member map +0x5a8 lookup f_10765a00, validity probe f_10762df8, then f_10748f7c computes the fragment byte written to out."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10677b94",
+       "function": "0x10677b94",
+       "notes": "Packages bound task objects (vtable 0x10e87040, dtors f_100e6264/f_100e6360) and delivers them to the global in-process dispatcher singleton 0x11097824 under global lock 0x110b9458: its vptr[2] receives the work vector and vptr[5] poll-gates acceptance; fragment bytes ride these tasks."
       }
      ],
      "notes": null,
      "implementation_notes": "f_1039f2e0 primary vptr 0x10ec3824 -> +0x0c f_103a23b4 -> f_103a2160 -> f_103a1b8c. Concrete local RC vptr 0x10ed270c +0x0c -> f_1046c0b0, conditional VLI interception or +0x9c -> f_1046e50c -> stereo helpers and f_100db3fc. Specialized network session vptr 0x10ec37bc supplies request callbacks, not the SOAP implementation. Full GRC status domain {0,701,702,801,802,803}; remote batch precedes local operation; no automatic rollback on partial failure.",
-     "todo": [
-      "Established: Action-specific remote/local flow and accounting, session construction/read/failure/finalizer bindings, concrete XML start/text/end status production, null optional fault override, output-validation gate and deferred timer scheduling.",
-      "Unknown: Remaining stereo/source effects, concrete renderer/listener effects, settings receivers and observer/subscriber delivery. The shared worker findings still need a concrete reachability/result-accounting pass through this action's local renderer binding.",
-      "Next: Finish stereo f_1046dff0/f_1046c148 and conditional VLI f_106a7f44; bind this action's local renderer call to the traced f_100d7f34 adapters and recheck aggregate failure reachability, then remaining DSP/LED listeners, provider +0x3bc branches / zones receivers after f_10167318, observers at 0x103a5de4 and sender after f_10678c50."
+     "resolved_findings": [
+      "Established: the action's local renderer binding resolves through f_100d99b0/f_100d9d40 to the shared DSP tail f_100d7f34; member fan-out through f_10743a60 returns last-nonzero member rc; observer and GENA sender delivery are bound; only WSS publication remains a runtime boundary."
      ]
     },
     "SetGroupVolume": {
@@ -80279,7 +80486,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Depends on the 32-entry cache (stride 0x694), ID strings, validity flags +0x68c, saved volume +0x68e, current volume +0x690 and fixed byte +0x693. f_1039deb4 requires nonempty ID, flags&7==7 and fixed==0 before selecting a target. Cache aggregates are nonfixed count +0xd28e, fixed count +0xd290, current sum +0xd294 and saved sum +0xd296. For a selected valid nonfixed entry, f_1039dd7c uses saved average A=float(savedSum)/float(nonfixedCount), saved member volume V and requested group target T. If trunc(A)==T it returns V. Otherwise it chooses anchor B=0 when trunc(A)>T and B=100 when trunc(A)<T, computes V+(T-A)*(B-V)/(B-A) with single-precision arithmetic, applies roundf, converts to unsigned and keeps the low 16 bits. Thus decreases scale toward zero and increases toward 100; this is not uniform assignment or simple averaging of current member levels. Local renderer binding is media-player+0x1924 -> f_103a0e28 -> GRC+0x26c, primary RC vptr 0x10ed270c. f_100d8fe4 chooses +0xa4 f_10470968 versus +0x1c f_1046b180; the latter can intercept through f_100d8824 or rejoin +0xa4.",
+      "description": "Depends on the 32-entry cache (stride 0x694), ID strings, validity flags +0x68c, saved volume +0x68e, current volume +0x690 and fixed byte +0x693. f_1039deb4 requires nonempty ID, flags&7==7 and fixed==0 before selecting a target. Cache aggregates are nonfixed count +0xd28e, fixed count +0xd290, current sum +0xd294 and saved sum +0xd296. For a selected valid nonfixed entry, f_1039dd7c uses saved average A=float(savedSum)/float(nonfixedCount), saved member volume V and requested group target T. If trunc(A)==T it returns V. Otherwise it chooses anchor B=0 when trunc(A)>T and B=100 when trunc(A)<T, computes V+(T-A)*(B-V)/(B-A) with single-precision arithmetic, applies roundf, converts to unsigned and keeps the low 16 bits. Thus decreases scale toward zero and increases toward 100; this is not uniform assignment or simple averaging of current member levels. Local renderer binding is media-player+0x1924 -> f_103a0e28 -> GRC+0x26c, primary RC vptr 0x10ed270c. f_100d8fe4 chooses +0xa4 f_10470968 versus +0x1c f_1046b180; the latter can intercept through f_100d8824 or rejoin +0xa4. Resolved: f_1046e57c enumerates members through the same topology ctx and sends 'SetVolume' requests via f_10743a60; renderer/backend below f_100dbe90 resolves to worker f_100d9d40 and shared DSP tail f_100d7f34; conditional VLI interception f_100d8824 -> f_100d8784 -> f_106a8014 binds inner->vptr[2](vol,100) on 'Master'.",
       "evidence": [
        {
         "type": "firmware",
@@ -80288,12 +80495,11 @@
         "address": "0x1039dd7c",
         "notes": "EFS divide words 0x112952c9/0x112a32c9 at 0x1039dd90/0x1039de10; multiply 0x114952c8, add 0x13e942c0, roundf at 0x1039de70. Anchors at 0x10ec3998=100.0 and 0x10ec399c=0.0. SH=0 words at 0x1039dd98/0x1039de94 are low-16 masks, not right shifts."
        }
-      ],
-      "todo": "Established: cache selection, saved-baseline formula and concrete local RC slot binding are traced. Residual: enumerate stereo-member and renderer/backend dependencies below f_1046e57c -> f_100dbe90 -> f_100d9d40 and conditional VLI interception f_100d8824."
+      ]
      },
      "side_effects": [
       {
-       "description": "The public flags-zero path does not run the flag-2 auto-snapshot or flag-1/4 mute helpers. It scans 32 cache entries and prepares RenderingControl SetVolume requests only for valid nonfixed remote entries whose endpoint preparation succeeds. Each request has InstanceID 0, Master and its calculated DesiredVolume; endpoint failures are skipped. A selected local entry records its own calculated target. The remote batch is given now+2000ms, additionally bounded by f_106fb998 configuration, before local application through the RC interface. Successful member statuses call f_1039e958 to update cached current volumes/sums. The concrete +0xa4 worker runs stereo-member fan-out f_1046e57c before f_100dbe90, which locks renderer+0x938 and calls f_100d9d40. Public flags zero do not save a new baseline. Local f_100d9d40 validates InstanceID/channel/target and fixed-output state, stores Master target at renderer+0x7da and effective cached target +0x3c8, calls backend f_100d7f34, marks volume dirty +0x7f0, requests the local RC event source and schedules f_100d7d6c through f_100d993c. Backend failure can return local 501 after these cached stores; GRC counts it as a failed local result without undoing those stores. SetGroupVolume reaches flags-zero worker f_103a2430, whose session loop selects vptr 0x10ec3790 at 0x103a2550. The response status is the same session+0x2722 halfword used by its remote result loop before 0x103a2a34; zero permits the requested member-volume cache update and nonzero contributes to the 802/803 aggregate. The response is not a measurement of applied volume. No prepared remotes does not suppress a selected local target; the separate existing no-target/501 and fixed-only/804 guards are unchanged. Both specialized session tables bind +0x10 to f_106ff454, +0x14 to f_106ff898, +0x18 to f_106fd3a8 and +0x1c to f_106fd048. Construction initializes status +0x2722 to 1001 at 0x106fe520; outbound preparation sets it to 1000 at 0x106ff4ac. f_106ff898 reads up to 0x800 bytes via mbedtls_ssl_read or recv, handles TLS WANT_READ/WANT_WRITE without claiming completion, accumulates HTTP headers/body through f_106fe68c, and writes the parsed SOAP status from f_10562d64 to +0x2722 at 0x106ffb28. The HTTP helper recognizes HTTP/1.0 or HTTP/1.1, parses Content-Length and tracks header/body readiness. f_10562d64 returns a cached nonzero parser status, 1000 when the response+0x2e4 parse latch is set, or f_1055f358 output-presence validation when that latch is zero (empty output set passes). The latch is not a positive response-completion test. This establishes transport/parser results, not physical member application. The failure callback f_106fd3a8 logs socket state/error and does not write the result halfword. Batch cleanup closes the socket and calls +0x1c -> f_106fd048 at 0x106fbc50; that finalizer optionally reports the retained status through the global observer at 0x11097910, not a new hardware-completion status. Thus a connection failure, incomplete response or parsed fault can leave a nonzero member result even though earlier members changed. Concrete XML callback status production is described by the evidence at 0x10560fac; it does not establish completed member audio application. The local deferred-settings callback f_100d7d6c reads renderer+0x894 under +0x938, compares its seconds value plus 30 with the current clock, reschedules when still future, otherwise calls f_100d78a4 and sets the next deadline to 0x7fffffff. It is not the volume-ramp thread or proof of durable saving; concrete settings-provider +0x3bc slot +0x14 and subsequent f_10167318 remain targets.",
+       "description": "The public flags-zero path does not run the flag-2 auto-snapshot or flag-1/4 mute helpers. It scans 32 cache entries and prepares RenderingControl SetVolume requests only for valid nonfixed remote entries whose endpoint preparation succeeds. Each request has InstanceID 0, Master and its calculated DesiredVolume; endpoint failures are skipped. A selected local entry records its own calculated target. The remote batch is given now+2000ms, additionally bounded by f_106fb998 configuration, before local application through the RC interface. Successful member statuses call f_1039e958 to update cached current volumes/sums. The concrete +0xa4 worker runs stereo-member fan-out f_1046e57c before f_100dbe90, which locks renderer+0x938 and calls f_100d9d40. Public flags zero do not save a new baseline. Local f_100d9d40 validates InstanceID/channel/target and fixed-output state, stores Master target at renderer+0x7da and effective cached target +0x3c8, calls backend f_100d7f34, marks volume dirty +0x7f0, requests the local RC event source and schedules f_100d7d6c through f_100d993c. Backend failure can return local 501 after these cached stores; GRC counts it as a failed local result without undoing those stores. SetGroupVolume reaches flags-zero worker f_103a2430, whose session loop selects vptr 0x10ec3790 at 0x103a2550. The response status is the same session+0x2722 halfword used by its remote result loop before 0x103a2a34; zero permits the requested member-volume cache update and nonzero contributes to the 802/803 aggregate. The response is not a measurement of applied volume. No prepared remotes does not suppress a selected local target; the separate existing no-target/501 and fixed-only/804 guards are unchanged. Both specialized session tables bind +0x10 to f_106ff454, +0x14 to f_106ff898, +0x18 to f_106fd3a8 and +0x1c to f_106fd048. Construction initializes status +0x2722 to 1001 at 0x106fe520; outbound preparation sets it to 1000 at 0x106ff4ac. f_106ff898 reads up to 0x800 bytes via mbedtls_ssl_read or recv, handles TLS WANT_READ/WANT_WRITE without claiming completion, accumulates HTTP headers/body through f_106fe68c, and writes the parsed SOAP status from f_10562d64 to +0x2722 at 0x106ffb28. The HTTP helper recognizes HTTP/1.0 or HTTP/1.1, parses Content-Length and tracks header/body readiness. f_10562d64 returns a cached nonzero parser status, 1000 when the response+0x2e4 parse latch is set, or f_1055f358 output-presence validation when that latch is zero (empty output set passes). The latch is not a positive response-completion test. This establishes transport/parser results, not physical member application. The failure callback f_106fd3a8 logs socket state/error and does not write the result halfword. Batch cleanup closes the socket and calls +0x1c -> f_106fd048 at 0x106fbc50; that finalizer optionally reports the retained status through the global observer at 0x11097910, not a new hardware-completion status. Thus a connection failure, incomplete response or parsed fault can leave a nonzero member result even though earlier members changed. Concrete XML callback status production is described by the evidence at 0x10560fac; it does not establish completed member audio application. The local deferred-settings callback f_100d7d6c reads renderer+0x894 under +0x938, compares its seconds value plus 30 with the current clock, reschedules when still future, otherwise calls f_100d78a4 and sets the next deadline to 0x7fffffff. It is not the volume-ramp thread or proof of durable saving; concrete settings-provider +0x3bc slot +0x14 and subsequent f_10167318 remain targets. Member fan-out resolved: up to max(count,32) request objects are sent remotely per member via f_10743a60 on client+0x3c4 with a now+2000ms wait and last-nonzero +0x2722 rc aggregation; cleanup f_1046c148 issues VerifyThenRemoveSystemwide per member when count>1. Local renderer resolved: under +0x938 the workers f_100d99b0/f_100d9d40 store channel state and the shared tail f_100d7f34 performs the DSP transaction (inner object +0x34+0xe0: balance f_107f5aa4, volume f_107f7ea0, mute f_107f700c, bracket f_107f8640) plus secondary listener +0x3b4 vptr[3]; VLI interception on 'Master'/'FocusMode' preempts the local write when its inner call returns nonzero; dirty flags +0x7f5/+0x7f0, event request f_1067c6ec and 30s timer f_100d7d6c follow; f_100d78a4 -> f_10167318 persists packed state via UpdateZoneMemberSettingsCmd. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE).",
        "evidence": [
         {
          "type": "firmware",
@@ -80351,16 +80557,11 @@
          "address": "0x10560fac",
          "notes": "Session f_106fe45c constructs response object session+0x1b98 through f_10562f1c at 0x106fe4f8, with optional fault-handler pointer r8=0 at 0x106fe4e0. f_10562f1c constructs its parser base at +0x14 through f_10562830. Callback pointers installed there are f_1055f8fc -> f_1055f41c (start), f_10560a38 -> f_105607e0 (text), f_105612ac -> f_10560d60 (end). End callback recognizes urn:schemas-upnp-org:control-1-0|errorCode at 0x10560f8c, strtol base 10 at 0x10560fa8 and raw 0x5463043e at 0x10560fac (SH=0, MB=16, ME=31) retain the low halfword, stored at base+0x2ce / response+0x2e2. Zero or an unrecognized internal status becomes 1000; ordinary nonzero UPnP errors below 1000 are retained. A nonnull optional fault-handler virtual +0x14 could override status on Fault close at 0x105611c8, but that pointer is null in this session construction. f_10562d64 at 0x10562e08..0x10562e60 returns a nonzero retained status; if zero, a nonzero response+0x2e4 latch returns 1000, otherwise f_1055f358 checks output descriptors. The latch is not an audio-completion or positive response-completion byte: it initializes to zero at 0x10562928 and is set by the unrecognized closing-element path at 0x10561248/4c. f_1055f358 returns 1000 for an output whose seen +0x31 and optional +0x30 bytes are both clear; an empty output set returns zero. These observed tests do not by themselves require proof of a completed member action or even a positively recognized Response tag. f_106ff898 writes this parser result to session+0x2722 at 0x106ffb28 only after HTTP body/readiness/length gates; transport failure/finalization does not manufacture hardware success."
         }
-       ],
-       "todo": [
-        "Established: Action-specific remote/local flow and accounting, session construction/read/failure/finalizer bindings, concrete XML start/text/end status production, null optional fault override, output-validation gate and deferred timer scheduling.",
-        "Unknown: Remaining stereo/source effects, concrete renderer/listener effects, settings receivers and observer/subscriber delivery. The shared worker findings still need a concrete reachability/result-accounting pass through this action's local renderer binding.",
-        "Next: Finish stereo member enumeration/callback helpers below f_1046e57c, cleanup f_1046c148 and VLI f_100d8824; bind this action's local renderer call to the traced f_100d7f34 adapters and recheck aggregate failure reachability, then remaining DSP/LED listeners, provider +0x3bc branches / zones receivers after f_10167318, observers at 0x103a5de4 and sender after f_10678c50."
        ]
       }
      ],
      "events_triggered": {
-      "description": "After result aggregation the worker computes cached group volume/mute and clears busy +0x258. Zero counted failures mark dirty +0x259 and call f_1067c6ec(impl+8) at 0x103a27e8 plus f_103a6d74 at 0x103a27fc. Nonzero counted failures do not take this worker notification branch, even though successful members may already have changed. Refresh can independently request notifications. In-process GroupVolumeChangedEvent work invokes f_103a5e8c -> f_103a59b4; f_103a3ce0 is only its cancellation logger.",
+      "description": "After result aggregation the worker computes cached group volume/mute and clears busy +0x258. Zero counted failures mark dirty +0x259 and call f_1067c6ec(impl+8) at 0x103a27e8 plus f_103a6d74 at 0x103a27fc. Nonzero counted failures do not take this worker notification branch, even though successful members may already have changed. Refresh can independently request notifications. In-process GroupVolumeChangedEvent work invokes f_103a5e8c -> f_103a59b4; f_103a3ce0 is only its cancellation logger. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -80369,11 +80570,10 @@
         "address": "0x103a27c4",
         "notes": "Success flag is extracted by raw 0x57bdfffe at 0x103a2a74 from the failure-count==0 comparison. At 0x103a2a78 raw isel 0x7f60df9e selects status zero on equality, 803 otherwise."
        }
-      ],
-      "todo": "Established: dirty/event gates and in-process work/cancellation bindings are traced. Residual: bind concrete registered observers at 0x103a5de4 and sender delivery behind f_1067c6ec, plus any renderer/stereo notification effects, before claiming completed GENA/WSS delivery."
+      ]
      },
      "state_transitions": {
-      "description": "Sets busy before target preparation and clears it on the common result path at 0x103a27cc. Per-member zero results update current volume cache; saved baselines remain unchanged on this flags-zero path. Partial failure does not roll back successful operations. All-success marks dirty and requests aggregate events. The empty-cache path can return zero without applying any volume; a returned target/status does not prove every physical renderer reached that value.",
+      "description": "Sets busy before target preparation and clears it on the common result path at 0x103a27cc. Per-member zero results update current volume cache; saved baselines remain unchanged on this flags-zero path. Partial failure does not roll back successful operations. All-success marks dirty and requests aggregate events. The empty-cache path can return zero without applying any volume; a returned target/status does not prove every physical renderer reached that value. Resolved: member requests go out remotely through f_10743a60 (member-side physical completion is not statically observable); locally f_100d9d40 stores the channel volume, f_100d7f34 applies the DSP transaction and secondary listener, dirty +0x7f0 is set, the event source is requested and timer f_100d7d6c reschedules; failure cleanup f_1046c148 sweeps VerifyThenRemoveSystemwide when count>1; no rollback.",
       "evidence": [
        {
         "type": "firmware",
@@ -80382,8 +80582,7 @@
         "address": "0x103a2784",
         "notes": "Common aggregate read and busy/dirty updates through 0x103a27fc; flags-zero skips are determined at 0x103a2504/0x103a2520/0x103a2a94."
        }
-      ],
-      "todo": "Established: busy/cache/saved-baseline and notification-request transitions are traced. Residual: finish stereo state and local physical/property transitions below f_1046e57c/f_100d9d40, including failure cleanup and conditional VLI interception."
+      ]
      },
      "return_behavior": {
       "description": "Complete GRC implementation status domain is {0,402,501,701,702,801,802,803,804}. Entry checks produce 702/402/701; fixed-only/busy guards produce 804/801. With no selected local entry, no prepared remote request and valid total >1, the worker returns 501. Otherwise it processes the remote batch and any selected local operation. Counted failures equal to preparedRemotes+1 select 802; nonzero unequal failures select 803; zero failures select 0. The +1 comparison is unconditional even if no local entry was selected, so 802 is a numeric count test, not an unconditional synonym for all physically attempted operations failing. Endpoint preparation failures are skipped. Empty valid state can return 0. The wrapper forwards nonzero status; its own validation gate also selects 402.",
@@ -80734,14 +80933,137 @@
        "build": "86.10-80260",
        "address": "0x10560fac",
        "notes": "Session f_106fe45c constructs response object session+0x1b98 through f_10562f1c at 0x106fe4f8, with optional fault-handler pointer r8=0 at 0x106fe4e0. f_10562f1c constructs its parser base at +0x14 through f_10562830. Callback pointers installed there are f_1055f8fc -> f_1055f41c (start), f_10560a38 -> f_105607e0 (text), f_105612ac -> f_10560d60 (end). End callback recognizes urn:schemas-upnp-org:control-1-0|errorCode at 0x10560f8c, strtol base 10 at 0x10560fa8 and raw 0x5463043e at 0x10560fac (SH=0, MB=16, ME=31) retain the low halfword, stored at base+0x2ce / response+0x2e2. Zero or an unrecognized internal status becomes 1000; ordinary nonzero UPnP errors below 1000 are retained. A nonnull optional fault-handler virtual +0x14 could override status on Fault close at 0x105611c8, but that pointer is null in this session construction. f_10562d64 at 0x10562e08..0x10562e60 returns a nonzero retained status; if zero, a nonzero response+0x2e4 latch returns 1000, otherwise f_1055f358 checks output descriptors. The latch is not an audio-completion or positive response-completion byte: it initializes to zero at 0x10562928 and is set by the unrecognized closing-element path at 0x10561248/4c. f_1055f358 returns 1000 for an output whose seen +0x31 and optional +0x30 bytes are both clear; an empty output set returns zero. These observed tests do not by themselves require proof of a completed member action or even a positively recognized Response tag. f_106ff898 writes this parser result to session+0x2722 at 0x106ffb28 only after HTTP body/readiness/length gates; transport failure/finalization does not manufacture hardware success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046e57c",
+       "function": "0x1046e57c",
+       "notes": "Identical fan-out for 'SetVolume': request vtable 0x10ec3790, volume stored as sth in the work item, body builder f_1046b0d0, member prep f_10472588; same max(count,32) request array, f_10743a60 remote sends, 2000ms wait and last-nonzero +0x2722 rc aggregation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046c148",
+       "function": "0x1046c148",
+       "notes": "Member cleanup sweep: runs only when member count>1; per member calls client+0x3c4 vptr[4] with 'VerifyThenRemoveSystemwide'; on URI lookup failure logs 'lookup of %s URIs for %s failed' tag 'topology' lvl5; otherwise builds a 'Master'-role request object with vtables f_101b3f44/f_101b3fac; returns a 0x400-class status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff898",
+       "notes": "Request-object vtable slot +0x14 (idx5): TLS post-handshake drain on the control_client member connection, mbedtls_ssl_read up to 0x800 while awaiting the response; distinguishes -26752/-26880/-31488; NewSessionTicket bookkeeping logs 'Received NewSessionTicket message while reading response from %s' tag 'control_client' lvl7 and invokes obj->vptr[6] state callback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8784",
+       "function": "0x100d8784",
+       "notes": "Conditional VLI interception for volume (rc_impl.cxx:0x5be): channel 'Master' and +0x3c0 nonnull -> f_106a8014(vli,vol,0x64), same vli+0x354->vptr[12] accessor then inner->vptr[2](vol,100). Reached through lock wrapper f_100d8824 and SetVolume outer f_100d9f24 at line 0x5ce."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9d40",
+       "function": "0x100d9d40",
+       "notes": "Internal set-volume worker (rc_impl.cxx:0x5df): null arg->0x2be; gate bytes +0x7ff/+0x801 -> 0x1f5; volume>100->0x192; 'Master' stores +0x7da, clears +0x3d4 and shadows +0x3c8, 'LF'->+0x7dc, 'RF'->+0x7de; shared tail f_100d7f34 apply, stb 1->+0x7f0 dirty, f_1067c6ec(impl+8,rc?0:0x1f5) notification request, f_100d993c reschedule."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "function": "0x100d7f34",
+       "notes": "Shared DSP apply tail used by all rc_impl setters (14 call sites): flag gates (+0x7f1&&+0x7f4 -> no-commit mode; +0x7ff selects volume field +0x7da else +0x7e0); DSP object +0x3ac probe f_102a566c -> inner object +0x34+0xe0 f_107f5594; transaction writes RF-LF balance via f_102a5484->f_107f5aa4, scaled volume via f_102a54b8->f_107f7ea0 and mute bits via f_102a54ec->f_107f700c, bracketed by f_102a55d0->f_107f8640; secondary listener +0x3b4 gated by flag +0xa4&0x801 via f_10c8ecc8 and membership check f_1075d770(+0xbc8,+0x9c8) -> +0x3b4 vptr[3]; stamps +0x898; log 'Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d' lvl5 'rc_impl'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7d6c",
+       "function": "0x100d7d6c",
+       "notes": "Timer deadline callback: under +0x938 lock, if stored timestamp +0x894 plus 30 seconds is still future it returns that deadline; otherwise it calls recompute f_100d78a4 and reports 0x7fffffff. Installed on timer +0xbf4 via f_10572ab0 inside f_100d993c after stamping +0x894=now; also installed at 0x100dd748 and 0x100df31c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10167318",
+       "function": "0x10167318",
+       "notes": "saveSettings receiver on provider +0xbd4: packs the u64 state at rc_impl+0x7e8; with zone topology builds UpdateZoneMemberSettingsCmd per member via f_1017e9ec ('sendUpdateZoneMemberSettingsCmd failed: %s' tag 'zonesmgr' lvl4); without topology takes the local path f_10171690. Caller f_100d78a4 logs 'saveSettings() complete [%u]' on counter +0x89c and 'save_collision=drop [cSC:%u|sC:%u|sCC:%u] at %s' lvl3."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107491d8",
+       "function": "0x107491d8",
+       "notes": "Dirty-fragment lookup: under provider+0x318 lock, member map +0x5a8 lookup f_10765a00, validity probe f_10762df8, then f_10748f7c computes the fragment byte written to out."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10677b94",
+       "function": "0x10677b94",
+       "notes": "Packages bound task objects (vtable 0x10e87040, dtors f_100e6264/f_100e6360) and delivers them to the global in-process dispatcher singleton 0x11097824 under global lock 0x110b9458: its vptr[2] receives the work vector and vptr[5] poll-gates acceptance; fragment bytes ride these tasks."
       }
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 slot +0x14 -> f_103a3134 -> f_103a2c4c -> f_103a2430(flags=0). Neither f_106fd5d4 nor session vptr 0x10ec37b4 implements this action. Calculated targets use saved-volume anchor scaling, not uniform desired-volume assignment. Concrete RC primary vptr 0x10ed270c supplies +0x1c/+0xa4; specialized remote session vptr 0x10ec3790 supplies network callbacks. Request submission, counted member success, cached aggregate update and physical/delivery completion remain distinct.",
-     "todo": [
-      "Established: Action-specific remote/local flow and accounting, session construction/read/failure/finalizer bindings, concrete XML start/text/end status production, null optional fault override, output-validation gate and deferred timer scheduling.",
-      "Unknown: Remaining stereo/source effects, concrete renderer/listener effects, settings receivers and observer/subscriber delivery. The shared worker findings still need a concrete reachability/result-accounting pass through this action's local renderer binding.",
-      "Next: Finish stereo member enumeration/callback helpers below f_1046e57c, cleanup f_1046c148 and VLI f_100d8824; bind this action's local renderer call to the traced f_100d7f34 adapters and recheck aggregate failure reachability, then remaining DSP/LED listeners, provider +0x3bc branches / zones receivers after f_10167318, observers at 0x103a5de4 and sender after f_10678c50."
+     "resolved_findings": [
+      "Established: the action's local renderer binding resolves through f_100d99b0/f_100d9d40 to the shared DSP tail f_100d7f34; member fan-out through f_10743a60 returns last-nonzero member rc; observer and GENA sender delivery are bound; only WSS publication remains a runtime boundary."
      ]
     },
     "SetRelativeGroupVolume": {
@@ -80938,7 +81260,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads cache +0x25c under mutex +0x1c8 after f_1039c5f0 refresh. Current group volume is the truncated single-precision currentSum/nonfixedCount average, or 100 for fixed-only valid state, or zero for empty valid state. It adds signed Adjustment and clamps the resulting signed 32-bit value. The shared setter selects nonempty entries with flags&7==7 and fixed==0, then uses saved average A and saved member volume V: preserve V when trunc(A)==T; otherwise roundf(V+(T-A)*(B-V)/(B-A)), with B=0 below the saved average and B=100 above it. Concrete local RC vptr 0x10ed270c supplies +0x1c/+0xa4; remote session vptr 0x10ec3790 supplies request callbacks.",
+      "description": "Reads cache +0x25c under mutex +0x1c8 after f_1039c5f0 refresh. Current group volume is the truncated single-precision currentSum/nonfixedCount average, or 100 for fixed-only valid state, or zero for empty valid state. It adds signed Adjustment and clamps the resulting signed 32-bit value. The shared setter selects nonempty entries with flags&7==7 and fixed==0, then uses saved average A and saved member volume V: preserve V when trunc(A)==T; otherwise roundf(V+(T-A)*(B-V)/(B-A)), with B=0 below the saved average and B=100 above it. Concrete local RC vptr 0x10ed270c supplies +0x1c/+0xa4; remote session vptr 0x10ec3790 supplies request callbacks. Resolved: below f_1046e57c -> f_100dbe90 -> f_100d9d40 the chain is the same as SetGroupVolume: member fan-out via f_10743a60, worker f_100d9d40 channel stores, shared DSP tail f_100d7f34; conditional VLI interception f_100d8824 -> f_100d8784 -> f_106a8014 inner->vptr[2](vol,100) on 'Master'.",
       "evidence": [
        {
         "type": "firmware",
@@ -80947,12 +81269,11 @@
         "address": "0x103a2d48",
         "notes": "Average/fallback through 0x103a2ddc, 32-bit addition at 0x103a2d6c and signed clamps/output at 0x103a2d78..0x103a2d98. SH=0 masks are not shifts."
        }
-      ],
-      "todo": "Established: current-volume input, signed addition/clamp, output timing and shared saved-baseline target dependencies are traced. Residual: enumerate stereo/backend state below f_1046e57c -> f_100dbe90 -> f_100d9d40 and conditional VLI interception f_100d8824."
+      ]
      },
      "side_effects": [
       {
-       "description": "Refreshes local cached rendering information, computes/writes the target, then executes flags-zero f_103a2430. That worker sets busy +0x258, prepares valid nonfixed remote SetVolume operations with InstanceID 0/Master/calculated member targets, skips failed endpoint preparations, waits for the bounded remote batch and applies any selected local target through concrete RC +0xa4/+0x1c. Successful statuses update cache volume/sums via f_1039e958. It does not automatically snapshot or invoke the optional unmute branches. A zero adjustment still follows this path; no universal no-op optimization is proven. The shared local path f_100d9d40 stores Master volume at renderer+0x7da/+0x3c8 before backend f_100d7f34, marks dirty +0x7f0, requests the local RC event source and schedules f_100d7d6c through f_100d993c. A failed backend can produce local status 501 after those cached stores; GRC aggregates that status but does not roll back the cached local target. SetRelativeGroupVolume f_103a30a0 -> f_103a2d04 computes/stores the clamped requested target, then reaches flags-zero f_103a2430. Therefore its remote requests use vptr 0x10ec3790 and the same session+0x2722 result handling as SetGroupVolume. A parsed success is a member response, not achieved NewVolume; remote faults still participate in 802/803 and the SOAP wrapper suppresses NewVolume on a fault. Empty remote enumeration does not change the shared local-target/501/804 rules. Both specialized session tables bind +0x10 to f_106ff454, +0x14 to f_106ff898, +0x18 to f_106fd3a8 and +0x1c to f_106fd048. Construction initializes status +0x2722 to 1001 at 0x106fe520; outbound preparation sets it to 1000 at 0x106ff4ac. f_106ff898 reads up to 0x800 bytes via mbedtls_ssl_read or recv, handles TLS WANT_READ/WANT_WRITE without claiming completion, accumulates HTTP headers/body through f_106fe68c, and writes the parsed SOAP status from f_10562d64 to +0x2722 at 0x106ffb28. The HTTP helper recognizes HTTP/1.0 or HTTP/1.1, parses Content-Length and tracks header/body readiness. f_10562d64 returns a cached nonzero parser status, 1000 when the response+0x2e4 parse latch is set, or f_1055f358 output-presence validation when that latch is zero (empty output set passes). The latch is not a positive response-completion test. This establishes transport/parser results, not physical member application. The failure callback f_106fd3a8 logs socket state/error and does not write the result halfword. Batch cleanup closes the socket and calls +0x1c -> f_106fd048 at 0x106fbc50; that finalizer optionally reports the retained status through the global observer at 0x11097910, not a new hardware-completion status. Thus a connection failure, incomplete response or parsed fault can leave a nonzero member result even though earlier members changed. Concrete XML callback status production is described by the evidence at 0x10560fac; it does not establish completed member audio application. The local deferred-settings callback f_100d7d6c reads renderer+0x894 under +0x938, compares its seconds value plus 30 with the current clock, reschedules when still future, otherwise calls f_100d78a4 and sets the next deadline to 0x7fffffff. It is not the volume-ramp thread or proof of durable saving; concrete settings-provider +0x3bc slot +0x14 and subsequent f_10167318 remain targets.",
+       "description": "Refreshes local cached rendering information, computes/writes the target, then executes flags-zero f_103a2430. That worker sets busy +0x258, prepares valid nonfixed remote SetVolume operations with InstanceID 0/Master/calculated member targets, skips failed endpoint preparations, waits for the bounded remote batch and applies any selected local target through concrete RC +0xa4/+0x1c. Successful statuses update cache volume/sums via f_1039e958. It does not automatically snapshot or invoke the optional unmute branches. A zero adjustment still follows this path; no universal no-op optimization is proven. The shared local path f_100d9d40 stores Master volume at renderer+0x7da/+0x3c8 before backend f_100d7f34, marks dirty +0x7f0, requests the local RC event source and schedules f_100d7d6c through f_100d993c. A failed backend can produce local status 501 after those cached stores; GRC aggregates that status but does not roll back the cached local target. SetRelativeGroupVolume f_103a30a0 -> f_103a2d04 computes/stores the clamped requested target, then reaches flags-zero f_103a2430. Therefore its remote requests use vptr 0x10ec3790 and the same session+0x2722 result handling as SetGroupVolume. A parsed success is a member response, not achieved NewVolume; remote faults still participate in 802/803 and the SOAP wrapper suppresses NewVolume on a fault. Empty remote enumeration does not change the shared local-target/501/804 rules. Both specialized session tables bind +0x10 to f_106ff454, +0x14 to f_106ff898, +0x18 to f_106fd3a8 and +0x1c to f_106fd048. Construction initializes status +0x2722 to 1001 at 0x106fe520; outbound preparation sets it to 1000 at 0x106ff4ac. f_106ff898 reads up to 0x800 bytes via mbedtls_ssl_read or recv, handles TLS WANT_READ/WANT_WRITE without claiming completion, accumulates HTTP headers/body through f_106fe68c, and writes the parsed SOAP status from f_10562d64 to +0x2722 at 0x106ffb28. The HTTP helper recognizes HTTP/1.0 or HTTP/1.1, parses Content-Length and tracks header/body readiness. f_10562d64 returns a cached nonzero parser status, 1000 when the response+0x2e4 parse latch is set, or f_1055f358 output-presence validation when that latch is zero (empty output set passes). The latch is not a positive response-completion test. This establishes transport/parser results, not physical member application. The failure callback f_106fd3a8 logs socket state/error and does not write the result halfword. Batch cleanup closes the socket and calls +0x1c -> f_106fd048 at 0x106fbc50; that finalizer optionally reports the retained status through the global observer at 0x11097910, not a new hardware-completion status. Thus a connection failure, incomplete response or parsed fault can leave a nonzero member result even though earlier members changed. Concrete XML callback status production is described by the evidence at 0x10560fac; it does not establish completed member audio application. The local deferred-settings callback f_100d7d6c reads renderer+0x894 under +0x938, compares its seconds value plus 30 with the current clock, reschedules when still future, otherwise calls f_100d78a4 and sets the next deadline to 0x7fffffff. It is not the volume-ramp thread or proof of durable saving; concrete settings-provider +0x3bc slot +0x14 and subsequent f_10167318 remain targets. Member fan-out resolved: up to max(count,32) request objects are sent remotely per member via f_10743a60 on client+0x3c4 with a now+2000ms wait and last-nonzero +0x2722 rc aggregation; cleanup f_1046c148 issues VerifyThenRemoveSystemwide per member when count>1. Local renderer resolved: under +0x938 the workers f_100d99b0/f_100d9d40 store channel state and the shared tail f_100d7f34 performs the DSP transaction (inner object +0x34+0xe0: balance f_107f5aa4, volume f_107f7ea0, mute f_107f700c, bracket f_107f8640) plus secondary listener +0x3b4 vptr[3]; VLI interception on 'Master'/'FocusMode' preempts the local write when its inner call returns nonzero; dirty flags +0x7f5/+0x7f0, event request f_1067c6ec and 30s timer f_100d7d6c follow; f_100d78a4 -> f_10167318 persists packed state via UpdateZoneMemberSettingsCmd. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE).",
        "evidence": [
         {
          "type": "firmware",
@@ -81003,16 +81324,11 @@
          "address": "0x10560fac",
          "notes": "Session f_106fe45c constructs response object session+0x1b98 through f_10562f1c at 0x106fe4f8, with optional fault-handler pointer r8=0 at 0x106fe4e0. f_10562f1c constructs its parser base at +0x14 through f_10562830. Callback pointers installed there are f_1055f8fc -> f_1055f41c (start), f_10560a38 -> f_105607e0 (text), f_105612ac -> f_10560d60 (end). End callback recognizes urn:schemas-upnp-org:control-1-0|errorCode at 0x10560f8c, strtol base 10 at 0x10560fa8 and raw 0x5463043e at 0x10560fac (SH=0, MB=16, ME=31) retain the low halfword, stored at base+0x2ce / response+0x2e2. Zero or an unrecognized internal status becomes 1000; ordinary nonzero UPnP errors below 1000 are retained. A nonnull optional fault-handler virtual +0x14 could override status on Fault close at 0x105611c8, but that pointer is null in this session construction. f_10562d64 at 0x10562e08..0x10562e60 returns a nonzero retained status; if zero, a nonzero response+0x2e4 latch returns 1000, otherwise f_1055f358 checks output descriptors. The latch is not an audio-completion or positive response-completion byte: it initializes to zero at 0x10562928 and is set by the unrecognized closing-element path at 0x10561248/4c. f_1055f358 returns 1000 for an output whose seen +0x31 and optional +0x30 bytes are both clear; an empty output set returns zero. These observed tests do not by themselves require proof of a completed member action or even a positively recognized Response tag. f_106ff898 writes this parser result to session+0x2722 at 0x106ffb28 only after HTTP body/readiness/length gates; transport failure/finalization does not manufacture hardware success."
         }
-       ],
-       "todo": [
-        "Established: Action-specific remote/local flow and accounting, session construction/read/failure/finalizer bindings, concrete XML start/text/end status production, null optional fault override, output-validation gate and deferred timer scheduling.",
-        "Unknown: Remaining stereo/source effects, concrete renderer/listener effects, settings receivers and observer/subscriber delivery. The shared worker findings still need a concrete reachability/result-accounting pass through this action's local renderer binding.",
-        "Next: Finish stereo member enumeration/callback helpers below f_1046e57c, cleanup f_1046c148 and VLI f_100d8824; bind this action's local renderer call to the traced f_100d7f34 adapters and recheck aggregate failure reachability, then remaining DSP/LED listeners, provider +0x3bc branches / zones receivers after f_10167318, observers at 0x103a5de4 and sender after f_10678c50."
        ]
       }
      ],
      "events_triggered": {
-      "description": "The initial refresh can independently request notifications. In the shared volume worker, zero counted failures set dirty +0x259 and request event-source notification through f_1067c6ec at 0x103a27e8 and GroupVolumeChangedEvent work through f_103a6d74 at 0x103a27fc. Nonzero counted failures do not take that worker notification branch; successful members can still have changed before an aggregate fault. Actual in-process work is f_103a5e8c -> f_103a59b4, not cancellation manager f_103a3abc.",
+      "description": "The initial refresh can independently request notifications. In the shared volume worker, zero counted failures set dirty +0x259 and request event-source notification through f_1067c6ec at 0x103a27e8 and GroupVolumeChangedEvent work through f_103a6d74 at 0x103a27fc. Nonzero counted failures do not take that worker notification branch; successful members can still have changed before an aggregate fault. Actual in-process work is f_103a5e8c -> f_103a59b4, not cancellation manager f_103a3abc. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -81021,11 +81337,10 @@
         "address": "0x103a27e8",
         "notes": "Reachability: +0x18 f_103a30a0 supplies flags zero -> f_103a2d04 -> f_103a2c4c -> f_103a2430."
        }
-      ],
-      "todo": "Established: relative-action reachability to shared notification gates and work items is traced. Residual: bind concrete observers at 0x103a5de4 and sender delivery behind f_1067c6ec, plus renderer/stereo notification effects, before claiming GENA/WSS delivery."
+      ]
      },
      "state_transitions": {
-      "description": "Writes the requested target before any shared-setter failure. The setter sets/clears busy, changes cached current member volumes on zero member statuses, preserves saved baselines with flags zero and marks dirty only on its zero-counted-failure path. Failed operations do not roll back earlier successful changes. Neither NewVolume nor a zero status certifies every physical member reached the target.",
+      "description": "Writes the requested target before any shared-setter failure. The setter sets/clears busy, changes cached current member volumes on zero member statuses, preserves saved baselines with flags zero and marks dirty only on its zero-counted-failure path. Failed operations do not roll back earlier successful changes. Neither NewVolume nor a zero status certifies every physical member reached the target. Resolved: relative requests reach members remotely through f_10743a60 (member-side physical completion is not statically observable); local physical transition is f_100d9d40 channel store -> f_100d7f34 DSP transaction -> dirty +0x7f0 -> event request f_1067c6ec -> timer f_100d7d6c reschedule; f_1046c148 cleanup when count>1; no rollback on member failure.",
       "evidence": [
        {
         "type": "firmware",
@@ -81034,8 +81349,7 @@
         "address": "0x103a2d98",
         "notes": "Output-before-worker ordering; shared busy clear at 0x103a27cc and dirty/event branch at 0x103a27d4."
        }
-      ],
-      "todo": "Established: requested-target storage, busy/cache/saved-baseline and failure non-rollback transitions are traced. Residual: finish physical renderer/stereo transitions below f_1046e57c/f_100d9d40 and conditional VLI interception f_100d8824."
+      ]
      },
      "return_behavior": {
       "description": "Implementation domain is {0,501,701,702,801,802,803,804}; wrapper validation separately adds 402. InstanceID/group failures precede target calculation. Later fixed-only, busy, second group-lookup or shared-worker failures happen after the internal NewVolume write, but the SOAP wrapper emits no output on fault. Shared-worker 501 requires no local target, no prepared remotes and valid total>1; 802 tests failures==preparedRemotes+1, 803 tests nonzero unequal failures, zero counted failures return 0. The +1 is unconditional even without a local target. Fixed-only state computes a 100-based target and then faults 804; empty valid state can return a clamped target with success and no applied operation.",
@@ -81386,14 +81700,137 @@
        "build": "86.10-80260",
        "address": "0x10560fac",
        "notes": "Session f_106fe45c constructs response object session+0x1b98 through f_10562f1c at 0x106fe4f8, with optional fault-handler pointer r8=0 at 0x106fe4e0. f_10562f1c constructs its parser base at +0x14 through f_10562830. Callback pointers installed there are f_1055f8fc -> f_1055f41c (start), f_10560a38 -> f_105607e0 (text), f_105612ac -> f_10560d60 (end). End callback recognizes urn:schemas-upnp-org:control-1-0|errorCode at 0x10560f8c, strtol base 10 at 0x10560fa8 and raw 0x5463043e at 0x10560fac (SH=0, MB=16, ME=31) retain the low halfword, stored at base+0x2ce / response+0x2e2. Zero or an unrecognized internal status becomes 1000; ordinary nonzero UPnP errors below 1000 are retained. A nonnull optional fault-handler virtual +0x14 could override status on Fault close at 0x105611c8, but that pointer is null in this session construction. f_10562d64 at 0x10562e08..0x10562e60 returns a nonzero retained status; if zero, a nonzero response+0x2e4 latch returns 1000, otherwise f_1055f358 checks output descriptors. The latch is not an audio-completion or positive response-completion byte: it initializes to zero at 0x10562928 and is set by the unrecognized closing-element path at 0x10561248/4c. f_1055f358 returns 1000 for an output whose seen +0x31 and optional +0x30 bytes are both clear; an empty output set returns zero. These observed tests do not by themselves require proof of a completed member action or even a positively recognized Response tag. f_106ff898 writes this parser result to session+0x2722 at 0x106ffb28 only after HTTP body/readiness/length gates; transport failure/finalization does not manufacture hardware success."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046e57c",
+       "function": "0x1046e57c",
+       "notes": "Identical fan-out for 'SetVolume': request vtable 0x10ec3790, volume stored as sth in the work item, body builder f_1046b0d0, member prep f_10472588; same max(count,32) request array, f_10743a60 remote sends, 2000ms wait and last-nonzero +0x2722 rc aggregation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1046c148",
+       "function": "0x1046c148",
+       "notes": "Member cleanup sweep: runs only when member count>1; per member calls client+0x3c4 vptr[4] with 'VerifyThenRemoveSystemwide'; on URI lookup failure logs 'lookup of %s URIs for %s failed' tag 'topology' lvl5; otherwise builds a 'Master'-role request object with vtables f_101b3f44/f_101b3fac; returns a 0x400-class status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff898",
+       "notes": "Request-object vtable slot +0x14 (idx5): TLS post-handshake drain on the control_client member connection, mbedtls_ssl_read up to 0x800 while awaiting the response; distinguishes -26752/-26880/-31488; NewSessionTicket bookkeeping logs 'Received NewSessionTicket message while reading response from %s' tag 'control_client' lvl7 and invokes obj->vptr[6] state callback."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d8784",
+       "function": "0x100d8784",
+       "notes": "Conditional VLI interception for volume (rc_impl.cxx:0x5be): channel 'Master' and +0x3c0 nonnull -> f_106a8014(vli,vol,0x64), same vli+0x354->vptr[12] accessor then inner->vptr[2](vol,100). Reached through lock wrapper f_100d8824 and SetVolume outer f_100d9f24 at line 0x5ce."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d9d40",
+       "function": "0x100d9d40",
+       "notes": "Internal set-volume worker (rc_impl.cxx:0x5df): null arg->0x2be; gate bytes +0x7ff/+0x801 -> 0x1f5; volume>100->0x192; 'Master' stores +0x7da, clears +0x3d4 and shadows +0x3c8, 'LF'->+0x7dc, 'RF'->+0x7de; shared tail f_100d7f34 apply, stb 1->+0x7f0 dirty, f_1067c6ec(impl+8,rc?0:0x1f5) notification request, f_100d993c reschedule."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "function": "0x100d7f34",
+       "notes": "Shared DSP apply tail used by all rc_impl setters (14 call sites): flag gates (+0x7f1&&+0x7f4 -> no-commit mode; +0x7ff selects volume field +0x7da else +0x7e0); DSP object +0x3ac probe f_102a566c -> inner object +0x34+0xe0 f_107f5594; transaction writes RF-LF balance via f_102a5484->f_107f5aa4, scaled volume via f_102a54b8->f_107f7ea0 and mute bits via f_102a54ec->f_107f700c, bracketed by f_102a55d0->f_107f8640; secondary listener +0x3b4 gated by flag +0xa4&0x801 via f_10c8ecc8 and membership check f_1075d770(+0xbc8,+0x9c8) -> +0x3b4 vptr[3]; stamps +0x898; log 'Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d' lvl5 'rc_impl'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7d6c",
+       "function": "0x100d7d6c",
+       "notes": "Timer deadline callback: under +0x938 lock, if stored timestamp +0x894 plus 30 seconds is still future it returns that deadline; otherwise it calls recompute f_100d78a4 and reports 0x7fffffff. Installed on timer +0xbf4 via f_10572ab0 inside f_100d993c after stamping +0x894=now; also installed at 0x100dd748 and 0x100df31c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10167318",
+       "function": "0x10167318",
+       "notes": "saveSettings receiver on provider +0xbd4: packs the u64 state at rc_impl+0x7e8; with zone topology builds UpdateZoneMemberSettingsCmd per member via f_1017e9ec ('sendUpdateZoneMemberSettingsCmd failed: %s' tag 'zonesmgr' lvl4); without topology takes the local path f_10171690. Caller f_100d78a4 logs 'saveSettings() complete [%u]' on counter +0x89c and 'save_collision=drop [cSC:%u|sC:%u|sCC:%u] at %s' lvl3."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107491d8",
+       "function": "0x107491d8",
+       "notes": "Dirty-fragment lookup: under provider+0x318 lock, member map +0x5a8 lookup f_10765a00, validity probe f_10762df8, then f_10748f7c computes the fragment byte written to out."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10677b94",
+       "function": "0x10677b94",
+       "notes": "Packages bound task objects (vtable 0x10e87040, dtors f_100e6264/f_100e6360) and delivers them to the global in-process dispatcher singleton 0x11097824 under global lock 0x110b9458: its vptr[2] receives the work vector and vptr[5] poll-gates acceptance; fragment bytes ride these tasks."
       }
      ],
      "notes": null,
      "implementation_notes": "Primary GRC 0x10ec3824 +0x18 -> f_103a30a0 -> f_103a2d04 -> f_103a2c4c -> f_103a2430(flags=0). f_106ff454 and vptr 0x10ec37b4 belong to request-session machinery, not this SOAP delegate. Signed low-32-bit sum is clamped to 0..100 and stored before worker execution. SOAP NewVolume is only emitted on success and denotes the requested target, not measured or recomputed achieved volume.",
-     "todo": [
-      "Established: Action-specific remote/local flow and accounting, session construction/read/failure/finalizer bindings, concrete XML start/text/end status production, null optional fault override, output-validation gate and deferred timer scheduling.",
-      "Unknown: Remaining stereo/source effects, concrete renderer/listener effects, settings receivers and observer/subscriber delivery. The shared worker findings still need a concrete reachability/result-accounting pass through this action's local renderer binding.",
-      "Next: Finish stereo member enumeration/callback helpers below f_1046e57c, cleanup f_1046c148 and VLI f_100d8824; bind this action's local renderer call to the traced f_100d7f34 adapters and recheck aggregate failure reachability, then remaining DSP/LED listeners, provider +0x3bc branches / zones receivers after f_10167318, observers at 0x103a5de4 and sender after f_10678c50."
+     "resolved_findings": [
+      "Established: the action's local renderer binding resolves through f_100d99b0/f_100d9d40 to the shared DSP tail f_100d7f34; member fan-out through f_10743a60 returns last-nonzero member rc; observer and GENA sender delivery are bound; only WSS publication remains a runtime boundary."
      ]
     },
     "SnapshotGroupVolume": {
@@ -81545,7 +81982,7 @@
       }
      ],
      "events_triggered": {
-      "description": "f_1039d714 itself neither marks dirty nor calls a notification function. However the preceding reachable refresh f_1039c5f0 -> f_103a05d0 can call f_1067c6ec at 0x103a0704/0x103a0748 and f_103a6d74 at 0x103a0720 when local aggregate information changes. The latter prepares GroupVolumeChangedEvent work f_103a5e8c -> f_103a59b4; f_103a3abc manages its cancellation functor and f_103a3ce0 logs cancellation. An unchanged refresh does not request these notifications.",
+      "description": "f_1039d714 itself neither marks dirty nor calls a notification function. However the preceding reachable refresh f_1039c5f0 -> f_103a05d0 can call f_1067c6ec at 0x103a0704/0x103a0748 and f_103a6d74 at 0x103a0720 when local aggregate information changes. The latter prepares GroupVolumeChangedEvent work f_103a5e8c -> f_103a59b4; f_103a3abc manages its cancellation functor and f_103a3ce0 logs cancellation. An unchanged refresh does not request these notifications. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -81554,8 +81991,7 @@
         "address": "0x1039dcd4",
         "notes": "Refresh precedes snapshot; this proves action-specific reachability of the refresh notification gates, not completed delivery."
        }
-      ],
-      "todo": "Established: baseline copy has no direct event emission, while refresh notification requests and in-process work binding are traced. Residual: bind concrete observers at 0x103a5de4 and the sender/delivery worker behind f_1067c6ec before claiming GENA/WSS completion."
+      ]
      },
      "state_transitions": {
       "description": "Under mutex +0x1c8, every nonempty cache entry transitions savedVolume:=currentVolume, including fixed and not-fully-valid entries; aggregate savedSum:=currentSum. It does not apply a new current volume, mute/unmute members, set busy or persist the snapshot. The preceding refresh can change local cached validity/classification, current volume/mute aggregates, renderer sonar cache +0x930 and dirty state. No busy guard means this is a mutex-protected cache copy, not a guaranteed group-wide transaction barrier against a setter whose network stage runs unlocked.",
@@ -81721,11 +82157,59 @@
        "build": "86.10-80260",
        "address": "0x1039d7fc",
        "notes": "Current aggregate sum +0xd294 copied to saved sum +0xd296 after all 32 slots have been considered."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
       }
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 +0x1c -> f_1039dc74. InstanceID r4!=0 returns 702, not an output-pointer-null test. Group lookup miss returns 701; otherwise refresh -> lock -> f_1039d714 -> unlock -> 0. Session vptr 0x10ec37b4 and f_106ff898 do not implement SnapshotGroupVolume. Baseline copy is fully traced; residual uncertainty is concrete downstream refresh notification delivery, not snapshot storage or persistence.",
-     "todo": "Established: concrete +0x1c binding, InstanceID/group gates, renderer/cache dependencies, complete 32-entry baseline and aggregate copy, empty/fixed-entry behavior and status domain are traced. Residual: bind the concrete observer invoked by refresh work f_103a59b4 at 0x103a5de4 and the event-source sender/delivery worker behind f_1067c6ec. Snapshot itself performs no member operation; only the conditional preceding refresh can request these notifications."
+     "resolved_findings": [
+      "Established: the refresh work observer at 0x103a5de4 is bound to the session +0x4c observer (f_10214860 -> f_10214790, eSDK bridge vptr[5]) and sender delivery behind f_1067c6ec is bound through worker f_10679b14 -> f_10683da0 GENA NOTIFY; WSS remains a runtime-bound topic name."
+     ]
     }
    },
    "state_variables": {
@@ -81878,13 +82362,13 @@
     }
    },
    "events": {
-    "mechanism": "A concrete GroupRenderingControl event source is constructed at impl+8 by f_1067aec4, name 0x10f96fbc and index 35. Its notification request reaches f_1067c46c, which retains the sender through source+0xb8 and wakes source+0xb4 through f_10678c50 when attached. Missing sender logs Event source %s has no notification sender. Wakeup sets sender+0x10e and signals condition +0xb8; that is not completed subscriber delivery. The serializer binding and named-property output are traced separately from the remaining sender/GENA/WSS bridge.",
+    "mechanism": "A concrete GroupRenderingControl event source is constructed at impl+8 by f_1067aec4, name 0x10f96fbc and index 35. Its notification request reaches f_1067c46c, which retains the sender through source+0xb8 and wakes source+0xb4 through f_10678c50 when attached. Missing sender logs Event source %s has no notification sender. Wakeup sets sender+0x10e and signals condition +0xb8; that is not completed subscriber delivery. The serializer binding and named-property output are traced separately from the remaining sender/GENA/WSS bridge. The woken sender worker f_10679b14 runOnce drains the pending-source vector, gates each source through f_1067d028 and its next-allowed-time vptr[0x10], and calls f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and writes GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE headers). In-process delivery of the same change uses GroupVolumeChangedEvent posted by f_103a6d74 and dispatched by f_103a59b4 to the registered playback-session observer.",
     "lastchange_template": null,
     "no_template_note": "The bound GRC renderer writes GroupVolume, GroupMute and GroupVolumeChangeable as individual properties, not a LastChange property. The shared collector only dispatches the service renderer; neither its presence nor absence from a static template registry establishes any additional LastChange path. Other payload/delivery paths are not inferred.",
     "wss_event_names": [
      "groupRendering"
     ],
-    "wss_note": "groupRendering remains a registry-name candidate only. Index 35/id 137/tag 71 does not by itself prove a call-site bridge from this event source or GroupVolumeChangedEvent to a WSS subscriber.",
+    "wss_note": "groupRendering is a registered WSS topic name (entry id 0x89) written by static-init f_10098d34 into .bss topic table 0x110c8ce8 alongside groups/groupCoordinatorChanged/groupManagement. No .text address formation reads that table and no static data pointer references it, so a WSS publisher can only bind at runtime; there is no static bridge from this event source or its sender worker to a WSS path.",
     "evidence": [
      {
       "type": "firmware",
@@ -81941,9 +82425,78 @@
       "build": "86.10-80260",
       "address": "0x1067ab64",
       "notes": "Shared collector f_1067ab54 is dispatch only: raw 0x81280014 at 0x1067ab64 loads the source vtable +0x14, and raw 0x4e800420 at 0x1067ab70 tail-calls it. It does not introduce a LastChange property. f_1067693c/f_10676968 write the generic e:propertyset envelope, while f_10676994/f_10676a44 open/close the caller-supplied named property. Payload identity must come from the bound service renderer, not the shared collector or a NOTIFY header."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10679b14",
+      "function": "0x10679b14",
+      "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x106841f0",
+      "function": "0x10683da0",
+      "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1021ae5c",
+      "function": "0x1021ab40",
+      "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x102198e4",
+      "function": "0x10219600",
+      "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10214860",
+      "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10098d34",
+      "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x107491d8",
+      "function": "0x107491d8",
+      "notes": "Dirty-fragment lookup: under provider+0x318 lock, member map +0x5a8 lookup f_10765a00, validity probe f_10762df8, then f_10748f7c computes the fragment byte written to out."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10677b94",
+      "function": "0x10677b94",
+      "notes": "Packages bound task objects (vtable 0x10e87040, dtors f_100e6264/f_100e6360) and delivers them to the global in-process dispatcher singleton 0x11097824 under global lock 0x110b9458: its vptr[2] receives the work vector and vptr[5] poll-gates acceptance; fragment bytes ride these tasks."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067a334",
+      "notes": "Sender thread loop: repeatedly calls runOnce f_10679b14 then spins on an exit flag byte; the sender is a dedicated worker object injected into the source as a shared_ptr via ctor config+4/+8 (source+0xb4/+0xb8), so attachment is established by the constructing caller at runtime, not by static wiring."
      }
     ],
-    "notify_path": "Refresh f_103a05d0 and successful setter accounting call f_1067c6ec(impl+8) -> f_1067c46c -> attached sender wakeup f_10678c50. Constructor installs event-source vptr 0x10ec3878; +0x14 points to thunk f_1039d584 -> f_1039d4d4 -> f_1039d430 -> f_1039d11c. Wrapper locks +0x1c8 and can serialize full and delta buffers; f_1039d430 requires a present group and, for delta, dirty +0x259. Serializer emits cached volume average/fallback, all-muted boolean and changeability=(nonfixedCount>0 || fixedCount==0). Empty state is volume 0, mute false, changeable true; fixed-only state is volume 100 and changeable false. Delta serialization clears dirty; full serialization preserves it. When dirty, the serializer also prepares an additional topology/state fragment via f_107491d8 and f_10677b94 at 0x1039d398. Separately f_103a6d74 posts GroupVolumeChangedEvent work through f_100f14ec -> f_103a5e8c -> f_103a59b4, whose concrete observer virtual +0 call is at 0x103a5de4. f_103a3abc manages the captured cancellation functor; f_103a3ce0 only logs cancellation.",
+    "notify_path": "Refresh f_103a05d0 and successful setter accounting call f_1067c6ec(impl+8) -> f_1067c46c -> attached sender wakeup f_10678c50. Constructor installs event-source vptr 0x10ec3878; +0x14 points to thunk f_1039d584 -> f_1039d4d4 -> f_1039d430 -> f_1039d11c. Wrapper locks +0x1c8 and can serialize full and delta buffers; f_1039d430 requires a present group and, for delta, dirty +0x259. Serializer emits cached volume average/fallback, all-muted boolean and changeability=(nonfixedCount>0 || fixedCount==0). Empty state is volume 0, mute false, changeable true; fixed-only state is volume 100 and changeable false. Delta serialization clears dirty; full serialization preserves it. When dirty, the serializer also prepares an additional topology/state fragment via f_107491d8 and f_10677b94 at 0x1039d398. Separately f_103a6d74 posts GroupVolumeChangedEvent work through f_100f14ec -> f_103a5e8c -> f_103a59b4, whose concrete observer virtual +0 call is at 0x103a5de4. f_103a3abc manages the captured cancellation functor; f_103a3ce0 only logs cancellation. Delivery completion: the sender worker f_10679b14 runOnce performs the actual GENA subscriber writes through f_10683da0 -> f_1068108c; f_103a59b4 performs in-process delivery only to the session+0x4c observer bound by f_1021ab40, whose slot0 resolves to f_10214860 -> f_10214790 (volume store f_102267dc into session+0x7ae8, then eSDK bridge vptr[5] at +0x59f8). The dirty-state fragment built at 0x1039d330 is looked up through f_107491d8 (provider+0x318 lock, member map +0x5a8, f_10748f7c result byte) and posted as bound tasks by f_10677b94 to the global dispatcher singleton 0x11097824 (vptr[2] submit, vptr[5] poll-gate).",
     "wss_registry": [
      {
       "idx": 35,
@@ -81952,12 +82505,12 @@
       "tag": 71
      }
     ],
-    "todo": [
-     "Established: Bound source +0x14 dispatch, the three named GRC properties, full/delta dirty handling, notification wakeup and internal GroupVolumeChangedEvent dispatch.",
-     "Unknown: Concrete sender attachment/delivery, registered internal observers and the separate topology/state-fragment consumers; no WSS publication or subscriber receipt is established.",
-     "Next: Follow media-player incoming r8 configuration into source+0xb4/+0xb8 and the worker after f_10678c50; bind observers invoked at 0x103a5de4 and finish f_107491d8/f_10677b94 fragment consumers."
-    ],
-    "payload_model": "Individual GroupVolume, GroupMute and GroupVolumeChangeable properties in an e:propertyset envelope; full/delta selection and group-presence/dirty guards are described in notify_path. No LastChange wrapper is introduced by this bound renderer or the shared collector."
+    "payload_model": "Individual GroupVolume, GroupMute and GroupVolumeChangeable properties in an e:propertyset envelope; full/delta selection and group-presence/dirty guards are described in notify_path. No LastChange wrapper is introduced by this bound renderer or the shared collector.",
+    "resolved_findings": [
+     "Established: GENA subscriber delivery is concrete - sender worker f_10679b14 runOnce -> f_10683da0 fireNotifications -> f_1068108c subscriber walk -> NOTIFY requests from template 0x10f00628.",
+     "Established: in-process observer delivery is bound - the only registrant f_1021ab40 installs the session +0x4c observer (vptr 0x10ea229c -> f_10214860 -> f_10214790) which forwards group volume to the eSDK bridge at session+0x59f8 vptr[5].",
+     "Established: dirty-state fragments are computed via f_107491d8 and posted as bound tasks via f_10677b94 to global dispatcher 0x11097824; WSS 'groupRendering' is a registered topic id (0x89) with no static bridge, a runtime boundary."
+    ]
    },
    "errors": [
     {
@@ -82026,6 +82579,109 @@
      "build": "86.10-80260",
      "address": "0x103a0ee4",
      "notes": "Initializer f_103a0e28 stores the renderer input pair and allocates cache; caller f_103fd65c at 0x103fdb24 supplies media-player+0x1924/+0x1928 renderer binding."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046dff0",
+     "function": "0x1046dff0",
+     "notes": "Stereo member fan-out for mute: topology ctx f_10759984(+0xbc8,+0x9c8), member enumeration f_1053ce34/f_1053c370, allocate max(count,32) request objects of stride 0x2740 with vtable 0x10ec37bc, +0x2730='urn:schemas-upnp-org:service:RenderingControl:1', +0x2734='SetMute', +0x2738=1; per member f_1053cc50, transport select req->vptr[8]==f_1019f754 -> remote send f_10743a60(client+0x3c4); body builder f_1046af78 writes InstanceID/Channel/DesiredMute into request+0x498; in-flight link f_106fe8c0/f_106fcf50; wait now+2000ms via f_106fb998; per-request u16 rc at +0x2722 aggregated last-nonzero; 'forwarded %s to %s, rc=%d' tag 'zonesutils'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046c148",
+     "function": "0x1046c148",
+     "notes": "Member cleanup sweep: runs only when member count>1; per member calls client+0x3c4 vptr[4] with 'VerifyThenRemoveSystemwide'; on URI lookup failure logs 'lookup of %s URIs for %s failed' tag 'topology' lvl5; otherwise builds a 'Master'-role request object with vtables f_101b3f44/f_101b3fac; returns a 0x400-class status."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106ff898",
+     "notes": "Request-object vtable slot +0x14 (idx5): TLS post-handshake drain on the control_client member connection, mbedtls_ssl_read up to 0x800 while awaiting the response; distinguishes -26752/-26880/-31488; NewSessionTicket bookkeeping logs 'Received NewSessionTicket message while reading response from %s' tag 'control_client' lvl7 and invokes obj->vptr[6] state callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046e57c",
+     "function": "0x1046e57c",
+     "notes": "Identical fan-out for 'SetVolume': request vtable 0x10ec3790, volume stored as sth in the work item, body builder f_1046b0d0, member prep f_10472588; same max(count,32) request array, f_10743a60 remote sends, 2000ms wait and last-nonzero +0x2722 rc aggregation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d8568",
+     "function": "0x100d8568",
+     "notes": "Conditional VLI interception for mute (rc_impl.cxx:0x477): only 'Master'/'FocusMode' channels proceed; f_100d846c resolves the current channel volume (Master=+0x7da, LF=+0x7dc, RF=+0x7de; null out 0x2be, unknown channel 0x192); when VLI object +0x3c0 is nonnull calls f_106a7f44(vli,arg,vol), which under lock +0x150 calls vli+0x354->vptr[12]() then inner->vptr[3]. SetMute wrapper f_100d9b4c skips the local f_100d99b0 write when interception returns nonzero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d99b0",
+     "function": "0x100d99b0",
+     "notes": "Internal set-mute worker (rc_impl.cxx:0x49a): channel map 'Master'->+0x7f1, 'LF'->+0x7f2, 'RF'->+0x7f3, 'FocusMode'->+0x7f4, else 0x192; when +0x7ff&&+0x801 syncs +0x7e0->+0x7da; shadow sth +0x7da->+0x3c8; same tail f_100d7f34, stb 1->+0x7f5 dirty, f_1067c6ec(+8,rc?0:0x1f5), f_100d993c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d7f34",
+     "function": "0x100d7f34",
+     "notes": "Shared DSP apply tail used by all rc_impl setters (14 call sites): flag gates (+0x7f1&&+0x7f4 -> no-commit mode; +0x7ff selects volume field +0x7da else +0x7e0); DSP object +0x3ac probe f_102a566c -> inner object +0x34+0xe0 f_107f5594; transaction writes RF-LF balance via f_102a5484->f_107f5aa4, scaled volume via f_102a54b8->f_107f7ea0 and mute bits via f_102a54ec->f_107f700c, bracketed by f_102a55d0->f_107f8640; secondary listener +0x3b4 gated by flag +0xa4&0x801 via f_10c8ecc8 and membership check f_1075d770(+0xbc8,+0x9c8) -> +0x3b4 vptr[3]; stamps +0x898; log 'Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d' lvl5 'rc_impl'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d7d6c",
+     "function": "0x100d7d6c",
+     "notes": "Timer deadline callback: under +0x938 lock, if stored timestamp +0x894 plus 30 seconds is still future it returns that deadline; otherwise it calls recompute f_100d78a4 and reports 0x7fffffff. Installed on timer +0xbf4 via f_10572ab0 inside f_100d993c after stamping +0x894=now; also installed at 0x100dd748 and 0x100df31c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10167318",
+     "function": "0x10167318",
+     "notes": "saveSettings receiver on provider +0xbd4: packs the u64 state at rc_impl+0x7e8; with zone topology builds UpdateZoneMemberSettingsCmd per member via f_1017e9ec ('sendUpdateZoneMemberSettingsCmd failed: %s' tag 'zonesmgr' lvl4); without topology takes the local path f_10171690. Caller f_100d78a4 logs 'saveSettings() complete [%u]' on counter +0x89c and 'save_collision=drop [cSC:%u|sC:%u|sCC:%u] at %s' lvl3."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d8784",
+     "function": "0x100d8784",
+     "notes": "Conditional VLI interception for volume (rc_impl.cxx:0x5be): channel 'Master' and +0x3c0 nonnull -> f_106a8014(vli,vol,0x64), same vli+0x354->vptr[12] accessor then inner->vptr[2](vol,100). Reached through lock wrapper f_100d8824 and SetVolume outer f_100d9f24 at line 0x5ce."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d9d40",
+     "function": "0x100d9d40",
+     "notes": "Internal set-volume worker (rc_impl.cxx:0x5df): null arg->0x2be; gate bytes +0x7ff/+0x801 -> 0x1f5; volume>100->0x192; 'Master' stores +0x7da, clears +0x3d4 and shadows +0x3c8, 'LF'->+0x7dc, 'RF'->+0x7de; shared tail f_100d7f34 apply, stb 1->+0x7f0 dirty, f_1067c6ec(impl+8,rc?0:0x1f5) notification request, f_100d993c reschedule."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107491d8",
+     "function": "0x107491d8",
+     "notes": "Dirty-fragment lookup: under provider+0x318 lock, member map +0x5a8 lookup f_10765a00, validity probe f_10762df8, then f_10748f7c computes the fragment byte written to out."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10677b94",
+     "function": "0x10677b94",
+     "notes": "Packages bound task objects (vtable 0x10e87040, dtors f_100e6264/f_100e6360) and delivers them to the global in-process dispatcher singleton 0x11097824 under global lock 0x110b9458: its vptr[2] receives the work vector and vptr[5] poll-gates acceptance; fragment bytes ride these tasks."
     }
    ],
    "notes": null,
@@ -82039,9 +82695,15 @@
      "GroupMute",
      "GroupVolumeChangeable"
     ],
-    "remote_rc": "Concrete RenderingControl SetMute/SetVolume request sessions are distinct from the primary GRC implementation. Request acceptance, member status, physical completion and subscriber delivery are separate claims."
+    "remote_rc": "Concrete RenderingControl SetMute/SetVolume request sessions are distinct from the primary GRC implementation. Request acceptance, member status, physical completion and subscriber delivery are separate claims.",
+    "member_fanout": "SetGroupMute fan-out f_1046dff0 and SetGroupVolume/SetRelativeGroupVolume fan-out f_1046e57c allocate max(member_count,32) request objects of stride 0x2740 (vtables 0x10ec37bc/0x10ec3790, urn RenderingControl:1, action 'SetMute'/'SetVolume'), send each per member through f_10743a60 on client+0x3c4 (transport slot +0x20 wraps the same send), wait up to now+2000ms via f_106fb998 and aggregate the last nonzero u16 member rc at request+0x2722. Cleanup sweep f_1046c148 runs VerifyThenRemoveSystemwide per member only when count>1.",
+    "local_renderer": "Local applies run under rc_impl+0x938: VLI interception first (f_100d8568 -> f_106a7f44 vptr[12]/[3] for 'Master'/'FocusMode' mute; f_100d8784 -> f_106a8014 vptr[2](vol,100) for 'Master' volume), then workers f_100d99b0 (mute flags +0x7f1..+0x7f4) / f_100d9d40 (volumes +0x7da/+0x7dc/+0x7de), shared DSP tail f_100d7f34 (balance/volume/mute transaction on inner object +0x34+0xe0, secondary listener +0x3b4 vptr[3]), dirty +0x7f5/+0x7f0, event-source request f_1067c6ec(+8,rc?0:0x1f5) and 30s deadline timer f_100d7d6c via f_100d993c. Packed state at +0x7e8 persists through f_100d78a4 -> f_10167318 UpdateZoneMemberSettingsCmd.",
+    "notification_delivery": "Event-source request f_1067c6ec -> f_1067c46c wakes attached sender f_10678c50 (+0x10e/cond+0xb8); worker f_10679b14 runOnce drains pending sources through f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications -> f_1068108c subscriber walk -> GENA NOTIFY from template 0x10f00628. In-process GroupVolumeChangedEvent reaches the session +0x4c observer (f_10214860 -> f_10214790 -> eSDK bridge vptr[5]). WSS 'groupRendering' is a registered topic id only (0x89); no static bridge exists."
    },
-   "todo": "Established: six concrete SOAP slots, containing-block binding, local RC input binding, conditional route enablement, cache aggregates/saved baselines, bounded setter status accounting, static event-source serializer and dispatcher reject conditions are traced. Residual: finish stereo/member failure cleanup and physical renderer effects below f_1046dff0/f_1046e57c/f_1046c148 and f_100d7f34, conditional VLI interception f_106a7f44/f_100d8824, timer callback f_100d7d6c, final member network/status effects below f_106ff898, concrete observer registration at 0x103a5de4 and source sender/GENA/WSS delivery binding. Individual action TODOs distinguish these from fully traced getters/snapshot arithmetic and storage."
+   "resolved_findings": [
+    "Established: stereo-member fan-out, failure cleanup, local renderer/VLI/DSP effects, timer deadline semantics, settings persistence, in-process observer binding and GENA subscriber delivery are all traced to concrete code.",
+    "Boundary: WSS 'groupRendering' topic publication has no static path in this binary (registered entry 0x89 in .bss table 0x110c8ce8; consumers bind at runtime)."
+   ]
   },
   "/MediaRenderer/Queue/Control": {
    "name": "Queue",
