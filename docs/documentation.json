@@ -49838,7 +49838,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "The source-state byte can suppress the entire list. Otherwise source mode selects a default mask, a live streamer-derived mask or a live indexed-session mask.",
+      "description": "The source-state byte can suppress the entire list. Otherwise source mode selects a default mask, a live streamer-derived mask or a live indexed-session mask. The indexed engine checks track-level overrides and whether neighboring tracks are available; the streamer starts with Play and normally Stop, then adds the selected provider's actions.",
       "evidence": [
        {
         "type": "firmware",
@@ -50170,12 +50170,82 @@
        "address": "0x10eb39d0",
        "notes": "Table order (mask -> string): 0x00800000 Set; 0x00010000 Stop; 0x00008000 Pause; 0x01000000 Play; 0x00200000 X_DLNA_SeekTime; 0x00020000 Next; 0x00100000 Previous; 0x00400000 X_DLNA_SeekTrackNr. Formatter appends only set bits using the literal comma-space separator at 0x10e727bc.",
        "function": "0x102fcbf4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10293058",
+       "notes": "Mode 1 omits baseline Stop for a valid x-sonos-htastream: URI. f_102931f0 forwards to f_10293014; the prefix comparison is case-insensitive, followed by 24 bytes, a colon, and an exact suffix of spdif, v-spdif, vli, chsnk or test. A nonzero provider mask can still contribute Stop.",
+       "function": "0x10293014"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10741bbc",
+       "notes": "The byte that suppresses the entire action list is source entry+0x82c. f_10741b4c writes it after a successful name lookup only if f_10762df8 succeeds or the alternate +0x1f18, f_1053ce34 and f_1053c370 gates pass; otherwise the caller's initialized zero survives.",
+       "function": "0x10741b4c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10258814",
+       "notes": "Indexed capabilities start from word +0x26e4 of the source held at session+0x326c8. The initial masked copy also drops Next (0x00020000) if the source has bit 0x00080000 and session+0x32800 is outside 5..8. Selector 3 applies track overrides: f_1014a190 returns a 16-byte record, then the worker clears bits from its first word and sets bits from its second word. It ignores bit 0x8 in both override words (0x10258968/0x10258974).",
+       "function": "0x102587b4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10258924",
+       "notes": "With no entries (source halfword +0x26c8 is zero), mask 0xfe8c7fff clears all published indexed actions before the outer Set bit is applied. It re-adds original X_DLNA_SeekTrackNr only if source bit 0x400 is set, and original Play only if either source bit 0x400 or 0x1000 is set. f_10148044 and f_10148058 extract those two flags respectively.",
+       "function": "0x102587b4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102589b0",
+       "notes": "With entries present, f_10149d80 and f_10149ff0 test for alternate track indices. Failure from f_10149d80 clears Next unless source bit 0x1000 is set, or bit 0x400 is set and session byte +0x4b3f is zero. Failure from f_10149ff0 clears Previous unless bit 0x400 is set and session byte +0x4b3e is zero. These branches do not add a missing Next or Previous bit.",
+       "function": "0x102587b4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106a7cac",
+       "notes": "The two +0x2c calls are sequential, not alternatives. The first queries the active record's +4 control object for another interface; the second calls that interface for the capability word and stores it at 0x106a7ccc. Missing active record, control object or returned interface gives false without writing a word.",
+       "function": "0x106a7c54"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10219cf0",
+       "notes": "Spotify registers streamer source type 2 through f_106a76b8: r5 is the Spotify VLI control object adjusted by +8 and r6 is the SpotifyAudioInput object. The registration helper writes these at record+4 and +8 in the first free 12-byte entry of the nine-entry table at streamer+0x2e8. f_106a8b08 selects by type and installs the record at streamer+0x354 (0x106a8df4); a failing selection callback clears it at 0x106a8e34."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021b410",
+       "notes": "Spotify finishes wiring the controller with f_1022c7d4(control, spotify+4), which stores this interface pointer at control+0x188. The controller constructor installs address point 0x10ea53a8 at control+8 (0x1022d94c). Its +0x2c entry at 0x10ea53d4 adjusts back by 8 and calls f_1022add4, which returns that stored pointer. The Spotify constructor installs address point 0x10ea2210 at spotify+4 (0x102198d4)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ea223c",
+       "notes": "The Spotify interface at 0x10ea2210 uses +0x2c thunk f_10212b54. f_10212ae4 calls VLI control slot +0x10 (f_1022ac04, reading byte +0x18c); when zero it returns 0x01018000 (Stop, Pause, Play). Otherwise control slot +0x4c (f_1022b450) returns Play if byte +0x18d is zero, or reads the SpotifyAudioInput bits through f_104dce44 and adds X_DLNA_SeekTrackNr if control+0x380 equals 3.",
+       "function": "0x10212ae4"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: mode selects the indexed mask or streamer query and the live capability mask is rendered in firmware table order.",
-      "Resolve the final per-source capability predicates behind the indexed f_102587b4 mask, and identify the concrete stream capability providers reached through the two +0x2c calls at 0x106a7cac and 0x106a7cc8. The outer mode choice, baseline masks, action names/order, separator, and engine fault are verified."
+      "Established: the mode baselines, indexed boundary tests, per-track override formula and Spotify source type 2 dispatch are mapped. A valid home-theater stream URI removes Stop from the streamer baseline; a provider may still supply it.",
+      "Trace the writers of source+0x26e4 and the per-track override words returned by f_1014a190, and determine when session+0x4b3e/+0x4b3f and source-entry+0x82c are set. Finish SpotifyAudioInput capability writers behind f_104da720 and check for other registrations of the streamer interface."
      ]
     },
     "GetDeviceCapabilities": {
