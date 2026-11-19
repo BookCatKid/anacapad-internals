@@ -177314,7 +177314,7 @@
    ]
   },
   "0x10c3a294": {
-   "description": "Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again.",
+   "description": "Percent-encoder wrapper f_10c3a294(src, dst, cap) tail-calls f_10c3a0f4 with the literal allow-list $-_.!*'(), (RFC 2396 mark set) as fourth argument. The helper iterates the NUL-terminated source: isalnum bytes and allow-listed bytes are copied raw, every other byte is written through __snprintf_chk with the literal format '%%%02x' producing a three-character lowercase percent escape. A raw byte is emitted only when cap > off+1 (itself plus terminator); an escape only when off+3 < cap (three bytes plus terminator). On exhaustion the loop stops before the non-fitting unit, unconditionally stores a NUL at dst[off] and returns off, the number of bytes written, with no truncation indicator. Output is therefore always a clean prefix: escapes are never split mid-sequence. Contract edges: cap==0 writes one byte (the terminator) at dst[0] past the logical buffer; a NULL src stores dst[0]=0 and returns 0 without consulting cap; a NULL dst faults on the terminator store; src==dst overlap is unguarded. isalnum is evaluated under the configured process locale (single setlocale(LC_ALL) call at 0x1080bb38), so bytes >=0x80 can be copied raw under non-C locales instead of being escaped. Already-encoded input is encoded again (the percent byte is not special-cased). Caller audit over all 52 direct call sites: capacities are fixed (0x3eb most common; also 0x401, 0x101, 0x301, 0x100, 0xfa, 0x3f, 0x181) or computed remaining space (subf/subfic of 0x400/0x401/0x200 or an end pointer), and the returned count is consumed by only two callers - f_1055097c advances its {ptr,remaining} cursor by the count only when at least 3 more bytes of headroom remain (returns 0 otherwise, leaving the written bytes in place), and f_1058ef94 appends exactly the returned count of the truncated encoded prefix into a '&name=value' query builder - while every other site including f_1011c864 discards the return, so truncation is silent at those sites.",
    "why_external": "Determines percent encoding and truncation of manifest-derived cloud-queue item paths.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -177325,9 +177325,53 @@
      "build": "86.10-80260",
      "address": "0x10c3a294",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a2b8",
+     "function": "0x10c3a294",
+     "notes": "Tail-call loads allow-list pointer from GOT 0x1108dd00 -> 0x10fb1330 '$-_.!*'(),' and branches to f_10c3a0f4 with args (src,dst,cap,allowlist)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a1a0",
+     "function": "0x10c3a0f4",
+     "notes": "Escape path: requires off+3<cap (cmpl/bc at 0x10c3a1a0-0x10c3a1b8) then __snprintf_chk(dst+off, cap-off, 1, -1, '%%%02x', byte) at 0x10c3a1c8; raw byte path requires cap>off+1 at 0x10c3a158-0x10c3a160; NUL terminator at 0x10c3a1d8 unconditional."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3a214",
+     "function": "0x10c3a0f4",
+     "notes": "NULL src path stores dst[0]=0 and returns 0 without consulting cap; cap==0 produces the same single-byte store past the logical buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055099c",
+     "function": "0x1055097c",
+     "notes": "Cursor caller: encode(src=arg1, dst=cursor.ptr, cap=cursor.remaining); cursor advances by returned count only when count+3<remaining else returns 0 leaving bytes written."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1058efe0",
+     "function": "0x1058ef94",
+     "notes": "Query builder caller keeps the count in r27 and appends exactly that many encoded bytes (cap 0x401 stack buffer) after '&name='; truncation propagates as a clipped parameter value."
     }
    ],
-   "todo": "Established: Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again. Remaining: Audit all callers, libc locale behavior and malformed output-capacity contracts."
+   "resolved_findings": [
+    "Resolved via 52-site caller audit: every call site enumerated by direct branch scan (no indirect references); all use well-formed capacities >=1 of fixed or remaining-space form, and only f_1055097c and f_1058ef94 consume the returned count - all other sites overwrite r3 immediately.",
+    "Resolved: malformed contracts are limited to cap==0 (single byte written at dst[0]) and NULL dst/src cases documented in the description; no caller passes a NULL or zero capacity statically.",
+    "Resolved: isalnum locale dependence documented; under the configured-locale model non-ASCII bytes may pass raw."
+   ]
   },
   "0x1011a650": {
    "description": "Manifest lookup f_1011a650 takes this, service ID and a nonnull output row. It formats service ID with %u and searches the three-entry memory cache by key length plus memcmp under mutex this+0x1f8. A hit refreshes entry+4 with the current clock word, copies the entire row from entry+0x20 through f_10118f64, unlocks and returns true. It does not compare a requested manifest version, cached row version, public SID/version index or cache entry+0 time word before returning a hit. There is no requested-version argument in this lookup. A cache miss unlocks, loads svcmanifests.json into a fresh 34-row scratch table through f_1011a5d0, finds the requested sid by exact word equality and copies it to output. Load failure or absent SID returns false. A successful file load can still update stored source/version/index even when the requested SID is absent. This lookup performs no HTTP download. The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops.",
