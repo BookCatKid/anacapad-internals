@@ -131783,12 +131783,9 @@
   "timedjobs": {
    "impl": "timedjob.cxx -> timedjobmgr{,_ac,_btn} channels",
    "semantics": "ReportSvcTimedJob + checkSonosNetDisableTestTimedJob + modZPShutdown_deleteTimedJobManager: scheduled job timers for AC/button/SonosNet-disable-test",
-   "todo": [
-    "Established: manager channels, endpoint-bound add/remove queues, absolute boot/monotonic scheduling and conditional network deferral are verified. Remaining: prove the complete rescheduling contract (job callback next-time output, schedule-later override, sentinel handling and wake-up calculation) and audit persistence rather than infer its absence from strings. Disassemble f_1057318c through 0x10573734 including its indirect callback, f_105721a8/f_10573104 and manager construction/destruction; trace callers and owner re-registration/save-load paths before asserting reboot behavior."
-   ],
    "scheduling": "timedjob.cxx uses the timedjobmanager tag and channels timedjobmgr, timedjobmgr_ac and timedjobmgr_btn. Jobs bind to registered endpoints; f_105726a8 rejects a missing endpoint. f_10571fac stores absolute next-fire time at job +0, marks scheduling with flag 0x4 at +0x14 and wakes the manager. It distinguishes boot and monotonic time (log markers B/M), converting monotonic to boot time for the default conversion implementation when the job's 0x2 flag is set. Removal cancels pending additions or queues removal and may wait on a condition variable for outstanding work. In f_1057318c, IP deferral applies only to jobs with flag 0x20 when manager +0x1c4 is zero; recovery-AP deferral compares the state helper result with job flag 0x200. Thus these are conditional eligibility checks, not a universal retry policy. In-memory containers are visible, but absence of persistence strings alone does not prove reboot behavior.",
    "resolved_findings": [
-    "The slow-run path compares elapsed seconds with the byte threshold at queue-entry +0x1c and increments +0x28; the normal path can reset this counter. The starting-job log's s/n/b labels are not sufficient evidence that b means backoff."
+    "Slow runs are elapsed seconds >= the byte threshold. The consecutive counter increments; logging uses level 4 when log_every is 1 or count modulo log_every is 1, otherwise level 6. A normal run resets the slow counter, logging recovery when the old count exceeded the cadence. These are diagnostics, not automatic exponential retry/backoff."
    ],
    "evidence": [
     {
@@ -131826,8 +131823,65 @@
      "address": "0x10e745b0",
      "callsite": "0x100c19b4, 0x10276384, 0x103c503c",
      "notes": "Channel-string references: timedjobmgr, timedjobmgr_ac (0x10eab020), timedjobmgr_btn (0x10ec6dc8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1057318c",
+     "address": "0x105734a0",
+     "callsite": "0x105734b4-0x10573598, 0x10573650-0x105736c4",
+     "notes": "Running/explicit scheduling bits, unlocked callback(context,&next), ignored return, clock-domain offset and explicit scheduling override. Raw masks clear 0x4 and 0x80, respectively."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10571fac / f_1057318c / f_10987204",
+     "address": "0x10572120",
+     "callsite": "0x10572120-0x10572188, 0x10573304-0x10573324, 0x10573684-0x1057372c, 0x10987258-0x109872d4",
+     "notes": "INT_MAX sentinel; nonzero mode keeps earlier signed time; min delay via raw 0x7f89e75e = isel r28,r9,r28,cr7gt. Wait helper converts relative milliseconds to absolute timespec for pthread_cond_timedwait."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10572dbc / f_10573104 / f_105721a8",
+     "address": "0x10572dbc",
+     "callsite": "0x10573054-0x10573078, 0x1057314c-0x10573170, 0x10573cc0-0x10573d28, 0x105721dc-0x10572230",
+     "notes": "Registration fields, pending-to-active allocation/copy and removal freeing are memory-container operations, not serialized queue storage."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10571de0 / f_100c5854 / f_100c58b4 / f_10571eec",
+     "address": "0x10571de0",
+     "callsite": "0x10571e14-0x10571e7c, 0x100c5874-0x100c591c, 0x10571f0c-0x10571f40",
+     "notes": "Empty manager construction, tree and synchronization destruction, stop/signal/join. No scheduler-state save/load call on these lifecycle paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c1478 / f_10276bb0 / f_103c4e64 / f_101981f0",
+     "address": "0x100c19cc",
+     "callsite": "0x100c19cc, 0x100c1c2c-0x100c1c5c, 0x100c29e8, 0x10276c14-0x10276c6c, 0x103c5070-0x103c513c, 0x1019a428-0x1019a440",
+     "notes": "Owners construct fresh managers, register callback/context/time tuples and start threads at application initialization; alarm/button stop paths 0x10276d10 and 0x103c55cc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1057318c",
+     "address": "0x105735d0",
+     "callsite": "0x105735d0-0x10573618, 0x105736a8-0x10573720",
+     "notes": "Raw 0x7d095396=divwu and 0x7d4851d6=mullw establish modulo-based logging cadence; elapsed threshold, counter increment/reset and recovery logging are not a retry schedule."
     }
-   ]
+   ],
+   "callback_contract": "Registration f_10572dbc accepts (manager, name, callback, context, initial_time, slow_seconds, log_every, flags). It keys entries by callback/context, rejects duplicate active or pending entries and strips internal bits 0xc4 from initial flags. Pending entries are copied into the active tree by f_10573104; f_105721a8 erases entries marked for removal (0x40). In f_1057318c the active entry holds callback +0x10, context +0x14, next time +0x18, slow threshold byte +0x1c, name +0x20, logging cadence +0x24, slow count +0x28 and flags +0x2c. Before calling, the manager copies next time to a stack word, clears explicit-schedule flag 0x4 and sets running flag 0x80. At 0x10573544-0x10573558 it releases the manager lock and calls callback(context, &next_time). The integer return is ignored: the pointed-to absolute time is the rescheduling output. It reacquires the lock, clears running and signals removal waiters when needed. If another thread called the scheduling API during the callback, flag 0x4 makes that explicit stored next time win over the callback output; the flag is then cleared. Otherwise the callback output becomes next time. A callback leaving its already-due time unchanged remains eligible, so a recurring callback must supply its own future time or disable itself.",
+   "rescheduling": "The disabled sentinel is signed INT_MAX (0x7fffffff), tested without clock conversion and omitted from future-wake calculation. f_10571fac takes a boolean mode: zero replaces the stored time; nonzero keeps the earlier of existing and requested signed times. Requesting INT_MAX stores the disabled time and clears 0x4. Ordinary changed times set 0x4 and signal the manager condition. Flag 0x2 selects the conversion branch through the manager virtual conversion slot +0x10 (default f_10571d8c calls sonosConvertMonotonicTimeToBootTime); callback-produced nonsentinel times in that mode receive the sampled-time offset at 0x10573650-0x1057366c before storage. The run loop samples time before scanning, runs eligible due entries, and accumulates the minimum positive future delay in milliseconds, selecting zero for an already-due result. A changed next time causes another full scan before sleeping. Empty lists and disabled-only lists use INT_MAX milliseconds. The first wait uses zero milliseconds. f_10987584/f_10987204 implement a relative-millisecond pthread_cond_timedwait using clock_gettime(1); explicit schedules, removal, pending-queue integration and stop signal the condition. The starting log s/n/b prints scheduled time and the two sampled times, not a retry-backoff value. Network-ineligible entries are skipped until a subsequent wake; they are not assigned an invented fixed retry interval.",
+   "persistence": "The scheduler has no internal durable job-state contract. f_10571de0 constructs empty active/pending trees, zero counts, synchronization/thread objects and cleared runtime flags; it does not restore a queue. f_10573104 allocates/copies pending nodes into the active tree, and f_105721a8 frees removed nodes. The destructor f_100c5854 (deleting variant f_100c58b4) destroys thread/condition/mutex and frees both trees, without serializing them. f_10571eec sets the stop byte, signals and joins the worker. Owner initialization builds fresh registrations in code: f_100c1478 allocates the generic manager and registers jobs (including renewSubs with now+2 and advertise disabled), then starts it at 0x100c29e8; f_10276048 constructs the alarm manager and f_10276bb0 registers syncInternetTime and dailyIndex before starting it; f_103c4e64 constructs/registers the button manager and f_103c556c starts it. f_101981f0 calls the latter two startup paths at 0x1019a428/0x1019a440. Thus manager queue nodes and next-fire fields are process-lifetime state recreated at startup, not saved scheduler records. An owner may independently persist its own application data; this statement does not deny saved alarm/timer databases."
   },
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
