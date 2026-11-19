@@ -169651,18 +169651,41 @@
   },
   "sonos_custom_libs": {
    "name": "Sonos-custom shared libraries",
-   "summary": "lib/ ships ~40 shared objects. Sonos-built libraries (libsonos*, libflash, libsyslib_hal, libhwmessagelib, libwifi) vs stock (mbedtls, ffmpeg, sqlite, etc.) split below.",
+   "summary": "Sonos-built shared libraries supply manufacturing, hardware, IPC, time, crypto and telemetry functions. Concrete direct-import consumers are recoverable from ELF relocation names and executable branch sites; a daemon-level dependency or export name alone does not establish all per-export callers or runtime binding.",
    "todo": [
-    "Residual: per-export consumer maps for the libsonos* set beyond the anchors already proven (each lib is large; the map above names the owning daemon per lib, not every symbol's call graph)."
+    "Established: concrete IPC/reset/telemetry/crypto export-to-consumer edges, symbol definition addresses and direct-PLT reconstruction method. Remaining: reconcile all libsonos* definitions with consumer relocation imports, verify ambiguous shared symbol owners against DT_NEEDED/loader lookup, then propagate indirect/GOT callbacks, data exports and dlsym names into their actual call sites. Start with ReadIPCHeader and report_event sampled edges, then audit unassigned imports and crypto-wrapper dispatch. Do not equate a needed library, an exported symbol or a bounded direct-branch scan with an exhaustive consumer map. This remains actionable static work."
    ],
    "artifacts": [
     "lib/libflash.so.1",
     "lib/libhwmessagelib.so.1"
    ],
    "resolved_findings": [
-    "Resolved (boundary): custom set = {libflash, libhwmessagelib, certval, DSP libs} with role map; per-lib exports enumerated from dynsym where present.",
+    "The custom-library boundary is established by shipped objects and exported functions, but the old per-lib-owner map is not an exhaustive per-export call graph. Defined symbols shared between objects and indirect/GOT/dlsym dispatch require separate treatment.",
     "Sonos-built set: libsonosutils.so.1 (IPC helpers incl. ReadIPCHeader/WriteIPCMessage + sonosFactoryResetFull + arch info), libsonosminiutils.so.1 (file/int helpers, syslog glue), libsonos-mdp.so.1 (MDP serial/series/cert-variant accessors), libsonoscrypto.so.3 (mbedtls-wrapped crypto incl. sonosRcbVerifySig for .upd/rcb), libsonos-certval.so.2 + libsonos-root-cert-bundle.so.2 (cert validation + bundled roots), libsonos-time-c.so.1 (timeval math + sonosClockGetTime), libsonoseventreporter.so.1 (report_event telemetry), libsonossbcpacket.so.1 (satellite SBC packet codec), libsonossyslog.so.1 (syslog extension used by wpa_supplicant), libflash.so.1 (hal_flash_* mtd/MDP/FSN access), libsyslib_hal.so.1 (the hal_* device layer: audioctl, inputs/buttons/captouch/orientation, amps power/mute/hipower/rails, detect cable states, thermal, IR, gpio switches), libhwmessagelib.so.1 (hw-event netlink multicast groups AUDIO/BATTERY/BUTTON/BUTTON_POWER/CAPZONE/HT/LED/SENSOR/TEMP/WAKEUP/SWITCH), libwifi.so.1 (the 72-export WifiFuncs* API consumed by netstartd/wacd).",
-    "Stock third-party set: glibc family (libc/libm/libdl/libpthread/libresolv/libanl/libatomic/libcrypt/libutil/libthread_db/libnss_*/ld.so.1), libgcc_s, libz 1.2.11, mbedtls 2.x trio (mbedcrypto.16/mbedtls.21/mbedx509.7), ffmpeg libavcodec.59/libavformat.59/libavutil.57 (WMA etc.), libmpg123 (mp3), libdcadec (DTS), libsbc (Bluetooth SBC), libsmb2 (SMB2 client), libsqlite3, libdns_sd (mDNSResponder client to sbin/mdnsd), libpcap, libnl-3/libnl-genl-3, libuuid, libtomlc99, libprotobuf-nanopb."
+    "Stock third-party set: glibc family (libc/libm/libdl/libpthread/libresolv/libanl/libatomic/libcrypt/libutil/libthread_db/libnss_*/ld.so.1), libgcc_s, libz 1.2.11, mbedtls 2.x trio (mbedcrypto.16/mbedtls.21/mbedx509.7), ffmpeg libavcodec.59/libavformat.59/libavutil.57 (WMA etc.), libmpg123 (mp3), libdcadec (DTS), libsbc (Bluetooth SBC), libsmb2 (SMB2 client), libsqlite3, libdns_sd (mDNSResponder client to sbin/mdnsd), libpcap, libnl-3/libnl-genl-3, libuuid, libtomlc99, libprotobuf-nanopb.",
+    "ReadIPCHeader is defined by libsonosutils.so.1 at0x1508 (size0x150). Direct imported calls occur at anacapad0x105d39a8 and netstartd0x10009744. sonosFactoryResetFull is exported at library0x1c2c and directly called at anacapad0x105e8ce4 and netstartd0x10004d64. These concrete export-to-consumer edges are more specific than saying only that a daemon links libsonosutils.",
+    "Telemetry export report_event from libsonoseventreporter.so.1 has direct consumers anacapad0x1068cca4 and netstartd0x1000ae68/0x1000b088. Crypto ZZ0023 from libsonoscrypto.so.3 at0x3a24 is called by anacapad0x10716e7c; its body delegates to mbedtls_aes_crypt_ecb. This separates an imported wrapper edge from the underlying third-party primitive.",
+    "A regular-file ELF32BE scan reconstructs per-symbol owner candidates from defined global/weak function dynsyms and matches direct branch targets against .rela.plt symbol entries in shipped consumers. Its output is a bounded direct-edge inventory, not a complete call graph: symlink aliases, data exports, function pointers/GOT, dlsym, static/internal calls and loader symbol interposition are not certified by that procedure. No global complete-export-consumer count is asserted."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "libsonosutils.so.1 / anacapad / netstartd",
+     "build": "86.10-80260",
+     "function": "libsonosutils exports and executable imports",
+     "address": "library0x1508 / 0x1c2c",
+     "callsite": "anacapad0x105d39a8 / netstartd0x10009744 / anacapad0x105e8ce4 / netstartd0x10004d64",
+     "notes": "Defined dynsym functions and direct PLT relocation targets joined across shipped ELF objects. No runtime binding trace or exhaustive reachability of every daemon mode is claimed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad / netstartd / libsonoseventreporter.so.1 / libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "report_event / ZZ0023 consumers",
+     "address": "0x1068cca4 / 0x10716e7c",
+     "callsite": "netstartd0x1000ae68 / libsonoscrypto0x3a24",
+     "notes": "Direct executable call words and PLT names identify wrapper imports; library body of ZZ0023 delegates to AES ECB. Large direct-edge census retained separately for continuation, with exclusions explicit."
+    }
    ]
   },
   "bin_udhcpc": {
