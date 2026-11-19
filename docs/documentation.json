@@ -155865,24 +155865,50 @@
    ]
   },
   "muse_verbs": {
-   "name": "muse verb-name table",
-   "summary": "areas {getAreas,createArea,updateArea,removeArea}; audioClips {loadAudioClip,cancelAudioClip,clipMetadata}; authz {getPolicyKey,getPermissions,grantType,assertion,objectType}; cloudRegistration {getRegistrationStatus,setRegistrationState,transferDeviceRegistration,vanishedDevices,quarantinedDevices}; diagnostics {submitDiagnostics,results}; settings {getSettingsGroup,updateAllSettings,updateSettingsGroup,targetSettingsOnly,namespaces,delayMillis,subscribe/unsubscribePlayerSettings,get/setPlayerSettings,setAllowMicrophone,setSelfTruePlay,setEnablePositioningMeasurement,setSonosNetChannel,get/setRestrictedAdminSettings,setUserMetricsTracking,getPublicSettings,getProtectedSettings,getProtectedAdminSettings,\"v1/players/%s/settings/player\"}; entitlements {subscribeUser,unsubscribeUser,getEntitlements}; history {removeHistoryItem}; deviceProperties {setName}; householdUpdate {getHouseholdUpdateStatus,isRunning,designatedDeviceId}; irControl {getIRControl}; indexerStatus {getIndexerStatus,updating}; musicServiceAccounts {getPreferredMusicServiceAccount,endDirectControl,__provisioned__,availableServicesVersion,registeredServicesVersion}; networks {temporarilyDisableNetwork,startNetworkTests,getNetworkTestResults}; playback {togglePlay,menuType,dpadDirection}; cache {cacheSettings,cacheKey,invalidateCache}; playlists {getPlaylists,getPlaylist,postPlaylist,loadPlaylist}; positioning {playStimulus,set/getStimulusTuning,startSession,cancelSession,applyAction,getSessionMap,getDeviceMeasurements,sendMeasurements,notifySessionError/Status/DeviceStatus,getMeasurementCapabilities,setTelemetryLevel,measurements}; roomDetection {stopSignalling}; sleepTimer {getSleepTimer,remainingTimeDuration}; smartplay {getContent}; soundSwap {requestSwap}; svc {getWeatherConfig,voiceCommand}; systemTime {get/setTimeZoneInfo}; timers {setRelativeDuration,pauseTimer,resumeTimer,abortTimer}; trueplay {detectSpeakerPresence,resetDetectedSpeaker,setSpeakerPresenceRate,get/setConfiguration,getTrueplayStatus}; trueroom {playSuccessTone,setSwapInputMute,trueroomEstimatedParams}; virtualRemoteControl {sendButtonCommand}; voice {wakeword,amazon,getVoiceAccounts,updateVoiceAccount,removeVoiceAccount,createAmazonChallenge,notifyInitiateOnboarding,timeoutSeconds}; zones {backhaulChannel,getActiveZoneList,getZoneDefinition(List),addZoneDefinition,addMissingZoneDefinition,updateZoneDefinition,updateActiveZone,updateZoneMemberSettings,removeZoneDefinition,activateZone,deactivateZone,joinZone,unjoinZone}; renew",
+   "name": "Muse verb vocabulary and generated command dispatch",
+   "summary": "Muse verb strings include executable per-namespace command factories, URI/CSV metadata, schema field names and a separate static namespace/name-pair list. These must not be conflated into a global bound/unbound census. Concrete alarms, areas and zones command switches are compiled in anacapad; the complete namespace/verb/implementation join remains unfinished.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10fa0188",
      "notes": "verb table"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "static namespace/name pairs",
+     "address": "0x110941d4",
+     "callsite": "0x1108de34 / 0x110943ec / 0x110943f4",
+     "notes": "Decoded every big-endian word from0x110941d4 through0x110943f0 in pairs:68 rows,136 valid namespace/name string pointers. All rows are stride8, not alternating stride12 descriptors. Last namespace at0x110943ec zones and name0x110943f0 unjoinZone; next0x110943f4 is0xffffffff. .got2 slot0x1108de34 contains pointer0x110941d4; consumer role not inferred from its mere presence."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "areas vtable and f_10ac9fc4",
+     "address": "0x10fa00ac",
+     "callsite": "0x10aca0bc / 0x10aca130 / 0x10aca144",
+     "notes": "Static words at vtable+18/+1c/+20 point0x10ac9fc4/0x10acc504/0x10acc4f4. Selector stack rows+1c..+4b store subscribe/unsubscribe/getAreas/createArea/updateArea/removeArea literals at0x10aca02c-0x10aca064 and factories0x10aca070-0x10aca0ac. Loop strcmp0x10aca0bc, stride8 at0x10aca0c8, exhausted return0 at0x10aca0d4. Match calls row+4 at0x10aca130 and replaces namespace+38 at0x10aca144."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10b8bfc8 zones selector",
+     "address": "0x10b8c024",
+     "callsite": "0x10b8c198 / 0x10b8c20c / 0x10b8c220",
+     "notes": "Stack rows+14..+8b contain15 names initialized0x10b8c024-0x10b8c0d4 and factories0x10b8c0e0-0x10b8c188. Includes unjoinZone literal reference0x10b8c0d0 and factoryf_10b8f1a4 at0x10b8c184/188. strcmp0x10b8c198 advances8; match loads row+4, namespace+4 at0x10b8c1fc, calls0x10b8c20c and stores namespace+38 at0x10b8c220. Old-command virtual+4 release0x10b8c234; missing name returns0 on exhausted loop. These are code pointers and execution branches, unlike the static string-pair list."
     }
    ],
    "todo": [
-    "Residual: the remaining per-verb dispatch census for namespaces outside the static .data verb table (the cloud-side namespaces bind via route registration; the verbSpec record contents are per-verb descriptor data)."
+    "Established: the 68-row static list is only string pairs, while alarms (8), areas (6) and zones (15) have verified executable namespace-local factory rows. Remaining: enumerate all namespace vtables and +0x18 selectors, recover each bounded {verb,factory} set and concrete implementation injection, and reconcile that executable census with route/CSV metadata and schema names without publishing unverified global counts. Also bind the consumer of .got2 slot 0x1108de34 pointing to static list 0x110941d4 before assigning that list a policy/registration role. Start from areas vtable 0x10fa00ac/f_10ac9fc4 and repeat the command-factory method for authorization, audioClip and other namespace classes. This is actionable static work, not evidence that cloud verbs exist only in route metadata."
    ],
    "resolved_findings": [
-    "Resolved: unbound ops = the verb list diffed against the binding table - areas, audioClips, authz, cloudRegistration verb sets each bound; residuals listed in the record.",
-    "Bound-vs-unbound determination method: the muse type registry records are 0x14-byte entries {id, name*, code, extra} (lechmere_wss census); a verb is bound when its registry record carries a non-null dispatch pointer, unbound stubs carry none - the 237/265 count is the registry-level bound ratio. Namespaces with fully-bound verb sets proven by route tables: virtualLineIn (6 verbs), soundSwap (requestSwap/triggerSwap), roomDetection (chirp), upnp bridge (call/subscribe/renew/unsubscribe), playback (load*/play/pause/stop/seek family).",
-    "Negative evidence: the /households/{householdId}/... route path block (0x10e7bf42.., ~200 literal templates in .rodata) has ZERO references in any section - no pointer-table entry, no lis/addi formation - so the verb binding table is runtime-built (registration-time string args via a different block) and these literals are most plausibly the codegen-emitted route metadata consumed by offset/index, not by name pointer.",
-    "Resolved: the declared verb set is enumerable from the route-table CSV descriptors - 242 unique verb names across 112 namespaces (verbs like getAlarms/fetchAlarm/createAlarm/updateAlarm/removeAlarm under 'alarms', getProtectedAdminSettings/setProtectedAdminSettings under 'settings', etc.). This is the declared surface; bound-vs-unbound dispatch status stays at the registry census.",
-    "Resolved: the verb binding table is static, in .data @0x110941d4-0x110943f0 as interleaved 12-byte rows - {namespace, verb, nsCtx*} rows alternate with {verb, namespace, verbSpec*} rows. nsCtx repeats per namespace (authorization=0x10efd754, entitlements=0x10e7d0fc, groups=0x10e7d218, history=0x10e7e1f4, playback=0x10ed8d44, zones=0x10e8636c), verbSpec varies per verb (per-verb descriptor records). Bound namespace->verb set from this table: authorization{resolveToken,createInvite,deleteInvite,getPolicyKey,redeemInvite,authorizeDevice}, catalog{translate}, entitlements{subscribe,getUserEntitlements,batchTranslate,unsubscribeUser}, groups{unsubscribe,createGroup,getEntitlements,getGroups,modifyGroupMembers}, history{subscribe,postHistory,unsubscribe,removeHistoryItem}, playback{subscribe,play,setPlayModes,loadContainer,loadLineIn,pause,skipToNextTrack,seek,loadTrackList,loadContent}, smartplay{getContent}, systemReporting{reportAccountSubscription,reportFirmwareDownload}, zones{unsubscribe,getZoneDefinitionList,updateZoneDefinition,removeZoneDefinition,joinZone,reportProductEvent,getActiveZoneList,addZoneDefinition,updateActiveZone,activateZone}. These are the static-bound verbs; additional verbs bind through route-table registration."
+    "Corrected static-list layout: 0x110941d4..0x110943f3 contains exactly 68 consecutive 8-byte {namespace-string pointer, name-string pointer} pairs, all checked as strings. Its following word at 0x110943f4 is 0xffffffff, not a third-column dispatch pointer. The first pairs are authorization/resolveToken, authorization/getPolicyKey and authorization/getPermissions; the final pair is zones/unjoinZone. The previous alternating 12-byte nsCtx/verbSpec interpretation is false. Namespace literals were misidentified as context objects. No function/descriptor column exists in these pair rows, so membership does not prove executable binding.",
+    "Actual dispatch exists outside that static list. Areas vtable 0x10fa00ac has +0x18=f_10ac9fc4, +0x1c=f_10acc504 (areas getter) and +0x20=f_10acc4f4 (current command). f_10ac9fc4 builds six stride-8 {verb,factory} rows: subscribe->f_10aca364, unsubscribe->f_10aca4a0, getAreas->f_10aca5e0, createArea->f_10acc128, updateArea->f_10acc434 and removeArea->f_10acaa04. It strcmp-matches command-info+0x26, invokes the matching factory, and stores its result at namespace+0x38. An exhausted search returns null. Thus areas is not merely an unbound cloud-route declaration.",
+    "Zones selector f_10b8bfc8 builds fifteen actual command-factory rows: subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone and unjoinZone. strcmp at 0x10b8c198 advances by8; a match calls the row factory at 0x10b8c20c with namespace+4 implementation/context, replaces namespace+0x38 and releases the old command. Missing-name and missing-implementation cases are separate from presence in a static string list.",
+    "Alarms supplies a second namespace absent from the claimed static binding list: f_10ac47ac has eight executable rows including subscribe/unsubscribe and six alarm operations. These selectors demonstrate a repeatable census method: follow each namespace vtable +0x18 to its bounded factory rows, then join their command descriptors and injected implementation pointers. Schema-name/type registries are different structures; their null fields are not proof that a command is unbound. The old 237/265 bound ratio and 242 verbs/112 namespaces are withdrawn as certified dispatch totals. The old zero-reference route-block argument also does not establish absence of generated code or an external runtime-only binding limitation."
    ]
   },
   "cec_diagnostics": {
