@@ -4404,7 +4404,7 @@
      ]
     },
     "GetTimeZoneAndRule": {
-     "description": "Returns Index/AutoAdjustDst/CurrentTimeZone via impl->v[+0x8].",
+     "description": "Returns a locked snapshot of the configured timezone ID, automatic daylight-saving adjustment flag, and cached raw timezone rule. Wrapper f_10734a40 invokes ac_impl primary vtable 0x10eaa99c slot +0x18 -> f_102731b4, not slot +0x08. CurrentTimeZone is a 28-character hexadecimal rule, not a timezone name, boolean, or computed next-transition date. The raw rule is returned even when AutoAdjustDst is 0. No inputs are required and the worker always returns 0 normally.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10734a40",
@@ -4448,372 +4448,503 @@
         "slot": 12,
         "purpose": "commit"
        }
-      ]
+      ],
+      "impl_function": "0x102731b4",
+      "impl_vfunc": "static primary vtable 0x10eaa99c slot +0x18",
+      "description": "The request call at +0x08 validates the empty input set. The engine call is +0x18 at 0x10734aa4. f_102731b4 reads Index from +0x218, AutoAdjustDst from +0x21c and raw rule from +0x224 under engine mutex +0x170, then copies the formatted text after unlocking. Output formatting uses f_1055fcf4, f_1055fc08 and the text-record slot +0x10."
      },
      "inputs": {},
      "outputs": {
       "Index": {
-       "description": "Timezone response field Index",
+       "description": "Configured timezone ID copied from engine+0x218, serialized as signed decimal. It is not an input to this action and is not looked up or validated during the read.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
         "fmt": null
        },
-       "semantic_type": "signed int32",
-       "format": "%d decimal",
-       "unit": "none - dimensionless count/index",
-       "accepted_values": "u32 timezone-table index",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "configured timezone ID, signed 32-bit decimal presentation",
+       "format": "%d decimal text",
+       "unit": "n/a",
+       "accepted_values": "The stored 32-bit Index word, interpreted by the signed decimal formatter.",
+       "range": "-2147483648..2147483647 as formatted; no getter range check",
+       "special_values": "-1 is the constructor initialization value before configuration is loaded; the getter does not substitute a default timezone.",
+       "required": true,
+       "default": "none; always emitted on success",
+       "validation": "No getter validation; copies the stored word.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734b10",
-         "notes": "out-arg access site"
+         "function": "0x102731b4",
+         "address": "0x10273204",
+         "callsite": "0x10734aa4",
+         "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f27ab4",
-         "notes": "argument name string"
+         "function": "0x1055fcf4",
+         "address": "0x1055fd0c",
+         "callsite": "0x10734b18",
+         "notes": "Index word is emitted using signed decimal %d from 0x10e89e18, with capacity 0x18. No unsigned conversion or range validation. Constructor initializes Index to -1 at 0x102762c8."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl writes the field"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl writes the field"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl writes"
+         "function": "0x10276048",
+         "address": "0x102762c8",
+         "callsite": "0x1018e8a4",
+         "notes": "Constructor initializes Index=-1, AutoAdjustDst=1 and all seven halfwords at +0x224..+0x230 to zero at 0x102762ec..0x10276304. These are initialization values, not values forced by the getter. A zero rule renders as 28 zeros. Lookup f_1015a6dc also returns a zero rule when no usable table entry is found; getter does not re-check table availability."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `Index`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "AutoAdjustDst": {
-       "description": "Timezone response field AutoAdjustDst",
+       "description": "Whether the configured timezone is set to adjust automatically for daylight saving. Reads engine+0x21c and emits 0 for a zero byte or 1 for any nonzero byte. This flag does not suppress the raw transition fields returned in CurrentTimeZone.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
-       "unit": "n/a - text",
-       "accepted_values": "DST auto-adjust flag 0/1",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "automatic daylight-saving adjustment flag",
+       "format": "0 or 1 text",
+       "unit": "n/a",
+       "accepted_values": "0 for disabled; 1 for enabled (any nonzero stored byte)",
+       "range": "0 or 1",
+       "special_values": "Constructor initializes the backing byte to 1.",
+       "required": true,
+       "default": "none; always emitted on success",
+       "validation": "Boolean output helper normalizes nonzero to 1.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734b34",
-         "notes": "out-arg access site"
+         "function": "0x102731b4",
+         "address": "0x10273204",
+         "callsite": "0x10734aa4",
+         "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eaae6c",
-         "notes": "argument name string"
+         "function": "0x1055fc08",
+         "address": "0x1055fc0c",
+         "callsite": "0x10734b3c",
+         "notes": "AutoAdjustDst byte is compared with zero. Zero selects literal 0 at 0x10fd8f94; every nonzero byte selects literal 1 at 0x10fd3134. Constructor seeds byte 1 at 0x102762d8."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl writes the field"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl writes"
+         "function": "0x10279c0c",
+         "address": "0x1027a0b0",
+         "callsite": "0x1027a0bc",
+         "notes": "Reload path stores configured Index at engine+0x218 and AutoAdjustDst at +0x21c, looks up Index through f_1015a6dc, and copies all 14 raw rule bytes into +0x224..+0x231 and a separate effective-rule copy +0x232..+0x23f. Only the second copy is passed with AutoAdjustDst to f_10c3d094 at 0x1027a11c. Refresh f_10276e80 likewise writes both copies at 0x10276ef8..0x10276f30 and applies the flag only to +0x232 at 0x10276f38. Getter formats +0x224, so the returned raw transition rule is not stripped when automatic adjustment is off."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `AutoAdjustDst`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       },
       "CurrentTimeZone": {
-       "description": "Timezone response field CurrentTimeZone",
+       "description": "Cached raw timezone rule from engine+0x224. Encodes GMTBias (4 hex digits), standard Month, DayOfWeek, Day, Hour (2 each), standard Bias (4), daylight Month, DayOfWeek, Day, Hour (2 each), daylight Bias (4). This is the unmodified table rule: automatic adjustment affects a separate effective copy, not this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "response field",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
-       "unit": "none - boolean flag",
-       "accepted_values": "active timezone name from the record",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "emitted via response vfuncs",
+       "semantic_type": "cached raw timezone rule in hexadecimal",
+       "format": "28 lowercase hexadecimal characters, no separators; 29-byte buffer including NUL",
+       "unit": "Bias fields are minutes; transition fields retain XML Month, DayOfWeek, Day and Hour values.",
+       "accepted_values": "Serialization of the 14-byte cached raw rule; negative biases appear as 16-bit two's-complement hex.",
+       "range": "Exactly 28 characters",
+       "special_values": "An all-zero cached rule is emitted as 0000000000000000000000000000, not empty text. AutoAdjustDst=0 does not clear transition fields in this output.",
+       "required": true,
+       "default": "none; always emitted on success",
+       "validation": "No rule validity test or table lookup in the getter.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10734b58",
-         "notes": "out-arg access site"
+         "function": "0x102731b4",
+         "address": "0x10273204",
+         "callsite": "0x10734aa4",
+         "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f116fc",
-         "notes": "argument name string"
+         "function": "0x10c3ce18",
+         "address": "0x10fb15e0",
+         "callsite": "0x10273220",
+         "notes": "Format is %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx. Reads 14-byte rule: u16 +0; bytes +2,+3,+4,+5; u16 +6; bytes +8,+9,+10,+11; u16 +12. Thus exactly 28 lowercase hexadecimal digits, including two's-complement 16-bit bias values, plus NUL within capacity 0x1d. Wrapper passes capacity 0x1d in r7 at 0x10734a8c."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl writes"
+         "function": "0x1015a27c",
+         "address": "0x1015a32c",
+         "callsite": "0x1015a538",
+         "notes": "XML transition reader writes Month, DayOfWeek, Day, Hour and Bias into standard offsets +2,+3,+4,+5,+6 and daylight offsets +8,+9,+10,+11,+12 of the 14-byte rule. f_1015a190 stores TimeZone GMTBias at +0. This is the same rule layout used by GetTimeZoneRule, but this getter reads the cached configured rule instead of doing a file lookup."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10279c0c",
+         "address": "0x1027a0b0",
+         "callsite": "0x1027a0bc",
+         "notes": "Reload path stores configured Index at engine+0x218 and AutoAdjustDst at +0x21c, looks up Index through f_1015a6dc, and copies all 14 raw rule bytes into +0x224..+0x231 and a separate effective-rule copy +0x232..+0x23f. Only the second copy is passed with AutoAdjustDst to f_10c3d094 at 0x1027a11c. Refresh f_10276e80 likewise writes both copies at 0x10276ef8..0x10276f30 and applies the flag only to +0x232 at 0x10276f38. Getter formats +0x224, so the returned raw transition rule is not stripped when automatic adjustment is off."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10276048",
+         "address": "0x102762c8",
+         "callsite": "0x1018e8a4",
+         "notes": "Constructor initializes Index=-1, AutoAdjustDst=1 and all seven halfwords at +0x224..+0x230 to zero at 0x102762ec..0x10276304. These are initialization values, not values forced by the getter. A zero rule renders as 28 zeros. Lookup f_1015a6dc also returns a zero rule when no usable table entry is found; getter does not re-check table availability."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `CurrentTimeZone`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": null
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No input arguments. The wrapper calls request slot +0x08; a normal fresh TRequest with zero registered inputs returns 1. The defensive validation-zero branch supplies SOAP 402 at 0x10734af4. No Index range, rule validity, clock state, or coordinator check is performed.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10734a40",
-        "notes": "wrapper family decode"
+        "function": "0x10734a40",
+        "address": "0x10734ac0",
+        "callsite": "0x10734a78",
+        "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x1073051c",
+        "callsite": "0x10734a78",
+        "notes": "Canonical request validator returns literal 1 when input-record count at request+0x3a68 is zero. This wrapper registers no input records. Its defensive validation-zero/402 branch therefore is not reachable for the normal fresh TRequest; the worker normal return domain is independently {0}."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102731b4",
+        "address": "0x10273204",
+        "callsite": "0x10734aa4",
+        "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×3, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x18]",
+      "description": "No action arguments or mutable preconditions. The normal empty-input request validates successfully; the worker only requires its statically constructed engine and acquires engine mutex +0x170. It does not require a valid selected timezone or running alarm.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10734a40",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}"
+        "function": "0x10276048",
+        "address": "0x10eaa9b4",
+        "callsite": "0x10734aa4",
+        "notes": "Primary vptr 0x10eaa99c is installed at 0x102761e8; entry +0x18 at 0x10eaa9b4 contains 0x102731b4. Service constructor f_10735460 stores the shared engine pointer at service+4. The wrapper loads service+4 at 0x10734a84 and vtable+0x18 at 0x10734a9c. The earlier slot +0x08 call at 0x10734a78 is on the request object, not the engine."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102731b4",
+        "address": "0x10273204",
+        "callsite": "0x10734aa4",
+        "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x1073051c",
+        "callsite": "0x10734a78",
+        "notes": "Canonical request validator returns literal 1 when input-record count at request+0x3a68 is zero. This wrapper registers no input records. Its defensive validation-zero/402 branch therefore is not reachable for the normal fresh TRequest; the worker normal return domain is independently {0}."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×1, raise-fault×1, out-arg write×3, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x18]",
+      "description": "Reads configured Index at engine+0x218, AutoAdjustDst byte at +0x21c and cached 14-byte raw rule at +0x224 under a single engine+0x170 lock, giving a coherent snapshot. It does not read timezones.xml on demand. Configuration reload and table-refresh paths populate the cache; the DST-adjusted effective copy is at +0x232 and is not this output.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10734a40",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x18]']"
+        "function": "0x102731b4",
+        "address": "0x10273204",
+        "callsite": "0x10734aa4",
+        "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10279c0c",
+        "address": "0x1027a0b0",
+        "callsite": "0x1027a0bc",
+        "notes": "Reload path stores configured Index at engine+0x218 and AutoAdjustDst at +0x21c, looks up Index through f_1015a6dc, and copies all 14 raw rule bytes into +0x224..+0x231 and a separate effective-rule copy +0x232..+0x23f. Only the second copy is passed with AutoAdjustDst to f_10c3d094 at 0x1027a11c. Refresh f_10276e80 likewise writes both copies at 0x10276ef8..0x10276f30 and applies the flag only to +0x232 at 0x10276f38. Getter formats +0x224, so the returned raw transition rule is not stripped when automatic adjustment is off."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x102762c8",
+        "callsite": "0x1018e8a4",
+        "notes": "Constructor initializes Index=-1, AutoAdjustDst=1 and all seven halfwords at +0x224..+0x230 to zero at 0x102762ec..0x10276304. These are initialization values, not values forced by the getter. A zero rule renders as 28 zeros. Lookup f_1015a6dc also returns a zero rule when no usable table entry is found; getter does not re-check table availability."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x18] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Read-only query. Acquires and releases engine mutex +0x170, fills caller output fields and a temporary rule string, then emits the response. No settings writes, table refresh, clock adjustment, or alarm mutation occurs.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102731b4",
+         "address": "0x10273204",
+         "callsite": "0x10734aa4",
+         "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10734a40",
+         "address": "0x10734ac0",
+         "callsite": "0x10734a78",
+         "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "None. The concrete getter calls only lock/unlock, rule formatting and bounded text copying. Notifications made by configuration or table-refresh writers are not invoked by this action.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102731b4",
+        "address": "0x10273204",
+        "callsite": "0x10734aa4",
+        "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10279c0c",
+        "address": "0x1027a0b0",
+        "callsite": "0x1027a0bc",
+        "notes": "Reload path stores configured Index at engine+0x218 and AutoAdjustDst at +0x21c, looks up Index through f_1015a6dc, and copies all 14 raw rule bytes into +0x224..+0x231 and a separate effective-rule copy +0x232..+0x23f. Only the second copy is passed with AutoAdjustDst to f_10c3d094 at 0x1027a11c. Refresh f_10276e80 likewise writes both copies at 0x10276ef8..0x10276f30 and applies the flag only to +0x232 at 0x10276f38. Getter formats +0x224, so the returned raw transition rule is not stripped when automatic adjustment is off."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "None. Reading the configured timezone snapshot neither selects another zone nor applies daylight-saving changes. It does not alter the raw or effective rule cache, automatic-adjustment flag, clock, or alarm schedule.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102731b4",
+        "address": "0x10273204",
+        "callsite": "0x10734aa4",
+        "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "The concrete worker has normal return domain {0}. The wrapper emits Index, AutoAdjustDst and CurrentTimeZone and commits success at 0x10734b80. Uninitialized or zero rule data is returned as stored, not faulted or omitted. A defensive validation-zero branch raises 402 at 0x10734ac0, but the canonical fresh request has no input records and validates true. The nonzero worker-fault arm at that same callsite is unreachable with this static worker.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102731b4",
+        "address": "0x10273204",
+        "callsite": "0x10734aa4",
+        "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10734a40",
+        "address": "0x10734ac0",
+        "callsite": "0x10734a78",
+        "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10730414",
+        "address": "0x1073051c",
+        "callsite": "0x10734a78",
+        "notes": "Canonical request validator returns literal 1 when input-record count at request+0x3a68 is zero. This wrapper registers no input records. Its defensive validation-zero/402 branch therefore is not reachable for the normal fresh TRequest; the worker normal return domain is independently {0}."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10276048",
+        "address": "0x102762c8",
+        "callsite": "0x1018e8a4",
+        "notes": "Constructor initializes Index=-1, AutoAdjustDst=1 and all seven halfwords at +0x224..+0x230 to zero at 0x102762ec..0x10276304. These are initialization values, not values forced by the getter. A zero rule renders as 28 zeros. Lookup f_1015a6dc also returns a zero rule when no usable table entry is found; getter does not re-check table availability."
+       }
+      ]
+     },
+     "fault_sites": [
+      {
+       "site": "0x10734ac0",
+       "code": null,
+       "code_expr": "request validation ? 402 : vret(*(service+4),+0x18)"
+      }
+     ],
+     "errors": [
+      {
+       "code": null,
+       "code_expr": "vret",
+       "meaning": "Unreachable delegated-fault arm: static f_102731b4 has normal return domain {0}. No cache-content or timezone-ID error is propagated by this getter.",
+       "fault_sites": [
+        "0x10734ac0"
+       ],
+       "conditions": [
+        {
+         "description": "The wrapper would raise a nonzero worker result at 0x10734ac0, but f_102731b4 returns literal 0 at 0x10273254 after reading and formatting the snapshot. Stack-guard aborts do not return a SOAP code.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x102731b4",
+           "address": "0x10273204",
+           "callsite": "0x10734aa4",
+           "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10734a40",
+           "address": "0x10734ac0",
+           "callsite": "0x10734a78",
+           "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10276048",
+           "address": "0x10eaa9b4",
+           "callsite": "0x10734aa4",
+           "notes": "Primary vptr 0x10eaa99c is installed at 0x102761e8; entry +0x18 at 0x10eaa9b4 contains 0x102731b4. Service constructor f_10735460 stores the shared engine pointer at service+4. The wrapper loads service+4 at 0x10734a84 and vtable+0x18 at 0x10734a9c. The earlier slot +0x08 call at 0x10734a78 is on the request object, not the engine."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102731b4",
+         "address": "0x10273204",
+         "callsite": "0x10734aa4",
+         "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10734a40",
+         "address": "0x10734ac0",
+         "callsite": "0x10734a78",
+         "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10276048",
+         "address": "0x10eaa9b4",
+         "callsite": "0x10734aa4",
+         "notes": "Primary vptr 0x10eaa99c is installed at 0x102761e8; entry +0x18 at 0x10eaa9b4 contains 0x102731b4. Service constructor f_10735460 stores the shared engine pointer at service+4. The wrapper loads service+4 at 0x10734a84 and vtable+0x18 at 0x10734a9c. The earlier slot +0x08 call at 0x10734a78 is on the request object, not the engine."
+        }
+       ],
+       "domain_note": "Concrete normal worker return domain {0}; the normal fresh empty-input request also validates true.",
+       "literal_bound": []
+      },
+      {
+       "code": 402,
+       "code_expr": "parse/req-layer",
+       "meaning": "Defensive wrapper request-validation fault 402; not a missing Index error because this action has no inputs.",
+       "fault_sites": [
+        "0x10734ac0"
+       ],
+       "conditions": [
+        {
+         "description": "If request slot +0x08 returns 0, wrapper 0x10734af4 loads 402 and branches to fault call 0x10734ac0. For the normal freshly constructed TRequest, this action registers zero input records and f_10730414 returns 1, so the branch is unreachable in that canonical path.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10734a40",
+           "address": "0x10734ac0",
+           "callsite": "0x10734a78",
+           "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10730414",
+           "address": "0x1073051c",
+           "callsite": "0x10734a78",
+           "notes": "Canonical request validator returns literal 1 when input-record count at request+0x3a68 is zero. This wrapper registers no input records. Its defensive validation-zero/402 branch therefore is not reachable for the normal fresh TRequest; the worker normal return domain is independently {0}."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10734a40",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x18] -> out-arg (call-derived member-method semantics)"
-        }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x18] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10734a40",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x18]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10734a40",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x18]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10734a40",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 3, '0x10': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [],
-     "errors": [
-      {
-       "code": null,
-       "code_expr": "vret",
-       "meaning": "alarm-store vfunc 0x102731b4 (slot +0x18) is single-exit \"li r3,0; blr\" - cannot produce a nonzero rc; valid calls always succeed at store level (wrapper parse failures may still fault 402 earlier)",
-       "fault_sites": [
-        "0x10734a40"
-       ],
-       "conditions": [
-        {
-         "description": "the impl vfunc produced a nonzero code",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10734a40",
-           "notes": "impl rc passthrough"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x10734e14",
-           "notes": "rc convention site"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10734a40",
-         "notes": "impl rc passthrough site"
+         "address": "0x10734ac0",
+         "callsite": "0x10734a78",
+         "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10734e14",
-         "notes": "impl rc -> r4 -> req v[+0x14]; CR0.eq = success branch"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eaa9b4",
-         "notes": "store vfunc slot +0x18 -> 0x102731b4; alarm-store object vptr 0x10eaa99c (ctor f_10276048 overwrite at 0x102761e8; obj new(0x8118) via shared_ptr -> svc+0x4)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x102731b4",
-         "notes": "single blr, single li r3,0, no outgoing b-tail - domain proven {0}"
-        }
-       ],
-       "domain_note": "delegated-rc semantics: impl vfunc rc surfaced; store vfunc domain fully bounded to {0} | worker literal bound [] (ASCII-fragment constants filtered) (worker_err_literals.json)",
-       "literal_bound": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x10734a40).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10734a40"
-       ],
-       "conditions": [
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10734a40",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10734a40",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10730414",
+         "address": "0x1073051c",
+         "callsite": "0x10734a78",
+         "notes": "Canonical request validator returns literal 1 when input-record count at request+0x3a68 is zero. This wrapper registers no input records. Its defensive validation-zero/402 branch therefore is not reachable for the normal fresh TRequest; the worker normal return domain is independently {0}."
         }
        ]
       }
@@ -4824,30 +4955,58 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10276048",
+       "address": "0x10eaa9b4",
+       "callsite": "0x10734aa4",
+       "notes": "Primary vptr 0x10eaa99c is installed at 0x102761e8; entry +0x18 at 0x10eaa9b4 contains 0x102731b4. Service constructor f_10735460 stores the shared engine pointer at service+4. The wrapper loads service+4 at 0x10734a84 and vtable+0x18 at 0x10734a9c. The earlier slot +0x08 call at 0x10734a78 is on the request object, not the engine."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102731b4",
+       "address": "0x10273204",
+       "callsite": "0x10734aa4",
+       "notes": "Locks engine+0x170 at 0x10273200, loads Index word +0x218 into output r4, loads AutoAdjustDst byte +0x21c into output r5, and formats rule at engine+0x224 into a 29-byte local buffer via f_10c3ce18 at 0x10273220. Unlocks at 0x10273228, copies text to output r6 with caller capacity r7 via f_10906304 at 0x10273238, and returns literal 0 at 0x10273254. No mutation, notifier, table read, or delegated return-code propagation. Guard failure calls __stack_chk_fail at 0x1027327c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x10734a40",
-       "address": "0x10734a40",
-       "notes": "action wrapper handler"
+       "address": "0x10734ac0",
+       "callsite": "0x10734a78",
+       "notes": "Request validation slot +0x08 returns zero -> 0x10734af0 loads 402 and branches to fault slot +0x14 call 0x10734ac0. Worker result is tested by mr. at 0x10734aac: zero reaches output path 0x10734afc, nonzero would use the same fault call. Outputs are allocated at 0x10734b10, 0x10734b34, 0x10734b58; helpers called at 0x10734b18 and 0x10734b3c, text bound at 0x10734b6c, success committed at 0x10734b80. No input argument is registered. Guard failure at 0x10734b88 aborts, not a SOAP fault."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f115e0",
-       "notes": "action dispatch table entry"
+       "function": "0x10c3ce18",
+       "address": "0x10fb15e0",
+       "callsite": "0x10273220",
+       "notes": "Format is %04hx%02hx%02hx%02hx%02hx%04hx%02hx%02hx%02hx%02hx%04hx. Reads 14-byte rule: u16 +0; bytes +2,+3,+4,+5; u16 +6; bytes +8,+9,+10,+11; u16 +12. Thus exactly 28 lowercase hexadecimal digits, including two's-complement 16-bit bias values, plus NUL within capacity 0x1d. Wrapper passes capacity 0x1d in r7 at 0x10734a8c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10734e14",
-       "notes": "alarm impl = service vtable 0x10f11530 slot +0x18 (ctor stores svc vptr at svc+4)"
+       "function": "0x10279c0c",
+       "address": "0x1027a0b0",
+       "callsite": "0x1027a0bc",
+       "notes": "Reload path stores configured Index at engine+0x218 and AutoAdjustDst at +0x21c, looks up Index through f_1015a6dc, and copies all 14 raw rule bytes into +0x224..+0x231 and a separate effective-rule copy +0x232..+0x23f. Only the second copy is passed with AutoAdjustDst to f_10c3d094 at 0x1027a11c. Refresh f_10276e80 likewise writes both copies at 0x10276ef8..0x10276f30 and applies the flag only to +0x232 at 0x10276f38. Getter formats +0x224, so the returned raw transition rule is not stripped when automatic adjustment is off."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10730414",
+       "address": "0x1073051c",
+       "callsite": "0x10734a78",
+       "notes": "Canonical request validator returns literal 1 when input-record count at request+0x3a68 is zero. This wrapper registers no input records. Its defensive validation-zero/402 branch therefore is not reachable for the normal fresh TRequest; the worker normal return domain is independently {0}."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10734a40; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The previous slot +0x08 description confused request validation with engine dispatch. The concrete engine slot is +0x18. CurrentTimeZone is the raw cached transition rule, not a timezone name or a boolean; AutoAdjustDst is reported separately."
     },
     "GetTimeZoneRule": {
      "description": "Looks up an explicit timezone ID and returns its compact timezone rule, not XML or a timezone name. Wrapper f_107341cc calls the statically bound ac_impl slot +0x1c at 0x10eaa9b8, worker f_10273280. The worker reads timezones.xml through f_1015a6dc and serializes the selected 14-byte rule as 28 lowercase hexadecimal characters through f_10c3ce18. A missing or unusable table entry yields 28 zero characters with SOAP success, not an out-of-range fault.",
