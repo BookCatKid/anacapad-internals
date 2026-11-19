@@ -106903,7 +106903,7 @@
      "implementation_notes": "Request slot +0x0c is response commit, not hidden parsing or a mobile-registration worker. The previous f_106ea0f8 and neighboring GetZoneGroupState +0x28 forwarding claims do not belong to this action."
     },
     "ReportAlarmStartedRunning": {
-     "description": "Reports that an alarm started running: feeds the alarm/topology bookkeeping via impl->v[+0x14].",
+     "description": "Argless alarm-start report increments the local topology AlarmRunSequence counter and schedules its event source. It does not set AVTransport ringing state or inspect/persist an AlarmClock definition.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107337cc",
@@ -106918,15 +106918,9 @@
       "calls": [
        {
         "site": "0x10733840",
-        "obj": "*(*(sp-0x20+0x18)+0x4)",
+        "obj": "*(service+4), primary vptr 0x10e8b024",
         "slot": 20,
-        "arg4": 402
-       },
-       {
-        "site": "0x10733874",
-        "obj": "*(sp-0x20+0x1c)",
-        "slot": 12,
-        "arg4": "vret(*(*(sp-0x20+0x18)+0x4),+0x14)"
+        "arg4": "none"
        }
       ],
       "req_vcalls": [
@@ -106940,147 +106934,195 @@
      "inputs": {},
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "No argument registrations or grammar checks. Only generic request +8 validation precedes the worker.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107337cc",
-        "notes": "wrapper decode"
+        "function": "0x107337cc",
+        "address": "0x1073382c",
+        "callsite": "0x10733840",
+        "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x14]",
+      "description": "No named inputs, alarm identity, coordinator, running-alarm or synchronized-time precondition. Canonical no-input validation succeeds.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x107337cc",
-        "notes": "req-vfunc call map: {'0x14': 1, '0xc': 1}"
+        "address": "0x1073382c",
+        "callsite": "0x10733840",
+        "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1011cd78",
+        "address": "0x1011cd9c",
+        "callsite": "0x1011cdb4",
+        "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v[+0x8], *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14]",
+      "description": "Uses statically bound topology object, mutex +0x318, u32 report counter +0x11d0, dirty byte +0x11d4 and event source +8. No AlarmClock or AVTransport engine lookup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107337cc",
-        "notes": "member vfunc calls: ['r4 v[+0x8]', '*(r30+4) v[+0x14]']"
+        "function": "0x10125b54",
+        "address": "0x10e8b038",
+        "callsite": "0x10733840",
+        "notes": "Previously established zone-player construction installs primary topology vptr 0x10e8b024 at 0x10126234 and passes implementation to f_10733b28 at 0x1018e2cc, stored at service+4. Entry +0x14 is f_1011cd78. Base-table entry 0x10f12280 is instead f_1073d9dc (zero stub), but it is not the installed primary table. There is no runtime worker-selection boundary for this action."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1011cd78",
+        "address": "0x1011cd9c",
+        "callsite": "0x1011cdb4",
+        "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r4 v[+0x8], *(r30+4) v[+0x14] (call-derived member-method semantics)",
+       "description": "Under mutex increments +0x11d0 modulo 2^32, sets +0x11d4 and schedules topology+8 for asynchronous notification. No settings/file persistence or playback mutation.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x107337cc",
-         "notes": "delegate map ['r4 v[+0x8]', '*(r30+4) v[+0x14]']; notify-family calls []"
+         "function": "0x1011cd78",
+         "address": "0x1011cd9c",
+         "callsite": "0x1011cdb4",
+         "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10129888",
+         "address": "0x10129ca8",
+         "callsite": "0x10129cb0",
+         "notes": "Concrete derived topology event producer emits AlarmRunSequence at 0x10129c5c..0x10129cc0 using local-member text +0x14b8, colon, unsigned word +0x1f1c, colon and unsigned topology counter +0x11d0. f_10128890 transfers dirty +0x11d4 to snapshot byte +0x2d at 0x101289ac..0x101289b0 and clears dirty byte when consuming snapshot at 0x10128aa8. f_1067c6ec schedules the source; success is not synchronous or guaranteed subscriber delivery. Shared transport is documented in the service event record."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r4 v[+0x8], *(r30+4) v[+0x14] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Marks AlarmRunSequence changed and wakes the topology event source through f_1067c6ec. Producer serializes local identity:local sequence:report counter. Delivery depends on subscriptions and asynchronous transport.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107337cc",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x1011cd78",
+        "address": "0x1011cd9c",
+        "callsite": "0x1011cdb4",
+        "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10129888",
+        "address": "0x10129ca8",
+        "callsite": "0x10129cb0",
+        "notes": "Concrete derived topology event producer emits AlarmRunSequence at 0x10129c5c..0x10129cc0 using local-member text +0x14b8, colon, unsigned word +0x1f1c, colon and unsigned topology counter +0x11d0. f_10128890 transfers dirty +0x11d4 to snapshot byte +0x2d at 0x101289ac..0x101289b0 and clears dirty byte when consuming snapshot at 0x10128aa8. f_1067c6ec schedules the source; success is not synchronous or guaranteed subscriber delivery. Shared transport is documented in the service event record."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14]",
+      "description": "Counter n -> (n+1) modulo 2^32 and dirty byte -> 1 on each call. Repeated reports are not deduplicated. No alarm-running state transition.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107337cc",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+0x8]', '*(r30+4) v[+0x14]']"
+        "function": "0x1011cd78",
+        "address": "0x1011cd9c",
+        "callsite": "0x1011cdb4",
+        "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+0x8], *(r30+4) v[+0x14].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Concrete worker normal return domain {0}; wrapper commits an empty success response. Defensive request-validation false yields 402, but fresh canonical no-input requests pass. No reachable 501 or delegated worker error.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x107337cc",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0xc': 1}"
+        "address": "0x1073382c",
+        "callsite": "0x10733840",
+        "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1011cd78",
+        "address": "0x1011cd9c",
+        "callsite": "0x1011cdb4",
+        "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x1073382c",
        "code": 402,
-       "code_expr": "const"
+       "code_expr": "defensive request-validation failure; worker nonzero arm unreachable"
       }
      ],
      "errors": [
       {
-       "code": 501,
-       "code_expr": "const",
-       "meaning": "bound impl lacks the alarm-capable vfunc: *(svc+4)->v[+0x24] != f_1012b9b4 -> 501 (polymorphic impl-variant check)",
+       "code": null,
+       "code_expr": "unreachable nonzero worker result",
+       "meaning": "Wrapper can forward a nonzero worker result, but the installed concrete worker always returns zero.",
        "fault_sites": [
         "0x1073382c"
        ],
        "conditions": [
         {
-         "description": "impl identity check at 0x10733944-0x1073395c fails",
+         "description": "No reachable worker-produced SOAP fault in this static binding. The prior 501 identity-check claim used another action's addresses.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733948",
-           "notes": "addi r4,0x1f5"
+           "function": "0x10125b54",
+           "address": "0x10e8b038",
+           "callsite": "0x10733840",
+           "notes": "Previously established zone-player construction installs primary topology vptr 0x10e8b024 at 0x10126234 and passes implementation to f_10733b28 at 0x1018e2cc, stored at service+4. Entry +0x14 is f_1011cd78. Base-table entry 0x10f12280 is instead f_1073d9dc (zero stub), but it is not the installed primary table. There is no runtime worker-selection boundary for this action."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733954",
-           "notes": "vfunc compare vs f_1012b9b4"
+           "function": "0x107337cc",
+           "address": "0x1073382c",
+           "callsite": "0x10733840",
+           "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1011cd78",
+           "address": "0x1011cd9c",
+           "callsite": "0x1011cdb4",
+           "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
           }
          ]
         }
@@ -107090,78 +107132,50 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107337cc",
-         "notes": "handler"
+         "function": "0x10125b54",
+         "address": "0x10e8b038",
+         "callsite": "0x10733840",
+         "notes": "Previously established zone-player construction installs primary topology vptr 0x10e8b024 at 0x10126234 and passes implementation to f_10733b28 at 0x1018e2cc, stored at service+4. Entry +0x14 is f_1011cd78. Base-table entry 0x10f12280 is instead f_1073d9dc (zero stub), but it is not the installed primary table. There is no runtime worker-selection boundary for this action."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1011cd78",
-         "notes": "impl: lock this+0x318, ++this+0x11d0, this+0x11d4=1, signal this+8, return 0 unconditionally"
-        }
-       ],
-       "unresolved": {
-        "proven": "topology impl rc surfaced",
-        "unknown": "codes for validation/state failures",
-        "impl_exit_literals": {
+         "function": "0x107337cc",
+         "address": "0x1073382c",
+         "callsite": "0x10733840",
+         "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
          "function": "0x1011cd78",
-         "lits": [
-          0,
-          4,
-          20,
-          36
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_1073e674": {
-          "lits": [
-           0,
-           20,
-           24,
-           28,
-           36,
-           44,
-           1000
-          ],
-          "pt": 1
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "notes": "impl itself cannot fault (unconditional 0). 402 also present for req-validate failure.",
-       "worker_literal_bound": [
-        501,
-        501
-       ],
-       "literal_bound": [
-        0
-       ],
-       "resolved_note": "impl 0x1011cd78 returns 0 unconditionally (pure accept-report)",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; sites: 0x1073382c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+         "address": "0x1011cd9c",
+         "callsite": "0x1011cdb4",
+         "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
+        }
        ]
       },
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Defensive generic request-validation failure, not missing action arguments.",
        "fault_sites": [
         "0x1073382c"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Request +8 returns zero at 0x107337f8; canonical fresh request has zero input records and passes.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107337cc",
-           "notes": "parse vcalls then fault path"
+           "function": "0x107337cc",
+           "address": "0x1073382c",
+           "callsite": "0x10733840",
+           "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
           }
          ]
         }
@@ -107171,8 +107185,10 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107337cc",
-         "notes": "wrapper parse + fault path"
+         "function": "0x107337cc",
+         "address": "0x1073382c",
+         "callsite": "0x10733840",
+         "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
         }
        ]
       }
@@ -107183,32 +107199,42 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10125b54",
+       "address": "0x10e8b038",
+       "callsite": "0x10733840",
+       "notes": "Previously established zone-player construction installs primary topology vptr 0x10e8b024 at 0x10126234 and passes implementation to f_10733b28 at 0x1018e2cc, stored at service+4. Entry +0x14 is f_1011cd78. Base-table entry 0x10f12280 is instead f_1073d9dc (zero stub), but it is not the installed primary table. There is no runtime worker-selection boundary for this action."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "function": "0x107337cc",
-       "address": "0x107337cc",
-       "notes": "action wrapper handler"
+       "address": "0x1073382c",
+       "callsite": "0x10733840",
+       "notes": "Complete wrapper 0x107337cc..0x10733874 registers no inputs or outputs. Request validation +8 at 0x107337f8 false loads 402 at 0x107337fc and tail-calls fault +0x14 at 0x1073382c. True loads service+4 and calls implementation +0x14 at 0x10733840. Nonzero faults verbatim; zero tail-calls request success +0x0c at 0x10733874. Fresh canonical request has zero input records and f_10730414 returns true at 0x1073051c. Old identity-check/501 addresses 0x10733944..0x1073395c belong to neighboring GetZoneGroupAttributes, not this action."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11418",
-       "notes": "action dispatch table entry"
+       "function": "0x1011cd78",
+       "address": "0x1011cd9c",
+       "callsite": "0x1011cdb4",
+       "notes": "Entire concrete worker 0x1011cd78..0x1011cdd8 locks topology+0x318 via f_10988558, adds one to u32 counter +0x11d0, stores dirty byte +0x11d4=1, calls f_1067c6ec(topology+8), unlocks via f_10988984 and explicitly returns zero at 0x1011cdc8. No alarm ID, running flag, timestamp, AlarmClock engine call, file write or subordinate status propagation. Counter arithmetic is 32-bit, including wraparound."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x107337cc",
-       "notes": "handler body: gate + impl call + commit only; no parse/emit arg sites"
+       "function": "0x10129888",
+       "address": "0x10129ca8",
+       "callsite": "0x10129cb0",
+       "notes": "Concrete derived topology event producer emits AlarmRunSequence at 0x10129c5c..0x10129cc0 using local-member text +0x14b8, colon, unsigned word +0x1f1c, colon and unsigned topology counter +0x11d0. f_10128890 transfers dirty +0x11d4 to snapshot byte +0x2d at 0x101289ac..0x101289b0 and clears dirty byte when consuming snapshot at 0x10128aa8. f_1067c6ec schedules the source; success is not synchronous or guaranteed subscriber delivery. Shared transport is documented in the service event record."
       }
      ],
      "notes": null,
      "args_verified_empty": true,
-     "implementation_notes": " Handler 0x107337cc contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
-     "todo": [
-      "Established: virtual dispatch to handler 0x107337cc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Argless report dispatches primary implementation slot +0x14 to f_1011cd78; request success commit is not an implementation delegate."
     },
     "ReportUnresponsiveDevice": {
      "description": "Reports DeviceUUID unresponsive with DesiredAction via impl->v[+0x10] on the svc+4 member.",
