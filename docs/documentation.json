@@ -94957,7 +94957,7 @@
      ]
     },
     "AddOAuthAccountX": {
-     "description": "Adds an OAuth account: 8 credential fields via impl->v[+0x1c].",
+     "description": "Adds or rebuilds an OAuth account through delegate 0x104b052c and core 0x1028a224. Nonempty token takes precedence; otherwise a nonempty authorization code is exchanged, and both empty invoke preinstalled-service credential acquisition. All eight fields must materialize and every string has an explicit length limit, even when its selected route ignores the value.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732454",
@@ -95010,11 +95010,30 @@
         "slot": 12,
         "purpose": "commit"
        }
+      ],
+      "description": "Concrete delegate +0x1c routes to 0x1028b2e4, 0x1028b440 or 0x1028ad54; all can reach OAuth core 0x1028a224.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0f94",
+        "function": "0x104b0e84",
+        "notes": "SystemProperties constructor installs delegate vtable 0x10ed75c4, whose slot +0x1c is 0x104b052c. Handler constructor 0x10732e94 installs 0x10f110a8 and retains this delegate at +4; handler 0x10732454 calls delegate +0x1c at 0x1073272c. Concrete store constructor 0x10285224 installs 0x10eabc6c in account manager +0x118."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b052c",
+        "function": "0x104b052c",
+        "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
+       }
       ]
      },
      "inputs": {
       "AccountType": {
-       "description": "music-service account type code",
+       "description": "Packed account type; type>>8 selects the service. This action has no TuneIn unhide special case.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -95023,56 +95042,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "semantic_type": "packed account type",
+       "format": "Decimal-prefix text converted with strtoul(text,NULL,10).",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "accepted_values": "Leading whitespace/sign and decimal prefixes accepted; suffix ignored; no-digit text becomes zero; overflow yields ULONG_MAX.",
+       "range": "Unsigned 32-bit parser result; at most 23 input payload bytes.",
+       "special_values": "Present empty numeric text converts to zero.",
        "required": true,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Missing materialization faults 402; lexical conversion does not. No request-layer service-type whitelist.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107324f0",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f111dc",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x1c lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `AccountType` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountType` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Packed account type; type>>8 selects the service. This action has no TuneIn unhide special case.",
+        "Missing materialization faults 402; lexical conversion does not. No request-layer service-type whitelist."
        ]
       },
       "AccountToken": {
-       "description": "OAuth token string",
+       "description": "Nonempty selects direct-token route; empty permits authorization-code or preinstalled-service acquisition.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95081,57 +95093,50 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 2050 bytes (2049 chars + NUL)",
+       "semantic_type": "credential text",
+       "format": "NUL-terminated byte string; no request-layer UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 2049 chars",
-       "special_values": "none identified",
-       "required": "conditional",
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "accepted_values": "Any present text up to 2048 bytes at request layer, subject to route/core/service checks.",
+       "range": "0..2048 payload bytes; longer values fault 402.",
+       "special_values": "Empty text is allowed by the request; its route-specific meaning is described above.",
+       "required": true,
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Tag 7 buffers retain up to 2049 bytes; explicit strlen > 2048 faults 402, including unused fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732514",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11224",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x20 lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "buf_cap": 2050,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AccountToken` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountToken` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Nonempty selects direct-token route; empty permits authorization-code or preinstalled-service acquisition.",
+        "Tag 7 buffers retain up to 2049 bytes; explicit strlen > 2048 faults 402, including unused fields."
        ]
       },
       "AccountKey": {
-       "description": "OAuth key string",
+       "description": "Direct-token private key. Empty is locally allowed; ignored on the other routes after length validation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95140,57 +95145,50 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 2050 bytes (2049 chars + NUL)",
+       "semantic_type": "credential text",
+       "format": "NUL-terminated byte string; no request-layer UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 2049 chars",
-       "special_values": "none identified",
-       "required": "conditional",
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "accepted_values": "Any present text up to 2048 bytes at request layer, subject to route/core/service checks.",
+       "range": "0..2048 payload bytes; longer values fault 402.",
+       "special_values": "Empty text is allowed by the request; its route-specific meaning is described above.",
+       "required": true,
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Tag 7 buffers retain up to 2049 bytes; explicit strlen > 2048 faults 402, including unused fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073253c",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11234",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x20 lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "buf_cap": 2050,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AccountKey` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountKey` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Direct-token private key. Empty is locally allowed; ignored on the other routes after length validation.",
+        "Tag 7 buffers retain up to 2049 bytes; explicit strlen > 2048 faults 402, including unused fields."
        ]
       },
       "OAuthDeviceID": {
-       "description": "OAuth device identifier arg to account-add impl",
+       "description": "Direct/code route device identifier; direct core requires nonempty text and applies UID extraction described below. Preinstall can generate one when empty.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95199,57 +95197,58 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 66 bytes (65 chars + NUL)",
+       "semantic_type": "credential text",
+       "format": "NUL-terminated byte string; no request-layer UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 65 chars",
-       "special_values": "none identified",
-       "required": "conditional",
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "accepted_values": "Any present text up to 64 bytes at request layer, subject to route/core/service checks.",
+       "range": "0..64 payload bytes; longer values fault 402.",
+       "special_values": "Empty text is allowed by the request; its route-specific meaning is described above.",
+       "required": true,
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Tag 7 buffers retain up to 65 bytes; explicit strlen > 64 faults 402, including unused fields. Core UID extraction accepts length <=32 as UID zero; longer values require underscore at byte 32 and a fully consumed hexadecimal suffix, otherwise 4001. Token/code routes still require nonempty device text once they reach the core.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732564",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11240",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x20 lookup slot usage in handler"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x1056ffb0",
+         "function": "0x1056ffb0",
+         "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
         }
        ],
-       "notes": null,
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "buf_cap": 66,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `OAuthDeviceID` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `OAuthDeviceID` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Direct/code route device identifier; direct core requires nonempty text and applies UID extraction described below. Preinstall can generate one when empty.",
+        "Tag 7 buffers retain up to 65 bytes; explicit strlen > 64 faults 402, including unused fields."
        ]
       },
       "AuthorizationCode": {
-       "description": "OAuth authorization code",
+       "description": "Exchanged only when token is empty and this field is nonempty; ignored on direct-token route after length validation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95258,57 +95257,50 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 1026 bytes (1025 chars + NUL)",
+       "semantic_type": "credential text",
+       "format": "NUL-terminated byte string; no request-layer UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 1025 chars",
-       "special_values": "none identified",
-       "required": "conditional",
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "accepted_values": "Any present text up to 1024 bytes at request layer, subject to route/core/service checks.",
+       "range": "0..1024 payload bytes; longer values fault 402.",
+       "special_values": "Empty text is allowed by the request; its route-specific meaning is described above.",
+       "required": true,
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Tag 7 buffers retain up to 1025 bytes; explicit strlen > 1024 faults 402, including unused fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073258c",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11250",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x20 lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "buf_cap": 1026,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `AuthorizationCode` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `AuthorizationCode` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Exchanged only when token is empty and this field is nonempty; ignored on direct-token route after length validation.",
+        "Tag 7 buffers retain up to 1025 bytes; explicit strlen > 1024 faults 402, including unused fields."
        ]
       },
       "RedirectURI": {
-       "description": "OAuth redirect URI",
+       "description": "Callback URI passed to authorization-code exchange; ignored on direct-token/preinstall routes after length validation.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95317,57 +95309,50 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 8194 bytes (8193 chars + NUL)",
+       "semantic_type": "credential text",
+       "format": "NUL-terminated byte string; no request-layer UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 8193 chars",
-       "special_values": "none identified",
-       "required": "conditional",
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "accepted_values": "Any present text up to 8192 bytes at request layer, subject to route/core/service checks.",
+       "range": "0..8192 payload bytes; longer values fault 402.",
+       "special_values": "Empty text is allowed by the request; its route-specific meaning is described above.",
+       "required": true,
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Tag 7 buffers retain up to 8193 bytes; explicit strlen > 8192 faults 402, including unused fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107325b4",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11264",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x20 lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "buf_cap": 8194,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `RedirectURI` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `RedirectURI` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Callback URI passed to authorization-code exchange; ignored on direct-token/preinstall routes after length validation.",
+        "Tag 7 buffers retain up to 8193 bytes; explicit strlen > 8192 faults 402, including unused fields."
        ]
       },
       "UserIdHashCode": {
-       "description": "user id hash arg to account-add impl",
+       "description": "Case-sensitive direct-token hash used for duplicate/guest matching. Empty skips hash matching; other routes use service-returned Hash instead.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -95376,57 +95361,50 @@
         "fmt": null,
         "via_slot": 32
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "utf-8 text, buffer cap 26 bytes (25 chars + NUL)",
+       "semantic_type": "credential text",
+       "format": "NUL-terminated byte string; no request-layer UTF-8 validation.",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "max 25 chars",
-       "special_values": "none identified",
-       "required": "conditional",
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "accepted_values": "Any present text up to 24 bytes at request layer, subject to route/core/service checks.",
+       "range": "0..24 payload bytes; longer values fault 402.",
+       "special_values": "Empty text is allowed by the request; its route-specific meaning is described above.",
+       "required": true,
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Tag 7 buffers retain up to 25 bytes; explicit strlen > 24 faults 402, including unused fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107325dc",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11270",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x20 lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "buf_cap": 26,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `UserIdHashCode` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `UserIdHashCode` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Case-sensitive direct-token hash used for duplicate/guest matching. Empty skips hash matching; other routes use service-returned Hash instead.",
+        "Tag 7 buffers retain up to 25 bytes; explicit strlen > 24 faults 402, including unused fields."
        ]
       },
       "AccountTier": {
-       "description": "account tier code",
+       "description": "Direct-token tier, clamped unsigned to 65535. Authorization-code/preinstall routes use service-returned Tier instead.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -95435,363 +95413,744 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "string/numeric argument record",
-       "format": "decimal text (lexical bounds set by request parse helper)",
+       "semantic_type": "account tier",
+       "format": "Decimal-prefix text converted with strtoul(text,NULL,10).",
        "unit": "n/a - text",
-       "accepted_values": "value within the request parse cap for its type tag; consumed by the impl vfunc",
-       "range": "parser-type bounded",
-       "special_values": "none identified",
+       "accepted_values": "Leading whitespace/sign and decimal prefixes accepted; suffix ignored; no-digit text becomes zero; overflow yields ULONG_MAX.",
+       "range": "Unsigned 32-bit parser result; at most 23 input payload bytes.",
+       "special_values": "Present empty numeric text converts to zero.",
        "required": true,
-       "default": "none; required",
-       "validation": "consumed by impl vfunc on the shared manager object",
+       "default": "No omission default; present empty text is accepted by request parsing.",
+       "validation": "Missing materialization faults 402; lexical conversion does not. Tier is subsequently min(value,65535) on direct-token route.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732604",
-         "notes": "in-arg access site"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f11280",
-         "notes": "argument name string"
+         "address": "0x10730480",
+         "function": "0x10730414",
+         "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "v+0x1c lookup slot usage in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1068b7d0",
-         "notes": "arg consumed by the shared-manager impl slot"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `AccountTier` is parsed then forwarded verbatim to *(r3-in+0x4) vfunc +28 (site 0x1073272c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
+       "notes": "Limits count bytes, not Unicode characters. All fields remain required even if unused on the selected route.",
        "resolved_findings": [
-        "Resolved: post-parse handling of `AccountTier` = verbatim forward to impl vfunc +28 (obj *(r3-in+0x4), call site 0x1073272c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Direct-token tier, clamped unsigned to 65535. Authorization-code/preinstall routes use service-returned Tier instead.",
+        "Missing materialization faults 402; lexical conversion does not. Tier is subsequently min(value,65535) on direct-token route."
        ]
       }
      },
      "outputs": {
       "AccountUDN": {
        "direction": "out",
-       "format": "impl-defined",
-       "type": "",
+       "format": "SA_RINCON<requested-type>_X_#Svc<requested-type>-<hex-UID>-Token",
+       "type": "string",
        "accepted": "impl-produced",
-       "required": false,
+       "required": true,
        "parse_helper": null,
-       "description": "issued service-account UDN",
+       "description": "Service-account UDN computed from requested type and extracted device UID.",
        "unit": "n/a",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732744",
-         "notes": "out-arg name load + req->v[+0x24/+0x28] emit call"
+         "address": "0x1056ffb0",
+         "function": "0x1056ffb0",
+         "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a454",
+         "function": "0x1028a224",
+         "notes": "After zero core result, formats computed account UDN through 0x1056f254 into wrapper 144-byte buffer. AccountNickname output is copied only when core nickname input is nonempty (0x1028a4b8..0x1028a5e4), into 64-byte output buffer. Token route supplies empty nickname, leaving output empty even when stored nickname exists or is generated. Code/preinstall route can return service-provided nickname rather than a retained/generated stored nickname. Handler initializes outputs, emits AccountUDN and AccountNickname through request +0x28 and value-writer +0x10 at 0x10732754/0x10732784, then commits through +0xc at 0x107327ac. No output is emitted on nonzero status."
         }
        ],
        "primitive": {
-        "fmt_helper": null,
-        "fmt": null
+        "fmt_helper": "0x1056f254",
+        "fmt": "SA_RINCON%u_%s"
        },
        "semantic_type": "response field",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "default": "none; written on success",
-       "validation": "emitted via req->v[+0x24/+0x28] response writer vfunc",
-       "accepted_values": "impl-produced"
+       "range": "At most 143 payload bytes.",
+       "special_values": "Token route AccountNickname is empty, irrespective of stored nickname.",
+       "default": "No response output on failure.",
+       "validation": "Response writer emits initialized output buffers only after successful delegate return.",
+       "accepted_values": "Written only on zero status."
       },
       "AccountNickname": {
        "direction": "out",
-       "format": "impl-defined",
-       "type": "",
+       "format": "NUL-terminated service-provided nickname or empty string.",
+       "type": "string",
        "accepted": "impl-produced",
-       "required": false,
+       "required": true,
        "parse_helper": null,
-       "description": "issued account nickname",
+       "description": "Returned nickname, not an unconditional reflection of the stored account nickname.",
        "unit": "n/a",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732774",
-         "notes": "out-arg name load + req->v[+0x24/+0x28] emit call"
+         "address": "0x1056ffb0",
+         "function": "0x1056ffb0",
+         "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a454",
+         "function": "0x1028a224",
+         "notes": "After zero core result, formats computed account UDN through 0x1056f254 into wrapper 144-byte buffer. AccountNickname output is copied only when core nickname input is nonempty (0x1028a4b8..0x1028a5e4), into 64-byte output buffer. Token route supplies empty nickname, leaving output empty even when stored nickname exists or is generated. Code/preinstall route can return service-provided nickname rather than a retained/generated stored nickname. Handler initializes outputs, emits AccountUDN and AccountNickname through request +0x28 and value-writer +0x10 at 0x10732754/0x10732784, then commits through +0xc at 0x107327ac. No output is emitted on nonzero status."
         }
        ],
        "primitive": {
-        "fmt_helper": null,
+        "fmt_helper": "0x10906304",
         "fmt": null
        },
        "semantic_type": "response field",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "default": "none; written on success",
-       "validation": "emitted via req->v[+0x24/+0x28] response writer vfunc",
-       "accepted_values": "impl-produced"
+       "range": "At most 63 payload bytes.",
+       "special_values": "Token route AccountNickname is empty, irrespective of stored nickname.",
+       "default": "No response output on failure.",
+       "validation": "Response writer emits initialized output buffers only after successful delegate return.",
+       "accepted_values": "Written only on zero status."
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Missing required materialization or any string above its explicit byte limit produces 402 before delegate dispatch. Present empty strings pass this layer. Numeric text uses unchecked decimal conversion; route/core/service validation is separate.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732454",
-        "notes": "wrapper family decode"
+        "address": "0x10732620",
+        "function": "0x10732454",
+        "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10730480",
+        "function": "0x10730414",
+        "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b052c",
+        "function": "0x104b052c",
+        "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (none)",
+      "description": "All eight fields must materialize and pass byte limits. Direct-token route needs nonempty Token/OAuthDeviceID at core; code route additionally needs successful service exchange. Both-empty route requires a supported OAuth descriptor and service credential acquisition rather than rejecting the request for missing token/code. Store read, family policy, capacity and persistence apply after credentials are obtained.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732620",
         "function": "0x10732454",
-        "notes": "req-vfunc call map: {}"
+        "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b052c",
+        "function": "0x104b052c",
+        "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b2e4",
+        "function": "0x1028b2e4",
+        "notes": "Token route calls required-manifest helper 0x10287238 and returns its nonzero 802 result, otherwise invokes OAuth core 0x1028a224 directly with supplied token/key/device/hash/tier and empty nickname. No token-exchange call precedes this core on that route. This does not prove the credentials work remotely."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b4d0",
+        "function": "0x1028b440",
+        "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ad54",
+        "function": "0x1028ad54",
+        "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1056ffb0",
+        "function": "0x1056ffb0",
+        "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a224",
+        "function": "0x1028a224",
+        "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a440",
+        "function": "0x1028a224",
+        "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
        }
       ],
       "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (none).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+       "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+       "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): none - impl works on req/inline members only",
+      "description": "Uses service descriptor/manifest state, supplied or exchanged credentials, normalized-family live/deleted account arrays, serial/version/LUD/vector-clock state and per-record OAuth fields. Preinstall also depends on cached credentials and service-household setup; successful save can refresh account cache and queue maintenance/cloud work.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732454",
-        "notes": "member vfunc calls: []"
+        "address": "0x10289dc0",
+        "function": "0x10289d48",
+        "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ad54",
+        "function": "0x1028ad54",
+        "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a224",
+        "function": "0x1028a224",
+        "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a610",
+        "function": "0x1028a224",
+        "notes": "Nonempty Hash can select an existing normalized-family account through 0x105714c8 -> 0x10571338; Hash and OAuthDeviceID comparisons are case-sensitive. With SOAP guest flag false, a normal hash match requires a matching Hash/OAuthDeviceID pair, otherwise 803. Matching guest upgrade rejects an already selected OAuthDeviceID with 803; otherwise 0x1028686c clears Flags bit 0, updates ID/device/credentials/Tier while retaining serial, and updates household clock. Guest migration can return 802 when another same-Type/different-serial record has equal Hash or computed ID. Flags bit 0 is distinct from the deleted-account array. Branch 0x1028ab24 that ignores guest-update save status requires guest flag true and is not an immediate SOAP path of this wrapper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a440",
+        "function": "0x1028a224",
+        "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a510",
+        "function": "0x1028a224",
+        "notes": "Zero-result core path unlocks then invokes store +0x24=0x1028be78 with record and flags. It can perform reporting/registration/operation notification and +0x34=0x102850c4 -> 0x101b8048 cache comparison and queued account work. No result from these post callbacks replaces the selected core status. Immediate SOAP paths use guest flag false; queued workers may call the shared core with other flags."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285878",
+        "function": "0x10285878",
+        "notes": "Delayed push requires a nonzero registration-state result from global context +0x90 getter/receiver +0x14, a nonzero zone implementation +0xc4 predicate result, and store+0x14d push-request flag. The flag is zero at construction, set from caller boolean for replication operation 1 at 0x102877b8 (which queues 0x100ba320), and cleared after successful push at 0x102917fc. Writer schedules clock+3 only for a true predicate: 0x10289244 compares result with zero and BO13/BI30 skips on equality. Cloud request 0x10506e3c uses concrete 0x10eded98/+8; embedded HTTP client constructor 0x105cc984 installs 0x10ef4aa4, +0x60=0x105cc4dc POST. Endpoint /music-account/v0/accounts, application/xml, ten-second deadline; transport error or non-200 HTTP response returns false. 0x10505ccc emits MuseHouseholdId and optional full-sync header. Successful response is parsed by 0x10506c70 and merged by 0x10285e18; exact conflict and maintenance leaves remain under investigation."
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): none - impl works on req/inline members only.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+       "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+       "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
       ]
      },
      "side_effects": [
       {
-       "description": "impl delegates op internally (no member vfunc call captured); arg-driven, stores=0",
+       "description": "May acquire a manifest, exchange code or obtain preinstalled-service credentials before rebuilding/inserting an OAuth record or upgrading a guest. Can alter nicknames and clocks of more than one record. Persists escaped accounts.xml and advertises replication metadata; failed save can still rewrite fallback storage. Post-save cache/maintenance work is separate from the synchronous SOAP result.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10732454",
-         "notes": "delegate map []; notify-family calls []"
+         "address": "0x1028b2e4",
+         "function": "0x1028b2e4",
+         "notes": "Token route calls required-manifest helper 0x10287238 and returns its nonzero 802 result, otherwise invokes OAuth core 0x1028a224 directly with supplied token/key/device/hash/tier and empty nickname. No token-exchange call precedes this core on that route. This does not prove the credentials work remotely."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028b4d0",
+         "function": "0x1028b440",
+         "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028ad54",
+         "function": "0x1028ad54",
+         "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a224",
+         "function": "0x1028a224",
+         "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a610",
+         "function": "0x1028a224",
+         "notes": "Nonempty Hash can select an existing normalized-family account through 0x105714c8 -> 0x10571338; Hash and OAuthDeviceID comparisons are case-sensitive. With SOAP guest flag false, a normal hash match requires a matching Hash/OAuthDeviceID pair, otherwise 803. Matching guest upgrade rejects an already selected OAuthDeviceID with 803; otherwise 0x1028686c clears Flags bit 0, updates ID/device/credentials/Tier while retaining serial, and updates household clock. Guest migration can return 802 when another same-Type/different-serial record has equal Hash or computed ID. Flags bit 0 is distinct from the deleted-account array. Branch 0x1028ab24 that ignores guest-update save status requires guest flag true and is not an immediate SOAP path of this wrapper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a440",
+         "function": "0x1028a224",
+         "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a510",
+         "function": "0x1028a224",
+         "notes": "Zero-result core path unlocks then invokes store +0x24=0x1028be78 with record and flags. It can perform reporting/registration/operation notification and +0x34=0x102850c4 -> 0x101b8048 cache comparison and queued account work. No result from these post callbacks replaces the selected core status. Immediate SOAP paths use guest flag false; queued workers may call the shared core with other flags."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10285878",
+         "function": "0x10285878",
+         "notes": "Delayed push requires a nonzero registration-state result from global context +0x90 getter/receiver +0x14, a nonzero zone implementation +0xc4 predicate result, and store+0x14d push-request flag. The flag is zero at construction, set from caller boolean for replication operation 1 at 0x102877b8 (which queues 0x100ba320), and cleared after successful push at 0x102917fc. Writer schedules clock+3 only for a true predicate: 0x10289244 compares result with zero and BO13/BI30 skips on equality. Cloud request 0x10506e3c uses concrete 0x10eded98/+8; embedded HTTP client constructor 0x105cc984 installs 0x10ef4aa4, +0x60=0x105cc4dc POST. Endpoint /music-account/v0/accounts, application/xml, ten-second deadline; transport error or non-200 HTTP response returns false. 0x10505ccc emits MuseHouseholdId and optional full-sync header. Successful response is parsed by 0x10506c70 and merged by 0x10285e18; exact conflict and maintenance leaves remain under investigation."
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - impl delegates op internally (no member vfunc call captured); arg-driven, stores=0.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+        "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+        "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Successful account save advertises selector 11 version/LUD via 0x10652074, conditionally queuing ReplicatedSettingsChangedEvent carrying replication metadata, not OAuth secrets. Post callbacks can report account operations and compare cache via 0x101b8048 before MusicAccountChangedEvent and selected-account work. Actual remote/subscriber delivery is not established by the SOAP result.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732454",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1028a440",
+        "function": "0x1028a224",
+        "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a510",
+        "function": "0x1028a224",
+        "notes": "Zero-result core path unlocks then invokes store +0x24=0x1028be78 with record and flags. It can perform reporting/registration/operation notification and +0x34=0x102850c4 -> 0x101b8048 cache comparison and queued account work. No result from these post callbacks replaces the selected core status. Immediate SOAP paths use guest flag false; queued workers may call the shared core with other flags."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285878",
+        "function": "0x10285878",
+        "notes": "Delayed push requires a nonzero registration-state result from global context +0x90 getter/receiver +0x14, a nonzero zone implementation +0xc4 predicate result, and store+0x14d push-request flag. The flag is zero at construction, set from caller boolean for replication operation 1 at 0x102877b8 (which queues 0x100ba320), and cleared after successful push at 0x102917fc. Writer schedules clock+3 only for a true predicate: 0x10289244 compares result with zero and BO13/BI30 skips on equality. Cloud request 0x10506e3c uses concrete 0x10eded98/+8; embedded HTTP client constructor 0x105cc984 installs 0x10ef4aa4, +0x60=0x105cc4dc POST. Endpoint /music-account/v0/accounts, application/xml, ten-second deadline; transport error or non-200 HTTP response returns false. 0x10505ccc emits MuseHouseholdId and optional full-sync header. Successful response is parsed by 0x10506c70 and merged by 0x10285e18; exact conflict and maintenance leaves remain under investigation."
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+       "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+       "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): none",
+      "description": "Direct-token creates credentials from supplied fields; code/preinstall first replace them with service results. Rebuild can reuse serial/UUID/cloud lineage; new/zero serial allocates NextSerialNum. Guest upgrade clears record Flags bit 0 without equating it with Deleted. Save advances local version/LUD and clocks; post callbacks and delayed cloud/maintenance can cause later independent changes.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732454",
-        "notes": "no transition-literal/store pattern; member delegates: []"
+        "address": "0x104b052c",
+        "function": "0x104b052c",
+        "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b4d0",
+        "function": "0x1028b440",
+        "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ad54",
+        "function": "0x1028ad54",
+        "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a224",
+        "function": "0x1028a224",
+        "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a610",
+        "function": "0x1028a224",
+        "notes": "Nonempty Hash can select an existing normalized-family account through 0x105714c8 -> 0x10571338; Hash and OAuthDeviceID comparisons are case-sensitive. With SOAP guest flag false, a normal hash match requires a matching Hash/OAuthDeviceID pair, otherwise 803. Matching guest upgrade rejects an already selected OAuthDeviceID with 803; otherwise 0x1028686c clears Flags bit 0, updates ID/device/credentials/Tier while retaining serial, and updates household clock. Guest migration can return 802 when another same-Type/different-serial record has equal Hash or computed ID. Flags bit 0 is distinct from the deleted-account array. Branch 0x1028ab24 that ignores guest-update save status requires guest flag true and is not an immediate SOAP path of this wrapper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a440",
+        "function": "0x1028a224",
+        "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a510",
+        "function": "0x1028a224",
+        "notes": "Zero-result core path unlocks then invokes store +0x24=0x1028be78 with record and flags. It can perform reporting/registration/operation notification and +0x34=0x102850c4 -> 0x101b8048 cache comparison and queued account work. No result from these post callbacks replaces the selected core status. Immediate SOAP paths use guest flag false; queued workers may call the shared core with other flags."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10285878",
+        "function": "0x10285878",
+        "notes": "Delayed push requires a nonzero registration-state result from global context +0x90 getter/receiver +0x14, a nonzero zone implementation +0xc4 predicate result, and store+0x14d push-request flag. The flag is zero at construction, set from caller boolean for replication operation 1 at 0x102877b8 (which queues 0x100ba320), and cleared after successful push at 0x102917fc. Writer schedules clock+3 only for a true predicate: 0x10289244 compares result with zero and BO13/BI30 skips on equality. Cloud request 0x10506e3c uses concrete 0x10eded98/+8; embedded HTTP client constructor 0x105cc984 installs 0x10ef4aa4, +0x60=0x105cc4dc POST. Endpoint /music-account/v0/accounts, application/xml, ten-second deadline; transport error or non-200 HTTP response returns false. 0x10505ccc emits MuseHouseholdId and optional full-sync header. Successful response is parsed by 0x10506c70 and merged by 0x10285e18; exact conflict and maintenance leaves remain under investigation."
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): none.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+       "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+       "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Zero emits AccountUDN and AccountNickname then commits. Missing materialization or explicit string excess gives 402. Known local statuses are 401 unsupported preinstall descriptor, 802 manifest/setup/core-token/device/capacity failure, 803 duplicate/family conflict, 809 save failure, 810 snapshot failure and 4001 invalid device UID suffix. Code-exchange SMAPI statuses propagate rather than being mapped to this local vocabulary; complete fault/transport mapping remains below. Token-route success is not proof of remote authentication.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732620",
         "function": "0x10732454",
-        "notes": "commit/fault slot usage: {}"
+        "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b2e4",
+        "function": "0x1028b2e4",
+        "notes": "Token route calls required-manifest helper 0x10287238 and returns its nonzero 802 result, otherwise invokes OAuth core 0x1028a224 directly with supplied token/key/device/hash/tier and empty nickname. No token-exchange call precedes this core on that route. This does not prove the credentials work remotely."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028b4d0",
+        "function": "0x1028b440",
+        "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1072a5dc",
+        "function": "0x1072a2a4",
+        "notes": "getDeviceAuthToken requires descriptor credential-type mapping 2, otherwise 1000. It builds Services/1.1 credentials through 0x1071f0c0, propagating its status, then getDeviceAuthToken with householdId and optional linkCode/callbackPath/linkDeviceId. It uses the descriptor service URL and request constructor 0x106fe328 with 20000/10000 ms timing arguments. Response descriptors parse authToken, privateKey and userInfo. userInfo +0x18 callback 0x1071a3cc forwards userIdHashCode/nickname/accountTier through 0x1071a2d0 to the supplied structure; nickname copy capacity is 65. RPC executor 0x106ff03c propagates its fault/transport result. Credential helper returns 1045 when descriptor flag 0x20000 is set, a certificate buffer and manager exist, and manager +8 returns 1; other certificate paths can fall back to deviceId/deviceProvider. Code-path status is not restricted to the local account-store vocabulary."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028ad54",
+        "function": "0x1028ad54",
+        "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1056ffb0",
+        "function": "0x1056ffb0",
+        "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a224",
+        "function": "0x1028a224",
+        "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a610",
+        "function": "0x1028a224",
+        "notes": "Nonempty Hash can select an existing normalized-family account through 0x105714c8 -> 0x10571338; Hash and OAuthDeviceID comparisons are case-sensitive. With SOAP guest flag false, a normal hash match requires a matching Hash/OAuthDeviceID pair, otherwise 803. Matching guest upgrade rejects an already selected OAuthDeviceID with 803; otherwise 0x1028686c clears Flags bit 0, updates ID/device/credentials/Tier while retaining serial, and updates household clock. Guest migration can return 802 when another same-Type/different-serial record has equal Hash or computed ID. Flags bit 0 is distinct from the deleted-account array. Branch 0x1028ab24 that ignores guest-update save status requires guest flag true and is not an immediate SOAP path of this wrapper."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a440",
+        "function": "0x1028a224",
+        "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1028a454",
+        "function": "0x1028a224",
+        "notes": "After zero core result, formats computed account UDN through 0x1056f254 into wrapper 144-byte buffer. AccountNickname output is copied only when core nickname input is nonempty (0x1028a4b8..0x1028a5e4), into 64-byte output buffer. Token route supplies empty nickname, leaving output empty even when stored nickname exists or is generated. Code/preinstall route can return service-provided nickname rather than a retained/generated stored nickname. Handler initializes outputs, emits AccountUDN and AccountNickname through request +0x28 and value-writer +0x10 at 0x10732754/0x10732784, then commits through +0xc at 0x107327ac. No output is emitted on nonzero status."
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+       "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+       "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
       ]
      },
      "fault_sites": [
       {
        "site": "0x10732650",
-       "code": 402,
-       "code_expr": "const"
+       "codes": [
+        401,
+        402,
+        802,
+        803,
+        809,
+        810,
+        4001
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028b4d0",
+         "function": "0x1028b440",
+         "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028ad54",
+         "function": "0x1028ad54",
+         "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1056ffb0",
+         "function": "0x1056ffb0",
+         "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a224",
+         "function": "0x1028a224",
+         "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a440",
+         "function": "0x1028a224",
+         "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+        }
+       ]
       },
       {
        "site": "0x107327c8",
        "code": 402,
-       "code_expr": "const"
+       "code_expr": "const",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+        }
+       ]
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "const",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0)",
-       "fault_sites": [
-        "0x10732650",
-        "0x107327c8"
-       ],
-       "conditions": [
-        {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732454",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        }
-       ],
+       "meaning": "Required materialization missing or explicit string byte limit exceeded, including unused fields.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732454",
-         "notes": "0x192 fault constant in handler"
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-        "unknown": "concrete rc domain of this impl",
-        "knowledge": "; vfunc forward *(r3)+0x18 -> mega-impl +0x18 = f_1018a20c",
-        "call_sources": [
-         "vfunc forward *(r3)+0x18 -> mega-impl +0x18 = f_1018a20c"
-        ],
-        "return_path": "AlarmClock /Event-path worker - GENA/AlarmClock rc",
-        "domain_note": "worker rc is a subsystem-domain status, not a literal SOAP fault code; parent maps to the action's fault surface",
-        "raw_exit_literals": {
-         "f_1018a20c": {
-          "lits": [
-           -936
-          ],
-          "pt": 1
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x1068b7d0",
-         "lits": [
-          0,
-          20,
-          24
-         ],
-         "passthrough_exits": 3
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "AddOAuthAccountX",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; sites: 0x10732650, 0x107327c8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "settings/account store rc domain (sp_impl f_1066a788 {402,501,800,811,812}; accountsmgr f_10289d48/f_1028a224/f_1028b760/f_1028ef24 {802,803,806,809,810}): 'UserIdHash already exists', 'Failure to mark accounts for reporting', 'Account added. Returning UDN=%s' paths",
-       "fault_sites": [],
+       "meaning": "Delegate/account/OAuth status propagated unchanged; known local statuses 401,802,803,809,810,4001 are distinguished from service-exchange faults.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1066a788",
-         "notes": "sp_impl {800,811,812}"
+         "address": "0x104b052c",
+         "function": "0x104b052c",
+         "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1028ef24",
-         "notes": "accountsmgr update {803,806,809,810}"
-        }
-       ],
-       "conditions": [
+         "address": "0x1028b4d0",
+         "function": "0x1028b440",
+         "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+        },
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1066a788",
-           "notes": "sp_impl {800,811,812}"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x1028ef24",
-           "notes": "accountsmgr update {803,806,809,810}"
-          }
-         ]
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1072a5dc",
+         "function": "0x1072a2a4",
+         "notes": "getDeviceAuthToken requires descriptor credential-type mapping 2, otherwise 1000. It builds Services/1.1 credentials through 0x1071f0c0, propagating its status, then getDeviceAuthToken with householdId and optional linkCode/callbackPath/linkDeviceId. It uses the descriptor service URL and request constructor 0x106fe328 with 20000/10000 ms timing arguments. Response descriptors parse authToken, privateKey and userInfo. userInfo +0x18 callback 0x1071a3cc forwards userIdHashCode/nickname/accountTier through 0x1071a2d0 to the supplied structure; nickname copy capacity is 65. RPC executor 0x106ff03c propagates its fault/transport result. Credential helper returns 1045 when descriptor flag 0x20000 is set, a certificate buffer and manager exist, and manager +8 returns 1; other certificate paths can fall back to deviceId/deviceProvider. Code-path status is not restricted to the local account-store vocabulary."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028ad54",
+         "function": "0x1028ad54",
+         "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1056ffb0",
+         "function": "0x1056ffb0",
+         "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a224",
+         "function": "0x1028a224",
+         "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a610",
+         "function": "0x1028a224",
+         "notes": "Nonempty Hash can select an existing normalized-family account through 0x105714c8 -> 0x10571338; Hash and OAuthDeviceID comparisons are case-sensitive. With SOAP guest flag false, a normal hash match requires a matching Hash/OAuthDeviceID pair, otherwise 803. Matching guest upgrade rejects an already selected OAuthDeviceID with 803; otherwise 0x1028686c clears Flags bit 0, updates ID/device/credentials/Tier while retaining serial, and updates household clock. Guest migration can return 802 when another same-Type/different-serial record has equal Hash or computed ID. Flags bit 0 is distinct from the deleted-account array. Branch 0x1028ab24 that ignores guest-update save status requires guest flag true and is not an immediate SOAP path of this wrapper."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1028a440",
+         "function": "0x1028a224",
+         "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
         }
        ],
        "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x1028ef24 emits constant set {553, 564, 592, 599, 611, 635, 636, 647, 648, 684, 688, 696, 803, 806, 809, 810} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+        "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+        "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
        ]
       }
      ],
@@ -95801,29 +96160,136 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x104b0f94",
+       "function": "0x104b0e84",
+       "notes": "SystemProperties constructor installs delegate vtable 0x10ed75c4, whose slot +0x1c is 0x104b052c. Handler constructor 0x10732e94 installs 0x10f110a8 and retains this delegate at +4; handler 0x10732454 calls delegate +0x1c at 0x1073272c. Concrete store constructor 0x10285224 installs 0x10eabc6c in account manager +0x118."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10732620",
        "function": "0x10732454",
-       "address": "0x10732454",
-       "notes": "action wrapper handler"
+       "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f110fc",
-       "notes": "action dispatch table entry"
+       "address": "0x10730480",
+       "function": "0x10730414",
+       "notes": "Validation checks required materialization, not numeric grammar or nonempty strings. Concrete request vtable 0x10f10f20 has both +0x1c and +0x20 bound to 0x1073017c; neither makes these descriptors optional. Tag 4 at 0x10560b50 calls strtoul(text,NULL,10), ignoring errno/end pointer; numeric copy retains at most 23 payload bytes. Leading whitespace/sign and decimal prefixes are accepted; suffixes are ignored and 32-bit overflow produces ULONG_MAX. String copy 0x10560708/0x10560a58 retains capacity minus one bytes, NUL terminates, accepts empty text, truncates without UTF-8 validation."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1068b7d0",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x1c"
+       "address": "0x104b052c",
+       "function": "0x104b052c",
+       "notes": "Nonempty AccountToken selects 0x1028b2e4, irrespective of AuthorizationCode. Otherwise nonempty AuthorizationCode selects 0x1028b440; both empty selects 0x1028ad54 preinstalled-service acquisition. Token route passes input Key, OAuthDeviceID, Hash and min(AccountTier,65535), but an empty nickname and false guest flag. Raw 0x7d49ef5e at 0x104b0648 is isel r10,r9,r29,29 following unsigned comparison with 65535, not a shift. Code route passes OAuthDeviceID, AuthorizationCode and RedirectURI; input Key/Hash/Tier are ignored. Preinstall passes OAuthDeviceID and false guest flag; input Key/Hash/Tier/RedirectURI are ignored. Unlike AddAccountX, no exact-65031 TuneIn visibility branch exists here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10289dc0",
+       "function": "0x10289d48",
+       "notes": "For ((type & 0x7f) - ((type & 1) ^ 1)) == 7, queries store +0x2c for descriptor of type>>8. Missing descriptor leaves multi-account permission false; descriptor flag 0x4000 absent sets permission true. Every ordinary type then calls 0x10287238 before the store lock; it invokes service-manager 0x100c7404(type>>8), mapping any nonzero result to 802. 0x100c7404 first asks 0x100c6b38 whether a manifest is needed: missing descriptor, absent descriptor flag 0x00400000, or a matching version already found by 0x10119c80 returns false and succeeds without fetching. Only true reaches 0x100c6c3c, whose second descriptor lookup can fail with internal 402, otherwise 0x1011b710 acquires its manifest. Thus this is not a service-type whitelist. Store +0x2c=0x10284ec0 reaches zone implementation +0x130, concrete getter 0x1012ba78 and its service manager at +0x11a4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028b2e4",
+       "function": "0x1028b2e4",
+       "notes": "Token route calls required-manifest helper 0x10287238 and returns its nonzero 802 result, otherwise invokes OAuth core 0x1028a224 directly with supplied token/key/device/hash/tier and empty nickname. No token-exchange call precedes this core on that route. This does not prove the credentials work remotely."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028b4d0",
+       "function": "0x1028b440",
+       "notes": "Authorization-code route calls 0x10287238, then 0x10286e44 with supplied code, redirect URI and OAuthDeviceID, two 2049-byte output credential buffers and a user-info structure. Any nonzero exchange result is returned unchanged; zero invokes 0x1028a224 using returned Token/Key, Hash, nickname and Tier, not request Key/Hash/Tier. All three SOAP routes pass false guest flag to the core."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1072a5dc",
+       "function": "0x1072a2a4",
+       "notes": "getDeviceAuthToken requires descriptor credential-type mapping 2, otherwise 1000. It builds Services/1.1 credentials through 0x1071f0c0, propagating its status, then getDeviceAuthToken with householdId and optional linkCode/callbackPath/linkDeviceId. It uses the descriptor service URL and request constructor 0x106fe328 with 20000/10000 ms timing arguments. Response descriptors parse authToken, privateKey and userInfo. userInfo +0x18 callback 0x1071a3cc forwards userIdHashCode/nickname/accountTier through 0x1071a2d0 to the supplied structure; nickname copy capacity is 65. RPC executor 0x106ff03c propagates its fault/transport result. Credential helper returns 1045 when descriptor flag 0x20000 is set, a certificate buffer and manager exist, and manager +8 returns 1; other certificate paths can fall back to deviceId/deviceProvider. Code-path status is not restricted to the local account-store vocabulary."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ad54",
+       "function": "0x1028ad54",
+       "notes": "Both-empty route first obtains descriptor for type>>8: absent descriptor returns 802; unsupported descriptor or credential-type mapping other than 2 returns 401. Required-manifest helper precedes further work. Empty supplied OAuthDeviceID is generated through 0x1071e120/0x105ad854/0x10570128. Nonempty supplied ID can load an existing record through 0x1028903c/0x105714d8 and copy cached Token/Key. The needs_reauth prefix, caller false flag and cached credentials influence downstream service-household/auth acquisition. 0x104b8d0c failure becomes 1015 internally; auth/setup failures reaching 0x1028b03c map to 802. Successful 0x1072a2a4 obtains credentials/userInfo before OAuth core 0x1028a224. This is not a missing-token no-op or request-layer 402. Complete setup/metrics leaves remain to be traced."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1056ffb0",
+       "function": "0x1056ffb0",
+       "notes": "Core requires nonempty Token and OAuthDeviceID (802 if absent), then extracts a device UID through 0x1056ffb0 (4001 on false). Length <=32 accepts arbitrary device text with UID zero. Longer text requires underscore at byte index 32; suffix at index 33 uses strtoul(base16,endptr) and must end at NUL. No errno or no-digits check: empty suffix is accepted as zero, signs/leading whitespace/0x prefixes work when consumed, trailing text/whitespace fails and overflow can produce ULONG_MAX. 0x1056fdec formats account ID X_#Svc%u-%x-Token from original requested full type and UID. Distinct device IDs can therefore select the same computed account ID. Account UDN formatter 0x1056f254 wraps this as SA_RINCON%u_%s; serial and UUID are not UDN components."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028a224",
+       "function": "0x1028a224",
+       "notes": "Under store mutex +0x20, reads snapshot with 0x102887e0 (810 on failure), builds fresh 0x250-byte record via 0x1056fb1c, constructs computed ID and sets supplied/returned OAuth credentials. Record offsets: ID +8, MD +0x89, PW +0x10a, NN +0x14b, OAuthDeviceID +0x18c, Hash +0x1cd, Tier +0x1e8, dynamic Token/Key +0x1ec/+0x1f0, Flags +0x1f4, household/cloud clocks +0x1fc/+0x220, UUID +0x240. Strict normalized-type/computed-ID lookup uses 0x10570e34; matching record can retain serial, UUID, cloud lineage and prior nickname. New or serial-zero records take NextSerialNum and increment it. Family policy can reject another account with 803. Nickname helpers 0x102871a8/0x102854ac can generate or update account nicknames; 0x1057082c insertion capacity failure gives 802."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028a610",
+       "function": "0x1028a224",
+       "notes": "Nonempty Hash can select an existing normalized-family account through 0x105714c8 -> 0x10571338; Hash and OAuthDeviceID comparisons are case-sensitive. With SOAP guest flag false, a normal hash match requires a matching Hash/OAuthDeviceID pair, otherwise 803. Matching guest upgrade rejects an already selected OAuthDeviceID with 803; otherwise 0x1028686c clears Flags bit 0, updates ID/device/credentials/Tier while retaining serial, and updates household clock. Guest migration can return 802 when another same-Type/different-serial record has equal Hash or computed ID. Flags bit 0 is distinct from the deleted-account array. Branch 0x1028ab24 that ignores guest-update save status requires guest flag true and is not an immediate SOAP path of this wrapper."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028a440",
+       "function": "0x1028a224",
+       "notes": "Normal insertion/update and guest upgrade persist through 0x10289258; false save maps to 809 on SOAP guest-flag-false paths. Uses shared accounts.xml writer 0x102890b0 -> 0x10508988, default /opt/settings/accounts.xml under configured roots. Escaped XML contains live/deleted arrays, Token/Key and vector-clock/version/serial metadata. fflush/fsync results are ignored; failure can perform root-only fallback rewrite, so 809 does not guarantee unchanged disk contents. Successful save advances local version/LUD, caches counters and advertises selector 11 through receiver 0x10652074 with false advertisement flag. Writer scheduling is separately gated by 0x10285878, including store+0x14d."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028a454",
+       "function": "0x1028a224",
+       "notes": "After zero core result, formats computed account UDN through 0x1056f254 into wrapper 144-byte buffer. AccountNickname output is copied only when core nickname input is nonempty (0x1028a4b8..0x1028a5e4), into 64-byte output buffer. Token route supplies empty nickname, leaving output empty even when stored nickname exists or is generated. Code/preinstall route can return service-provided nickname rather than a retained/generated stored nickname. Handler initializes outputs, emits AccountUDN and AccountNickname through request +0x28 and value-writer +0x10 at 0x10732754/0x10732784, then commits through +0xc at 0x107327ac. No output is emitted on nonzero status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028a510",
+       "function": "0x1028a224",
+       "notes": "Zero-result core path unlocks then invokes store +0x24=0x1028be78 with record and flags. It can perform reporting/registration/operation notification and +0x34=0x102850c4 -> 0x101b8048 cache comparison and queued account work. No result from these post callbacks replaces the selected core status. Immediate SOAP paths use guest flag false; queued workers may call the shared core with other flags."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10285878",
+       "function": "0x10285878",
+       "notes": "Delayed push requires a nonzero registration-state result from global context +0x90 getter/receiver +0x14, a nonzero zone implementation +0xc4 predicate result, and store+0x14d push-request flag. The flag is zero at construction, set from caller boolean for replication operation 1 at 0x102877b8 (which queues 0x100ba320), and cleared after successful push at 0x102917fc. Writer schedules clock+3 only for a true predicate: 0x10289244 compares result with zero and BO13/BI30 skips on equality. Cloud request 0x10506e3c uses concrete 0x10eded98/+8; embedded HTTP client constructor 0x105cc984 installs 0x10ef4aa4, +0x60=0x105cc4dc POST. Endpoint /music-account/v0/accounts, application/xml, ten-second deadline; transport error or non-200 HTTP response returns false. 0x10505ccc emits MuseHouseholdId and optional full-sync header. Successful response is parsed by 0x10506c70 and merged by 0x10285e18; exact conflict and maintenance leaves remain under investigation."
       }
      ],
-     "notes": "None Optionality measured per-arg: ['AccountType', 'AccountTier'] via required-lookup v[+0x1c], ['AccountToken', 'AccountKey', 'OAuthDeviceID', 'AuthorizationCode', 'RedirectURI', 'UserIdHashCode'] via optional-lookup v[+0x20].",
+     "notes": "Static firmware analysis, not observed device execution. Direct-token registration, synchronous service exchange, local persistence and queued maintenance/cloud outcomes are separate boundaries.",
      "todo": [
-      "Established: virtual dispatch to handler 0x10732454; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: concrete dispatch, all eight required inputs and explicit length rejection, three routing branches, computed identity, local mutation/guest-upgrade paths, persistence and output behavior are recovered.",
+      "Residual: complete SMAPI transport/fault vocabulary and preinstalled-service setup/metrics leaves, post-save reporting/registration, selected-account maintenance and cloud response/conflict processing remain under investigation.",
+      "Next step: finish 0x106ff03c/0x10562e6c and 0x1028ad54 setup leaves; then 0x104abd90/0x104b16b4, 0x101b6fdc, 0x100bbc80 -> 0x101b869c and 0x10290df4 -> 0x10506e3c/0x10506c70 -> 0x10285e18."
      ]
     },
     "DoPostUpdateTasks": {
