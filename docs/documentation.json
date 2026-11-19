@@ -92575,7 +92575,7 @@
    },
    "actions": {
     "Next": {
-     "description": "Requests Next on the selected source action interface through f_106a6cf4. Enforces accepted/matching InstanceID, faults 401 when no interface exists, and ignores the concrete interface call result. Actual provider skip effects remain unresolved. For the recovered Spotify provider (ID 2), startup attaches Spotify+4 as the action interface and Next reaches f_102132e0, which submits RSpotifyPlaybackSkipToNext after updating audio-input accounting.",
+     "description": "Requests Next on the selected source action interface through f_106a6cf4. Enforces accepted/matching InstanceID, faults 401 when no interface exists, and ignores the concrete interface call result. Actual provider skip effects remain unresolved. For the recovered Spotify provider (ID 2), startup attaches Spotify+4 as the action interface and Next reaches f_102132e0, which submits RSpotifyPlaybackSkipToNext after updating audio-input accounting. The recovered Spotify request can complete with SDK validation failure; even a zero SDK result is only event-queue/pump processing, not a confirmed track change.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073ce18",
@@ -92702,7 +92702,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Depends on selected-source descriptor +0x354, its ID at +0 and provider at +4. Provider slot +0x2c supplies a separate action interface; interface slot +0x18 is invoked under manager mutex +0x150. This is not controller table 0x10ecbe2c slot +0x1c. The recovered Spotify provider returns child+0x188 under child mutex+0x50. That field starts null and is attached to Spotify+4 during startup through f_1021b410/f_1022c7d4. Its concrete worker uses audio input Spotify+0x148 and the Spotify request engine at +0x7ae8.",
+      "description": "Depends on selected-source descriptor +0x354, its ID at +0 and provider at +4. Provider slot +0x2c supplies a separate action interface; interface slot +0x18 is invoked under manager mutex +0x150. This is not controller table 0x10ecbe2c slot +0x1c. The recovered Spotify provider returns child+0x188 under child mutex+0x50. That field starts null and is attached to Spotify+4 during startup through f_1021b410/f_1022c7d4. Its concrete worker uses audio input Spotify+0x148 and the Spotify request engine at +0x7ae8. Next request vptr 0x10ea1f78 has name getter +8 -> f_1021cdd4, execution +0x10 -> f_1021d890, wait +0x14 -> f_1021d4f8 and completion +0x18 -> f_1021d4a8. Engine work f_10226ef0 loads pending +0xa74 and invokes +0x10 at 0x10226fa8 before clearing the pending pointer. f_1021d890 calls f_10cf5754, stores its integer result at request+0xec and signals completion +0xe8/+0x98 even for a nonzero SDK result. The waiter tests completion, not successful playback. The interface f_102132e0 converts the stored result to a boolean, which the VLI manager ignores. Before submission f_104ddcf4 locks audio-input+0x28, calls f_104dc4a4 and copies +0x100 to +0x104. f_104dc4a4 exits without work when +0xcc/+0xd0 are both zero. Otherwise it obtains a snapshot via audio-input+0xb8 virtual +0x0c, initializes baseline +0xd4/+0xd8 and zeroes +0xdc..+0xe8 when the baseline is empty. With +0x11b set and +0x118 clear, positive f_105a8e20(snapshot, baseline) updates +0x100 using +0xfc. This is accounting/cache work, not a source selection or proof of a track transition. The concrete snapshot object and module callbacks remain unresolved.",
       "evidence": [
        {
         "type": "firmware",
@@ -92751,13 +92751,27 @@
         "address": "0x10213370",
         "function": "0x102132e0",
         "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10226fa8",
+        "notes": "Next request vptr 0x10ea1f78 has name getter +8 -> f_1021cdd4, execution +0x10 -> f_1021d890, wait +0x14 -> f_1021d4f8 and completion +0x18 -> f_1021d4a8. Engine work f_10226ef0 loads pending +0xa74 and invokes +0x10 at 0x10226fa8 before clearing the pending pointer. f_1021d890 calls f_10cf5754, stores its integer result at request+0xec and signals completion +0xe8/+0x98 even for a nonzero SDK result. The waiter tests completion, not successful playback. The interface f_102132e0 converts the stored result to a boolean, which the VLI manager ignores."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104dc4a4",
+        "notes": "Before submission f_104ddcf4 locks audio-input+0x28, calls f_104dc4a4 and copies +0x100 to +0x104. f_104dc4a4 exits without work when +0xcc/+0xd0 are both zero. Otherwise it obtains a snapshot via audio-input+0xb8 virtual +0x0c, initializes baseline +0xd4/+0xd8 and zeroes +0xdc..+0xe8 when the baseline is empty. With +0x11b set and +0x118 clear, positive f_105a8e20(snapshot, baseline) updates +0x100 using +0xfc. This is accounting/cache work, not a source selection or proof of a track transition. The concrete snapshot object and module callbacks remain unresolved."
        }
       ],
-      "todo": "Established: Spotify ID-2 provider, mutex-protected getter, initially null interface field, startup attachment, final interface table and request-engine dependencies are traced. Residual: bind providers/interfaces for IDs 1,3,6,8 and enumerate dependencies inside Spotify f_10cf5754 and accounting f_104dc4a4. Raw registration-call/pointer searches and selected-record lookup inspection do not yet establish those other bindings."
+      "todo": "Established: ID-2 provider/interface, actual execution/wait/completion slots, SDK state/permission/rate gates and audio-input accounting branches. Unknown: accepted IDs 1,3,6,8, the concrete snapshot provider and registered SDK modules. Next: recover their f_106a76b8 registrations/getters; bind audio-input+0xb8 virtual +0x0c at 0x104dc504 and module-manager callback entries invoked at 0x10d0870c."
      },
      "side_effects": [
       {
-       "description": "After the ID/descriptor/interface gates, calls the selected provider action interface +0x18 at 0x106a6e0c. The manager does not itself update playback/group counters or wait for a controller completion boolean. Concrete provider effects are not yet established. For recovered Spotify ID 2, f_102132e0 updates audio-input accounting through f_104ddcf4, creates a RSpotifyPlaybackSkipToNext request, and submits/waits through f_10226c6c. An occupied request or shutdown can prevent submission without changing the SOAP success path.",
+       "description": "After the ID/descriptor/interface gates, calls the selected provider action interface +0x18 at 0x106a6e0c. The manager does not itself update playback/group counters or wait for a controller completion boolean. Concrete provider effects are not yet established. For recovered Spotify ID 2, f_102132e0 updates audio-input accounting through f_104ddcf4, creates a RSpotifyPlaybackSkipToNext request, and submits/waits through f_10226c6c. An occupied request or shutdown can prevent submission without changing the SOAP success path. f_10cf5754 is the SpPlaybackSkipToNext wrapper. It calls f_10cfc65c; nonzero validation status returns directly. Validation checks the SDK context, readiness and current-playback data, permission helper f_10d077e0(4), cached playback flags and request-rate state. In its accepted branch it calls f_10d09770(0x18,0,0), then f_10d09770(0x16,0,1), but does not test their return values, and returns zero. The queue helper writes event type and arguments at the selected queue entry and advances its write index. Its full-queue path includes assertions/logging and can return -2 if control returns; that return is not checked by this caller. After zero validation status, f_10cf5754 calls f_10cfbdb0, which invokes f_10d08534 then unconditionally returns zero, ignoring the pump result. The pump checks the SDK module-manager context and recursive-call flag, processes queued records by calling each registered module callback at entry+0x10 with the event record, and clears the processing flag when drained. An empty queue invokes no module callback; a recursive pump request is ignored, and a missing context has a -1 return that this wrapper discards. Therefore zero SDK/request status does not prove the skip event was accepted by a module or produced a new audible track. Before submission f_104ddcf4 locks audio-input+0x28, calls f_104dc4a4 and copies +0x100 to +0x104. f_104dc4a4 exits without work when +0xcc/+0xd0 are both zero. Otherwise it obtains a snapshot via audio-input+0xb8 virtual +0x0c, initializes baseline +0xd4/+0xd8 and zeroes +0xdc..+0xe8 when the baseline is empty. With +0x11b set and +0x118 clear, positive f_105a8e20(snapshot, baseline) updates +0x100 using +0xfc. This is accounting/cache work, not a source selection or proof of a track transition. The concrete snapshot object and module callbacks remain unresolved.",
        "evidence": [
         {
          "type": "firmware",
@@ -92806,13 +92820,34 @@
          "address": "0x10213370",
          "function": "0x102132e0",
          "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10cfc7b8",
+         "notes": "f_10cf5754 is the SpPlaybackSkipToNext wrapper. It calls f_10cfc65c; nonzero validation status returns directly. Validation checks the SDK context, readiness and current-playback data, permission helper f_10d077e0(4), cached playback flags and request-rate state. In its accepted branch it calls f_10d09770(0x18,0,0), then f_10d09770(0x16,0,1), but does not test their return values, and returns zero. The queue helper writes event type and arguments at the selected queue entry and advances its write index. Its full-queue path includes assertions/logging and can return -2 if control returns; that return is not checked by this caller."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10d08534",
+         "notes": "After zero validation status, f_10cf5754 calls f_10cfbdb0, which invokes f_10d08534 then unconditionally returns zero, ignoring the pump result. The pump checks the SDK module-manager context and recursive-call flag, processes queued records by calling each registered module callback at entry+0x10 with the event record, and clears the processing flag when drained. An empty queue invokes no module callback; a recursive pump request is ignored, and a missing context has a -1 return that this wrapper discards. Therefore zero SDK/request status does not prove the skip event was accepted by a module or produced a new audible track."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104dc4a4",
+         "notes": "Before submission f_104ddcf4 locks audio-input+0x28, calls f_104dc4a4 and copies +0x100 to +0x104. f_104dc4a4 exits without work when +0xcc/+0xd0 are both zero. Otherwise it obtains a snapshot via audio-input+0xb8 virtual +0x0c, initializes baseline +0xd4/+0xd8 and zeroes +0xdc..+0xe8 when the baseline is empty. With +0x11b set and +0x118 clear, positive f_105a8e20(snapshot, baseline) updates +0x100 using +0xfc. This is accounting/cache work, not a source selection or proof of a track transition. The concrete snapshot object and module callbacks remain unresolved."
         }
        ],
-       "todo": "Established: Spotify accounting refresh, request object, busy/shutdown gates, pending request+0xa74 store and completion wait are traced through f_10226c6c. Residual: finish audio-input f_104dc4a4 and skip execution f_1021d890 -> f_10cf5754 mutations, and locate concrete workers for IDs 1,3,6,8. The previously unknown ID-2 provider/interface binding is resolved, not inferred from a numeric controller slot."
+       "todo": "Established: Spotify SDK preflight, two event-queue attempts, ignored enqueue/pump results, completion despite SDK failure and accounting stores. Unknown: actual module skip effects and other providers. Next: bind event types 0x18/0x16 to concrete module callbacks at 0x10d0870c; bind the accounting snapshot at 0x104dc504 and source registrations/interfaces for IDs 1,3,6,8."
       }
      ],
      "events_triggered": {
-      "description": "No direct notify/event call appears in f_106a6cf4 beyond the selected provider action interface +0x18. A notification attributed solely to the previous controller callback is unsupported; provider and downstream event behavior remain to be traced. Spotify request submission signals its engine condition +0x220 and completion signals request+0x98; these are internal wakeups, not GENA/WSS notifications. No action-specific route to the VLI metadata emitter has been established.",
+      "description": "No direct notify/event call appears in f_106a6cf4 beyond the selected provider action interface +0x18. A notification attributed solely to the previous controller callback is unsupported; provider and downstream event behavior remain to be traced. Spotify request submission signals its engine condition +0x220 and completion signals request+0x98; these are internal wakeups, not GENA/WSS notifications. No action-specific route to the VLI metadata emitter has been established. Spotify validation queues SDK event types 0x18 and 0x16; the event pump invokes internal module callbacks, not a bound VLI GENA/WSS emitter. Completion signaling also occurs for a nonzero SDK validation result.",
       "evidence": [
        {
         "type": "firmware",
@@ -92861,12 +92896,33 @@
         "address": "0x10213370",
         "function": "0x102132e0",
         "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10226fa8",
+        "notes": "Next request vptr 0x10ea1f78 has name getter +8 -> f_1021cdd4, execution +0x10 -> f_1021d890, wait +0x14 -> f_1021d4f8 and completion +0x18 -> f_1021d4a8. Engine work f_10226ef0 loads pending +0xa74 and invokes +0x10 at 0x10226fa8 before clearing the pending pointer. f_1021d890 calls f_10cf5754, stores its integer result at request+0xec and signals completion +0xe8/+0x98 even for a nonzero SDK result. The waiter tests completion, not successful playback. The interface f_102132e0 converts the stored result to a boolean, which the VLI manager ignores."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10cfc7b8",
+        "notes": "f_10cf5754 is the SpPlaybackSkipToNext wrapper. It calls f_10cfc65c; nonzero validation status returns directly. Validation checks the SDK context, readiness and current-playback data, permission helper f_10d077e0(4), cached playback flags and request-rate state. In its accepted branch it calls f_10d09770(0x18,0,0), then f_10d09770(0x16,0,1), but does not test their return values, and returns zero. The queue helper writes event type and arguments at the selected queue entry and advances its write index. Its full-queue path includes assertions/logging and can return -2 if control returns; that return is not checked by this caller."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d08534",
+        "notes": "After zero validation status, f_10cf5754 calls f_10cfbdb0, which invokes f_10d08534 then unconditionally returns zero, ignoring the pump result. The pump checks the SDK module-manager context and recursive-call flag, processes queued records by calling each registered module callback at entry+0x10 with the event record, and clears the processing flag when drained. An empty queue invokes no module callback; a recursive pump request is ignored, and a missing context has a -1 return that this wrapper discards. Therefore zero SDK/request status does not prove the skip event was accepted by a module or produced a new audible track."
        }
       ],
-      "todo": "Established: recovered Spotify Next reaches request-engine +0x220 and request-completion +0x98 condition signals, not a direct VLI notification. Residual: trace f_10cf5754/accounting f_104dc4a4 and other source workers to actual event sinks; recover the registrations for IDs 1,3,6,8. Whole-text direct branch and allocated-section pointer searches found no incoming reference to VLI metadata routine f_106ab4d4, so its existence does not prove this action triggers it."
+      "todo": "Established: request/engine condition wakeups and SDK queue-to-module dispatch, including empty/recursive pump behavior and error completion. Unknown: concrete module and snapshot-provider event effects, other source workers and any action-specific metadata-emitter path. Next: bind module callbacks at 0x10d0870c, snapshot provider at 0x104dc504 and IDs 1,3,6,8; continue incoming-path recovery for f_106ab4d4 rather than treating its existence as an action trigger."
      },
      "state_transitions": {
-      "description": "The source manager performs no transition store in Next. It delegates through provider+0x2c -> interface+0x18 without inspecting the callback result; whether that provider changes playback state is unresolved. The recovered Spotify interface submits a source-specific skip request and waits for its completion flag; busy/shutdown rejection and the request result are still hidden by the SOAP action ignoring the interface result. Completion is not evidence that a new track became audible.",
+      "description": "The source manager performs no transition store in Next. It delegates through provider+0x2c -> interface+0x18 without inspecting the callback result; whether that provider changes playback state is unresolved. The recovered Spotify interface submits a source-specific skip request and waits for its completion flag; busy/shutdown rejection and the request result are still hidden by the SOAP action ignoring the interface result. Completion is not evidence that a new track became audible. Next request vptr 0x10ea1f78 has name getter +8 -> f_1021cdd4, execution +0x10 -> f_1021d890, wait +0x14 -> f_1021d4f8 and completion +0x18 -> f_1021d4a8. Engine work f_10226ef0 loads pending +0xa74 and invokes +0x10 at 0x10226fa8 before clearing the pending pointer. f_1021d890 calls f_10cf5754, stores its integer result at request+0xec and signals completion +0xe8/+0x98 even for a nonzero SDK result. The waiter tests completion, not successful playback. The interface f_102132e0 converts the stored result to a boolean, which the VLI manager ignores. After zero validation status, f_10cf5754 calls f_10cfbdb0, which invokes f_10d08534 then unconditionally returns zero, ignoring the pump result. The pump checks the SDK module-manager context and recursive-call flag, processes queued records by calling each registered module callback at entry+0x10 with the event record, and clears the processing flag when drained. An empty queue invokes no module callback; a recursive pump request is ignored, and a missing context has a -1 return that this wrapper discards. Therefore zero SDK/request status does not prove the skip event was accepted by a module or produced a new audible track.",
       "evidence": [
        {
         "type": "firmware",
@@ -92915,9 +92971,23 @@
         "address": "0x10213370",
         "function": "0x102132e0",
         "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10226fa8",
+        "notes": "Next request vptr 0x10ea1f78 has name getter +8 -> f_1021cdd4, execution +0x10 -> f_1021d890, wait +0x14 -> f_1021d4f8 and completion +0x18 -> f_1021d4a8. Engine work f_10226ef0 loads pending +0xa74 and invokes +0x10 at 0x10226fa8 before clearing the pending pointer. f_1021d890 calls f_10cf5754, stores its integer result at request+0xec and signals completion +0xe8/+0x98 even for a nonzero SDK result. The waiter tests completion, not successful playback. The interface f_102132e0 converts the stored result to a boolean, which the VLI manager ignores."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d08534",
+        "notes": "After zero validation status, f_10cf5754 calls f_10cfbdb0, which invokes f_10d08534 then unconditionally returns zero, ignoring the pump result. The pump checks the SDK module-manager context and recursive-call flag, processes queued records by calling each registered module callback at entry+0x10 with the event record, and clears the processing flag when drained. An empty queue invokes no module callback; a recursive pump request is ignored, and a missing context has a -1 return that this wrapper discards. Therefore zero SDK/request status does not prove the skip event was accepted by a module or produced a new audible track."
        }
       ],
-      "todo": "Established: ID-2 request submission/busy/shutdown/completion control flow and the ignored SOAP result are traced through f_102132e0/f_10226c6c/f_1021d890. Residual: establish playback transitions inside f_10cf5754 and concrete workers for IDs 1,3,6,8 before asserting a completed next-track transition. Constructor, setter and vtable evidence now prove the Spotify interface rather than leaving that binding open."
+      "todo": "Established: actual pending-request execution, stored SDK failure, completion wakeup, ignored queue/pump return values and no manager transition store. Unknown: playback changes in concrete SDK modules and providers for IDs 1,3,6,8. Next: identify the module callbacks invoked at 0x10d0870c for event types 0x18/0x16 and recover the remaining provider bindings before claiming a completed next-track transition."
      },
      "return_behavior": {
       "description": "402 on request validation, invalid ID, missing selected descriptor or selected-ID mismatch. 401 on null provider/action interface. Otherwise calls interface+0x18 and returns zero regardless of its result, committing with no outputs. SOAP success is dispatch success, not proven skip completion.",
@@ -93184,10 +93254,45 @@
        "address": "0x10213370",
        "function": "0x102132e0",
        "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10226fa8",
+       "notes": "Next request vptr 0x10ea1f78 has name getter +8 -> f_1021cdd4, execution +0x10 -> f_1021d890, wait +0x14 -> f_1021d4f8 and completion +0x18 -> f_1021d4a8. Engine work f_10226ef0 loads pending +0xa74 and invokes +0x10 at 0x10226fa8 before clearing the pending pointer. f_1021d890 calls f_10cf5754, stores its integer result at request+0xec and signals completion +0xe8/+0x98 even for a nonzero SDK result. The waiter tests completion, not successful playback. The interface f_102132e0 converts the stored result to a boolean, which the VLI manager ignores."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10cfc7b8",
+       "notes": "f_10cf5754 is the SpPlaybackSkipToNext wrapper. It calls f_10cfc65c; nonzero validation status returns directly. Validation checks the SDK context, readiness and current-playback data, permission helper f_10d077e0(4), cached playback flags and request-rate state. In its accepted branch it calls f_10d09770(0x18,0,0), then f_10d09770(0x16,0,1), but does not test their return values, and returns zero. The queue helper writes event type and arguments at the selected queue entry and advances its write index. Its full-queue path includes assertions/logging and can return -2 if control returns; that return is not checked by this caller."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10d08534",
+       "notes": "After zero validation status, f_10cf5754 calls f_10cfbdb0, which invokes f_10d08534 then unconditionally returns zero, ignoring the pump result. The pump checks the SDK module-manager context and recursive-call flag, processes queued records by calling each registered module callback at entry+0x10 with the event record, and clears the processing flag when drained. An empty queue invokes no module callback; a recursive pump request is ignored, and a missing context has a -1 return that this wrapper discards. Therefore zero SDK/request status does not prove the skip event was accepted by a module or produced a new audible track."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104dc4a4",
+       "notes": "Before submission f_104ddcf4 locks audio-input+0x28, calls f_104dc4a4 and copies +0x100 to +0x104. f_104dc4a4 exits without work when +0xcc/+0xd0 are both zero. Otherwise it obtains a snapshot via audio-input+0xb8 virtual +0x0c, initializes baseline +0xd4/+0xd8 and zeroes +0xdc..+0xe8 when the baseline is empty. With +0x11b set and +0x118 clear, positive f_105a8e20(snapshot, baseline) updates +0x100 using +0xfc. This is accounting/cache work, not a source selection or proof of a track transition. The concrete snapshot object and module callbacks remain unresolved."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102133a8",
+       "notes": "Raw 0x712a0008 at 0x10cfc784 is andi. with mask 8, not a shift. Raw 0x57ffd97e at 0x102133a8 has SH=27, MB=5, ME=31: unsigned shift right five of cntlzw(result), yielding the zero-result boolean. Request execution is +0x10, not the +8 name getter."
       }
      ],
      "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot.",
-     "todo": "Established: the raw direct registration caller 0x10219cf0 registers Spotify ID 2; final provider vptr 0x10ea53a8, getter f_1022ae3c/f_1022add4, interface attachment f_1021b410/f_1022c7d4 and interface vptr 0x10ea2210 bind +0x18 to f_102133cc/f_102132e0. Residual: recover registrations/getters/interfaces for accepted IDs 1,3,6,8 and trace Spotify request execution f_1021d890 -> f_10cf5754 plus accounting f_104dc4a4 to final mutations/events. Whole-text direct-branch, initialized-pointer and registry-base searches found no additional direct f_106a76b8 caller; indirect/aliased registrations are not excluded."
+     "todo": "Established: proven Spotify ID-2 binding, request execution at +0x10, readiness/permission/rate gates, event-queue attempts, internal module pump, error completion and audio-input accounting branches. Unknown: concrete module effects, snapshot provider, remaining accepted source interfaces and event delivery. Next: bind callback entries invoked at 0x10d0870c, audio-input+0xb8 virtual +0x0c at 0x104dc504 and source registrations/getters for IDs 1,3,6,8; recover a real action path to f_106ab4d4 before attributing metadata notification."
     },
     "Pause": {
      "description": "Pause is not implemented by this SOAP source manager. Bound 0x106a613c optionally logs \"Pause\" and returns 401, ignoring its inputs. Request validation failure selects 402; no playback or volume operation occurs.",
