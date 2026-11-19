@@ -87222,7 +87222,7 @@
      "implementation_notes": "Base713 and unresolved-container710 are statically distinguished from701. Generic save codes are not all assumed reachable for every mutation phase."
     },
     "DestroyObject": {
-     "description": "Destroys ObjectID via impl->v[+0x28].",
+     "description": "Deletes through the resolved object implementation. Registered-share objects remove the share registration, SQ: root clears all saved queues while an SQ item removes that queue, and R/FV item nodes delete their stored entry. Exact R: or FV: root routes reset the shared favorites/radio store. Successful SQ deletion also attempts best-effort favorites-reference cleanup whose failure is ignored.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306e70",
@@ -87254,11 +87254,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x10302834; share0x10348a64; SQ0x10347ddc/0x10347f44; R/FV0x1037f4a0; root reset0x1037ea40",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x28; resolved object+0x24"
      },
      "inputs": {
       "ObjectID": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x10302834",
+       "description": "Existing object or supported root to delete. Root deletion can clear an entire backend collection, not merely one file/item.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -87267,29 +87269,71 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x10302834",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "NUL-terminated ObjectID",
+       "unit": "none",
+       "accepted_values": "Registered S: share child; SQ: root or queue item; R:/FV: item nodes; exact R: or FV: whole-store root.",
+       "range": "1024-byte request buffer including NUL",
+       "special_values": "Unknown resolver701; default unsupported delete711; non-creatable child/category forms on R/FV delete or non-direct share child713. SQ: clears all queues; R:/FV: roots reset shared radio/favorites file.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required string, object resolver, then concrete delete gates.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306eb0",
-         "notes": "in-arg access site"
+         "function": "0x10306e70",
+         "address": "0x10306ed0",
+         "notes": "Required ObjectID cap0x400 via1056157c; validator false ->402 at10306f40. Primary+0x28 called10306ef0. Nonzero fault10306f0c, zero empty response commit10306f54. No success outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb32f8",
-         "notes": "argument name string"
+         "function": "0x10302834",
+         "address": "0x10302858",
+         "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10348a64",
+         "address": "0x10348a94",
+         "notes": "Share-child vtable0x10ebb644 +0x24; parent text node+0x411 must equal S:, else713. Direct registered-share path decoded by103489f0 then1010e4ec ->1010e2f0. Does not delete arbitrary filesystem files below a share or permit deleting S: root (base711)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10347ddc",
+         "address": "0x10347e3c",
+         "notes": "SQ root vtable0x10ebb7f4 +0x24 passes -1 to1047ac60: clear ALL saved queues. SQ item vtable0x10ebb7ac +0x24=10347f44 passes node+0x98 ID at10347fac. Shared-pointer retain/release does not change rc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037f4a0",
+         "address": "0x1037f4e4",
+         "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10349d00",
+         "address": "0x10349f98",
+         "notes": "Exact R: strcmp10349ecc ->manager+0x344 wrapper (vtable0x10ec0c28), delete1037b0b4 delegates provider+4 v+0x24. Exact FV: strcmp10349f50 ->1034a02c loads manager+0x34c provider, vtable0x10ec0b08 +0x24=1037ea40. Prefix children instead use1037d250/1037ccb4 pooled nodes. Thus whole-root and item deletion are distinct reachable routes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037ea40",
+         "address": "0x1037eb08",
+         "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
         }
        ],
        "notes": null,
@@ -87298,152 +87342,482 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "Missing ObjectID402; unresolved701. Base delete711. Share override requires direct registered-share parent S: else713. R/FV pooled override checks item classifier else713; its category-to-phase helper rejects unknown category402. No XML/tag inputs. Exact root dispatch precedes prefix-child resolution.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10306e70",
-        "notes": "wrapper family decode"
+        "function": "0x10306e70",
+        "address": "0x10306ed0",
+        "notes": "Required ObjectID cap0x400 via1056157c; validator false ->402 at10306f40. Primary+0x28 called10306ef0. Nonzero fault10306f0c, zero empty response commit10306f54. No success outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302834",
+        "address": "0x10302858",
+        "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10348a64",
+        "address": "0x10348a94",
+        "notes": "Share-child vtable0x10ebb644 +0x24; parent text node+0x411 must equal S:, else713. Direct registered-share path decoded by103489f0 then1010e4ec ->1010e2f0. Does not delete arbitrary filesystem files below a share or permit deleting S: root (base711)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f4a0",
+        "address": "0x1037f4e4",
+        "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384808",
+        "address": "0x10384890",
+        "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10349d00",
+        "address": "0x10349f98",
+        "notes": "Exact R: strcmp10349ecc ->manager+0x344 wrapper (vtable0x10ec0c28), delete1037b0b4 delegates provider+4 v+0x24. Exact FV: strcmp10349f50 ->1034a02c loads manager+0x34c provider, vtable0x10ec0b08 +0x24=1037ea40. Prefix children instead use1037d250/1037ccb4 pooled nodes. Thus whole-root and item deletion are distinct reachable routes."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x28]",
+      "description": "Resolved object with supported deletion route; share manager available and idle for registration removal; initialized saved-queue manager and writable savedqueues store; R/FV file parse/rewrite capability. Whole R:/FV: root reset requires initialized provider identity/callback pointers. Destruction is not generally allowed for all Browse containers.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306e70",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "function": "0x10302834",
+        "address": "0x10302858",
+        "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010e2f0",
+        "address": "0x1010e484",
+        "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ac60",
+        "address": "0x1047ae2c",
+        "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384808",
+        "address": "0x10384890",
+        "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037ea40",
+        "address": "0x1037eb08",
+        "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x28]",
+      "description": "Share list/state/mutex and cached stamp; saved-queue manager11096770 pointers/revision/mutex and savedqueues.rsq; favorites provider/file/mutex/version and mutation phase. impl+0x4b4 controls optional SQ favorites-reference cleanup. Outer worker does not directly write SystemUpdateID.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306e70",
-        "notes": "member vfunc calls: ['r30 v[+0x28]']"
+        "function": "0x10302834",
+        "address": "0x10302858",
+        "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302834",
+        "address": "0x103028c8",
+        "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010e2f0",
+        "address": "0x1010e484",
+        "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ac60",
+        "address": "0x1047ae2c",
+        "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384808",
+        "address": "0x10384890",
+        "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037ea40",
+        "address": "0x1037eb08",
+        "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f788",
+        "address": "0x1037f860",
+        "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x28] (call-derived member-method semantics)",
+       "description": "Share path unregisters/compacts share list and wakes localRemoveShare processing. SQ root or item mutates savedqueues store/revision and callbacks. R/FV item atomically rewrites userradio.xml; exact root resets it to empty, with both favorites and radio replication. SQ successful primary deletion attempts additional favorites-reference cleanup but ignores its status; no outer rollback.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302834",
+         "address": "0x103028c8",
+         "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010e2f0",
+         "address": "0x1010e484",
+         "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10347ddc",
+         "address": "0x10347e3c",
+         "notes": "SQ root vtable0x10ebb7f4 +0x24 passes -1 to1047ac60: clear ALL saved queues. SQ item vtable0x10ebb7ac +0x24=10347f44 passes node+0x98 ID at10347fac. Shared-pointer retain/release does not change rc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ac60",
+         "address": "0x1047ae2c",
+         "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10384808",
+         "address": "0x10384890",
+         "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037ea40",
+         "address": "0x1037eb08",
+         "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037e7a0",
+         "address": "0x1037e81c",
+         "notes": "Whole-store reset increments provider+0x128 and+0x14c before optional callback+0x110 v+0x14. Unlike1037e554, counter increment is NOT gated on callback presence. Replicates BOTH FV:2 and R:0 at1037e844/1037e904."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037f788",
+         "address": "0x1037f860",
+         "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "Share deletion wakes share worker. SQ successful store calls manager callbacks; R/FV success calls1037e554 or whole-reset1037e7a0, dispatching provider callback and replication. Whole reset advances version even without callback, and replicates FV:2 plus R:0. No direct GENA in cd_impl delete.",
+      "todo": "Residual: bind SQ callback manager+0xc0 and manager virtual+0x14 (1047ae9c/1047aeb8), favorites callback+0x110 (1037e83c /1037e5e0), and localRemoveShare consumer to concrete ContentDirectory notifier/event delivery. Do not equate generic callbacks with wire GENA.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302834",
+        "address": "0x10302858",
+        "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010e2f0",
+        "address": "0x1010e484",
+        "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ac60",
+        "address": "0x1047ae2c",
+        "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f4a0",
+        "address": "0x1037f4e4",
+        "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037e7a0",
+        "address": "0x1037e81c",
+        "notes": "Whole-store reset increments provider+0x128 and+0x14c before optional callback+0x110 v+0x14. Unlike1037e554, counter increment is NOT gated on callback presence. Replicates BOTH FV:2 and R:0 at1037e844/1037e904."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f788",
+        "address": "0x1037f860",
+        "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Successful primary mutation remains authoritative even if subsequent SQ-reference cleanup fails. SQ transaction rc0 advances revision+0xec and notifications. Favorites item delete uses phase4/5; cleanup phase7. Whole-store reset advances provider+0x128/+0x14c and replicates both collections. Detailed item-store SAX transitions remain the action residual.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302834",
+        "address": "0x103028c8",
+        "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1047ac60",
+        "address": "0x1047ae2c",
+        "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384808",
+        "address": "0x10384890",
+        "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037e7a0",
+        "address": "0x1037e81c",
+        "notes": "Whole-store reset increments provider+0x128 and+0x14c before optional callback+0x110 v+0x14. Unlike1037e554, counter increment is NOT gated on callback presence. Replicates BOTH FV:2 and R:0 at1037e844/1037e904."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f788",
+        "address": "0x1037f860",
+        "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Zero commits empty success; nonzero primary backend status forwarded after release. Optional SQ-reference cleanup status is ignored, so its own701/I/O/semantic failures are not DestroyObject wire faults. Base unsupported711 differs from concrete item-shape713. No outputs or transactional rollback.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10306e70",
+        "address": "0x10306ed0",
+        "notes": "Required ObjectID cap0x400 via1056157c; validator false ->402 at10306f40. Primary+0x28 called10306ef0. Nonzero fault10306f0c, zero empty response commit10306f54. No success outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302834",
+        "address": "0x10302858",
+        "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10302834",
+        "address": "0x103028c8",
+        "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10348a64",
+        "address": "0x10348a94",
+        "notes": "Share-child vtable0x10ebb644 +0x24; parent text node+0x411 must equal S:, else713. Direct registered-share path decoded by103489f0 then1010e4ec ->1010e2f0. Does not delete arbitrary filesystem files below a share or permit deleting S: root (base711)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f4a0",
+        "address": "0x1037f4e4",
+        "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1037f788",
+        "address": "0x1037f860",
+        "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
+       }
+      ]
+     },
+     "fault_sites": [],
+     "errors": [
+      {
+       "code": 402,
+       "meaning": "Missing required ObjectID; R/FV delete helper rejects category outside0/1/2.",
+       "fault_sites": [
+        "0x10306f40",
+        "0x10384840"
+       ],
+       "conditions": [
+        {
+         "description": "Missing required ObjectID; R/FV delete helper rejects category outside0/1/2.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10306e70",
+           "address": "0x10306ed0",
+           "notes": "Required ObjectID cap0x400 via1056157c; validator false ->402 at10306f40. Primary+0x28 called10306ef0. Nonzero fault10306f0c, zero empty response commit10306f54. No success outputs."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10384808",
+           "address": "0x10384890",
+           "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10306e70",
-         "notes": "delegate map ['r30 v[+0x28]']; notify-family calls []"
+         "address": "0x10306ed0",
+         "notes": "Required ObjectID cap0x400 via1056157c; validator false ->402 at10306f40. Primary+0x28 called10306ef0. Nonzero fault10306f0c, zero empty response commit10306f54. No success outputs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10384808",
+         "address": "0x10384890",
+         "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x28] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306e70",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x28]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306e70",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x28]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x28].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306e70",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [
+      },
       {
-       "site": "0x10306f0c",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x28)"
-      }
-     ],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "vret(r5-in,+0x28); parse/req-layer",
-       "meaning": "impl accumulator r30: {701 on object-resolve failure (0x10302858), call/lwz-derived}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
+       "code": 701,
+       "meaning": "Resolver NULL; registered share absent; required saved-queue manager pointers absent; whole-reset provider identity/callback pointers absent.",
        "fault_sites": [
-        "0x10306f0c"
+        "0x10302848",
+        "0x1010e4e0",
+        "0x1047aec0",
+        "0x1037ea48"
        ],
        "conditions": [
         {
-         "description": "req or impl gate failed",
+         "description": "Resolver NULL; registered share absent; required saved-queue manager pointers absent; whole-reset provider identity/callback pointers absent.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10302834",
-           "notes": "impl"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10302834",
+           "address": "0x10302858",
+           "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10306e70",
-           "notes": "parse vcalls then fault path"
+           "function": "0x1010e2f0",
+           "address": "0x1010e484",
+           "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ac60",
+           "address": "0x1047ae2c",
+           "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1037ea40",
+           "address": "0x1037eb08",
+           "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
           }
          ]
         }
@@ -87453,121 +87827,262 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10302834",
-         "notes": "rc path"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
+         "function": "0x10302834",
          "address": "0x10302858",
-         "notes": "li r30,0x2bd on resolver-fail path"
+         "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306e70",
-         "notes": "wrapper parse + fault path"
+         "function": "0x1010e2f0",
+         "address": "0x1010e484",
+         "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ac60",
+         "address": "0x1047ae2c",
+         "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037ea40",
+         "address": "0x1037eb08",
+         "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
+        }
+       ]
+      },
+      {
+       "code": 711,
+       "meaning": "Resolved object uses literal base unsupported delete.",
+       "fault_sites": [
+        "0x10113dd8"
+       ],
+       "conditions": [
+        {
+         "description": "Resolved object uses literal base unsupported delete.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10302834",
+           "address": "0x10302858",
+           "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+          }
+         ]
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x10302834 exits=[-316, 0, 20, 360]; literal exit paths bounded by accumulator scan",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x28); parse/req-layer; sites: 0x10306f0c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302834",
+         "address": "0x10302858",
+         "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+        }
+       ]
+      },
+      {
+       "code": 713,
+       "meaning": "Share child parent is not S:, or R/FV pooled node does not classify as a deletable item.",
+       "fault_sites": [
+        "0x10348b14",
+        "0x1037f4e0"
+       ],
+       "conditions": [
+        {
+         "description": "Share child parent is not S:, or R/FV pooled node does not classify as a deletable item.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10348a64",
+           "address": "0x10348a94",
+           "notes": "Share-child vtable0x10ebb644 +0x24; parent text node+0x411 must equal S:, else713. Direct registered-share path decoded by103489f0 then1010e4ec ->1010e2f0. Does not delete arbitrary filesystem files below a share or permit deleting S: root (base711)."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1037f4a0",
+           "address": "0x1037f4e4",
+           "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10348a64",
+         "address": "0x10348a94",
+         "notes": "Share-child vtable0x10ebb644 +0x24; parent text node+0x411 must equal S:, else713. Direct registered-share path decoded by103489f0 then1010e4ec ->1010e2f0. Does not delete arbitrary filesystem files below a share or permit deleting S: root (base711)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037f4a0",
+         "address": "0x1037f4e4",
+         "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+        }
+       ]
+      },
+      {
+       "code": 720,
+       "meaning": "Share-manager shutdown/unready at entry, or shutdown while awaiting idle.",
+       "fault_sites": [
+        "0x1010e3dc"
+       ],
+       "conditions": [
+        {
+         "description": "Share-manager shutdown/unready at entry, or shutdown while awaiting idle.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010e2f0",
+           "address": "0x1010e484",
+           "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010e2f0",
+         "address": "0x1010e484",
+         "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Whole userradio reset open/short-write/rename failure; invalid negative SQ deletion ID other than-1.",
+       "fault_sites": [
+        "0x1037eb30",
+        "0x1047af18"
+       ],
+       "conditions": [
+        {
+         "description": "Whole userradio reset open/short-write/rename failure; invalid negative SQ deletion ID other than-1.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1037ea40",
+           "address": "0x1037eb08",
+           "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1047ac60",
+           "address": "0x1047ae2c",
+           "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1037ea40",
+         "address": "0x1037eb08",
+         "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ac60",
+         "address": "0x1047ae2c",
+         "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+        }
        ]
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field *(ctx+0x20)>=70 (favorites cap); 806 = ftell()>0x20000 (serialized XML >128KiB); 807 = phase *(ctx+0x1c)>=6 with flag +0x30; 803 = phase *(ctx+0x1c)<2; 702 = flag *(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10384490",
-         "notes": "userradio.xml .tmp+fsync+rename atomic save; full literal exit set {402,501,701,702,803,805,806,807}"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847a4",
-         "notes": "li r31,0x325 (805) gated on *(ctx+0x20)>=0x46"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847d8",
-         "notes": "806 selected when ftell>0x20000"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847f0",
-         "notes": "807 late-phase guard"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10ec0af8",
-         "notes": "dirObj vtable slot -> f_1037f4a0 (favorites mutation fns 0x1037fxxx call f_10384490 at 0x1037f6ec/0x1037f860/0x1037fa00)"
-        }
+       "meaning": "Residual primary SQ persisted-item transaction and R/FV phase4/5 streaming-store semantic status. Best-effort phase7 SQ cleanup failures do not propagate and must not inflate the wire fault domain.",
+       "fault_sites": [
+        "0x1047ae2c",
+        "0x10384890"
        ],
-       "notes": "indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability",
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Reached only after supported resolved target and local manager/category gates; primary transaction rc forwarded unchanged.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10384490",
-           "notes": "userradio.xml .tmp+fsync+rename atomic save; full literal exit set {402,501,701,702,803,805,806,807}"
+           "function": "0x1047ac60",
+           "address": "0x1047ae2c",
+           "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847a4",
-           "notes": "li r31,0x325 (805) gated on *(ctx+0x20)>=0x46"
+           "function": "0x10384808",
+           "address": "0x10384890",
+           "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847d8",
-           "notes": "806 selected when ftell>0x20000"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103847f0",
-           "notes": "807 late-phase guard"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10ec0af8",
-           "notes": "dirObj vtable slot -> f_1037f4a0 (favorites mutation fns 0x1037fxxx call f_10384490 at 0x1037f6ec/0x1037f860/0x1037fa00)"
+           "function": "0x10302834",
+           "address": "0x103028c8",
+           "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ec0af8 emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "todo": "Trace savedqueues.rsq deletion transaction1047ee0c and phase4/5 existing-file SAX callbacks1038163c/10382c00 in10384490; distinguish primary errors from ignored phase7 cleanup.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ac60",
+         "address": "0x1047ae2c",
+         "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10384808",
+         "address": "0x10384890",
+         "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10302834",
+         "address": "0x103028c8",
+         "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
+        }
        ]
       }
      ],
@@ -87587,13 +88102,115 @@
        "build": "86.10-80260",
        "address": "0x10eb427c",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10306e70",
+       "address": "0x10306ed0",
+       "notes": "Required ObjectID cap0x400 via1056157c; validator false ->402 at10306f40. Primary+0x28 called10306ef0. Nonzero fault10306f0c, zero empty response commit10306f54. No success outputs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302834",
+       "address": "0x10302858",
+       "notes": "Resolver1034a224 via impl+0x168 NULL ->701. Resolved object+0x24 delete, +0x28 release. No default-method precheck: base10113dd4 itself returns711. Preserve primary result inr30."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10302834",
+       "address": "0x103028c8",
+       "notes": "After primary rc0 only: original ObjectID starts SQ: (strncmp3) and impl+0x4b4 non-NULL ->1037f788(provider,ObjectID). Its return is IGNORED; outer worker returns original r30. Favorites cleanup failure does not fail or roll back successful SQ delete."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10348a64",
+       "address": "0x10348a94",
+       "notes": "Share-child vtable0x10ebb644 +0x24; parent text node+0x411 must equal S:, else713. Direct registered-share path decoded by103489f0 then1010e4ec ->1010e2f0. Does not delete arbitrary filesystem files below a share or permit deleting S: root (base711)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010e2f0",
+       "address": "0x1010e484",
+       "notes": "Locks share manager+0x20; shutdown+0x4e12 or !ready+0x100 ->720. Waits condition until state+0x52c8==2, shutdown wake ->720. Registered-share lookup case-insensitive; absent ->701 at1010e4e0. Removes/compacts list, marks localRemoveShare, decrements+0x4de8 count, increments+0x11c/+0x5220, copies cached stamp+0x4df0 and wakes worker; returns0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10347ddc",
+       "address": "0x10347e3c",
+       "notes": "SQ root vtable0x10ebb7f4 +0x24 passes -1 to1047ac60: clear ALL saved queues. SQ item vtable0x10ebb7ac +0x24=10347f44 passes node+0x98 ID at10347fac. Shared-pointer retain/release does not change rc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1047ac60",
+       "address": "0x1047ae2c",
+       "notes": "Requires manager+0xc0,+0xb8,+0xbc,+0xc8 non-NULL else701 at1047aec0. Under mutex+0x20: nonnegative ID uses savedqueues.rsq transaction1047ee0c. ID-1 writes empty SavedQueues header to savedqueues.d.rsq then renames; other negative ID501. On transaction rc0 increments+0xec, callback+0xc0 v+0x14 at1047ae9c and manager v+0x14 at1047aeb8. Full transaction error domain remains narrowed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037f4a0",
+       "address": "0x1037f4e4",
+       "notes": "R/FV pooled-node vtable0x10ec0ad4 +0x24. Classifier1037b9ac: type3 radio item accepted; type2 only if R-flagfalse (FV item); other node shapes713. Under provider mutex+0x30 constructs1038395c and calls10384808. Successful delete1037e554(provider,category,1); primary rc unchanged."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10384808",
+       "address": "0x10384890",
+       "notes": "Category0/1 uses phase4, category2 phase5; other category402. Parses item ID via strtol, then atomic rewrite10384490. Existing-file SAX callbacks1038163c/10382c00 determine found/required flags and final phase; exact per-phase semantic fault reachability remains narrowed, rather than copying every generic commit exit."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10349d00",
+       "address": "0x10349f98",
+       "notes": "Exact R: strcmp10349ecc ->manager+0x344 wrapper (vtable0x10ec0c28), delete1037b0b4 delegates provider+4 v+0x24. Exact FV: strcmp10349f50 ->1034a02c loads manager+0x34c provider, vtable0x10ec0b08 +0x24=1037ea40. Prefix children instead use1037d250/1037ccb4 pooled nodes. Thus whole-root and item deletion are distinct reachable routes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037ea40",
+       "address": "0x1037eb08",
+       "notes": "Whole favorites/radio store reset: provider+0x110,+0x118,+0x120 required else701. Writes empty Radio document to userradio.d.xml; open failure, short write or rename failure ->501. Calls fsync/close but does not independently test those return values. rename into userradio.xml only after full-length write. On0 calls1037e7a0; this is not just removal of one item."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037e7a0",
+       "address": "0x1037e81c",
+       "notes": "Whole-store reset increments provider+0x128 and+0x14c before optional callback+0x110 v+0x14. Unlike1037e554, counter increment is NOT gated on callback presence. Replicates BOTH FV:2 and R:0 at1037e844/1037e904."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1037f788",
+       "address": "0x1037f860",
+       "notes": "Best-effort SQ-reference cleanup: reject NULL/empty701; lock provider+0x30, optional virtual+0x48 selector, construct mutation with phase7 and full SQ:ObjectID target at+0x28 ->10384490. On0 calls1037e554(category2). All resulting faults ignored by outer delete caller103028c8."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10306e70; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "todo": "Established: wrapper/binding, object routing, direct-share unregister, SQ root-vs-item delete, R/FV item gates and mutation phases, reachable whole R:/FV: store reset, persistence notification sites, and ignored post-SQ cleanup status. Residual sub-areas: savedqueues.rsq item-deletion transaction1047ee0c and R/FV existing-file SAX semantic phases4/5 at1038163c/10382c00. Exact notification receiver binding is separately narrowed in events_triggered.",
+     "implementation_notes": "Exact root IDs are explicitly distinguished from pooled children; clear-all behavior is reachable by root dispatch, not inferred from an unbound function. SQ cleanup rc intentionally not reported as action failure."
     },
     "FindPrefix": {
      "description": "Finds an alphabetic insertion index in a prefix-capable library attribute node. Prefix must be exactly one uppercase ASCII A..Z, not a general text prefix. Resolved objects using the base unsupported method return800, including the A: directory root; A: attribute child nodes use f_102a3510. UpdateID is zero on this concrete backend, not the global SystemUpdateID.",
