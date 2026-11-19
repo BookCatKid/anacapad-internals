@@ -48918,7 +48918,7 @@
      ]
     },
     "GetTransportSettings": {
-     "description": "Returns PlayMode and RecQualityMode. Impl f_102ad634 shares the getter boilerplate; PlayMode reflects the enum written by SetPlayMode (NORMAL..SHUFFLE_REPEAT_ONE mapped back to its string).",
+     "description": "Reports PlayMode from the active indexed-session settings and fixed RecQualityMode = 'NOT_IMPLEMENTED'. Handler 0x102f8340 invokes impl slot +0x20 (0x102ad634); for InstanceID 0 the worker reads the session mode via f_1025b47c and copies both strings.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f8340",
@@ -49012,7 +49012,7 @@
      },
      "outputs": {
       "PlayMode": {
-       "description": "Current play-mode string; maps the stored enum 0-5 back to its name.",
+       "description": "Play mode name from the current session's packed settings word.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -49021,8 +49021,8 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
+       "accepted_values": "NORMAL, SHUFFLE_NOREPEAT, REPEAT_ALL, SHUFFLE, REPEAT_ONE, SHUFFLE_REPEAT_ONE",
+       "range": "Low three packed bits map through the firmware table; values 6 and 7 alias 4 and 5.",
        "special_values": "none observed in this build",
        "required": false,
        "default": "none - impl writes the value",
@@ -49041,12 +49041,28 @@
          "build": "86.10-80260",
          "address": "0x10eaaeb0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10145f9c",
+         "notes": "f_1025b47c reads the active record through session+0x326c8 under its mutex. f_10145f94 takes the low three bits of its +0x26dc halfword and uses a subtract-one index into 0x10e93560.",
+         "function": "0x10145f94"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10e93560",
+         "notes": "Low bits 0 fall outside the unsigned table range and return NORMAL; 1 through 7 select SHUFFLE_NOREPEAT, REPEAT_ALL, SHUFFLE, REPEAT_ONE, SHUFFLE_REPEAT_ONE, REPEAT_ONE, SHUFFLE_REPEAT_ONE.",
+         "function": "0x10145f94"
         }
        ],
        "notes": null
       },
       "RecQualityMode": {
-       "description": "Record quality mode string (NOT_IMPLEMENTED typical).",
+       "description": "Fixed NOT_IMPLEMENTED recording-quality string in this build.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -49055,9 +49071,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "NOT_IMPLEMENTED",
+       "range": "Fixed literal.",
+       "special_values": "NOT_IMPLEMENTED",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -49075,6 +49091,14 @@
          "build": "86.10-80260",
          "address": "0x10eb3210",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ad788",
+         "notes": "The second output copies the fixed NOT_IMPLEMENTED literal at 0x10ea9108; both wrapper buffers have capacity 0x400.",
+         "function": "0x102ad634"
         }
        ],
        "notes": null
@@ -49107,15 +49131,23 @@
       ]
      },
      "state_dependencies": {
-      "description": "PlayMode string derived from the stored play-mode enum; RecQualityMode from engine settings; field provenance unresolved.",
+      "description": "Reads the low three bits of the active indexed-session settings halfword. There is no check of AVTransport source mode before consulting that record.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad634",
-        "notes": "impl decode",
-        "function": "f_102ad634"
+        "address": "0x10145f9c",
+        "notes": "f_1025b47c reads the active record through session+0x326c8 under its mutex. f_10145f94 takes the low three bits of its +0x26dc halfword and uses a subtract-one index into 0x10e93560.",
+        "function": "0x10145f94"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10e93560",
+        "notes": "Low bits 0 fall outside the unsigned table range and return NORMAL; 1 through 7 select SHUFFLE_NOREPEAT, REPEAT_ALL, SHUFFLE, REPEAT_ONE, SHUFFLE_REPEAT_ONE, REPEAT_ONE, SHUFFLE_REPEAT_ONE.",
+        "function": "0x10145f94"
        }
       ]
      },
@@ -49161,15 +49193,31 @@
       ]
      },
      "return_behavior": {
-      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "description": "Commits two output strings only on success. Failing request materialization emits 402; a nonzero parsed ID produces 718 from the engine.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ad634",
-        "notes": "impl decode",
-        "function": "f_102ad634"
+        "address": "0x102f83cc",
+        "notes": "Request +0x08 at 0x102f839c validates InstanceID; impl +0x20 at this callsite is 0x102ad634 in both tables. The common fault call is request +0x14 at 0x102f83e8.",
+        "function": "0x102f8340"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102f841c",
+        "notes": "Emits literal 402 on TRequest validation failure, before engine dispatch.",
+        "function": "0x102f8340"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ad700",
+        "notes": "InstanceID zero branches to output initialization at 0x102ad764; any other value returns 718 without calling the settings reader.",
+        "function": "0x102ad634"
        }
       ]
      },
@@ -49177,16 +49225,26 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter",
+       "meaning": "TRequest did not materialize the required InstanceID input.",
        "conditions": [
         {
-         "description": "malformed/missing SOAP arg envelope",
+         "description": "The wrapper's request +0x08 call returns false; it raises 402 without running the engine.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "shared request-object parse vfunc; same layer emits 402 in sibling handlers"
+           "address": "0x102f83cc",
+           "notes": "Request +0x08 at 0x102f839c validates InstanceID; impl +0x20 at this callsite is 0x102ad634 in both tables. The common fault call is request +0x14 at 0x102f83e8.",
+           "function": "0x102f8340"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f841c",
+           "notes": "Emits literal 402 on TRequest validation failure, before engine dispatch.",
+           "function": "0x102f8340"
           }
          ]
         }
@@ -49196,27 +49254,43 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "shared request-object arg-parse vfuncs (slot 28 InstanceID read / slot 12 commit); same layer emits 402 Invalid Args in sibling handlers"
+         "address": "0x102f83cc",
+         "notes": "Request +0x08 at 0x102f839c validates InstanceID; impl +0x20 at this callsite is 0x102ad634 in both tables. The common fault call is request +0x14 at 0x102f83e8.",
+         "function": "0x102f8340"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f841c",
+         "notes": "Emits literal 402 on TRequest validation failure, before engine dispatch.",
+         "function": "0x102f8340"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "fault_sites": []
       },
       {
        "code": 718,
-       "meaning": "Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit",
+       "meaning": "Parsed InstanceID was nonzero.",
        "conditions": [
         {
-         "description": "InstanceID parses to nonzero / session object fails to resolve",
+         "description": "The request reached the engine, but the parsed InstanceID was not zero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "718 emitters concentrated in transport request-object fns (53 fns incl. f_102ad4a4, f_102d2e54); pattern proven on sibling action Stop at 0x102d2e94"
+           "address": "0x102ad700",
+           "notes": "InstanceID zero branches to output initialization at 0x102ad764; any other value returns 718 without calling the settings reader.",
+           "function": "0x102ad634"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102f83cc",
+           "notes": "Request +0x08 at 0x102f839c validates InstanceID; impl +0x20 at this callsite is 0x102ad634 in both tables. The common fault call is request +0x14 at 0x102f83e8.",
+           "function": "0x102f8340"
           }
          ]
         }
@@ -49226,14 +49300,20 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "718=nonzero-InstanceID rejection convention; li 0x2ce emitters in transport request-object layer (f_102a*/f_102d*), proven on sibling actions"
+         "address": "0x102ad700",
+         "notes": "InstanceID zero branches to output initialization at 0x102ad764; any other value returns 718 without calling the settings reader.",
+         "function": "0x102ad634"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102f83cc",
+         "notes": "Request +0x08 at 0x102f839c validates InstanceID; impl +0x20 at this callsite is 0x102ad634 in both tables. The common fault call is request +0x14 at 0x102f83e8.",
+         "function": "0x102f8340"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 718; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "fault_sites": []
       }
      ],
      "firmware_differences": [],
@@ -49267,13 +49347,49 @@
        "build": "86.10-80260",
        "address": "0x10eb3114",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f83cc",
+       "notes": "Request +0x08 at 0x102f839c validates InstanceID; impl +0x20 at this callsite is 0x102ad634 in both tables. The common fault call is request +0x14 at 0x102f83e8.",
+       "function": "0x102f8340"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ad700",
+       "notes": "InstanceID zero branches to output initialization at 0x102ad764; any other value returns 718 without calling the settings reader.",
+       "function": "0x102ad634"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10145f9c",
+       "notes": "f_1025b47c reads the active record through session+0x326c8 under its mutex. f_10145f94 takes the low three bits of its +0x26dc halfword and uses a subtract-one index into 0x10e93560.",
+       "function": "0x10145f94"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10e93560",
+       "notes": "Low bits 0 fall outside the unsigned table range and return NORMAL; 1 through 7 select SHUFFLE_NOREPEAT, REPEAT_ALL, SHUFFLE, REPEAT_ONE, SHUFFLE_REPEAT_ONE, REPEAT_ONE, SHUFFLE_REPEAT_ONE.",
+       "function": "0x10145f94"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ad788",
+       "notes": "The second output copies the fixed NOT_IMPLEMENTED literal at 0x10ea9108; both wrapper buffers have capacity 0x400.",
+       "function": "0x102ad634"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f8340; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "Next": {
      "description": "Skips to the next track. Impl f_102b9874 gate (718) then body at 0x102b98d4: lock impl+0x458, log 'upnp'/'next', call f_102b60b0. The worker reads mode impl+0x4654: mode!=2 -> f_102b0140 (submit op-0x19 via f_102aff9c then streamer next vfunc f_106a7a34(*(impl+0x5a0)) - returns streamer result, nonzero=ok); mode==2 -> indexed path: f_102b5ddc, build a request record (f_1032e270 + f_1032e494 against impl+0x5dc), submit via f_10255f64(impl+0x580) with rc map {2->800, 3->701, else->711}; a deeper 'next-source' path calls f_102b1c5c + f_102b4b48/f_10256a84(op 5). Success clears impl+0x6ed8 and returns 0.",
