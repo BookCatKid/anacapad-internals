@@ -43370,7 +43370,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "InstanceID is the engine instance index; every AVTransport impl returns 718 when it is nonzero.",
+       "description": "Must be zero. Nonzero returns 718 before mode or URI checks.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -43409,19 +43409,23 @@
          "build": "86.10-80260",
          "function": "0x102b1d40",
          "notes": "impl loads rc 0x2ce (718) on the InstanceID!=0 branch; convention verified across AVT impls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1dd8",
+         "notes": "After locking, leaves 718 in the return register for nonzero InstanceID. InstanceID zero continues to the +0x4654 mode gate, which returns 800 if mode is nonzero.",
+         "function": "0x102b1d40"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +96 (site 0x102f968c) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x102f968c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
       },
       "NewTransportSettings": {
-       "description": "Opaque transport-settings descriptor parsed by f_103917b4 into the 0x38-byte record.",
+       "description": "Transport settings are read as IPv4:number,IPv4:number:number:number,tail. Firmware tokenizes with successive delimiter sets rather than a literal template match, stores numbers as 16-bit values, and leaves the seeded settings unchanged if parsing fails. A matching local VLI URI replaces the scratch record with live streamer settings.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -43453,10 +43457,53 @@
          "build": "86.10-80260",
          "address": "0x10eb32c0",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1e4c",
+         "notes": "Copies a 56-byte default settings record, then tries to decode the supplied settings at 0x102b1e58 before the URI matcher.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066e15c",
+         "notes": "The tokenizer walks seven descriptors with successive strtok_r delimiter sets ':', ',', ':', ':', ':', ',' and empty. Value types are IPv4 via inet_pton(AF_INET), decimal helper with a halfword store, IPv4, three more halfword stores, then a 25-byte strlcpy of the remaining token. All seven tokens must be present. Input is copied to a 129-byte buffer first.",
+         "function": "0x1066e0d4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066e320",
+         "notes": "If token parsing is unsuccessful, leaves the default record untouched. Otherwise the first IPv4 becomes record+0, the four parsed halfwords in token order become +8, +4, +6 and +0xa, the second IPv4 becomes a dotted string at +0xc, and the trailing token goes to +0x1c (max 24 bytes plus NUL).",
+         "function": "0x1066e2dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103917f0",
+         "notes": "Local VLI match requires successful URI parse, the parsed input/type word equal to f_106a9cc4(topology+0x280), and the parsed text equal by strcmp to topology+0x5c1. Otherwise it returns false.",
+         "function": "0x103917b4"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1e64",
+         "notes": "URI match copies the current 53-byte streamer record at 0x102b2004. URI mismatch first calls f_102b0a48 and looks at the decoded record's +0x1c tail byte before choosing the local VLI path.",
+         "function": "0x102b1d40"
         }
        ],
        "notes": null,
-       "buf_cap": 129
+       "buf_cap": 129,
+       "todo": [
+        "Identify the individual protocol names for the two IPv4 addresses, four port/setting halfwords and the tail where not determined by consumers."
+       ]
       },
       "CurrentAVTransportURI": {
        "description": "Source URI forwarded into the settings application path.",
@@ -43532,85 +43579,197 @@
       ]
      },
      "state_dependencies": {
-      "description": "Source mode gates the operation. CurrentAVTransportURI selects the recorded-settings copy or local stop before subsequent VLI work.",
+      "description": "The action is restricted to mode zero. Local VLI matching uses both a parsed URI type and a stored text string. The chosen settings record's +0x1c byte and its comparison with live streamer settings gate subsequent VLI work; an optional sink object adds a separate branch.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b1e30",
-        "notes": "Nonzero ID sets 718 at 0x102b1dd8. With ID zero, nonzero current mode returns 800; mode zero continues with the supplied settings.",
+        "address": "0x102b1dd8",
+        "notes": "After locking, leaves 718 in the return register for nonzero InstanceID. InstanceID zero continues to the +0x4654 mode gate, which returns 800 if mode is nonzero.",
         "function": "0x102b1d40"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x103917f0",
+        "notes": "Local VLI match requires successful URI parse, the parsed input/type word equal to f_106a9cc4(topology+0x280), and the parsed text equal by strcmp to topology+0x5c1. Otherwise it returns false.",
+        "function": "0x103917b4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "address": "0x102b1e64",
-        "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+        "notes": "URI match copies the current 53-byte streamer record at 0x102b2004. URI mismatch first calls f_102b0a48 and looks at the decoded record's +0x1c tail byte before choosing the local VLI path.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1ed8",
+        "notes": "Stop branch calls f_106aa3b0 on streamer +0x5a0. With a nonempty +0x1c tail it then calls f_102b1cc8(impl,0,1) and proceeds to adjustment; an empty tail skips that sink adjustment.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b205c",
+        "notes": "On URI mismatch with nonempty incoming tail, tests equivalence against live streamer settings at 0x102b210c, then chooses stop or local VLI start at 0x102b20bc. Start selects the clock-install continuation at 0x102b1f7c, which consumes streamer clock and SNTP port before applying settings via f_1030f7f8.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1f04",
+        "notes": "For a nonempty selected tail and nonnull impl+0x5ac, tries f_10209008 with &impl+0x5b4; one arm calls that object's slot +0x5c then f_10309af8. The normal non-start sink branch calls f_1030bc30 at 0x102b20d8. The common tail calls f_100d8b34 with the supplied URI and returns zero.",
         "function": "0x102b1d40"
        }
       ],
       "todo": [
-       "Identify the URI matching rule in f_103917b4 and the incoming settings bits that select each VLI path."
+       "Identify the equivalence rule inside f_102ab308 and the sink predicate in f_10209008."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x60] (call-derived member-method semantics)",
+       "description": "Can stop, start, or deactivate local VLI, apply adjusted transport settings and install the local clock. Finishes a successful branch by passing the supplied URI to the object at impl+0x5bc.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102f95b8",
-         "notes": "delegate map ['r30 v[+0x60]']; notify-family calls []"
+         "address": "0x102b1e64",
+         "notes": "URI match copies the current 53-byte streamer record at 0x102b2004. URI mismatch first calls f_102b0a48 and looks at the decoded record's +0x1c tail byte before choosing the local VLI path.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1ed8",
+         "notes": "Stop branch calls f_106aa3b0 on streamer +0x5a0. With a nonempty +0x1c tail it then calls f_102b1cc8(impl,0,1) and proceeds to adjustment; an empty tail skips that sink adjustment.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b205c",
+         "notes": "On URI mismatch with nonempty incoming tail, tests equivalence against live streamer settings at 0x102b210c, then chooses stop or local VLI start at 0x102b20bc. Start selects the clock-install continuation at 0x102b1f7c, which consumes streamer clock and SNTP port before applying settings via f_1030f7f8.",
+         "function": "0x102b1d40"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b1f04",
+         "notes": "For a nonempty selected tail and nonnull impl+0x5ac, tries f_10209008 with &impl+0x5b4; one arm calls that object's slot +0x5c then f_10309af8. The normal non-start sink branch calls f_1030bc30 at 0x102b20d8. The common tail calls f_100d8b34 with the supplied URI and returns zero.",
+         "function": "0x102b1d40"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x60] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Identify the object at +0x5bc and its mutation, and the state effects of the two optional sink methods."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x102f95b8",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "Can stop, deactivate or reconfigure local VLI; a URI match copies the existing streamer record for the next step.",
+      "description": "No explicit LastChange scheduling call occurs in the settings worker. Any event must follow the source or sink operations, including the pre-configuration stop on a URI mismatch.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102b1e64",
-        "notes": "Reaches settings decode at 0x102b1e58, then URI matcher f_103917b4. A match copies 0x35 bytes of the streamer settings record into the scratch record; mismatch calls f_102b0a48. Later calls f_106aa3b0 to stop local VLI on one path, or f_106aa23c to start it on another.",
+        "notes": "URI match copies the current 53-byte streamer record at 0x102b2004. URI mismatch first calls f_102b0a48 and looks at the decoded record's +0x1c tail byte before choosing the local VLI path.",
         "function": "0x102b1d40"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b1fe4",
-        "notes": "Success resets the accumulator to zero before the f_100d8b34 call; it does not use that call's return. The VLI deactivation path sets zero at 0x102b204c.",
+        "address": "0x102b1ed8",
+        "notes": "Stop branch calls f_106aa3b0 on streamer +0x5a0. With a nonempty +0x1c tail it then calls f_102b1cc8(impl,0,1) and proceeds to adjustment; an empty tail skips that sink adjustment.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b205c",
+        "notes": "On URI mismatch with nonempty incoming tail, tests equivalence against live streamer settings at 0x102b210c, then chooses stop or local VLI start at 0x102b20bc. Start selects the clock-install continuation at 0x102b1f7c, which consumes streamer clock and SNTP port before applying settings via f_1030f7f8.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1f04",
+        "notes": "For a nonempty selected tail and nonnull impl+0x5ac, tries f_10209008 with &impl+0x5b4; one arm calls that object's slot +0x5c then f_10309af8. The normal non-start sink branch calls f_1030bc30 at 0x102b20d8. The common tail calls f_100d8b34 with the supplied URI and returns zero.",
         "function": "0x102b1d40"
        }
       ],
       "todo": [
-       "Map the input settings to the resulting local streamer, sink and AVTransport state."
+       "Trace the exact changed LastChange fields and publishers inside the VLI and sink operations."
+      ]
+     },
+     "state_transitions": {
+      "description": "Copies either local VLI settings or the decoded/default record, then selects stop/deactivate, local start with clock installation, or sink reconfiguration before passing on the URI. The action does not directly change impl+0x4654.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1dd8",
+        "notes": "After locking, leaves 718 in the return register for nonzero InstanceID. InstanceID zero continues to the +0x4654 mode gate, which returns 800 if mode is nonzero.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1e4c",
+        "notes": "Copies a 56-byte default settings record, then tries to decode the supplied settings at 0x102b1e58 before the URI matcher.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1e64",
+        "notes": "URI match copies the current 53-byte streamer record at 0x102b2004. URI mismatch first calls f_102b0a48 and looks at the decoded record's +0x1c tail byte before choosing the local VLI path.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1ed8",
+        "notes": "Stop branch calls f_106aa3b0 on streamer +0x5a0. With a nonempty +0x1c tail it then calls f_102b1cc8(impl,0,1) and proceeds to adjustment; an empty tail skips that sink adjustment.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b205c",
+        "notes": "On URI mismatch with nonempty incoming tail, tests equivalence against live streamer settings at 0x102b210c, then chooses stop or local VLI start at 0x102b20bc. Start selects the clock-install continuation at 0x102b1f7c, which consumes streamer clock and SNTP port before applying settings via f_1030f7f8.",
+        "function": "0x102b1d40"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b1f04",
+        "notes": "For a nonempty selected tail and nonnull impl+0x5ac, tries f_10209008 with &impl+0x5b4; one arm calls that object's slot +0x5c then f_10309af8. The normal non-start sink branch calls f_1030bc30 at 0x102b20d8. The common tail calls f_100d8b34 with the supplied URI and returns zero.",
+        "function": "0x102b1d40"
+       }
+      ],
+      "todo": [
+       "Trace resulting renderer, sink and transport state inside the source methods."
       ]
      },
      "return_behavior": {
@@ -43948,7 +44107,7 @@
      ],
      "notes": null,
      "todo": [
-      "Decode f_1066e2dc's settings grammar and prove the exact VLI/sink branches and local transport events."
+      "Name the remaining settings fields, resolve the live-settings equivalence and sink predicates, and verify the resulting state and LastChange fields from the selected local operations."
      ]
     },
     "ConfigureSleepTimer": {
