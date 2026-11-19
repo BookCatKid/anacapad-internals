@@ -85992,7 +85992,7 @@
      }
     },
     "SetRelativeVolume": {
-     "description": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading. f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status.",
+     "description": "Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading. f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073c224",
@@ -86094,14 +86094,14 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9d40",
-         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9e2c",
-         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
         },
         {
          "type": "firmware",
@@ -86212,14 +86212,14 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9d40",
-         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9e2c",
-         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
         },
         {
          "type": "firmware",
@@ -86327,14 +86327,14 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9d40",
-         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9e2c",
-         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
         },
         {
          "type": "firmware",
@@ -86443,14 +86443,14 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9d40",
-         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9e2c",
-         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
         },
         {
          "type": "firmware",
@@ -86541,14 +86541,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9d40",
-        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9e2c",
-        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
        },
        {
         "type": "firmware",
@@ -86637,14 +86637,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9d40",
-        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9e2c",
-        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
        },
        {
         "type": "firmware",
@@ -86684,11 +86684,11 @@
       ]
      },
      "state_dependencies": {
-      "description": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status.",
+      "description": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish. Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword.",
       "todo": [
-       "Established: Source/topology/counter and cache/mode fields, including channel and instance checks.",
-       "Unknown: Other concrete hook/backend dependencies.",
-       "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34."
+       "Established: Cache/mode/source gates, sound-device readiness and normal/deferred per-zone volume selection.",
+       "Unknown: Remaining source-control, cleanup, DSP listener and optional LED subclass dependencies.",
+       "Next: Bind remaining source-control providers f_106a76b8 +0x30 / interface +0x08, cleanup f_1046c148 sessions, concrete DSP listeners below f_10d8fdc8/f_10d8c304 and playback-gain consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278."
       ],
       "evidence": [
        {
@@ -86738,14 +86738,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9d40",
-        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9e2c",
-        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
        },
        {
         "type": "firmware",
@@ -86781,16 +86781,37 @@
         "build": "86.10-80260",
         "address": "0x1073c2e8",
         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7ab4",
+        "notes": "Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion."
        }
       ]
      },
      "side_effects": [
       {
-       "description": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery.",
+       "description": "f_1046e57c with flag 1 snapshots topology through f_10759984(+0xbc8,+0x9c8). Snapshot byte +0 nonzero and word +0x288 zero permit forwarding. Constant-true f_10472588 admits remote entries; f_1046be1c clones 12 captured bytes and f_1046b0d0 sends original InstanceID/Channel and the unsigned 16-bit target as RenderingControl SetVolume, saving target at session+0x273c. Endpoint preparation failure selects 1034; prepared requests still wait through f_106fb998 with a 2000-ms deadline. Last nonzero status halfword +0x2722 becomes proxy result. On zero, reset counter +0xc54 then apply locally. On nonzero, increment the counter; the first two failures allow local application only for 1024. After more than two failures call f_1046c148: cleanup zero or 1024 allows local work; other cleanup results fault. Cleanup can submit VerifyThenRemoveSystemwide topology work; this is not proof of membership removal. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. Concrete device/listener effects below f_100d7f34 remain separate from cache mutation. Deferred timer f_100d993c -> f_100d7d6c -> f_100d78a4 attempts EQ-key storage through +0x3bc slot +0x14 then f_10167318; completion or durability is not established. RC source requests are not proof of subscriber delivery. Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
        "todo": [
-        "Established: Peer requests, counter/cleanup submission, cache/shadow/dirty/source/timer mutations, including changes before 501.",
-        "Unknown: Concrete hook/backend/cleanup effects and durable saving.",
-        "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34. Finish provider +0x3bc slot +0x14 and f_10167318."
+        "Established: Peer/counter/cleanup requests, local cache/shadow/dirty writes, concrete sound-device staging, optional LED work and EQ file replacement attempt; no late local apply failure is reported.",
+        "Unknown: Concrete source/cleanup/DSP listener effects and remaining zones-setting sinks.",
+        "Next: Bind remaining source-control providers f_106a76b8 +0x30 / interface +0x08, cleanup f_1046c148 sessions, concrete DSP listeners below f_10d8fdc8/f_10d8c304 and playback-gain consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978."
        ],
        "evidence": [
         {
@@ -86840,14 +86861,14 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9d40",
-         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+         "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9e2c",
-         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+         "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
         },
         {
          "type": "firmware",
@@ -86883,16 +86904,44 @@
          "build": "86.10-80260",
          "address": "0x1073c2e8",
          "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f7ab4",
+         "notes": "Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7f34",
+         "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107f7078",
+         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d78a4",
+         "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "Accepted normal local writes mark +0x7f0 and request f_1067c6ec(this+8), including apply-zero 501. Hook success bypasses the normal local request. Diagnostic logs and peer/internal signals are separate from subscriber delivery.",
+      "description": "Accepted normal local writes mark +0x7f0 and request f_1067c6ec(this+8); the concrete shared worker does not report downstream audio failure. Hook success bypasses the normal local request. Diagnostic logs and peer/internal signals are separate from subscriber delivery. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
       "todo": [
-       "Established: Exact dirty/source request and conditional reachability.",
-       "Unknown: RC sender delivery and any events from concrete hook/backend/cleanup workers.",
-       "Next: Bind RC metadata serializer and f_1067c6ec -> f_1067c46c -> f_10678c50 sender, plus concrete hook/backend/cleanup emitters."
+       "Established: Dirty/source request sites and deferred-save generation/drop handling; storage-result booleans are ignored.",
+       "Unknown: RC notification delivery and events emitted by remaining source/cleanup/DSP/settings receivers.",
+       "Next: Bind sender worker after f_10678c50 and concrete listener/cleanup emitters; trace command 0x3f and zones-storage+0x5c virtual +0x14 receivers."
       ],
       "evidence": [
        {
@@ -86942,14 +86991,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9d40",
-        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9e2c",
-        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
        },
        {
         "type": "firmware",
@@ -86985,15 +87034,22 @@
         "build": "86.10-80260",
         "address": "0x1073c2e8",
         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
        }
       ]
      },
      "state_transitions": {
-      "description": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading.",
+      "description": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. Primary +0x20 -> f_10470a34 first calls f_100d88b4 with signed 32-bit Adjustment, before InstanceID/Channel validation. It adds Adjustment to cached MASTER volume +0x7da using a 32-bit record-form add, clamps the signed wrapped result below zero to zero and above 100 to 100, then retains the low 16 bits. Thus even LF/RF targets use master as the baseline, not that channel. Extreme positive adjustments can wrap before clamping. The target enters the source hook, otherwise the shared proxy/local chain. Hook success or local status zero stores target into NewVolume; other faults do not store it. SOAP serializes this computed target as unsigned16 only on success, not a hardware reading. On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion. The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound.",
       "todo": [
-       "Established: Local cache transitions, wrapped target arithmetic where relative, and no rollback after late application failure.",
-       "Unknown: Achieved audio level, source-control/cleanup completion and durable settings.",
-       "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34. Finish storage +0x3bc slot +0x14 / f_10167318."
+       "Established: Accepted local cache/request transitions, constant-success normal apply return, deferred state staging and save-generation suppression.",
+       "Unknown: Concrete source/cleanup/DSP effects, final session/parser states and remaining settings receivers.",
+       "Next: Bind remaining source-control providers f_106a76b8 +0x30 / interface +0x08, cleanup f_1046c148 sessions, concrete DSP listeners below f_10d8fdc8/f_10d8c304 and playback-gain consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish f_106ff898."
       ],
       "evidence": [
        {
@@ -87043,14 +87099,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9d40",
-        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9e2c",
-        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
        },
        {
         "type": "firmware",
@@ -87086,11 +87142,39 @@
         "build": "86.10-80260",
         "address": "0x1073c2e8",
         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7ab4",
+        "notes": "Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d78a4",
+        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
        }
       ]
      },
      "return_behavior": {
-      "description": "Hook-handled calls return zero. Otherwise the proxy/counter/cleanup policy either faults before local application or reaches local 702/501/402/0. Local 501 can follow cached mutation and notification requests. NewVolume is the computed target, written only after hook or local success and suppressed on SOAP faults. Required validation gives 402; dispatcher rejection gives 401. Hardware, durability and delivery outcomes are separate.",
+      "description": "Hook-handled calls return zero. Otherwise proxy/counter/cleanup policy can fault before local application. Normal local checks return 702/501/402 or accepted zero; 501 remains reachable at the mode guard, not after cached mutation through the apply-zero select. NewVolume is the computed target, written only after hook or local success and suppressed on SOAP faults; it is not measured achieved volume. Deferred-save failures do not change this earlier response. Audio completion, durable storage and delivery are not acknowledged.",
       "evidence": [
        {
         "type": "firmware",
@@ -87139,14 +87223,14 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9d40",
-        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+        "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x100d9e2c",
-        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+        "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
        },
        {
         "type": "firmware",
@@ -87182,6 +87266,27 @@
         "build": "86.10-80260",
         "address": "0x1073c2e8",
         "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7ab4",
+        "notes": "Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7f34",
+        "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107f7078",
+        "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion."
        }
       ]
      },
@@ -87285,20 +87390,20 @@
       },
       {
        "code": 501,
-       "meaning": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation.",
+       "meaning": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing. The separate late apply-zero select is unreachable with this concrete shared worker.",
        "fault_sites": [
         "0x1073c314"
        ],
        "conditions": [
         {
-         "description": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation.",
+         "description": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing. The separate late apply-zero select is unreachable with this concrete shared worker.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
            "address": "0x100d9e2c",
-           "notes": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation."
+           "notes": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing. The separate late apply-zero select is unreachable with this concrete shared worker."
           }
          ]
         }
@@ -87309,7 +87414,7 @@
          "binary": "anacapad",
          "build": "86.10-80260",
          "address": "0x100d9e2c",
-         "notes": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing, or apply returns zero after cached mutation."
+         "notes": "Local mode +0x7ff nonzero/+0x801 zero rejects before writing. The separate late apply-zero select is unreachable with this concrete shared worker."
         }
        ]
       },
@@ -87426,14 +87531,14 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100d9d40",
-       "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c, including when the apply boolean is zero. Zero apply selects 501 after mutation; nonzero selects 0. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
+       "notes": "f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100d9e2c",
-       "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. Zero apply means 501, not success."
+       "notes": "Raw 0x7faa4f9e is isel r29,r10,r9,30 after apply-result compare, with r10=501/r9=0. The raw select would turn apply-zero into 501, but f_100d7f34 returns one on every traced normal-return path, making this late fault unreachable."
       },
       {
        "type": "firmware",
@@ -87469,13 +87574,41 @@
        "build": "86.10-80260",
        "address": "0x1073c2e8",
        "notes": "lwz loads the full parsed Adjustment; output +0x12 is stored by 0x10470a8c and serialized through lhz/f_1055fc4c at 0x1073c368/0x1073c36c only on zero status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f7ab4",
+       "notes": "Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d7f34",
+       "notes": "The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107f7078",
+       "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100d78a4",
+       "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
       }
      ],
      "notes": "Replaces unrelated f_100dcb00/f_100dcc44 attributions, ignored InstanceID/Channel claims, and raw-LUT-indexing claims.",
      "todo": [
-      "Established: Primary binding, source/proxy/local dispatch, guards, cached writes and counter/error policy.",
-      "Unknown: Other source-control workers, backend/cleanup completion, durable saving and delivery.",
-      "Next: Bind other f_106a76b8 providers +0x30 / source-control +8, f_1046c148 -> f_106f88cc/f_106fbf80 and concrete +0x3c4 slot +0x10, plus backend +0x3ac/+0x3b4 methods below f_100d7f34. Finish f_106ff898 session statuses, storage +0x3bc slot +0x14 / f_10167318 and RC sender."
+      "Established: Actual source/proxy/local flow, mode guards, cached writes, concrete deferred/normal sound-device paths, constant-success apply return, conditional LED requests and ignored generation-guarded save results.",
+      "Unknown: Other source-control/cleanup effects, concrete DSP/LED listeners, final session/parser outcomes, remaining settings receivers and notification delivery.",
+      "Next: Bind remaining source-control providers f_106a76b8 +0x30 / interface +0x08, cleanup f_1046c148 sessions, concrete DSP listeners below f_10d8fdc8/f_10d8c304 and playback-gain consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278. Trace other f_100df3fc provider branches, command 0x3f receiver after f_10a608a8 and zones-storage+0x5c virtual +0x14 below f_10170978. Finish session f_106ff898 and sender after f_10678c50."
      ],
      "implementation_notes": {
       "primary_vptr": "0x10ed270c",
