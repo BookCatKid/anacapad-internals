@@ -47988,7 +47988,7 @@
      ]
     },
     "GetRemainingSleepTimerDuration": {
-     "description": "Returns RemainingSleepTimerDuration and CurrentSleepTimerGeneration. Impl f_102ada98 shares the getter boilerplate; reads the sleep-timer fields from the engine.",
+     "description": "Reads the remaining sleep duration and its generation in source modes 1 and 2. An unarmed timer has generation 0 and an empty duration; an armed timer already at or past its deadline gives 00:00:00 until timer state is cleared.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fb518",
@@ -48076,18 +48076,18 @@
      },
      "outputs": {
       "RemainingSleepTimerDuration": {
-       "description": "Time left on the running sleep timer (empty/zero if none).",
+       "description": "Formatted deadline minus current seconds (clamped below at zero), or an empty string for an unarmed timer.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "string",
-       "format": "string",
-       "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
+       "format": "%02hu:%02hu:%02hu or empty string",
+       "unit": "hours:minutes:seconds",
+       "accepted_values": "Empty string or hours:minutes:seconds with each component zero-padded to at least two digits.",
        "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "special_values": "Empty when generation is 0; 00:00:00 when an armed deadline has elapsed.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -48105,12 +48105,28 @@
          "build": "86.10-80260",
          "address": "0x10eb3550",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adbd0",
+         "notes": "Reads impl+0x5a78 generation. If zero, writes an empty duration and generation 0. If nonzero, reads clock ID 1 and formats the positive difference from deadline impl+0x5a70, or formatted 00:00:00 when the deadline is not in the future. The stored generation is returned unchanged.",
+         "function": "0x102ada98"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adc54",
+         "notes": "Converts the time difference into three byte components and formats them with f_10c3d264; the formatter's string is %02hu:%02hu:%02hu at 0x10fb1618.",
+         "function": "0x102ada98"
         }
        ],
        "notes": null
       },
       "CurrentSleepTimerGeneration": {
-       "description": "Monotonic generation counter identifying the timer instance.",
+       "description": "Stored timer generation, or zero when the timer is not armed.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -48119,9 +48135,9 @@
        "semantic_type": "unsigned int32",
        "format": "%u decimal",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "Unsigned 32-bit integer.",
+       "range": "0 through 4294967295",
+       "special_values": "0 marks an unarmed timer.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -48139,6 +48155,14 @@
          "build": "86.10-80260",
          "address": "0x10eb356c",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102adbd0",
+         "notes": "Reads impl+0x5a78 generation. If zero, writes an empty duration and generation 0. If nonzero, reads clock ID 1 and formats the positive difference from deadline impl+0x5a70, or formatted 00:00:00 when the deadline is not in the future. The stored generation is returned unchanged.",
+         "function": "0x102ada98"
         }
        ],
        "notes": null
@@ -48171,15 +48195,31 @@
       ]
      },
      "state_dependencies": {
-      "description": "Sleep-timer remaining time + generation counter read from engine timer state; field offsets unresolved.",
+      "description": "Reads engine mode, generation and deadline under impl+0x458; checking the timer does not clear expired state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ada98",
-        "notes": "impl decode",
-        "function": "f_102ada98"
+        "address": "0x102adb60",
+        "notes": "Nonzero InstanceID returns literal 718 before the mode selection. Zero continues to the mode gate at 0x102adbbc.",
+        "function": "0x102ada98"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adbc8",
+        "notes": "Uses unsigned (impl+0x4654 - 1) <= 1. Modes 1 and 2 succeed; other modes return literal 800 at 0x102adbc0.",
+        "function": "0x102ada98"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adbd0",
+        "notes": "Reads impl+0x5a78 generation. If zero, writes an empty duration and generation 0. If nonzero, reads clock ID 1 and formats the positive difference from deadline impl+0x5a70, or formatted 00:00:00 when the deadline is not in the future. The stored generation is returned unchanged.",
+        "function": "0x102ada98"
        }
       ]
      },
@@ -48225,15 +48265,39 @@
       ]
      },
      "return_behavior": {
-      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "description": "Writes both outputs only on success. The wrapper returns 402 for materialization failure; the engine returns 718 for nonzero InstanceID, otherwise 800 for a source mode other than 1 or 2.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102ada98",
-        "notes": "impl decode",
-        "function": "f_102ada98"
+        "address": "0x102fb5f0",
+        "notes": "Literal 402 on required InstanceID materialization failure at request +0x08 (0x102fb574). Sends fault via request +0x14 at 0x102fb5bc.",
+        "function": "0x102fb518"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102fb5a0",
+        "notes": "Calls engine slot +0x94 (f_102ada98); passes the nonzero code to request +0x14 at 0x102fb5bc. Successful string and unsigned generation outputs are committed at 0x102fb658.",
+        "function": "0x102fb518"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adb60",
+        "notes": "Nonzero InstanceID returns literal 718 before the mode selection. Zero continues to the mode gate at 0x102adbbc.",
+        "function": "0x102ada98"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102adbc8",
+        "notes": "Uses unsigned (impl+0x4654 - 1) <= 1. Modes 1 and 2 succeed; other modes return literal 800 at 0x102adbc0.",
+        "function": "0x102ada98"
        }
       ]
      },
@@ -48241,16 +48305,18 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "request arg-parse layer: handler emits no literal fault exits; InstanceID is read via the shared request-object vfuncs (slot 28 parse / slot 12 commit) whose arg-rejection path is the common 402 Invalid Args emitter",
+       "meaning": "Required InstanceID failed request materialization.",
        "conditions": [
         {
-         "description": "malformed/missing SOAP arg envelope",
+         "description": "Required InstanceID failed request materialization.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "shared request-object parse vfunc; same layer emits 402 in sibling handlers"
+           "address": "0x102fb5f0",
+           "notes": "Literal 402 on required InstanceID materialization failure at request +0x08 (0x102fb574). Sends fault via request +0x14 at 0x102fb5bc.",
+           "function": "0x102fb518"
           }
          ]
         }
@@ -48260,27 +48326,37 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "shared request-object arg-parse vfuncs (slot 28 InstanceID read / slot 12 commit); same layer emits 402 Invalid Args in sibling handlers"
+         "address": "0x102fb5f0",
+         "notes": "Literal 402 on required InstanceID materialization failure at request +0x08 (0x102fb574). Sends fault via request +0x14 at 0x102fb5bc.",
+         "function": "0x102fb518"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 402; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102fb5bc"
        ]
       },
       {
        "code": 718,
-       "meaning": "Invalid InstanceID: parsed InstanceID != 0 rejected by the impl guard (proven convention: li r3,0x2ce sites across the f_102a*/f_102d* transport-object layer); rc forwarded verbatim through req vcall slot 12 commit",
+       "meaning": "Parsed InstanceID was nonzero.",
        "conditions": [
         {
-         "description": "InstanceID parses to nonzero / session object fails to resolve",
+         "description": "Parsed InstanceID was nonzero.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "718 emitters concentrated in transport request-object fns (53 fns incl. f_102ad4a4, f_102d2e54); pattern proven on sibling action Stop at 0x102d2e94"
+           "address": "0x102adb60",
+           "notes": "Nonzero InstanceID returns literal 718 before the mode selection. Zero continues to the mode gate at 0x102adbbc.",
+           "function": "0x102ada98"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102fb5a0",
+           "notes": "Calls engine slot +0x94 (f_102ada98); passes the nonzero code to request +0x14 at 0x102fb5bc. Successful string and unsigned generation outputs are committed at 0x102fb658.",
+           "function": "0x102fb518"
           }
          ]
         }
@@ -48290,27 +48366,45 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "718=nonzero-InstanceID rejection convention; li 0x2ce emitters in transport request-object layer (f_102a*/f_102d*), proven on sibling actions"
+         "address": "0x102adb60",
+         "notes": "Nonzero InstanceID returns literal 718 before the mode selection. Zero continues to the mode gate at 0x102adbbc.",
+         "function": "0x102ada98"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fb5a0",
+         "notes": "Calls engine slot +0x94 (f_102ada98); passes the nonzero code to request +0x14 at 0x102fb5bc. Successful string and unsigned generation outputs are committed at 0x102fb658.",
+         "function": "0x102fb518"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 718; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102fb5bc"
        ]
       },
       {
        "code": 800,
-       "meaning": "800-series store/impl fault reachable through this getter’s impl vfunc chain (only code in its reachable band); specific trigger unverified",
+       "meaning": "Source mode was neither 1 nor 2 after InstanceID passed.",
        "conditions": [
         {
-         "description": "impl worker returns an 800-class store/commit fault",
+         "description": "Source mode was neither 1 nor 2 after InstanceID passed.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "reachable literal set of handler callees; exact emitting worker not isolated"
+           "address": "0x102adbc8",
+           "notes": "Uses unsigned (impl+0x4654 - 1) <= 1. Modes 1 and 2 succeed; other modes return literal 800 at 0x102adbc0.",
+           "function": "0x102ada98"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102fb5a0",
+           "notes": "Calls engine slot +0x94 (f_102ada98); passes the nonzero code to request +0x14 at 0x102fb5bc. Successful string and unsigned generation outputs are committed at 0x102fb658.",
+           "function": "0x102fb518"
           }
          ]
         }
@@ -48320,13 +48414,21 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "800-series literal present in the handler’s callee reach set; emitting worker unidentified so trigger condition unresolved"
+         "address": "0x102adbc8",
+         "notes": "Uses unsigned (impl+0x4654 - 1) <= 1. Modes 1 and 2 succeed; other modes return literal 800 at 0x102adbc0.",
+         "function": "0x102ada98"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102fb5a0",
+         "notes": "Calls engine slot +0x94 (f_102ada98); passes the nonzero code to request +0x14 at 0x102fb5bc. Successful string and unsigned generation outputs are committed at 0x102fb658.",
+         "function": "0x102fb518"
         }
        ],
-       "fault_sites": [],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: code 800; sites: via propagated return codes (no direct fault site in this action)).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "fault_sites": [
+        "0x102fb5bc"
        ]
       }
      ],
@@ -48361,13 +48463,57 @@
        "build": "86.10-80260",
        "address": "0x10eb30f0",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fb5f0",
+       "notes": "Literal 402 on required InstanceID materialization failure at request +0x08 (0x102fb574). Sends fault via request +0x14 at 0x102fb5bc.",
+       "function": "0x102fb518"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fb5a0",
+       "notes": "Calls engine slot +0x94 (f_102ada98); passes the nonzero code to request +0x14 at 0x102fb5bc. Successful string and unsigned generation outputs are committed at 0x102fb658.",
+       "function": "0x102fb518"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102adb60",
+       "notes": "Nonzero InstanceID returns literal 718 before the mode selection. Zero continues to the mode gate at 0x102adbbc.",
+       "function": "0x102ada98"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102adbc8",
+       "notes": "Uses unsigned (impl+0x4654 - 1) <= 1. Modes 1 and 2 succeed; other modes return literal 800 at 0x102adbc0.",
+       "function": "0x102ada98"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102adbd0",
+       "notes": "Reads impl+0x5a78 generation. If zero, writes an empty duration and generation 0. If nonzero, reads clock ID 1 and formats the positive difference from deadline impl+0x5a70, or formatted 00:00:00 when the deadline is not in the future. The stored generation is returned unchanged.",
+       "function": "0x102ada98"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102adc54",
+       "notes": "Converts the time difference into three byte components and formats them with f_10c3d264; the formatter's string is %02hu:%02hu:%02hu at 0x10fb1618.",
+       "function": "0x102ada98"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102fb518; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "GetRunningAlarmProperties": {
      "description": "Returns AlarmID, GroupID, LoggedStartTime for the currently-running alarm. Impl f_102ad8fc shares the getter boilerplate; empty outputs when no alarm is running.",
