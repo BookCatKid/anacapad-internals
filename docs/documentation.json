@@ -164292,7 +164292,7 @@
   },
   "rootfs_boot_chain": {
    "name": "/etc/Configure sysinit + ramdisk layout: the boot chain",
-   "summary": "inittab (gen_inittab.py for ARCH limelight): sysinit=/etc/Configure; respawn {run_sshd.sh,runledmgrd,runnetstartd,runmdns,rundiagprocessd,runanacapa,runchrony,runsddp} + secure_console_login.sh ttyS0; ctrlaltdel=reboot; shutdown=init.d/rcK. All daemon logs go to /dev/kmsg.",
+   "summary": "The shipped inittab runs /etc/Configure as sysinit and respawns daemon wrappers. Configure creates RAM/persistent trees and invokes an optional /etc/dsmf_setup before mdputil and hostname setup, but this image does not contain that hook. SSH unlock and console-enable gating are separate mechanisms. The mapper name crroot does not itself prove a particular encryption or integrity target.",
    "configure_steps": [
     "mount proc+sysfs, ifconfig lo up, mount ramfs /ramdisk (var/,var/run,var/log,tmp/,tmp/pub,optlog,smb live on RAM)",
     "mtd links: /dev/mtd/0->mtd0, /dev/nandjffs->mtdblock4, /dev/jffsmtd->mtd4; sonos_mount_jffs mounts /dev/nandjffs at /jffs (noatime)",
@@ -164312,17 +164312,36 @@
      "type": "rootfs",
      "address": "/etc/Configure + inittab + scripts/",
      "notes": "shipped shell files"
+    },
+    {
+     "type": "rootfs",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "shipped Configure and arch_attrs",
+     "address": "/etc/Configure:69-86",
+     "callsite": "/etc/arch_attrs:14",
+     "notes": "Full regular-file corpus scan: only Configure and arch_attrs contain DSMF (case-insensitive); dsmf_setup absent. Configure lacks set -e, invokes hook without checking status, then runs mdputil/hostname; custom /jffs/Configure is exec replacement."
+    },
+    {
+     "type": "rootfs",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "inittab / console and SSH scripts / fstab",
+     "address": "/usr/sbin/secure_console_login.sh",
+     "callsite": "/usr/sbin/secure_console.sh / /etc/scripts/run_sshd.sh / /etc/fstab",
+     "notes": "inittab passes secure_console.sh to getty; wrapper gates only existing console_enable, while SSH separately waits for device_unlocked_flag. Console wrapper executes login -f root. fstab auto/defaults and mapper basename do not identify the mapping target or prove ro. Scripts inspected, not executed."
     }
    ],
-   "notes": "dsmf_setup is a DSMF (device-secure-manufacturing?) hook; mdputil is the manufacturing-data CLI (keyval ^REGION/^SERIAL reads, -fwe write, -B init). dsmf_setup proven: /etc/dsmf_setup is an optional manufacturing-provisioning hook gated purely on file presence (etc/Configure lines 69-72); the file is NOT shipped in this rootfs and arch_attrs carries a per-product LACKS_DSMF flag. Position in the chain fixes its role: it runs right after the /jffs/{app,sys,net,persist} tree is created and before /bin/mdputil -B (manufacturing-data-partition utility on /dev/chk and /dev/mtd/0) and hostname minting (Sonos-<serial[0:12]> via mdputil | keyval ^SERIAL) - the point where a factory overlay provisions MDP/serial before first-boot identity.",
-   "security_files": "etc/fstab: rootfs mounted from /dev/mapper/crroot (device-mapper 'crroot' (dm-verity/dm-crypt read-only root; the shipped squashfs is integrity-protected at the block layer). /dev/shm tmpfs noexec,nodev,nosuid mode=600. etc/passwd: dedicated users {chrony(19),anacapa(20)} locked with '!' in shadow; root has a shipped MD5crypt hash ($1$AugXR3h8$...)) a fixed factory root credential, reachable only after unlock (dropbear getty are gated on device_unlocked_flag). chrony.conf: pools 0-3.sonostime.pool.ntp.org iburst maxsources 1, driftfile /jffs/chrony/chrony.drift, makestep 60 1, port 0 (no NTP serving). dhcp.script (udhcpc): bound/renew writes /etc/resolv.conf + ifconfig + default-route + multicast route, then removes /var/run/waitforip: the boot handshake anacapad waits on.",
+   "notes": "Configure tests only -f /etc/dsmf_setup before executing it; the script has no set -e and does not test its return code, so a hook failure does not itself abort the following mdputil/hostname steps. The hook is absent in the shipped tree, and arch_attrs contains LACKS_DSMF. A byte-string search across all shipped regular files found DSMF only in Configure and arch_attrs, with no acronym expansion. Its position is established; factory-provisioning internals and acronym expansion are not certified by position alone.",
+   "security_files": "fstab names /dev/mapper/crroot with auto filesystem type and noatime,nodiratime,defaults; it does not name a device-mapper target, dm-verity or dm-crypt and does not itself specify read-only mounting. /dev/shm is tmpfs with noexec,nodev,nosuid,mode600. run_sshd.sh waits for /tmp/device_unlocked_flag before exec dropbear -R -F. In contrast secure_console_login.sh waits on console_enable only if /proc/sonos-lock/console_enable exists; when absent it proceeds to getty. inittab supplies secure_console.sh, which execs login -f root. This passwordless console path is not gated by the SSH unlock flag. No password hash is needed to explain it. chrony/DHCP roles are unchanged.",
    "todo": [
-    "Residual: DSMF acronym expansion - hook semantics proven (optional factory provisioning before mdputil/hostname); the exact expansion is not confirmed by any literal in the image"
+    "Artifact-limited residual: obtain the omitted /etc/dsmf_setup implementation or matching manufacturing source/debug documentation to establish DSMF expansion and hook internals. In this shipped corpus, a full regular-file byte-string scan finds only Configure and arch_attrs occurrences; neither expands it. Configure proves presence-only invocation before mdputil/hostname and no explicit abort on hook failure. Do not infer provisioning operations or an acronym expansion from hook position or LACKS_DSMF."
    ],
    "resolved_findings": [
     "Resolved: supervisor layer details proven - /etc/rundaemon.sh supplies waitfordns (blocks on /var/run/waitforip + resolv.conf nameserver), waitwhiletrue 10s retry, and trackrestart (per-daemon /var/run/<name>.start stamp log with restart throttle). runledmgrd adds stale-pid detection writing to /opt/log/sonosledmgrd.log. runchrony creates /jffs/chrony after waitfordns and honors /var/run/stopchrony (step-vs-slew noted: one step per run). runmdns honors /var/run/stopmdns, execs mdnsd -f. secure_console_login gates getty on /proc/sonos-lock/console_enable==1 (default-on when the lock file is absent).",
     "Resolved: the shipped identity map - passwd has root(uid0,/bin/sh) + chrony(uid19) + anacapa(uid20,/bin/false) as the only Sonos users; group sonos gid20. anacapad's -u anacapa drops to uid20/gid20; the secure-console 'login -f root' is passwordless and gated purely by /proc/sonos-lock/console_enable.",
-    "Established: the full sysinit chain, ramdisk layout, security-file roles, and the dsmf_setup hook position are mapped."
+    "The script sequence, optional-hook presence gate and failure continuation are established from the shipped files. A /jffs/Configure file exec-replaces the remaining Configure steps; later Configure.dev is invoked with sh and does not exec-replace the parent. A failing optional DSMF or Configure.dev command is not explicitly fatal. Missing-hook behavior is observable statically; manufacturing internals are not.",
+    "The earlier integrity-protected/read-only-root and universal unlock prerequisite assertions are withdrawn. fstab proves only the mapper device path and mount options. inittab reaches the console wrapper independently of run_sshd.sh; console_enable absence is explicitly default-allow in the wrapper. These two entry paths must be audited independently rather than inferring a common credential/unlock gate."
    ]
   },
   "rootfs_data_files": {
