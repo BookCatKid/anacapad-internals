@@ -63761,7 +63761,7 @@
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x18] (call-derived member-method semantics)",
+       "description": "Empties the named queue. The consumer case for op 4 (0x10265d6c and 0x1026863c) calls f_10262a98(s, q), which runs f_1014da34(q) (f_10145b98 under the f_1014aee8 lock); when q is the playing queue it also sets s+0x326cc to f_10146924(q), clears s+0x326ce, calls f_10261b38(s), and the consumer then calls (*(s+0x2590))->v[+0x30](obj, 1, 0). Both branches report ok=1 (0x10265d90, 0x102665d0, 0x10268344, 0x102687b4), so the 800 return at 0x102b3a40 after a failed submit cannot happen for this request.",
        "evidence": [
         {
          "type": "firmware",
@@ -63777,19 +63777,88 @@
          "function": "0x102b397c",
          "address": "0x102b3a2c",
          "notes": "bl f_10255f64"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10255f64",
+         "address": "0x10256034",
+         "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e658",
+         "address": "0x1032e6a8",
+         "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e6c0",
+         "address": "0x1032e6e4",
+         "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265868",
+         "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10267b68",
+         "address": "0x10267cd4",
+         "notes": "second consumer switch, jump table 0x10ea84d0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d738",
+         "address": "0x1014d7c0",
+         "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014708c",
+         "address": "0x101470a4",
+         "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10262a98",
+         "address": "0x10262af0",
+         "notes": "f_1014da34 clears q; playing-queue reset follows"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265d90",
+         "notes": "op 4 reports ok=1"
         }
        ],
-       "todo": [
-        "Established: the action submits one clear-queue request and may zero engine+0x6ed8.",
-        "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
-       ],
        "resolved_findings": [
-        "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c."
+        "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c.",
+        "Resolved: Empties the named queue. The consumer case for op 4 (0x10265d6c and 0x1026863c) calls f_10262a98(s, q), which runs f_1014da34(q) (f_10145b98 under the f_1014aee8 lock); when q is the playing queue it also sets s+0x326cc to f_10146924(q), clears s+0x326ce, calls f_10261b38(s), and the consumer then calls (*(s+0x2590))->v[+0x30](obj, 1, 0). Both branches report ok=1 (0x10265d90, 0x102665d0, 0x10268344, 0x102687b4), so the 800 return at 0x102b3a40 after a failed submit cannot happen for this request. f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8). The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID. The SOAP worker then zeroes engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero. f_1014708c is strncmp(str, \"x-rincon-queue:\", 15)==0 (string 0x10e93904), so this happens only while the current transport URI is a queue URI. engine+0x6ed8 is a sonosClockGetTime deadline: at 0x102d457c the 'x-rincon-buzzer:0' branch (f_102ceb40) is taken only while the clock has not passed it, so zeroing it disables that branch."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct notify call in the handler or worker. Inside the consumer the change reaches f_1014d738 when q+0x4c is nonzero, which bumps the queue UpdateID and posts an in-process event through f_10117654(q+0x18).",
       "evidence": [
        {
         "type": "firmware",
@@ -63805,18 +63874,90 @@
         "function": "0x102b397c",
         "address": "0x102b3a2c",
         "notes": "bl f_10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10255f64",
+        "address": "0x10256034",
+        "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e658",
+        "address": "0x1032e6a8",
+        "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e6c0",
+        "address": "0x1032e6e4",
+        "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265868",
+        "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10267cd4",
+        "notes": "second consumer switch, jump table 0x10ea84d0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014d7c0",
+        "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014708c",
+        "address": "0x101470a4",
+        "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10262a98",
+        "address": "0x10262af0",
+        "notes": "f_1014da34 clears q; playing-queue reset follows"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265d90",
+        "notes": "op 4 reports ok=1"
        }
       ],
       "todo": [
-       "Established: the action submits one clear-queue request and may zero engine+0x6ed8.",
-       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+       "Established: The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
+       "Residual: which UPnP event subscription, if any, carries the in-process event posted through f_10117654(q+0x18) at 0x1014d820 to Queue service subscribers is not traced; next step is the listener list on q+0x18 and the handler f_10117654 dispatches to."
       ],
       "resolved_findings": [
        "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18]",
+      "description": "No transport-state literal is written. When the cleared queue is the playing queue, the play index s+0x326cc and s+0x326ce are reset and the v[+0x30](1, 0) call on *(s+0x2590) is made; otherwise only the queue contents change.",
       "evidence": [
        {
         "type": "firmware",
@@ -63832,14 +63973,83 @@
         "function": "0x102b397c",
         "address": "0x102b3a2c",
         "notes": "bl f_10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10255f64",
+        "address": "0x10256034",
+        "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e658",
+        "address": "0x1032e6a8",
+        "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e6c0",
+        "address": "0x1032e6e4",
+        "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265868",
+        "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10267cd4",
+        "notes": "second consumer switch, jump table 0x10ea84d0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014d7c0",
+        "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014708c",
+        "address": "0x101470a4",
+        "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10262a98",
+        "address": "0x10262af0",
+        "notes": "f_1014da34 clears q; playing-queue reset follows"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265d90",
+        "notes": "op 4 reports ok=1"
        }
       ],
-      "todo": [
-       "Established: the action submits one clear-queue request and may zero engine+0x6ed8.",
-       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
-      ],
       "resolved_findings": [
-       "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c."
+       "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c.",
+       "Resolved: No transport-state literal is written. When the cleared queue is the playing queue, the play index s+0x326cc and s+0x326ce are reset and the v[+0x30](1, 0) call on *(s+0x2590) is made; otherwise only the queue contents change. f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8)."
       ]
      },
      "return_behavior": {
@@ -63876,7 +64086,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x18)",
-       "meaning": "718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or request submit failure",
+       "meaning": "718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 (the submit of the clear request always reports success)",
        "fault_sites": [
         "0x104649cc"
        ],
@@ -64410,7 +64620,7 @@
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x1c] (call-derived member-method semantics)",
+       "description": "Removes the inclusive 1-based range [StartingIndex, StartingIndex+NumberOfTracks-1]. The op 14 case (0x10266404 and 0x102684f8) sets s+0x35180 to 1 and calls f_1014e9a8(q, first, last, 0, 0); for the playing queue it goes through f_10259f38 (0x1026668c) or f_1014e9a8 with the play-index pointer s+0x326cc (0x10268d6c), which also update the play position (f_103417dc, f_10149e68, f_10259c1c). f_1014e9a8 returns 0 only when first-1 >= length (0x1014e9fc) or last-1 >= length (0x1014ea10); otherwise it removes the rows, sets q+0x26e8 to 1 and returns 1 (0x1014eb4c). The SOAP worker checks the same bound before submitting, so ok=0 needs the queue to have shrunk after that check; the worker then returns 800 (r28=0x320 at 0x102acbd0, skip to 0x102acc18) without reading NewUpdateID.",
        "evidence": [
         {
          "type": "firmware",
@@ -64426,19 +64636,88 @@
          "function": "0x102aca78",
          "address": "0x102acbd4",
          "notes": "bl f_10255f64"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10255f64",
+         "address": "0x10256034",
+         "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e658",
+         "address": "0x1032e6a8",
+         "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e6c0",
+         "address": "0x1032e6e4",
+         "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265868",
+         "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10267b68",
+         "address": "0x10267cd4",
+         "notes": "second consumer switch, jump table 0x10ea84d0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d738",
+         "address": "0x1014d7c0",
+         "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014708c",
+         "address": "0x101470a4",
+         "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e9a8",
+         "address": "0x1014e9fc",
+         "notes": "bound checks first-1 and last-1 against q length"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102aca78",
+         "address": "0x102acbd0",
+         "notes": "r28=800 preset; ok==0 skips to 0x102acc18"
         }
        ],
-       "todo": [
-        "Established: the action submits one remove-range request and may zero engine+0x6ed8.",
-        "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
-       ],
        "resolved_findings": [
-        "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78."
+        "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78.",
+        "Resolved: Removes the inclusive 1-based range [StartingIndex, StartingIndex+NumberOfTracks-1]. The op 14 case (0x10266404 and 0x102684f8) sets s+0x35180 to 1 and calls f_1014e9a8(q, first, last, 0, 0); for the playing queue it goes through f_10259f38 (0x1026668c) or f_1014e9a8 with the play-index pointer s+0x326cc (0x10268d6c), which also update the play position (f_103417dc, f_10149e68, f_10259c1c). f_1014e9a8 returns 0 only when first-1 >= length (0x1014e9fc) or last-1 >= length (0x1014ea10); otherwise it removes the rows, sets q+0x26e8 to 1 and returns 1 (0x1014eb4c). The SOAP worker checks the same bound before submitting, so ok=0 needs the queue to have shrunk after that check; the worker then returns 800 (r28=0x320 at 0x102acbd0, skip to 0x102acc18) without reading NewUpdateID. f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8). The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID. The SOAP worker then zeroes engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero. f_1014708c is strncmp(str, \"x-rincon-queue:\", 15)==0 (string 0x10e93904), so this happens only while the current transport URI is a queue URI. engine+0x6ed8 is a sonosClockGetTime deadline: at 0x102d457c the 'x-rincon-buzzer:0' branch (f_102ceb40) is taken only while the clock has not passed it, so zeroing it disables that branch."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct notify call in the handler or worker. Inside the consumer the change reaches f_1014d738 when q+0x4c is nonzero, which bumps the queue UpdateID and posts an in-process event through f_10117654(q+0x18).",
       "evidence": [
        {
         "type": "firmware",
@@ -64454,18 +64733,90 @@
         "function": "0x102aca78",
         "address": "0x102acbd4",
         "notes": "bl f_10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10255f64",
+        "address": "0x10256034",
+        "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e658",
+        "address": "0x1032e6a8",
+        "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e6c0",
+        "address": "0x1032e6e4",
+        "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265868",
+        "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10267cd4",
+        "notes": "second consumer switch, jump table 0x10ea84d0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014d7c0",
+        "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014708c",
+        "address": "0x101470a4",
+        "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e9a8",
+        "address": "0x1014e9fc",
+        "notes": "bound checks first-1 and last-1 against q length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbd0",
+        "notes": "r28=800 preset; ok==0 skips to 0x102acc18"
        }
       ],
       "todo": [
-       "Established: the action submits one remove-range request and may zero engine+0x6ed8.",
-       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
+       "Established: The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
+       "Residual: which UPnP event subscription, if any, carries the in-process event posted through f_10117654(q+0x18) at 0x1014d820 to Queue service subscribers is not traced; next step is the listener list on q+0x18 and the handler f_10117654 dispatches to."
       ],
       "resolved_findings": [
        "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x1c]",
+      "description": "No transport-state literal is written. For the playing queue the play index s+0x326cc is moved by f_1014e9a8/f_10259f38, and s+0x326ce is cleared when it is past the new length of the queue at s+0x2b188 (0x10266460..0x10266480).",
       "evidence": [
        {
         "type": "firmware",
@@ -64481,14 +64832,83 @@
         "function": "0x102aca78",
         "address": "0x102acbd4",
         "notes": "bl f_10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10255f64",
+        "address": "0x10256034",
+        "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e658",
+        "address": "0x1032e6a8",
+        "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e6c0",
+        "address": "0x1032e6e4",
+        "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265868",
+        "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10267cd4",
+        "notes": "second consumer switch, jump table 0x10ea84d0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014d7c0",
+        "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014708c",
+        "address": "0x101470a4",
+        "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e9a8",
+        "address": "0x1014e9fc",
+        "notes": "bound checks first-1 and last-1 against q length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102aca78",
+        "address": "0x102acbd0",
+        "notes": "r28=800 preset; ok==0 skips to 0x102acc18"
        }
       ],
-      "todo": [
-       "Established: the action submits one remove-range request and may zero engine+0x6ed8.",
-       "Residual: the session-side consumer of the request submitted with f_10255f64 is not traced, so the exact track removal, any Queue event it emits, and the meaning of the engine+0x5dc flag (f_1014708c) and engine+0x6ed8 field are not established; next step is to follow f_10255f64's dispatch of the request kind and the f_1014708c/engine+0x6ed8 users."
-      ],
       "resolved_findings": [
-       "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78."
+       "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78.",
+       "Resolved: No transport-state literal is written. For the playing queue the play index s+0x326cc is moved by f_1014e9a8/f_10259f38, and s+0x326ce is cleared when it is past the new length of the queue at s+0x2b188 (0x10266460..0x10266480). f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8)."
       ]
      },
      "return_behavior": {
@@ -64525,7 +64945,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x1c)",
-       "meaning": "402 zero StartingIndex/NumberOfTracks or range past queue end, 718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or submit failure",
+       "meaning": "402 zero StartingIndex/NumberOfTracks or range past queue end, 718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or consumer rejection when the range no longer fits the queue",
        "fault_sites": [
         "0x10464b58"
        ],
@@ -64818,16 +65238,29 @@
          "function": "0x102b3924",
          "address": "0x102b3924",
          "notes": "zero check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "notes": "consumer bound check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102acf44",
+         "notes": "800 on consumer rejection"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the zero check and the exact request values derived from it.",
-        "Residual: the session consumer's handling of values past the queue end (and of the 16-bit truncation) is not traced; next step is the f_1032e3c8 request consumer."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `StartingIndex` = verbatim forward to impl vfunc +32 (obj r5-in, call site 0x10464e9c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved: f_102b3924 returns 402 when it is 0 (0x102b3924); it is not compared with the queue length on the engine side; it enters the request geometry as follows: if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc)."
+        "Resolved: f_102b3924 returns 402 when it is 0 (0x102b3924); it is not compared with the queue length on the engine side; it enters the request geometry as follows: if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc).",
+        "Resolved: The request fields are written with sth (f_1032e3c8) and read with lhz by the consumer, so each value is taken modulo 65536. The consumer rejects the request (ok=0, SOAP fault 800 from 0x102acf44) when first-1+length exceeds the queue length (0x1014e7c4): with StartingIndex > InsertBefore that is StartingIndex+NumberOfTracks-1 > length, otherwise InsertBefore-1 > length. It can also reject on string-pool capacity (0x101464b0). No-op moves send no request."
        ]
       },
       "NumberOfTracks": {
@@ -64878,16 +65311,29 @@
          "function": "0x102b3924",
          "address": "0x102b3944",
          "notes": "zero check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "notes": "consumer bound check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102acf44",
+         "notes": "800 on consumer rejection"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the zero check and the exact request values derived from it.",
-        "Residual: the session consumer's handling of values past the queue end (and of the 16-bit truncation) is not traced; next step is the f_1032e3c8 request consumer."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NumberOfTracks` = verbatim forward to impl vfunc +32 (obj r5-in, call site 0x10464e9c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved: f_102b3924 returns 402 when it is 0 (0x102b3944); it is not compared with the queue length on the engine side; it enters the request geometry as follows: if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc)."
+        "Resolved: f_102b3924 returns 402 when it is 0 (0x102b3944); it is not compared with the queue length on the engine side; it enters the request geometry as follows: if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc).",
+        "Resolved: The request fields are written with sth (f_1032e3c8) and read with lhz by the consumer, so each value is taken modulo 65536. The consumer rejects the request (ok=0, SOAP fault 800 from 0x102acf44) when first-1+length exceeds the queue length (0x1014e7c4): with StartingIndex > InsertBefore that is StartingIndex+NumberOfTracks-1 > length, otherwise InsertBefore-1 > length. It can also reject on string-pool capacity (0x101464b0). No-op moves send no request."
        ]
       },
       "InsertBefore": {
@@ -64938,16 +65384,29 @@
          "function": "0x102b3924",
          "address": "0x102b393c",
          "notes": "zero check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "notes": "consumer bound check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102acf44",
+         "notes": "800 on consumer rejection"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the zero check and the exact request values derived from it.",
-        "Residual: the session consumer's handling of values past the queue end (and of the 16-bit truncation) is not traced; next step is the f_1032e3c8 request consumer."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InsertBefore` = verbatim forward to impl vfunc +32 (obj r5-in, call site 0x10464e9c); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved: f_102b3924 returns 402 when it is 0 (0x102b393c); it is not compared with the queue length on the engine side; it enters the request geometry as follows: if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc)."
+        "Resolved: f_102b3924 returns 402 when it is 0 (0x102b393c); it is not compared with the queue length on the engine side; it enters the request geometry as follows: if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc).",
+        "Resolved: The request fields are written with sth (f_1032e3c8) and read with lhz by the consumer, so each value is taken modulo 65536. The consumer rejects the request (ok=0, SOAP fault 800 from 0x102acf44) when first-1+length exceeds the queue length (0x1014e7c4): with StartingIndex > InsertBefore that is StartingIndex+NumberOfTracks-1 > length, otherwise InsertBefore-1 > length. It can also reject on string-pool capacity (0x101464b0). No-op moves send no request."
        ]
       },
       "UpdateID": {
@@ -65121,7 +65580,7 @@
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "description": "Rotates a block of the queue. The op 13 case (0x102662d0 and 0x1026847c) reads queue number req+0x102 and calls f_1014e794(q, first, length, shift, pcur), going through f_1025a8e8 for the playing queue (0x1026692c), which passes the play-index pointer s+0x326cc and updates the play position (f_103411b0, f_10149e68, f_10259c1c). f_1014e794 returns 0 when first-1+length > queue length (signed compare at 0x1014e7c4), or, when bit 0 of q+0x26dc is clear, when f_101463c8 fails: shift >= length (0x101463d0, not reachable from the worker's geometry) or the string pool needs more bytes than *(q+0x26cc)-*(q+0x26d4) (0x101464b0). Otherwise it rotates the u16 index array at q+0x26c4, sets q+0x26e8 to 1, adjusts *pcur when the play index is inside the moved block (0x1014e91c..0x1014e958) and returns 1. On ok=0 the worker returns 800 (0x102acf44).",
        "evidence": [
         {
          "type": "firmware",
@@ -65137,19 +65596,96 @@
          "function": "0x102accf0",
          "address": "0x102acec8",
          "notes": "bl f_10255f64"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10255f64",
+         "address": "0x10256034",
+         "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e658",
+         "address": "0x1032e6a8",
+         "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1032e6c0",
+         "address": "0x1032e6e4",
+         "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10265868",
+         "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10267b68",
+         "address": "0x10267cd4",
+         "notes": "second consumer switch, jump table 0x10ea84d0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014d738",
+         "address": "0x1014d7c0",
+         "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014708c",
+         "address": "0x101470a4",
+         "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014e794",
+         "address": "0x1014e7c4",
+         "notes": "first-1+length bound vs q length"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x101463c8",
+         "address": "0x101464b0",
+         "notes": "string-pool capacity check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102accf0",
+         "address": "0x102acf44",
+         "notes": "ok==0 gives 800"
         }
        ],
-       "todo": [
-        "Established: at most one reorder request is submitted and engine+0x6ed8 may be zeroed.",
-        "Residual: the session-side consumer of the f_1032e3c8 request submitted with f_10255f64 is not traced, so the exact reordering, any Queue event it emits, and the meaning of engine+0x5dc (f_1014708c) and engine+0x6ed8 are not established; next step is that consumer and the users of engine+0x6ed8."
-       ],
        "resolved_findings": [
-        "Resolved (engine side): the only effects in the traced code are the optional f_1032e3c8 request submitted at 0x102acec8 and the conditional store of 0 to engine+0x6ed8 at 0x102acf14; no notify call is made directly in f_10464d68, f_102b3924 or f_102accf0."
+        "Resolved (engine side): the only effects in the traced code are the optional f_1032e3c8 request submitted at 0x102acec8 and the conditional store of 0 to engine+0x6ed8 at 0x102acf14; no notify call is made directly in f_10464d68, f_102b3924 or f_102accf0.",
+        "Resolved: Rotates a block of the queue. The op 13 case (0x102662d0 and 0x1026847c) reads queue number req+0x102 and calls f_1014e794(q, first, length, shift, pcur), going through f_1025a8e8 for the playing queue (0x1026692c), which passes the play-index pointer s+0x326cc and updates the play position (f_103411b0, f_10149e68, f_10259c1c). f_1014e794 returns 0 when first-1+length > queue length (signed compare at 0x1014e7c4), or, when bit 0 of q+0x26dc is clear, when f_101463c8 fails: shift >= length (0x101463d0, not reachable from the worker's geometry) or the string pool needs more bytes than *(q+0x26cc)-*(q+0x26d4) (0x101464b0). Otherwise it rotates the u16 index array at q+0x26c4, sets q+0x26e8 to 1, adjusts *pcur when the play index is inside the moved block (0x1014e91c..0x1014e958) and returns 1. On ok=0 the worker returns 800 (0x102acf44). f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8). The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID. The SOAP worker then zeroes engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero. f_1014708c is strncmp(str, \"x-rincon-queue:\", 15)==0 (string 0x10e93904), so this happens only while the current transport URI is a queue URI. engine+0x6ed8 is a sonosClockGetTime deadline: at 0x102d457c the 'x-rincon-buzzer:0' branch (f_102ceb40) is taken only while the clock has not passed it, so zeroing it disables that branch."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct notify call in the handler or worker. Inside the consumer the change reaches f_1014d738 when q+0x4c is nonzero, which bumps the queue UpdateID and posts an in-process event through f_10117654(q+0x18).",
       "evidence": [
        {
         "type": "firmware",
@@ -65165,18 +65701,98 @@
         "function": "0x102accf0",
         "address": "0x102acec8",
         "notes": "bl f_10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10255f64",
+        "address": "0x10256034",
+        "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e658",
+        "address": "0x1032e6a8",
+        "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e6c0",
+        "address": "0x1032e6e4",
+        "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265868",
+        "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10267cd4",
+        "notes": "second consumer switch, jump table 0x10ea84d0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014d7c0",
+        "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014708c",
+        "address": "0x101470a4",
+        "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "notes": "first-1+length bound vs q length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101463c8",
+        "address": "0x101464b0",
+        "notes": "string-pool capacity check"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102acf44",
+        "notes": "ok==0 gives 800"
        }
       ],
       "todo": [
-       "Established: at most one reorder request is submitted and engine+0x6ed8 may be zeroed.",
-       "Residual: the session-side consumer of the f_1032e3c8 request submitted with f_10255f64 is not traced, so the exact reordering, any Queue event it emits, and the meaning of engine+0x5dc (f_1014708c) and engine+0x6ed8 are not established; next step is that consumer and the users of engine+0x6ed8."
+       "Established: The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
+       "Residual: which UPnP event subscription, if any, carries the in-process event posted through f_10117654(q+0x18) at 0x1014d820 to Queue service subscribers is not traced; next step is the listener list on q+0x18 and the handler f_10117654 dispatches to."
       ],
       "resolved_findings": [
        "Resolved (engine side): the only effects in the traced code are the optional f_1032e3c8 request submitted at 0x102acec8 and the conditional store of 0 to engine+0x6ed8 at 0x102acf14; no notify call is made directly in f_10464d68, f_102b3924 or f_102accf0."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "No transport-state literal is written. For the playing queue the play index s+0x326cc is moved with the block by f_1014e794 (0x1014e91c..0x1014e958).",
       "evidence": [
        {
         "type": "firmware",
@@ -65192,14 +65808,91 @@
         "function": "0x102accf0",
         "address": "0x102acec8",
         "notes": "bl f_10255f64"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10255f64",
+        "address": "0x10256034",
+        "notes": "f_10255f64 hands the request to the session thread via s+0x2594"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e658",
+        "address": "0x1032e6a8",
+        "notes": "f_1032e658 returns req+0xe1 after waiting on req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1032e6c0",
+        "address": "0x1032e6e4",
+        "notes": "f_1032e6c0 stores ok at req+0xe1 and sets req+0xe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1026571c",
+        "address": "0x10265868",
+        "notes": "consumer switch on req+0xe4, jump table 0x10ea8468"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10267b68",
+        "address": "0x10267cd4",
+        "notes": "second consumer switch, jump table 0x10ea84d0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d738",
+        "address": "0x1014d7c0",
+        "notes": "UpdateID q+0x70 incremented; in-process event via f_10117654 at 0x1014d820"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014708c",
+        "address": "0x101470a4",
+        "notes": "strncmp against \"x-rincon-queue:\" (0x10e93904)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014e794",
+        "address": "0x1014e7c4",
+        "notes": "first-1+length bound vs q length"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101463c8",
+        "address": "0x101464b0",
+        "notes": "string-pool capacity check"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102accf0",
+        "address": "0x102acf44",
+        "notes": "ok==0 gives 800"
        }
       ],
-      "todo": [
-       "Established: at most one reorder request is submitted and engine+0x6ed8 may be zeroed.",
-       "Residual: the session-side consumer of the f_1032e3c8 request submitted with f_10255f64 is not traced, so the exact reordering, any Queue event it emits, and the meaning of engine+0x5dc (f_1014708c) and engine+0x6ed8 are not established; next step is that consumer and the users of engine+0x6ed8."
-      ],
       "resolved_findings": [
-       "Resolved (engine side): the only effects in the traced code are the optional f_1032e3c8 request submitted at 0x102acec8 and the conditional store of 0 to engine+0x6ed8 at 0x102acf14; no notify call is made directly in f_10464d68, f_102b3924 or f_102accf0."
+       "Resolved (engine side): the only effects in the traced code are the optional f_1032e3c8 request submitted at 0x102acec8 and the conditional store of 0 to engine+0x6ed8 at 0x102acf14; no notify call is made directly in f_10464d68, f_102b3924 or f_102accf0.",
+       "Resolved: No transport-state literal is written. For the playing queue the play index s+0x326cc is moved with the block by f_1014e794 (0x1014e91c..0x1014e958). f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8)."
       ]
      },
      "return_behavior": {
@@ -65236,7 +65929,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x20)",
-       "meaning": "402 zero StartingIndex/NumberOfTracks/InsertBefore, 718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or submit failure",
+       "meaning": "402 zero StartingIndex/NumberOfTracks/InsertBefore, 718 unknown QueueID, 1028 UpdateID mismatch, 800 transport mode not 1/2 or consumer rejection (block past queue end or string-pool capacity)",
        "fault_sites": [
         "0x10464eb8"
        ],
@@ -65382,15 +66075,20 @@
        "function": "0x102accf0",
        "address": "0x102acebc",
        "notes": "f_1032e3c8 request"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1026571c",
+       "address": "0x102662d0",
+       "notes": "op 13 case"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: argument checks, queue/UpdateID/mode gates and the exact request values.",
-      "Residual: how the session consumer of the f_1032e3c8 request applies (first, length, shift) and handles indices beyond the queue length (no engine-side bound check exists) is not traced; next step is the consumer behind f_10255f64 for this request kind."
-     ],
      "resolved_findings": [
-      "Resolved: the impl chain is fully static. wrapper f_10464d68 parses QueueID, StartingIndex, NumberOfTracks, InsertBefore and UpdateID as u32 (0x10464db8, 0x10464ddc, 0x10464e00, 0x10464e24, 0x10464e4c), faults 402 on parse failure (0x10464ef0) and calls qm->v[+0x20](qm, QueueID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID, &NewUpdateID) at 0x10464e9c; qm vtable 0x10ed1bcc slot +0x20 is f_10465a94, which tail-branches to f_102b3924 with the engine *(qm+0x128). f_102b3924 returns 402 if StartingIndex, InsertBefore or NumberOfTracks is 0 (0x102b3924, 0x102b393c, 0x102b3944) and otherwise tail-branches to f_102accf0 (0x102b3950). f_102accf0 locks engine+0x458 (0x102acd50); queue selection formats QueueID with '%u' and compares it with the ID strings s+0x2d8ec and s+0x2fff4 (0x102acd88, 0x102acd9c) of the session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102acdf8); f_10149b24(q, &cur, &len, 0) (0x102acdc4) reads the current UpdateID; a nonzero UpdateID that differs from cur returns 1028 (cmpw at 0x102acdd8, 0x102acdd4); 0 skips the check; it returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102acde0..0x102acdf0); if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc); the request is submitted with f_10255f64 (0x102acec8) and a submit failure returns 800 (0x102acf48). After a successful submit or a skipped request it stores the re-read UpdateID in NewUpdateID (0x102acefc), zeroes engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero (0x102acf14) and returns 0 (0x102acf18) after unlocking (0x102acdfc). In plain terms: ReorderTracks needs nonzero indices and count, a known queue, a matching or zero UpdateID and transport mode 1 or 2; moves onto itself (InsertBefore inside or just after the block) send nothing and still succeed. The engine does not compare StartingIndex, NumberOfTracks or InsertBefore with the queue length. Inference, not traced: the (first, length, shift) triple matches a left rotation of the span [first, first+length) by shift positions, which moves the block to just before InsertBefore in both branches."
+      "Resolved: the impl chain is fully static. wrapper f_10464d68 parses QueueID, StartingIndex, NumberOfTracks, InsertBefore and UpdateID as u32 (0x10464db8, 0x10464ddc, 0x10464e00, 0x10464e24, 0x10464e4c), faults 402 on parse failure (0x10464ef0) and calls qm->v[+0x20](qm, QueueID, StartingIndex, NumberOfTracks, InsertBefore, UpdateID, &NewUpdateID) at 0x10464e9c; qm vtable 0x10ed1bcc slot +0x20 is f_10465a94, which tail-branches to f_102b3924 with the engine *(qm+0x128). f_102b3924 returns 402 if StartingIndex, InsertBefore or NumberOfTracks is 0 (0x102b3924, 0x102b393c, 0x102b3944) and otherwise tail-branches to f_102accf0 (0x102b3950). f_102accf0 locks engine+0x458 (0x102acd50); queue selection formats QueueID with '%u' and compares it with the ID strings s+0x2d8ec and s+0x2fff4 (0x102acd88, 0x102acd9c) of the session queue records s+0x2d890 and s+0x2ff98 (s=*(engine+0x580)); no match returns 718 (0x102acdf8); f_10149b24(q, &cur, &len, 0) (0x102acdc4) reads the current UpdateID; a nonzero UpdateID that differs from cur returns 1028 (cmpw at 0x102acdd8, 0x102acdd4); 0 skips the check; it returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102acde0..0x102acdf0); if StartingIndex > InsertBefore (cmplw at 0x102ace58) the request is first=InsertBefore, length=StartingIndex-InsertBefore+NumberOfTracks, shift=StartingIndex-InsertBefore (0x102ace60/0x102ace64); otherwise, if InsertBefore <= StartingIndex+NumberOfTracks (cmplw at 0x102acf24) no request is sent at all, else first=StartingIndex, length=InsertBefore-StartingIndex, shift=NumberOfTracks (0x102acf2c..0x102acf34); a zero length also skips the request (0x102ace6c). All three values are truncated to 16 bits (rlwinm at 0x102acea8..0x102aceb0) and passed with the request kind (1 for s+0x2d890, 2 for s+0x2ff98) to f_1032e3c8(req, kind, first, length, shift) (0x102acebc); the request is submitted with f_10255f64 (0x102acec8) and a submit failure returns 800 (0x102acf48). After a successful submit or a skipped request it stores the re-read UpdateID in NewUpdateID (0x102acefc), zeroes engine+0x6ed8 when f_1014708c(engine+0x5dc) is nonzero (0x102acf14) and returns 0 (0x102acf18) after unlocking (0x102acdfc). In plain terms: ReorderTracks needs nonzero indices and count, a known queue, a matching or zero UpdateID and transport mode 1 or 2; moves onto itself (InsertBefore inside or just after the block) send nothing and still succeed. The engine does not compare StartingIndex, NumberOfTracks or InsertBefore with the queue length. Inference, not traced: the (first, length, shift) triple matches a left rotation of the span [first, first+length) by shift positions, which moves the block to just before InsertBefore in both branches.",
+      "Resolved: the session consumer applies (first, length, shift) through f_1014e794 and enforces the range bound itself. The request fields are written with sth (f_1032e3c8) and read with lhz by the consumer, so each value is taken modulo 65536. The consumer rejects the request (ok=0, SOAP fault 800 from 0x102acf44) when first-1+length exceeds the queue length (0x1014e7c4): with StartingIndex > InsertBefore that is StartingIndex+NumberOfTracks-1 > length, otherwise InsertBefore-1 > length. It can also reject on string-pool capacity (0x101464b0). No-op moves send no request. f_10255f64 stores the request at s+0x2594 (0x10256034), signals s+0x2e8 (0x1025603c) and tail-calls f_1032e658, which waits for req+0xe0 and returns the byte req+0xe1 (0x1032e6a8), so the submit is synchronous. The session thread takes the request in f_1026571c (0x102657ac) or f_10267b68 (0x10267c14) and switches on the op code at req+0xe4 (jump tables 0x10ea8468 and 0x10ea84d0); every case ends in f_1032e6c0(req, ok), which stores ok at req+0xe1 and sets req+0xe0. Queue number k resolves to *(s+0x326a0+4*k); the playing queue is *(s+0x326c8)."
      ]
     },
     "ReplaceAllTracks": {
