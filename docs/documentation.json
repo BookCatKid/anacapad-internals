@@ -150688,16 +150688,54 @@
      "type": "firmware",
      "address": "0x10e73cb8",
      "notes": "audiotap block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107e1264",
+     "address": "0x107e1474",
+     "notes": "48-byte binary metadata, sample-count byte size and high-bit signal loss."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107d8624",
+     "address": "0x107d8a20",
+     "notes": "Packet producer supplies clock pair, sample count and sample rate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107e1720",
+     "address": "0x107e1894",
+     "notes": "Metadata then payload sink writes with scalar/word byte reversal."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x103d1ca8",
+     "address": "0x103d1d38",
+     "notes": "Concrete zlib framing parameters; not gzip."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "function": "0x107e1e44",
+     "address": "0x107e1ec8",
+     "notes": "Version, valid-prefix, empty and truncated-file validation."
     }
    ],
    "manager": "audiotap_manager + trueplay_manager; \"number of max taps exceeds the avaialable capacity\"; \"Active Tap %s\"/\"Closing Tap %s\"/\"No Active Taps to check if already tapped\"; guards {\"Location is not tappable\",\"Location is already being tapped\",\"Max number of blocks already being tapped\"}; vars {channelname,vartype,VAR_FLOAT,VAR_STRING,VAR_INT} fmt %.04f; \"number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE\"; \"unknown channel type\"; sonarEQ.xml + \"found legacy tuning\"; status \"<b>--------Trueplay-------</b>\" + \"Minimum Trueplay version\" + {Small,Large} classes",
    "todo": [
-    "Residual: the tap file internal layout beyond the version tag (compressed block stream; the decompressed frame grammar is in the tap reader)."
+    "Residual shared with audio_taps: identify the clock provider/domain for metadata u32 words at offsets 1 and 5, and decode the cached 24-byte status block at 0x0f..0x26 and any remaining flag semantics. Packet writer, sample-rate word, signal-loss producer, compression and framing are traced; the opaque metadata semantics are not fully resolved."
    ],
    "resolved_findings": [
-    "Resolved: tap output format = rolling buffer + <SPDIFTap>-style metadata XML; the /audio_tap handler dumps the manager buffer verbatim.",
+    "SPDIF file grammar replaces the earlier rolling-buffer-plus-XML-metadata claim: the uncompressed replay file is repeated 48-byte binary metadata followed by sample_count*8 audio bytes. XML <SPDIFTap> is an export envelope, not an on-disk metadata header or trailer. The generic /audio_tap WAV/debug surface is not proof that every tap uses the SPDIF packet format.",
     "Client delivery proven: tap data reaches the requester as a file download - /snapshotspdiftap captures the live tap and /downloadspdiftap serves it; snapshotted taps are compressed (spdiftap.compressed artifact suffix; Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!). The audiotap_manager guards capacity (number of max taps exceeds the avaialable capacity, Max number of blocks already being tapped, Location is already being tapped, Location is not tappable) and tracks Active Tap %s / Closing Tap %s. Signal integrity monitored (Encountered signal loss in the audio tap). Poll cadence via audiotap.poll param on /audio_tap.",
-    "Established: snapshot+download delivery (compressed file), capacity guards, active-tap tracking, signal-loss monitoring."
+    "Established: snapshot+download delivery (compressed file), capacity guards, active-tap tracking, signal-loss monitoring.",
+    "Reader and validation independently checked: f_107e1264 reads one 48-byte metadata item with fread and returns 2 on failure. It byte-reverses packed words at offsets 1,5,0x0b and u16 sample count at 9; the file values are little-endian. The count shifted left three is stored at reader+0x40. Flag byte 0x27 bit 0x80 selects the signal-loss log/return-4 path; metadata is still copied to reader+0x10. f_107e1e44 checks version byte 1 and walks complete metadata/audio records, retaining a valid prefix if its size exceeds 47 bytes. Empty input or an invalid first packet closes the file; truncated audio or metadata after a complete prefix stops validation at that prefix. f_107e1a88 bounds reads by remaining packet/file bytes, returns 2 on short fread, and reverses audio word byte order on this big-endian target. These details match audio_taps, not a separate compressed-block grammar.",
+    "Producer traced: f_107d8624 zeroes 48 bytes at stack+0x4c and writes version 1 at 0x107d8730-0x107d8740. Its clock-provider object +0x8d0 vtable+0x0c fills an eight-byte result copied into metadata offsets 1 and 5; the same pair is returned through the caller timestamp output. At 0x107d89e0-0x107d8a20 it sets sample count to payload_bytes>>3 and metadata+0x0b to TV processor +0xf1c. Playback compares that word with the current TV rate and logs the explicit sample-rate-mismatch diagnostic at 0x107d8838, proving it is sample rate rather than an unnamed counter. f_107dede8 copies the cached 24-byte block at processor+0x1a68 to metadata+0x0f. The error path ORs 0x80 into metadata+0x27 and invokes the writer with null audio and zero bytes at 0x107d8bd8-0x107d8bf8. Writer f_107e1720 copies and byte-reverses the scalar fields, writes exactly 48 metadata bytes via sink virtual+8, then, for non-null/nonzero audio, writes the word-byte-reversed payload through the same sink (0x107e1894-0x107e1a2c). Clock units/domain and cached status-byte meanings remain unresolved.",
+    "Compression boundary checked in f_103d1ca8: deflateInit2_ receives default level -1, method 8, windowBits 12, memLevel 5 and strategy 0, using zlib version 1.2.11. This is a zlib-wrapped DEFLATE stream, not gzip or an additional per-packet block schema. f_1034308c emits the <SPDIFTap> export wrapper and opens the file before using a 0x4000-byte file-reader buffer. That buffer size is not a fixed metadata section."
    ]
   },
   "dsp_files": {
