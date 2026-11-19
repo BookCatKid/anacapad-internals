@@ -148842,20 +148842,82 @@
      "type": "firmware",
      "address": "0x10eae3f4",
      "notes": "auto_update_scheduler block"
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x10000d88",
+     "address": "0x10000f48",
+     "notes": "Infofile parser to daemon coordinator dispatch, including empty-list guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x10002a2c",
+     "address": "0x10002e28",
+     "notes": "Append-only 0x3c8-byte device records with progress/completion callbacks."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x10003818",
+     "address": "0x100039bc",
+     "notes": "All-member startup pass in input-file order, no best-peer selection."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x10003360",
+     "address": "0x10003398",
+     "notes": "Whole-array reboot eligibility barrier and second pass over all WAIT members."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x10002370",
+     "address": "0x100023c0",
+     "notes": "WAIT-to-REBOOT transition and command-4 send."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x100035f8",
+     "address": "0x100036a0",
+     "notes": "Terminal-count scan and error-triggered barrier recheck."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x10003bc0",
+     "address": "0x10003d1c",
+     "notes": "FLASHWRITE=4 versus WAIT=5, separate from phase ids."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "function": "0x1000245c",
+     "address": "0x1000247c",
+     "notes": "Status report output targets accepted client socket, not SSDP."
     }
-   ],
-   "todo": [
-    "Residual: the peer-election predicate (which household member the coordinator advances next) - command enum, NOTIFY report grammar, and status-server surface are now proven; the pick-next-member comparator is inside the coordinator loop."
    ],
    "resolved_findings": [
     "Resolved: ST_SESSION_ACTIVE -> upgrade_mgr launch = the session-state transition hands off to the external upgrade_mgr with the manifest row; the window gate is the AutoUpdateWindow seconds-since-midnight range.",
     "Window computation and launch proven (auto_update_scheduler.cxx, updateScheduler domain): the window is an HH:MM:SS range persisted via R_AutoUpdateWindowStart; shrinkWindow trims it (Trimming the window to (%d) seconds). ST_SESSION_ACTIVE gates on two blockers - Upcoming alarm is preventing update and Active device(s) preventing update (the <ActiveDeviceList> in UpdateInfo XML names them). On window entry it launches upgrade_mgr (/bin/upgrade_mgr; Launching update failed, retrying in %d seconds), polls upgrade_mgr_report.json + upgrade_mgr.txt + app/log for progress, and retries bounded by Retrying upgrade (%d/%d) -> Giving up after max upgrade attempts / Scheduling error!. Household coordination: Send updateHHstatus (%s) reports {numZPsInHH, numZPsInHHDelta, numZPsToUpdate, numZPsDropped, numFailedZPs, numZPsWithError, targetSystemVersion, updateHHResult, updateZPResult} so one coordinator sequences the household. Checks run per R_CheckUpdateInterval (Next check for update in %us / refresh update info in %us) gated by R_AutoUpdatePolicy/AutoUpdatePolicy + AutoUpdate min version=%s. Report JSON fields {pendingUpdateHours, numUpdateAttempts, startTime, elapsedSeconds, blockedUpdateReason}; <UpdateInfo> XML carries {AutoUpdate, State, Window, UpgradeManager, HoursPending, ActiveDeviceList}.",
     "Resolved: the device-wait retry loop (f_100d53a8) bounds attempts by a literal 5 - attempt counter at obj+0x30 increments each round and count>5 exits to 'We timed out on %zu devices after %u attempts'; each round does gettimeofday + a timed 'wake' wait before rechecking.",
-    "Resolved (coordinator selection model): there is no election protocol in anacapad - the household update coordinator is self-nominated. The node that receives the muse beginUpdate call writes /var/run/upgradeinfo (updateHookJob worker f_106b2fa4: fopen append, emits 'MinVersion: [%s]' + 'PrevSWGenMinVersion: [%s]' after a cloud-settings query; 'Failed to query cloud settings'/'error updating %s' on the error arms) and ST_SESSION_ACTIVE launches /bin/upgrade_mgr (shipped, PPC ELF). upgrade_mgr parses a key=value info file - parse-error literals name the schema: {LocalSerial, User-Agent, HouseholdID, Timestamp, SystemVersion, UpdateID, NumZPs, NumUpdateZPs, AutoUpdate, StatusServer, ReportFilename} plus per-device rows {udn,type,version,hwversion,modelflags,controlUri,updateID} ('bad udn'/'bad type'/'bad version'/'bad hw version'/'bad model flags'/'bad controlUri'/'bad updateID'). It then SSDP-advertises itself: 'NOTIFY * HTTP/1.1', 'NT: urn:schemas-upnp-org:device:SonosUpgradeMgr:1', 'USN: uuid:RINCON_%s01400::urn:schemas-upnp-org:device:SonosUpgradeMgr:1', 'X-RINCON-HOUSEHOLD: %s', 'X-RINCON-REASON: hh-upgrade' - members discover the coordinator via SSDP.",
-    "Resolved (upgrade_mgr member protocol): the coordinator drives each member's controlUri with a small HTTP command set {STATUS, DOWNLOAD, FLASHWRITE, PING, REBOOT}; members answer 'STATUS?phase=%s;percent-complete=%d', 'COMPLETE?phase=%s', 'ERROR?phase=%s;error-code=%d'. Per-device phase FSM {UNDEFINED,CONNECT,WAIT,FINISHED,INIT,HELLO_DONE,DOWNLOAD_DONE,FLASHWRITE_DONE,REBOOTING_DONE}; member hello is 'HELLO'. Coordinator greets members with query '?Version=%s.%s-%s&Auto=%s&Client=%s' (and '?Delay=5'). Status socket for anacapad->upgrade_mgr polling: 'status server: listening on port %d' + 'status server: client connected' - the report fields upgrade_mgr_report.json consumes. Report output: per-device JSON {Serial,Type,CurrentVersion,TargetVersion,UpdateID,HardwareVersion,State,Result,DownloadDuration,ServerIP,ErrorMsg,ExtendedError} under ZPs[] + summary {Version,SystemResult,SystemVersion,UpdateID,Timestamp,Duration,NumZPs,NumUpdateZPs} written to ReportFilename; 'Updated %zu/%zu devices' progress. /tmp/upgrade_mgr.pid singleton lock.",
     "Member-side receiver op vocabulary recovered at 0x10eef2e0+0x28: {CONNECT, HELLO, DOWNLOAD, FLASHWRITE, WAIT, REBOOT, ERROR, FINISHED} - the controlUri opcodes the member answers, paired with the coordinator-side FSM states {INIT, HELLO, HELLO_DONE, DOWNLOAD, DOWNLOAD_DONE, FLASHWRITE, FLASHWRITE_DONE, REBOOT, REBOOTING_DONE, UNDEFINED} in the same table.",
     "Member-side controlUri opcode ids bound (0x10fad660): CONNECT=2, HELLO=3, DOWNLOAD=4, FLASHWRITE=5, WAIT=6, REBOOT=7, ERROR=8, FINISHED=9 - the receiver op enum now carries numeric ids.",
-    "Member-side receiver FSM decoded in /bin/upgrade_mgr (f_10003bc0 string->enum ladder): coordinator->member command words map to enum {UNDEFINED=0, CONNECT=1, HELLO=2, DOWNLOAD=3, WAIT=4, FLASHWRITE=5, REBOOT=6, ERROR=7, FINISHED=8} stored at obj+0x4. The member->coordinator reporting side is NOTIFY * HTTP/1.1 bodies '%s STATUS?phase=%s;percent-complete=%d', '%s COMPLETE?phase=%s', '%s ERROR?phase=%s;error-code=%d' sent to the assigned controlUri ('bad controlUri'/'bad updateID' rejection paths present); the member also runs a status server ('status server: listening on port %d', client connect/disconnect/truncated-message handling). A second ladder f_10003db8 maps report phases starting INIT=1 into the {.., DOWNLOAD_DONE, FLASHWRITE_DONE, REBOOTING_DONE} done-verb set."
+    "Coordinator/member selection residual resolved in the shipped /bin/upgrade_mgr, not inferred from scheduler strings: main f_10000d88 loads the supplied infofile through sonosSettingsFileLoad with parser f_10002a2c at 0x10000e60-0x10000e70, checks the parsed device count and calls f_10003818 at 0x10000f48. The parser appends each successfully constructed ZP to object+0x218+index*0x3c8 (0x10002dd0-0x10002e28), increments count +0x7b18 at 0x10002fd0, and rejects a new row when the prior count exceeds 31 at 0x10002cf0. The startup pass at 0x10003994-0x100039d0 iterates those rows in input-file order, calling f_100022fc on every row rather than choosing a best peer. f_100022fc sets state +0x260 to CONNECT=1 and schedules per-member timeout and connection-retry callbacks. It returns zero, so normal startup reaches every row. No serial/version/model-priority comparator participates in this startup path; the earlier pick-next-member/election premise is replaced by ordered registration and independent per-member progress. This establishes the launched daemon behavior, not an absence claim about every possible coordinator-selection mechanism elsewhere.",
+    "The cross-member decision is a reboot barrier, not a next-peer election. f_10003360 first scans the complete array and returns without starting reboot if any member state is >0 and <=4 (CONNECT, HELLO, DOWNLOAD or FLASHWRITE). If all rows pass, a second ascending-index pass invokes f_10002370 for every WAIT=5 member, not just the first. That callee changes WAIT to REBOOT=6, selects command index 4 and sends REBOOT?Delay=5 through f_10001424 (0x100023c0-0x100023d4, 0x10001564). UNDEFINED=0, ERROR=7 and FINISHED=8 do not block that barrier, while an empty array returns zero. The callback is reachable: parser f_10002a2c supplies f_1000346c as progress callback and f_100035f8 as completion callback to constructor f_10001f30, which stores them at member+0x258/+0x254. Progress callback f_1000346c falls through to f_10003478, which invokes the barrier for state WAIT=5; completion callback f_100035f8 falls through to f_10003604, which also invokes the barrier for an ERROR member while others remain. The normal COMPLETE/HELLO processing in f_10001684 increments per-member state/command, schedules WAIT retries, and invokes progress callback at 0x10001770-0x1000178c. Terminal/timeout paths invoke completion callback through +0x254 (0x10002228-0x10002244 and 0x10002188-0x100021ac). These call paths disprove the assumption that a ranking comparator must advance the next household device.",
+    "State and phase enums corrected from the actual /bin/upgrade_mgr tables: member state +0x260 uses 0:UNDEFINED,1:CONNECT,2:HELLO,3:DOWNLOAD,4:FLASHWRITE,5:WAIT,6:REBOOT,7:ERROR,8:FINISHED at 0x10005cbc. f_10003bc0 string parser confirms FLASHWRITE=4 and WAIT=5 at 0x10003d00-0x10003d20; the earlier swapped ids are withdrawn. The separate phase table at 0x10005c98 is INIT,HELLO,HELLO_DONE,DOWNLOAD,DOWNLOAD_DONE,FLASHWRITE,FLASHWRITE_DONE,REBOOT,REBOOTING_DONE. f_100031d8 counts FINISHED=8 rows for progress/final reporting; errors also feed the completion scan in f_10003604, which counts states >=7 for terminal completion. Empty parsed input takes the No devices to update report/exit-1 path at 0x10000e88, rather than trying to elect a device.",
+    "Protocol direction corrected while tracing the callbacks: /bin/upgrade_mgr member connections use nonblocking TCP to port 0x115c=4444 in f_10001c8c, not HTTP requests constructed from the command vocabulary. f_10001424 serializes a command as %s%s plus newline, using HELLO/DOWNLOAD/FLASHWRITE/PING/REBOOT table 0x10005228. Separately, f_1000245c formats status text and sends it through accepted status-client socket object+0x7c34; STATUS?phase, COMPLETE?phase and ERROR?phase report lines are built by callbacks f_10003478/f_10003604 and flow there. They are not proven NOTIFY bodies sent to a per-member controlUri. SSDP NOTIFY advertisement is a different path in f_10003058. The earlier conflation of report lines, HTTP member commands and SSDP is withdrawn. The anacapad receiver enum at 0x10fad660 is a separate binary-local enum, not these daemon state ids."
    ]
   },
   "av_transport": {
