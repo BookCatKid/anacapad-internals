@@ -69459,7 +69459,7 @@
      ]
     },
     "Stop": {
-     "description": "Stops playback. Impl f_102d2e54 gate (718 on InstanceID!=0) then body at 0x102d2eb4: lock impl+0x458, log 'upnp'/'stop', call f_102d2bec(impl,1). The worker zeroes impl+0x7778, calls f_102ae2d0 on the member object at impl+0xaaa0, then f_102931f0(impl+0x5dc); cr0.eq-clear -> 701. On pass it dispatches on mode (impl+0x4654): mode==2 submits op 1 via f_10256a84(impl+0x580) plus conditional f_102b4b48; mode==1 calls f_102b0a48(impl,0); then shared tail f_102b05e4(impl,1). An 'avt_impl' debug log 'restoring after stop chime' documents a chime-restore path gated by impl+0x5a7f/0x7764 flags.",
+     "description": "Stops the current source through the mode-specific stop path. Mode 0 requests a stopped sink and removes its stream clock. Mode 1 uses the shared Pause/Stop worker, whose ordinary mode-1 arm finishes without an additional fault. Mode 2 requests an indexed stop. The SOAP result reflects the engine branch, not subscriber notification.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f849c",
@@ -69661,15 +69661,39 @@
         "address": "0x102b5780",
         "notes": "Samples +0x7765 into pending byte +0xa09b. A consuming pass clears +0x7765 at 0x102b57b0. Serializer at 0x102e50cc writes r:RestartPending from +0x7764; delta branch tests +0xa09b at 0x102e53c0.",
         "function": "0x102b5658"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10308a10",
+        "notes": "In the sink state machine, a request for state 1 can set transition state 2 and wait on sink+0x240. f_10310b90's stopped arm (log at 0x10310cbc) commits state 1 through f_1030ef78 at 0x10310d44. A changed state sets sink+0x28b4, invokes f_1067c6ec through the sink's target at +0x2b8 and signals the waiter; an unchanged state does not do those state-change writes.",
+        "function": "0x103088ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0d64",
+        "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b06d4",
+        "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
+        "function": "0x102b05e4"
        }
       ],
       "todo": [
-       "Established: Some accepted branches invoke f_1067c6ec, including the indexed +0x7764 to +0x7765 flag change.",
-       "Trace the exact transport snapshot fields dirtied by mode-zero stop and the mode-one fallback in addition to the verified indexed restart update."
+       "Established: a mode-zero sink state change sets sink+0x28b4 and signals its event target; the mode-one fallback dirties impl+0x7760 if it changes the local Pause state record. Indexed restart clearing can publish r:RestartPending=false.",
+       "Identify the sink+0x2b8 event registration and verify which SOAP snapshot readers consume sink+0x28b4 and impl+0x7760, including coalescing with the common update."
       ]
      },
      "state_transitions": {
-      "description": "Stop submitted; queue/URI fields cleared on the chime path; transport-state update run.",
+      "description": "Mode 0 takes the sink toward its stopped state and removes its stream clock. Mode 1 can record paused state locally during the topology update. Mode 2 asks the indexed state machine to stop, including an intermediate TRAN_STOPPED when needed.",
       "evidence": [
        {
         "type": "firmware",
@@ -69678,27 +69702,83 @@
         "address": "0x102d2cd8",
         "notes": "fields cleared",
         "function": "f_102d2bec"
-       }
-      ]
-     },
-     "return_behavior": {
-      "description": "701 when f_102931f0(impl+0x5dc) fails its precondition; else mode-path rc flows through f_102b05e4's status (0=success).",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x102d2c40",
-        "notes": "li r3,0x2bd on f_102931f0 fail",
-        "function": "f_102d2bec"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102d2d74",
-        "notes": "f_102b05e4 rc -> r28",
-        "function": "f_102d2bec"
+        "address": "0x102d0d64",
+        "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b0a7c",
+        "notes": "In mode 0 the worker calls f_103088ec(sink,1,0), then reads the stream clock ID from f_106aa13c(stream)+0xa and issues the clock collection's +0xc call, bracketed by the iSCS removeClock diagnostic. Stop ignores the boolean sink result at 0x102d2d60.",
+        "function": "0x102b0a48"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10308a10",
+        "notes": "In the sink state machine, a request for state 1 can set transition state 2 and wait on sink+0x240. f_10310b90's stopped arm (log at 0x10310cbc) commits state 1 through f_1030ef78 at 0x10310d44. A changed state sets sink+0x28b4, invokes f_1067c6ec through the sink's target at +0x2b8 and signals the waiter; an unchanged state does not do those state-change writes.",
+        "function": "0x103088ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10256920",
+        "notes": "Indexed target 1 can set state 2 before the queue loop finishes the transition.",
+        "function": "0x10256604"
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "The fixed parsed-ID gate returns 718 for nonzero; an eligible source in mode 0 or the normal mode-1 arm succeeds. The only worker fault is 701: the home-theater URI guard rejects transport, an unsupported mode is selected, or indexed stop returns false. The final home-theater update governs notification, not a distinct fault code.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10293058",
+        "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+        "function": "0x10293014"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d0d64",
+        "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+        "function": "0x102d0ac8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b0a7c",
+        "notes": "In mode 0 the worker calls f_103088ec(sink,1,0), then reads the stream clock ID from f_106aa13c(stream)+0xa and issues the clock collection's +0xc call, bracketed by the iSCS removeClock diagnostic. Stop ignores the boolean sink result at 0x102d2d60.",
+        "function": "0x102b0a48"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b06d4",
+        "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
+        "function": "0x102b05e4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d2ca4",
+        "notes": "Selection of zero or 701 tests only the indexed op-1 result. The status is checked at 0x102d2d34 before the common success tail.",
+        "function": "0x102d2bec"
        }
       ]
      },
@@ -69822,28 +69902,28 @@
       },
       {
        "code": null,
-       "code_expr": "vret(r5-in,+0x28)",
-       "meaning": "The mode-1 shared fallback can return a nonzero result verbatim.",
+       "code_expr": "No independent mode-1 result code",
+       "meaning": "Mode 1 does not add a SOAP fault. The shared worker can return the existing 701 from its URI guard but returns zero on its mode-1 arm.",
        "fault_sites": [],
        "conditions": [
         {
-         "description": "The mode-1 shared fallback can return a nonzero result verbatim.",
+         "description": "Mode 1 does not add a SOAP fault. The shared worker can return the existing 701 from its URI guard but returns zero on its mode-1 arm.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2c64",
-           "notes": "After the f_102931f0 URI check (true returns 701), mode 0 uses f_102b0a48, mode 1 can invoke the shared f_102d0ac8 fallback, mode 2 sends indexed opcode 1 via f_10256a84, and higher modes return 701.",
-           "function": "0x102d2bec"
+           "address": "0x10293058",
+           "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+           "function": "0x10293014"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102d2e04",
-           "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
-           "function": "0x102d2bec"
+           "address": "0x102d0d64",
+           "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+           "function": "0x102d0ac8"
           }
          ]
         }
@@ -69864,64 +69944,23 @@
          "address": "0x102d2e04",
          "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
          "function": "0x102d2bec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10293058",
+         "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+         "function": "0x10293014"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102d0d64",
+         "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+         "function": "0x102d0ac8"
         }
-       ],
-       "unresolved": {
-        "proven": "tail rc is returned",
-        "unknown": "concrete codes produced by the mode paths (f_10256a84/f_102b0a48) surfacing here",
-        "bounded_domain": [
-         0
-        ],
-        "bound_evidence": "worker literal-exit scan: f_102b0a48->[0];f_102b0a48->[0]",
-        "raw_exit_literals": {
-         "f_10256a84": {
-          "lits": [
-           520
-          ],
-          "pt": 5
-         },
-         "f_102b0a48": {
-          "lits": [
-           0,
-           1,
-           12,
-           24
-          ],
-          "pt": 0
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x102d2e54",
-         "lits": [
-          24,
-          176
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10557848": {
-          "lits": [
-           0,
-           1,
-           80
-          ],
-          "pt": 3
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "literal_bound": [
-        718
-       ],
-       "worker_literal_bound": [
-        701,
-        701
-       ],
-       "todo": [
-        "Established: The mode-1 shared fallback can return a nonzero result verbatim.",
-        "Complete the return matrix of f_102d0ac8 for Stop's mode-1 arguments and distinguish its 701 mappings from any other returns."
        ]
       },
       {
@@ -70121,13 +70160,49 @@
        "address": "0x102d2e04",
        "notes": "Mode 1 can call f_102d0ac8(impl,1,r27,-1,-1). A nonzero result is returned before the common success tail. There is no store-commit return read by the wrapper or by this front end.",
        "function": "0x102d2bec"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10293058",
+       "notes": "The guard f_102931f0 calls f_10293014 with no output pointers. It compares x-sonos-htastream: case-insensitively, requires 24 bytes before the separator colon and a nonempty suffix, then checks the exact suffix through f_10292040 against spdif, v-spdif, vli, chsnk or test.",
+       "function": "0x10293014"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102d0d64",
+       "notes": "In mode 1, f_102d0ac8 takes its status from f_102b0af8, whose paths converge on the literal zero at 0x102b0b78. With an eligible URI and impl+0x775c equal to zero, f_102b0af8 requests sink state 1 with flag 1, passes the current URI, metadata and snapshots to f_10398308 but ignores its return, writes the Pause state record at impl+0x7758 through f_1048811c and schedules eventing. It can also skip the topology call and take only the common home-theater update.",
+       "function": "0x102d0ac8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b0a7c",
+       "notes": "In mode 0 the worker calls f_103088ec(sink,1,0), then reads the stream clock ID from f_106aa13c(stream)+0xa and issues the clock collection's +0xc call, bracketed by the iSCS removeClock diagnostic. Stop ignores the boolean sink result at 0x102d2d60.",
+       "function": "0x102b0a48"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10308a10",
+       "notes": "In the sink state machine, a request for state 1 can set transition state 2 and wait on sink+0x240. f_10310b90's stopped arm (log at 0x10310cbc) commits state 1 through f_1030ef78 at 0x10310d44. A changed state sets sink+0x28b4, invokes f_1067c6ec through the sink's target at +0x2b8 and signals the waiter; an unchanged state does not do those state-change writes.",
+       "function": "0x103088ec"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b06d4",
+       "notes": "The common home-theater update f_102b05e4 calls f_10293208 on the current URI. For a recognized source it calls f_1023d324 and writes 1 to impl+0x775c via f_1048811c, setting +0x7760 on change; otherwise it executes URI reconciliation and returns zero. Callers use the update result to decide whether to invoke eventing, not as a new SOAP fault.",
+       "function": "0x102b05e4"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: the indexed path, mode-1 fallback and mode-zero stop use distinct workers.",
-      "Finish the mode-1 f_102d0ac8 result matrix and mode-0 f_102b0a48 state effects. The indexed request, local return mapping and notification call sites are verified."
-     ]
+     "notes": null
     }
    },
    "state_variables": {
