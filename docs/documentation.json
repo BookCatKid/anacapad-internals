@@ -152670,17 +152670,41 @@
      "type": "firmware",
      "address": "0x10f05d80",
      "notes": "eventloop region"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b8f84",
+     "notes": "Two worker spawn iterations, sentinel compares descriptor plus eight."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b8fd4",
+     "notes": "Startup log receives literal thread count two."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101a50e4",
+     "notes": "Separate mutex and condition-variable constructor labels."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106947e8",
+     "notes": "HttpClient scope label and separate mutex-label construction."
     }
    ],
-   "todo": [
-    "Residual: per-registration work->scope binding (which caller picks scope:mtx vs scope:cv) is a registration arg, not table data; scope vocabulary itself proven complete"
-   ],
+   "todo": "Residual: trace the constructed scope objects through actual main-loop work registration and scheduler dispatch. Constructor-label provenance is recovered, but literal scope names and mutex/condition-variable labels do not establish a per-item execution-scope table.",
    "resolved_findings": [
-    "Resolved: registrants = the eventLoopThreadPool consumers {scopeDefault, scope:mtx, scope:cv, scopeHttpClient}; scheduling = watchdogTimestamp + elapsed-time logging + has-no-more-work shutdown path.",
-    "Scheduling model proven: eventLoopThreadPool runs the work queue; each item carries a named scope {scopeDefault, scope:mtx, scope:cv, scopeHttpClient} - mutex/condvar/http-client bound execution contexts; event_loop_counter-- decrements the pending-work count. Lifecycle: Eventloop started. Threads: %zu -> eventloop configured -> Eventloop has no more work to do -> Eventloop stopped -> Eventloop shutdown. Cancelling watchdog; Eventloop failure! + eventLoop elapsed-time:%lld on faults; watchdogTimestamp feeds the watchdog cancel. The select-thread layer beneath it (selthrd.*) has 8 fd-watch registrants, each with {reset, data, except, timeout} callbacks: ARPingManager, ArpChecker, RHWEvtHandlerZP, RIPCHandler, RIRDecoder, RIfAddressMonitor, RMSearchNotifyHandler, RTrackPlayMonitor. Adjacent: the /fcs feature-config-override page serves a static HTML form (cloudsourcedconfig readonly textarea + overrideconfig POST to /fcs).",
-    "Decoded: the thread pool is a fixed 2-worker spawn - f_106b8f2c iterates the inline descriptor array obj+0xb4..obj+0xd4 (2 slots x 0x20) and spawns one thread per slot running worker f_106b8cd0; 'Eventloop started. Threads: %zu' reports that count.",
-    "Resolved: the complete scope vocabulary is only three names - {scopeDefault, scope:mtx, scope:cv} (0x10e9a088, 0x10e88490, 0x10e8849c); no other scope* strings exist in the image. Work is bound to a scope at registration time; the loop runs a thread pool (\"Eventloop started. Threads: %zu\") draining all scopes.",
-    "Resolved: complete event-loop scope-name literal census (12 names, rodata): {scopeRc 0x10e88488, scopeZP 0x10e9a080, scopeDefault 0x10e9a088, scopeHttpClient 0x10e9a0b8, scopeSpotyVli 0x10ea5988, scopeAvt 0x10eb086c, scopeGm 0x10ec305c, scopeGrc 0x10ec3c14, scopeLoadOp 0x10ec9a08, scopeMp 0x10ecb310, scopeVliCtrl 0x10ecc14c, scopeAsyncMuse 0x10ef91a0}; name grammar enforced at registration {\"scope must not be NULL\", \"scope must not contain the character 0x%02x\", \"scope must not be longer than %d characters\", \"scopes could not be determined\", \"scopes not set correctly (%d%d%d%d%d)\"}."
+    "Worker cardinality is verified with GNU e500 disassembly, not inferred from a log format: f_106b8f2c sets descriptor base to object+0xb4 and end sentinel to object+0xdc. After each spawn it compares descriptor+8 to that sentinel, then advances the descriptor by 0x20 (0x106b8f84-0x106b8fa8). This executes exactly twice, for +0xb4 and +0xd4; the printed thread count is independently literal 2 at 0x106b8fd4. The worker entry is f_106b8cd0. Object+0x98 prevents repeating initialization.",
+    "The earlier claim that every queued item carries one of scopeDefault/scope:mtx/scope:cv/scopeHttpClient was not established by literal xrefs. f_101a50b0 constructs scope:mtx and scope:cv separately at 0x101a50e4 and 0x101a5114; these are distinct constructor arguments, not two entries in a recovered work-registration table. The HttpClient construction path at 0x106947e8 supplies scopeHttpClient and then a separate scope:mtx label. f_1018d27c supplies scopeDefault at 0x1018f850 and scopeHttpClient at 0x1018fd9c. These sites prove caller provenance for labels, not a complete work-to-scheduler-scope map.",
+    "The twelve non-colon scope literals include scopeRc, scopeZP, scopeDefault, scopeHttpClient, scopeSpotyVli, scopeAvt, scopeGm, scopeGrc, scopeLoadOp, scopeMp, scopeVliCtrl and scopeAsyncMuse; scope:mtx/scope:cv are additional labels. The former three-name completeness assertion is false. The scope-validation diagnostics and event_loop_counter-- from the Spotify SDK do not prove the native main event-loop registration grammar or pending-work count and are withdrawn from this record. No absence or vendor boundary prevents following the remaining native scheduler bindings."
    ]
   },
   "devicecertmanager": {
