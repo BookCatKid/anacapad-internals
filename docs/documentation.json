@@ -12838,7 +12838,7 @@
        ]
       },
       "Options": {
-       "description": "Mode options string (cap 128) passed unchanged to the mode entry function selected by Mode and forwarded verbatim to satellites.",
+       "description": "Mode options string (cap 128) forwarded unchanged to the selected mode entry function and to satellites. For Mode 'trueroom' the room-calibration entry f_10364360 parses it as a structured object (f_10c3b6c4) and reads the string fields 'mode' (compared with 'spectral' and 'plug-in spectral'), 'ver', 'tone' and 'force' through f_10c39d5c and the integer fields 'polarity', 'volume' and 'tone_duration' through f_10c39e3c; the requested volume can be clipped ('Sonar cal volume - using clipped volume %d instead of requested %d') and a calibration tone is started as x-rincon-configmode:sonar-calibrate-tone. The button-notify and speaker-detect entries receive the same string.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -12891,12 +12891,101 @@
          "build": "86.10-80260",
          "address": "0x103524a4",
          "notes": "forwarded to f_10364848"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103643e4",
+         "notes": "f_10c3b6c4 parses Options"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103643f4",
+         "notes": "'mode' key"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364408",
+         "notes": "compare with 'spectral'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103644e4",
+         "notes": "compare with 'plug-in spectral'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364430",
+         "notes": "'ver'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364444",
+         "notes": "'tone'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364464",
+         "notes": "'force'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364644",
+         "notes": "'polarity' integer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103646cc",
+         "notes": "'volume' integer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364724",
+         "notes": "volume clip log"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103647f8",
+         "notes": "'tone_duration' integer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10364814",
+         "notes": "calibration tone URI"
         }
        ],
        "notes": null,
        "buf_cap": 128,
        "resolved_findings": [
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+       ],
+       "todo": [
+        "Established: for trueroom, Options is parsed by f_10c3b6c4 and the keys mode, ver, tone, force, polarity, volume and tone_duration are read at the cited sites; mode is compared with 'spectral' and 'plug-in spectral'.",
+        "Unknown: the accepted values and effect of ver, tone, force and polarity, the volume clip bounds, the tone_duration unit, and whether button-notify (f_1035d0c8) and speaker-detect (f_10363450) read Options at all.",
+        "Close it by tracing each key's consumer in f_10364360 (f_1035d8bc, f_10364284, f_1035d318, f_1035d42c, f_1035d7e8) and the Options use in f_1035d0c8 and f_10363450."
        ]
       }
      },
