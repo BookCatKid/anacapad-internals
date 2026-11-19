@@ -148786,15 +148786,35 @@
      "type": "firmware",
      "address": "0x10f9bef8",
      "notes": "featureConfig fields"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a581b0",
+     "notes": "Configuration serializer, not a complete reader/gate census."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a58224",
+     "notes": "Presence and string-length checks precede optional URL output."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a582a4",
+     "notes": "Experiment serializer caps count at64 and validates each record."
     }
    ],
-   "todo": [
-    "Residual: downstream gated-path semantics per flag (which code each flag flips) - per-site analysis, not a registry property"
-   ],
+   "todo": "Established: concrete schema/output paths, presence checks, scalar-versus-nested distinctions and the bounded experiment-output walk. Residual: trace the input/fetch/persist call chain and every actual feature consumer, including missing/default/invalid configuration behavior; distinguish writer/comparison/visitor xrefs from runtime gates. The former claimed complete reader census does not establish these semantics.",
    "resolved_findings": [
-    "Resolved: config-fetch path = the cloud-config JSON doc fetched and replicated into the feature store; each featureConfig* key gates via the shared getter at its read site (documented under feature_flag_registry).",
-    "Delivery channel resolved via feature_flag_registry: the featureConfig* keys arrive inside the cloud feature-config document fetched by RFeatureConfigManager from /features/v1/config?{swVersion,hwVersion} over HTTPS with cache-control: no-cache (not householdsettings.json - the household file only carries restricted-admin settings). The reply mirrors into the replicated key pool at 0x10f97ab4-0x10f97bd0 {featureConfigDropoutContext, featureConfigHomeTheaterWifiPerfTelemetry, featureConfigMetricsService, featureConfigPlink, featureConfigQuickbonding, featureConfigSemiSleep, featureConfigSmartPlay, featureConfigSpotABR, featureConfigSsdpAdvertiseConfig, featureConfigZoneExperiment}; each key is consumed through the shared flag-getter pattern (key string -> getter -> member bool), proven gate sites include enableSemiSleep at ~0x100d4ebc/0x101bc458/0x10363560/0x10a7c25c/0x10a7e270 and enablePitchfork at ~0x10a581b0. ZoneExperiment rows layer per-experiment overrides on the same store.",
-    "Resolved: per-flag reader census complete - see feature_flag_registry for the full key->site map (78 keys); the delivery channel (RFeatureConfigManager GET /features/v1/config?) and getter pattern were already proven."
+    "Native schema evidence corrects the old reader-census claim. f_10a581b0 is a structured-output serializer, not a configuration-loader gate: r31 is the writer, r30 the configuration object, and named fields are passed to output helpers. Wrapper f_10a58938 calls it and returns writer+0x28. At 0x10a58210-0x10a58220 disableWebSocketPerMessageDeflate comes from byte +0xa, while 0x10a58274-0x10a582a0 emits enableSpotifyConnectForAllAccts and enableSpotifySMAPIVolumeNormalization from +0x5c/+0x5d. Those xrefs prove representation and output, not downstream enablement.",
+    "Optional strings have separate presence and value checks. At 0x10a58224-0x10a58238 metricsConfigURL is emitted through the alternate branch only when presence byte +0xc and stored length +0x14 are nonzero; metricsConfigV2URL repeats that pattern at +0x28/+0x30. An omitted serialized URL is therefore not by itself evidence that the corresponding subsystem is disabled. The associated string helper and owning application policy are separate consumers.",
+    "zoneExperiments output is bounded structurally: 0x10a582a4-0x10a58318 reads count +0x60, chooses min(count,64), and walks records starting +0x64 at stride0x38. Each record is checked by f_10a600d0 and only qualifying records enter nested output via f_10a60108. This is a serializer-side maximum and filter, not an assignment, rollout or experiment-enforcement algorithm.",
+    "Scalar and nested schema are distinct. The descriptor rows at 0x10f9bc84 onwards have twelve-byte {name pointer,zero,type-code} layout; examples have type-code3 for booleans and code4 for nested spotifyAdaptiveBitrate. The writer separately emits numeric debounceWindowMilliseconds, not a member boolean. Prior prose claiming every key uses one bool getter and that all downstream readers were exhausted is withdrawn. Fetch/persist integration and per-flag effects require concrete caller traces, not a total inferred from string xrefs."
    ]
   },
   "household_settings": {
