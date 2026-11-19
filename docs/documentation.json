@@ -131379,63 +131379,394 @@
   },
   "native_protocols": {
    "sp_tlv": {
-    "name": "secure-pairing TLV stream (log tag 'sp_a5335660d494963ab7b783a270417bb8')",
-    "framing": "7-byte header {u16 tag @+0, u8 type @+2, u32 len @+3} + MAC-verified payload; reader advances +7 per record (0x10d0b2ac addi r28,0x7)",
-    "integrity": "per-packet MAC via f_10d49490/f_10d4a88c -> memcmp -> 'Corrupted packet, invalid MAC' reject (0x10d0b1fc)",
-    "transport": "buffered socket read f_10d0ae04: recv buf obj+0x4484/+0x4488 cap/+0x448c fill/+0x4490 off; f_10d0d970 raw read; f_10d0deb0 error -> obj+0x64a4",
-    "errors": "'Failed reading TLV header %d %d/7 oserr %d' (0x10fd7c40), 'Skipped %s(%d) (%d > %d)' oversized-record skip",
-    "frame": "[7B hdr {u16 tag,u8 type,u32 len}][len-4 payload][4B MAC]; consume=len+7; MAC covers pkt+3..pkt+3+len (hdr-word+payload+tag region per 0x10d0b194..0x10d0b1d0)",
+    "name": "Spotify eSDK access-point packet stream (the reader calls these TLVs); not secure-pairing TLVs and not the WSS selector format.",
+    "framing": "Encrypted three-byte header {u8 command @0, u16 big-endian payloadLength @1}; encrypted payload at +3 of exactly payloadLength bytes; four raw MAC bytes at +3+payloadLength. Total packet size is payloadLength+7. The seven-byte minimum read and +7 consume operation include both header and MAC; neither means a seven-byte header.",
+    "sequence": "Independent 32-bit send and receive packet counters start at zero after login. The previous counter is serialized big-endian into a four-byte nonce and the counter is incremented. The nonce is supplied to the stream/MAC state once per packet, before processing its header. There is no explicit sequence field in this outer packet.",
+    "receive": "f_10d0af44 initializes a nonce, decrypts three header bytes, reconstructs the BE16 length, obtains the complete packet, decrypts its payload in the same state, finalizes four MAC bytes, and compares those with packet+3+length. Its result descriptor contains payload pointer at +0, length at +4 and command at +8. MAC mismatch returns -13 without the successful consume path.",
+    "send": "f_10d39890 checks output-ring room, returning -10 if insufficient, then installs the send nonce, builds command/highLength/lowLength bytes, encrypts header and payload through f_10d3972c, and appends the four-byte f_10d4a88c result without encrypting that result.",
+    "limits_and_errors": "The receiver checks the asserted payload maximum 16384 and emits Packet from AP is too large and/or the assertion diagnostic on violation. The later buffering decision separately compares length with 17401 (0x4400-7); above that threshold it drains in 1024-byte chunks and returns a zero-length descriptor for the skipped command rather than delivering the payload. These are distinct branches, not evidence that every length above 16384 is unconditionally returned as one error code. Socket failure is obtained through f_10d0deb0 and stored at receiver+0x64a4.",
+    "transport": "f_10d0ae04 buffers socket reads: +0x4484 base, +0x4488 capacity, +0x448c buffered count, +0x4490 offset; +0x58 holds current payload length and +0x6850 supports the large-packet drain. A zero-length payload still has command/length header, nonce processing and four-byte MAC.",
+    "attribution": "Reachable reader logs cite esdk/src/modules/mod_ap_conn.c and the sender cites esdk/src/ap_send.c. The sp_<32hex> literals supplied to logging calls are log-channel identifiers; they are not packet identities or a secure-pairing namespace.",
     "mac": {
-     "algorithm": "proprietary rotate-xor stream mixer (NOT md5/sha/hmac): per-byte xor-shift into ctx+0xc8 state with byte-counter at +0xcc; block round over ctx+0x00..0x40 state array every 32 bits (f_10d49504..f_10d49564); final squeeze emits 4 bytes via f_10d4a88c (rlwinm rot-xor rounds: x7|x5, x19|x22 mixing)",
-     "ctx": "reader obj +0x659c MAC context; buffered stream fields +0x4484 base / +0x448c remaining / +0x4490 offset / +0x58 current-pkt len / +0x64a4 oserr / +0x6850 last-result",
-     "verify": "memcmp(computed_tag, pkt+3+len, 4); fail -> 'Corrupted packet, invalid MAC' rc=-13; oversize -> 'Skipped %s(%d) (%d > %d)'",
-     "evidence": [
-      {
-       "type": "disassembly",
-       "locator": "0x10d0b178-0x10d0b2b4, 0x10d49490, 0x10d4a88c",
-       "note": "full MAC pipeline + consume arithmetic"
-      }
-     ],
-     "todo": [
-      "Established: the MAC is a proprietary rotate-xor stream mixer - per-byte xor-shift into ctx+0xc8 with a byte counter at +0xcc, a block round over the ctx+0x00..0x40 state array every 32 bits, and a 4-byte final squeeze.",
-      "Residual: the complete round function spec and the key/seed derivation that initializes the state array - the algorithm is decoded at structure level, not to a re-implementable spec. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: f_10d49490 is a proprietary rolling XOR-MAC - per-byte loop XORs each input byte with a rotating keystream word (state +0xc4 keystream, +0xc8 state, +0xcc bit-count); every 64-byte block the block words are XOR-folded into accumulators at +0x34 and +0x7c, then the tail is memmoved for continuation."
-     ]
+     "algorithm": "A Shannon-compatible stream cipher and plaintext MAC, identified here by its recovered equations rather than by a firmware-exported algorithm name. This is not an opaque runtime-injected implementation: key setup, nonce setup, encryption, decryption and finish are static functions f_10d4682c, f_10d474a0, f_10d48098, f_10d49490 and f_10d4a88c.",
+     "state": "All state words are uint32 modulo 2^32. R[16] at +0x00, CRC[16] at +0x40, saved key R[16] at +0x80, konst at +0xc0, sbuf at +0xc4, mbuf at +0xc8 and nbuf at +0xcc. nbuf counts remaining bits, not bytes. The receiver context is receiver+0x659c.",
+     "nonlinear_functions": "rol(x,n) rotates a 32-bit word left. F1(x): x ^= rol(x,5)|rol(x,7); return x ^ (rol(x,19)|rol(x,22)). F2(x): x ^= rol(x,7)|rol(x,22); return x ^ (rol(x,5)|rol(x,19)). Each second expression uses the already modified x.",
+     "cycle": "t = F1(R[12] ^ R[13] ^ konst) ^ rol(R[0],1); shift R one word toward index 0 and set R[15]=t; q=F2(R[2]^R[15]) using the shifted array; R[0] ^= q; sbuf=q ^ R[8] ^ R[12].",
+     "mac_word": "For plaintext word m: t=CRC[0]^CRC[2]^CRC[15]^m; shift CRC one word toward index 0 and set CRC[15]=t; R[13] ^= m. Encryption cycles, MACs plaintext, then XORs the keystream. Decryption cycles, XORs first, then MACs the recovered plaintext.",
+     "byte_order_and_partial_words": "Input words and keystream output are little-endian. A new partial word sets mbuf=0 and nbuf=32; successive plaintext bytes are accumulated at bit positions 32-nbuf and nbuf is decreased by 8. On completing a word, mac_word(mbuf) runs. Calls that split a word continue the saved sbuf/mbuf/nbuf, so separately processing the three-byte header and payload is one authenticated plaintext stream. The 64-byte fast paths unroll sixteen word operations; they are not a separate cipher block format.",
+     "load_material": "For each full little-endian word of material: R[13] ^= word; cycle(). A final nonempty partial word is zero-padded at its high end and treated likewise. Then R[13] ^= original byte length; cycle(); copy R into CRC; cycle sixteen times; XOR each R[i] with CRC[i]; set konst=R[0].",
+     "key_setup": "Initialize R to {1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987}, set konst=0x6996c53a, load_material(key), save the resulting R at +0x80 and clear nbuf. Login supplies distinct 32-byte directional keys.",
+     "nonce_setup": "Restore R from saved key R, reset konst=0x6996c53a, load_material(nonce), and clear nbuf. The four input nonce bytes are the big-endian packet counter, although load_material interprets those four bytes as one little-endian word. Do not replace this with loading the numeric counter directly.",
+     "finish": "If nbuf is nonzero, MAC the zero-padded mbuf. Cycle once; R[13] ^= 0x6996c53a ^ (nbuf<<3); clear nbuf; XOR every R[i] with CRC[i]; cycle sixteen times. For each output word, cycle once and emit sbuf little-endian, truncating the final word to the requested byte count. The AP caller requests four bytes. Finishing an empty plaintext still performs the finalization cycles and yields a MAC.",
+     "session_key_derivation": "f_10d42658 computes a 96-byte DH result with f_10d3d5e0 using the decoded AP public value, the session private exponent at +0x1a8 and the 96-byte modulus at 0x10fe3728. Let H be the saved client hello and A the received AP response. Concatenate five HMAC-SHA1(DH,H||A||byte(i)) digests for i=1..5 into K[100]. Challenge = HMAC-SHA1(K[0:20],H||A); send key=K[20:52], receive key=K[52:84]. Both packet counters are then zeroed. These keys depend on a handshake, but the derivation is recoverable statically, not a missing delegated implementation.",
+     "raw_instruction_audit": "The F1/F2 full-word rotates have MB=0,ME=31. Raw 0x5529063e at 0x10d49524 keeps the low eight bits; 0x57bd07be at 0x10d4a754 keeps the low two bits; neither shifts right. Raw 0x57271838 at 0x10d4a988 is left-three modulo 32 bits. The sixteen cycle sites in key diffusion (0x10d46b4c-0x10d47190) and finish diffusion (0x10d4aa4c-0x10d4b044) were counted from their raw rotate-left-one words. SPE evldd/evxor/evstdd paths implement aligned copies/XORs, with scalar unaligned alternatives."
     },
-    "attribution": "esdk AP-connection packet layer: src /var/lib/spotify/buildagent/.../esdk/src/modules/mod_ap_conn.c; asserts 'ap->packet_size <= 16384', 'Packet from AP is too large! Type: %d / Size: %d' (cap 0x4000)",
-    "log_tags": [
-     "sp_a5335660d494963ab7b783a270417bb8",
-     "sp_60e43b6e629920e455e243bab25b488a",
-     "sp_e943d8e115bd54bd41443240074a6853"
-    ],
-    "frame_detail": "per-packet: 7B TLV header {type-byte, size} + payload + proprietary rotate-xor 4B trailing MAC verified via memcmp; 'ap os error code: %d' oserr path",
-    "sp_id_note": "~330 'sp_<md5>' literals exist: esdk per-module log-channel identifiers (hash of module name), NOT distinct protocols; sp_a5335660d494963ab7b783a270417bb8 is the mod_ap_conn packet tag"
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10d0af44",
+      "address": "0x10d0b178-0x10d0b330",
+      "callsite": "0x10d0b308,0x10d0b318,0x10d0b1a8,0x10d0b1b8,0x10d0b1d0",
+      "notes": "Nonce/decrypt-header/decrypt-payload/finish/compare chain and payload descriptor; raw 0x57de402e reconstructs the high length byte by left-eight."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10d39890",
+      "address": "0x10d398cc-0x10d39a18",
+      "callsite": "0x10d39914,0x10d39940,0x10d3995c,0x10d39974,0x10d3998c",
+      "notes": "Independent writer confirms three-byte encrypted header and separate four-byte MAC. Raw 0x7fca4670 at 0x10d39918 is srawi r10,r30,8, extracting the high length byte, not a low-bit mask."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10d4682c,f_10d474a0",
+      "address": "0x10d46894-0x10d48094",
+      "callsite": "0x10d46b48,0x10d47234",
+      "notes": "Fibonacci/INIT initialization, LE material loading, length mixing, CRC snapshot, sixteen cycles, XOR feed-forward, saved key state and nonce reset."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10d48098,f_10d49490,f_10d4a88c",
+      "address": "0x10d49504-0x10d4b328",
+      "callsite": "0x10d0b1a8,0x10d0b1b8",
+      "notes": "Scalar and buffered-byte paths recover cycle, CRC/plaintext feedback, partial words, finalization and LE MAC output; raw instructions independently distinguish rotations, masks and genuine shifts."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10d42658,f_10d3d5e0,f_10d46050,f_10d46570,f_10d4660c",
+      "address": "0x10d429b4-0x10d42ab0",
+      "callsite": "0x10d429dc,0x10d429f8,0x10d42a34,0x10d42a90,0x10d42aa0",
+      "notes": "DH output buffer is argument r9; ninth argument is workspace. Five counter-byte HMAC rounds, challenge and directional slices. SHA1 IV words at 0x10d463a0-0x10d46404 and 0x36/0x5c pads establish HMAC-SHA1, not an AP identity table."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10d0af44",
+      "address": "0x10d0af90-0x10d0b178,0x10d0b32c-0x10d0b3f0",
+      "callsite": "0x10d0afd0,0x10d0b134,0x10d0b378",
+      "notes": "Distinct 16384 assertion and >17401 draining paths; no claim that a diagnostic alone is a universal error return."
+     }
+    ]
    },
    "wss_tlv": {
     "name": "websocket UPnP event TLV (see wss_event_vocabulary.protocol)",
     "framing": "{u16 tag, s8 type} selector -> table lookup; 73 entries",
-    "relation": "same tag/type header family as sp_tlv; WSS path carries subscription mgmt"
+    "relation": "Independent WSS namespace/tag/type selector format; it does not share the Spotify AP header. See wss_event_vocabulary for the 73-row lookup and its exact type/tag matching."
    },
    "netstart_ipc": {
-    "name": "netstartd Unix-socket IPC client (the 'netstart' surface in this build - no 'netstart2' literal exists)",
-    "transport": "/tmp/netstartd.ipc; hello handshake 'netstartd hello'",
-    "files": "/jffs/netstartd_prev.log, /opt/log/netstartd.log, netstartd.dmp, netstartd.properties, netstartd.count, /netstartd-external, /var/run/netstart_mode, /tmp/netstartd.pid",
-    "messages": "settings push ('...settings update to netstartd'), PSK update ('...ushed PSK update to netstartd'), pull ('...ettings update from netstartd'), type update '[%s]', 'SSID, cannot notify netstartd', refusal handling 'netstart refused'/'meshDisable (netstart refused)'",
-    "note": "CORRECTION: netstart2 DOES exist: the literal lives in wifi/netstartd (separate daemon binary); see native_protocols/netstart2 for the full decode"
+    "name": "anacapad/netstartd local Unix IPC; distinct from the NS2 network provisioning protocol.",
+    "transport": "/tmp/netstartd.ipc; WAC companion listener /tmp/netstartd_wac.ipc. netstartd f_10009908 initializes listeners and installs f_100096dc as the accepted-client read callback through HandleClientIPCConnection/f_10016d84.",
+    "outer_header": "Three big-endian u32 words: headerBytes=12, class=1, innerBytes=payloadBytes+4. The inner body begins with a big-endian u32 message type and then payloadBytes data. ReadIPCHeader supports outer headers larger than 12 by consuming the extra header bytes before returning the inner body length.",
+    "bounds": "SendIPCMessageWithData accepts data lengths through 0x800 inclusive; both investigated receive loops reject unsigned(innerBytes-4)>0x800, accepting 4..0x804 inclusive. The prior strict-less-than wording was wrong. Null data with nonzero data length, insufficient header capacity and invalid context/fd are rejected. Zero data is valid and SendIPCMessage uses that form.",
+    "io_errors": "libsonosutils ReadIPCHeader returns 0, -9 for invalid arguments/header sizes, or -10 for read failure. SendIPCMessageWithData loops over the write and returns 0, -9 for invalid arguments, or -1 for invalid socket/write failure. netstartd f_100096dc reads the inner body fully, calls f_1000886c, and closes/reset-registers the client on failure. anacapad f_105d3954 has its own timeout/reconnect handling and reports {read result, bytes read, length}, not the three header fields, in the bad-message diagnostic.",
+    "application_event_distinction": "eventType=wifiConnected/wifiDisconnected and hardware=wifi are fields built by the application event-document helpers f_10557fa8/f_1055847c. They must not be substituted for the binary Unix IPC header or treated as proof that all netstartd payloads are key-value documents.",
+    "dispatch": "netstartd f_1000886c reads the big-endian inner type at packet+12, accepts indices 0..41, and uses the 42 signed relative offsets at 0x1002f6f4. Packet+16 is the application data; the inner length includes the four-byte type. The following census records every slot, including ignored slots and handler-level length gates. Names are descriptive where code/logs establish one, not recovered enum symbols.",
+    "dispatch_table_address": "0x1002f6f4",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "libsonosutils.so.1",
+      "build": "86.10-80260",
+      "function": "ReadIPCHeader,SendIPCMessageWithData,SendIPCMessage",
+      "address": "0x1508-0x17d4",
+      "callsite": "0x105d39a8 (anacapad),0x10009744 (netstartd)",
+      "notes": "Exported shared framing implementation and normal/zero-data/invalid/read-write-error branches; payload bound is inclusive."
+     },
+     {
+      "type": "firmware",
+      "binary": "netstartd",
+      "build": "86.10-80260",
+      "function": "f_10009908,f_100096dc,f_1000886c",
+      "address": "0x1000886c-0x10009c00",
+      "callsite": "0x100098fc,0x10009a48",
+      "notes": "Listener setup, header/body read, dispatcher call, error close and signed-relative jump table. Header body type is a BE32, not the NS2 one-byte type."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_105d3954",
+      "address": "0x105d39a8-0x105d3b10",
+      "callsite": "0x105d39a8,0x105d39d4",
+      "notes": "Client-side shared-header call followed by inclusive 0x800 payload bound, full body read and result-object delivery; no NS2 enum binding."
+     }
+    ],
+    "dispatch_slots": [
+     {
+      "type": 0,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 1,
+      "address": "0x100090ec",
+      "operation": "anacapa hello; set connected flag; send initial state and netsettings",
+      "guard": "any"
+     },
+     {
+      "type": 2,
+      "address": "0x100090c4",
+      "operation": "anacapa byebye; clear connected flag",
+      "guard": "any"
+     },
+     {
+      "type": 3,
+      "address": "0x10009048",
+      "operation": "WiFi-control subcommand; BE32 application value 0..4 selects the relative table at 0x1002f79c",
+      "guard": "innerBytes==8"
+     },
+     {
+      "type": 4,
+      "address": "0x10008fa8",
+      "operation": "WAC/open setup: copy 0x12a data bytes, update WAC state and start paths",
+      "guard": "innerBytes==0x12e"
+     },
+     {
+      "type": 5,
+      "address": "0x10008f74",
+      "operation": "WAC settings-reset path: zero stored block and call f_1000f57c(0x23), then f_1000475c",
+      "guard": "WAC state nonzero"
+     },
+     {
+      "type": 6,
+      "address": "0x10008e94",
+      "operation": "WAC netsettings: copy 0x69 bytes and invoke NetSettingsUpdate; on zero return call f_1000f57c(0x24)",
+      "guard": "WAC state nonzero; innerBytes==0x6d"
+     },
+     {
+      "type": 7,
+      "address": "0x10008e3c",
+      "operation": "copy 0x44 application bytes to WAC saved block at 0x100555e0",
+      "guard": "WAC state nonzero; innerBytes==0x48"
+     },
+     {
+      "type": 8,
+      "address": "0x10008de4",
+      "operation": "copy 0x25 application bytes to WAC saved block at 0x100557e0",
+      "guard": "WAC state nonzero; innerBytes==0x29"
+     },
+     {
+      "type": 9,
+      "address": "0x100091fc",
+      "operation": "commit WAC settings: build NetSettingsUpdate request from stored SSID/key/mode blocks and report result",
+      "guard": "WAC state nonzero"
+     },
+     {
+      "type": 10,
+      "address": "0x100091ac",
+      "operation": "WAC timeout: defer during selected network states or dispatch timeout processing",
+      "guard": "WAC state nonzero"
+     },
+     {
+      "type": 11,
+      "address": "0x10009190",
+      "operation": "call f_1000f57c(0x27)",
+      "guard": "WAC state nonzero"
+     },
+     {
+      "type": 12,
+      "address": "0x10009174",
+      "operation": "call f_1000f57c(0x28)",
+      "guard": "WAC state nonzero"
+     },
+     {
+      "type": 13,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 14,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 15,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 16,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 17,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 18,
+      "address": "0x100088f0",
+      "operation": "decode BE32 subcommand 0..2 and pass it to network event 0x0a through f_10008008",
+      "guard": "innerBytes==8; value<=2"
+     },
+     {
+      "type": 19,
+      "address": "0x10009338",
+      "operation": "join cancel: cancel timer f_10007d5c and invoke it immediately with zero arguments",
+      "guard": "any"
+     },
+     {
+      "type": 20,
+      "address": "0x10008da8",
+      "operation": "pass 0x6c8-byte data structure to f_10013da4",
+      "guard": "innerBytes==0x6cc"
+     },
+     {
+      "type": 21,
+      "address": "0x10008d70",
+      "operation": "disable WiFi for start of test, or corresponding existing-state path",
+      "guard": "platform predicate f_1000e1a0"
+     },
+     {
+      "type": 22,
+      "address": "0x10008cc8",
+      "operation": "enable WiFi for end of test, or corresponding existing-state path",
+      "guard": "platform predicate f_1000e1a0"
+     },
+     {
+      "type": 23,
+      "address": "0x10008c70",
+      "operation": "pass structured data slices at +0x10,+0x91,+0xb1,+0x132 to NS2 f_10020ec0",
+      "guard": "innerBytes==0x146"
+     },
+     {
+      "type": 24,
+      "address": "0x10008c1c",
+      "operation": "read first application byte; apply state-dependent reset/update and invoke NS2 f_10020d9c",
+      "guard": "innerBytes>4"
+     },
+     {
+      "type": 25,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 26,
+      "address": "0x10008c14",
+      "operation": "set global byte 0x10050cec to 1 via f_10011740",
+      "guard": "any"
+     },
+     {
+      "type": 27,
+      "address": "0x10008d68",
+      "operation": "clear global byte 0x10050cec via f_10011758",
+      "guard": "any"
+     },
+     {
+      "type": 28,
+      "address": "0x10008d00",
+      "operation": "store BE32 application value in NS2 object+0x1a4 via f_10020d20",
+      "guard": "innerBytes==8"
+     },
+     {
+      "type": 29,
+      "address": "0x10008b98",
+      "operation": "meshDisable: store first application byte and update advertised path/WiFi state",
+      "guard": "innerBytes==5"
+     },
+     {
+      "type": 30,
+      "address": "0x10008b20",
+      "operation": "Muse HHID compare/acknowledge or resynchronize through f_1000769c",
+      "guard": "innerBytes==0x3a"
+     },
+     {
+      "type": 31,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 32,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 33,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 34,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 35,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 36,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 37,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 38,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 39,
+      "address": "0x10008a64",
+      "operation": "validate requested SonosNet frequency with WifiFuncsIsFreqSupported; schedule change with requested delay if changed",
+      "guard": "innerBytes==0xc"
+     },
+     {
+      "type": 40,
+      "address": "0x10008990",
+      "operation": "ignored: common return path",
+      "guard": "any"
+     },
+     {
+      "type": 41,
+      "address": "0x100089d0",
+      "operation": "set SonosNet-disable request and schedule change with requested delay if changed",
+      "guard": "innerBytes==0xc"
+     }
+    ]
    },
-   "mrpc": "ABSENT - proven negative: a full-binary scan finds zero occurrences of 'mrpc', 'mr_proto', or 'mediaroom'. MRPC does not exist in build 86.10-80260 (not merely unlabeled - no vocabulary at all).",
+   "mrpc": "No case-insensitive mrpc, mr_proto or mediaroom literal was found in the scanned shipped ELF artifacts. This is a scoped vocabulary negative, not proof that an unlabeled implementation cannot exist or that another firmware/platform lacks MRPC.",
    "sci": {
-    "resolution": "'SCI' = SCI_BOARD enum #48 in the hardware-source name table @0x10ef4ed0 (60 entries, idx 0-59), NOT a separate wire protocol",
-    "table": "0x10ef4ed0: str*[60] bound-checked cmplwi 0x3d -> 'UNKNOWN'; enum: NO_SOURCE,AMP,LEDS,IR,HEADPHONE,SUBWOOFER,ORIENTATION,BUTTON_PLAYPAUSE/VOL_UP/VOL_DN/JOIN/MODE/POWER/MICMUTE/PAIRING,CAPZONEA/B/C/M/CAT,LINEIN,DAC,ADC,CPU,SOC,SONGLE,POWER,AVTRIGGER,LIGHT_SENSOR,LINEOUT,SPDIF_OUT,HDMI,BANANA_PLUG,NFC,MOTION_DETECTOR,BLE,WIFI,LAN,BATTERY,CHARGER,RTC,FUEL_GAUGE,MICMUTE_SWITCH,LEAN_UI_JOIN/OPENAP_DIAG/PREV/NEXT/SLIDER,SCI_BOARD,PSOC,CEC,UART,PMU,MCU1..4_AMP_L/R",
+    "resolution": "SCI_BOARD is hardware-source enum index 48, not an independently established wire protocol.",
+    "table": "Source-name array at 0x10ef4ed0 has 62 accepted indices 0..61. f_105d0220 returns UNKNOWN only for unsigned index >0x3d; index 61 is the literal *. Final indices are 48 SCI_BOARD,49 PSOC,50 CEC,51 UART,52 PMU,53..60 MCU1..4_AMP_L/R. The old 60-row census omitted MCU4_AMP_R and *.",
     "accessors": [
-     "f_105d0220 (bound 0x3d)",
+     "f_105d0220 (source name, max 61)",
      "f_105d0258",
-     "f_105d028c (bound 0x31)",
-     "f_105d02c0",
-     "f_105d02e0",
-     "f_105d0318"
+     "f_105d028c (event name, max 49)",
+     "f_105d02c8",
+     "f_105d0300",
+     "f_105d0338"
     ],
     "event_states": [
      "NO_EVENT",
@@ -131444,74 +131775,23 @@
      "REPEATED",
      "CONNECTED",
      "DISCONNECTED"
-    ]
-   },
-   "netstartd_ipc": {
-    "channel": "/tmp/netstartd.ipc unix socket; ipc_msg.cxx client (0x105d3664-region) with performReset/reconnect logic; handshake 'netstartd hello' (0x10691400 via f_109b72ac)",
-    "message_format": "key-value event frames: msg obj built by f_10557fa8(init)+f_1055847c(set-field)+v[+0x1c](send); fields: eventType=<name>, hardware=wifi",
-    "outbound_events": [
-     "wifiConnected",
-     "wifiDisconnected",
-     "netsettings update (Pushed netsettings update to netstartd)",
-     "PSK update (Pushed PSK update to netstartd)",
-     "satellite addition (Failed to send IPC message to netstartd to notify about satellite addition)",
-     "meshDisable signal (signaling netstartd (%s) %s)"
     ],
-    "inbound_events": [
-     "netsettings update (Received netsettings update from netstartd)",
-     "connection type update (Got connection type update from netstartd: [%s])",
-     "SSID decode failure path (Error decoding SSID, cannot notify netstartd)"
-    ],
-    "files": [
-     "/tmp/netstartd.ipc",
-     "/tmp/netstartd.pid",
-     "/var/run/netstart_mode",
-     "/jffs/netstartd_prev.log",
-     "/opt/log/netstartd.log",
-     "netstartd.{dmp,properties,count}",
-     "/netstartd-external"
-    ],
-    "netstart2": "netstart2 IS present in the shipped netstartd binary (honest positive, correcting the earlier negative): a {name,id} pair table at netstartd .data.rel.ro 0x1004f84c-0x1004f908 binds all 24 NS2_MSG_* ids: REGISTRATION_KEY=0, KEEP_ALIVE=1, ACK=2, SETUP_CLIENT_HELLO=3, SETUP_SERVER_HELLO=4, SETUP_SERVER_HELLO_LEGACY=5, SETUP_CANCEL=6, ECHO=7, SETUP_BEGIN=8, SETUP_CONTINUE=9, SETUP_STATUS=0xa, GET_SCAN_LIST=0xb, SCAN_LIST=0xc, SET_NET_SETTINGS=0xd, GET_PSK=0xe, PSK=0xf, UPGRADE=0x10, START_OPEN_AP=0x11, COMMIT_SETTINGS=0x12, SETUP_REAUTHORIZE=0x13, ENABLE_WIFI=0x14, START_ISLAND=0x15, TIMED_OUT=0x16, LOCK_REGISTRATION=0x17. Immediately following at 0x1004f90c the NS2_SETUP_MODE_* enum table: NONE=1,NFC=2,CHIRP=3,MANUAL_PIN=4,CLIENT_PIN=5,CHIRP_WITH_BUTTON=6,QR_CODE=7,QR_CODE_WITH_BUTTON=8,QR_CODE_WITH_REMOTE=9. This is netstartd's client-facing device-setup protocol (controller-app channel), distinct from the anacapad key-value event channel on /tmp/netstartd.ipc and the msg-id table on the WAC socket.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10691400",
-      "function": "0x105d33a4",
-      "notes": "msg build/send at 0x10691458-0x106914a4; ipc client 0x105d3664; source path ipc_msg.cxx at 0x10ef5f70"
-     },
-     {
-      "type": "firmware",
-      "binary": "netstartd",
-      "address": "0x1004f84c",
-      "notes": "{name_ptr,u32 id} pair table - all NS2_MSG ids + NS2_SETUP_MODE enum at 0x1004f90c"
+      "function": "f_105d0220,f_105d028c",
+      "address": "0x10ef4ed0-0x10ef4fc4",
+      "callsite": "0x105d0228-0x105d023c",
+      "notes": "Unsigned >61 fallback and source-name indexing; raw 0x5529103a at 0x105d0234 scales by four, not a right shift."
      }
-    ],
-    "full_event_vocabulary": [
-     "netstartd hello (handshake)",
-     "Netstart is idle",
-     "Netstart alive",
-     "Netstart open",
-     "Netstart SSID set",
-     "Netstart SSID clear",
-     "Netstart triggered upgrade (0x%x): %s",
-     "Got connection type update from netstartd: [%s]",
-     "refusals: 'netstart refused', 'meshDisable (netstart refused)', 'Netstart failed to modify {wifi settings,meshDisable,SonosNet disable}'",
-     "Pushed netsettings update / PSK update",
-     "Received netsettings update"
-    ],
-    "todo": [
-     "Established: framing fully proven from the shared lib.",
-     "Residual: per-msgType dispatch table on netstartd (NS2 names+ids recovered; handler semantics per id)"
-    ],
-    "resolved_findings": [
-     "Resolved: per-type frame vocabulary enumerated in client f_10691034 - outbound frames carry {eventType,hardware:wifi} via init f_10557fa8 + set-field f_1055847c + send v[+0x1c] for {wifiConnected,wifiDisconnected}; inbound dispatch covers {set Muse HHID, WiFi conn/disc, Netstart triggered upgrade, SSID set/clear, Netstart open/idle/alive, connection-type update} with conn-types {Unknown,WiFi,Ethernet,SonosNet (wireless),SonosNet (Ethernet),Home Theater,Home Theater (Ethernet),Home Theater 2.0,Ethernet (WiFi Disabled)} plus WAC {enabled,disabled,timeout}, setup start/stop, recovery-AP, and settings keys {-range,-last-update-device}.",
-     "Resolved (partial): wire framing decoded. Unix socket /tmp/netstartd.ipc; 12-byte header {f0,f1,payload_len} read by ReadIPCHeader(fd,buf,0xc) at 0x105d39a8; len constrained 4<=len<0x804 (else 'Bad IPC message received (%d %d %d)' logging the three header u32s); read stall >59s (0x3b) triggers 'IPC timeout... reconnect (retries=%u)' with retry count at obj+0x194. Message vocabulary: 'netstartd hello' handshake (connect.sendMessageLocked hello), netsettings/PSK pushes ('Pushed netsettings update to netstartd','Pushed PSK update'), satellite-add notify, connection-type updates ('Got connection type update from netstartd: [%s]'), upgrade trigger ('Netstart triggered upgrade (0x%x): %s'), state reports {idle,alive,open,SSID set,SSID clear}; mode sentinel /var/run/netstart_mode, pid /tmp/netstartd.pid.",
-     "Resolved: IPC header semantics nailed at the read loop (f_105d3954) - ReadIPCHeader(fd, buf, 0xc) fills {u32 @0, u32 @4, u32 len @8}; len is the trailing payload byte count (len-4 < 0x800 enforced), payload read via read() loop until len bytes arrive; success posts rc 0x3c + len to the out-struct then dispatches *(obj+0x118) v[+0x8]; the \"Bad IPC message received (%d %d %d)\" triple is {ReadIPCHeader rc, bytesRead, len}, not the header fields; idle >59s since *(obj+0x198) arms reconnect.",
-     "Resolved: socket path /tmp/netstartd.ipc (+ /tmp/netstartd_wac.ipc for the WAC/setup channel); the message-id namespace is the NS2_MSG_* enum decoded from netstartd (24 ids 0-23, KEEP_ALIVE..REGISTRATION_KEY) - the 12-byte header {u32,u32,u32 len} frames these messages.",
-     "Resolved: libsonosutils ReadIPCHeader/SendIPCMessage{,WithData} prove the framing shared by /tmp/netstartd.ipc and /tmp/netstartd_wac.ipc: 12-byte outer header {0xc, class 1, innerLen=payloadLen+4}, then {msgType u32, payload} as the inner record; payload bound <0x800; read rc {0,-9,-0xa}."
     ]
+   },
+   "netstartd_ipc": {
+    "channel": "Same binary Unix channel as netstart_ipc, not another key-value protocol or the NS2 network-message namespace.",
+    "cross_reference": "netstart_ipc contains the shared-library framing, all 42 daemon dispatch slots and length gates. netstart2 contains the separate 24 one-byte setup message IDs, modes and state-machine registry.",
+    "anacapad_notification_surface": "Client logs identify settings and PSK pushes, satellite-add notification, connection-type updates, SSID set/clear and idle/alive/open/upgrade notifications. Those are application-level meanings, not a replacement for the shared binary framing."
    },
    "websocket_lechmere": {
     "name": "'lechmere.%u': RFC6455 Sec-WebSocket-Protocol subprotocol token (version-suffixed)",
@@ -131539,7 +131819,7 @@
     "authorization": "authzPolicyKeyLechmere: policy key carries roles ('Could not parse role from lechmere policy key'); per-namespace check 'isAuthorizedForNamespace(0x%X) wA:%d [%s] isW:%d isA:%d'",
     "upnp_namespace_policy": "'Invalid namespace: UPnP renew/subscribe/unsubscribe not supported': UPnP namespace accepts control ops but not subscription-family ops",
     "logging": "/opt/log/anacapa.lechmere.event.log dedicated event log; 'failed to read lechmere header: %d'",
-    "command_grammar": "<Command namespace=\"%s\" cmd=\"%s\" method=\"%s\" credType=\"%s\" />",
+    "command_grammar": "Diagnostic <Command namespace=\"%s\" cmd=\"%s\" method=\"%s\" credType=\"%s\" /> rendering only; see lechmere_detail for the actual fixed-header read.",
     "namespaces_versioned": [
      "v1.api.smartspeaker.audio",
      "v2.api.smartspeaker.audio",
@@ -131574,7 +131854,7 @@
      "RoomDetectionStopChirping (added 86.8)"
     ],
     "profile": "'sonos-cdma' profile (protocol.c/protocol-acoustic.c/protocol-encoding.c/config-voter-config.c)",
-    "modulation": "dual: CDMA primary (chirp_cdma_{encoder,decoder}, match/add_score) + FSK fallback (chirp_private_fsk.c, _chirp_on_sending_fsk)",
+    "modulation": "Compiled CDMA, FSK and multitone implementation vocabulary is present. The inventory alone does not establish that FSK is an automatic fallback from CDMA; profile selection belongs to chirp_sdk.",
     "payload": "symbol-coded: chirp_payload_t {symbol_bits,length,total_bits}; preamble+parity payloads; Reed-Solomon FEC (reed-solomon.c/chirp_rs_t); chirp_levenshtein fuzzy match; unknown-symbol rejection; corrupt-random-symbols fuzz path",
     "playback": "playId model: 'Start chirping with unique device value', 'already playing with playId %d', 'Stop playId %d differ than m_chirpPlayId'; volume calibration ('Chirp volume not yet calibrated','current chirp output volume')",
     "wiring": "ext-chirp-as/setup-chirp-as + as-dspin/ext-chirp dsp taps; ChirpExtAudioSrc source; REST v1/.../roomDetection/chirp/{playId} maps here"
@@ -131608,9 +131888,9 @@
     "src": "media_player_vli_ctrl.cxx (mpvlictrl), vli_source_manager.cxx, vli_playback_tracker.cxx, vli_sink.cxx",
     "sessions": "onVirtualLineIn{StartSession,StopSession,SuspendSession,SessionStartInfoUpdated}; action codes AHA_{END,SUSPEND,PAUSE}_VLI_SESSION; group actions JOIN_GROUP_BASED_ON_VLI_STATE / BECOME_STANDALONE_BASED_ON_VLI_STATE",
     "source_types": [
-     "vli_airplay",
-     "vli_bt (Bluetooth)",
-     "vli_ot (optical?)"
+     "vli_airplay (source-label vocabulary)",
+     "vli_bt (source-label vocabulary, not an independently decoded Bluetooth transport)",
+     "vli_ot (source-label vocabulary; no optical expansion established)"
     ],
     "transport": "setTransportToVLIStreamURI URI:%s autoplay:%d become-gc:%d + installClock; vliStreamImage(%s %u %u %u %s); blocks over nodetx_vli",
     "ops": "6-op control surface: selectSource, startTransmission, stopTransmission, startAudio, stopAudio + sendBackChannelCmd: bidirectional back-channel (sink→source cmds for delay/volume negotiation)",
@@ -131628,26 +131908,300 @@
     "interactions": "SpZeroConfAnnounce{Pause,Resume}: Spotify Connect announce paused during AirPlay; log /tmp/AirPlay.log"
    },
    "bluetooth": {
-    "model": "no local BT stack in anacapad: cloud-managed only: v1/players/{playerId}/hardwareStatus/{bluetooth,bluetoothPairing,pairedBluetoothDevices/{bluetoothAddress}} routes + scope cmds getBluetoothStatus/setBluetoothPairing/activatePairedBluetoothDevice/removePairedBluetoothDevice; 'Supported only on devices with bluetooth' gate; vli_bt stream source; hal_detect_get_cable_states",
-    "detail": "No local BT stack in this Playbar/model-9 build: zero 'bluedroid'/'bluez'/'a2dp' occurrences and an explicit 'bluetooth pairing, unsupported' error literal (0x10e9993a). The bluetooth strings present are purely muse/WSS vocabulary - resource/topic names 'bluetoothPairing', 'bluetoothPairingStatus', 'bluetoothConnectionStatus', 'bluetoothDevice', 'bluetoothPolicySettings', 'bluetoothSource' (0x10f978xx region) plus settings keys 'bluetoothAddress'/'bluetoothPolicy'. The muse backend for these resources is the generic muse forwarding layer: this device can observe/relay BT state of BT-capable peers but cannot pair locally.",
-    "todo": [
-     "Established: per-ZP capability name com.sonos.bluetooth in the VLI adapter family, homogeneous-grouping rules, bluetoothPolicy setting key, muse resource schema.",
-     "Residual: which hal_detect bit seeds the per-model capability - model capability registry; vli_bt stream detail stays partially traced"
-    ],
-    "resolved_findings": [
-     "Resolved: the full BT vocabulary confirms the no-local-stack model. Status fields {bluetoothPairingStatus, bluetoothConnectionStatus, bluetoothPairing, bluetoothDevice, bluetoothPolicySettings, bluetoothSource}; cloud routes GET/SET v1/players/{playerId}/hardwareStatus/bluetooth + pairedBluetoothDevices/{bluetoothAddress} with cmds {getBluetoothStatus, setBluetoothPairing, activatePairedBluetoothDevice, removePairedBluetoothDevice}; VLI source type 'bluetooth'/BTCLASSIC (object.item.audioItem.linein.bluetooth, 'bluetooth:' scheme). '/btmanager-external' appears only in the crash-upload attachment list (like netstartd/sonosledmgrd) - no in-binary btmanager protocol code exists; 'com.sonos.bluetooth' sits in a peer-service name table beside com.sonos.airplay/spotify.connect.adapter (capability advert, not D-Bus). Shutdown-reason vocab {UserSuspend, UserShutdown, APIShutdown, CriticalShutdown, UnknownShutdown} lives near BluetoothConnection/PartnerDisappeared.",
-     "Resolved: the capability predicate is a per-ZP advertised capability name - the VLI source-adapter family is {airplay:, bluetooth:, tvproxy:} prefixes paired with capability ids {com.sonos.airplay, spotify.connect.adapter, com.sonos.bluetooth} (0x10f01860-0x10f019fc), and grouping enforces capability homogeneity: \"Processing ZP(%s) - %s, %s %s Capable\", \"Not linking as zp is grouped with another zp with different VLI group ID\", \"Non-%s capable ZP(%s) is GC, forcing new GC\", \"Linking non-%s capable ZP %s\". Muse resources {bluetoothPairing, BluetoothDevices/{bluetoothAddress}, BluetoothDevice, BluetoothStatus}; \"Invalid request conditions (offline, bluetooth, unregistered, open circuit)\" rejects requests while BT is a blocking condition; bluetoothPolicy is a DeviceProperties setting key (with wifiPowerSave/batteryUsagePolicy/networkingMode family at 0x10ee52f8+); content class object.item.audioItem.linein.bluetooth."
+    "scope": "Bluetooth resource names, VLI source classification and generic unsupported control methods are present. Neither the absence of bluez/bluedroid/a2dp literals nor an unsupported default method proves a cloud-only architecture or absence of every local Bluetooth implementation on all supported models.",
+    "default_controls": "f_10186330 returns status 90 with Supported only on devices with bluetooth. Pairing default f_101863b4 initially stores status 52, calls the platform singleton predicate f_10908a38, and changes the result to 90 plus Unable to set bluetooth pairing, unsupported and callback notification only when that predicate is false. The predicate is exactly platform+0xcc==0x2f, not a decoded HAL feature bit. The special-model branch skips that generic failure notification; this alone does not prove that pairing succeeds.",
+    "capability_mapping": "f_10687be8 classifies airplay: as 1, spotify: as 2, bluetooth: as 3, uri: as 6 and tvproxy: as 8. f_1068810c parses a VLI source identifier, accepts types 1..3 and indexes the three strings at 0x10f0162c: com.sonos.airplay, spotify.connect.adapter, com.sonos.bluetooth. This getter performs a source-type-to-name mapping, not a per-model hardware test. Its caller f_102b5a1c copies the name into playback metadata. There is no HAL bit to infer from that string table.",
+    "grouping": "The common VLI link helper f_1068835c first filters player/group identity, then calls virtual capability predicate +0x14 and display-name method +0x10. The base predicate f_10686c3c returns true and the base name is VLI. Branches include linking non-capable members and forcing a coordinator change; the logs do not prove universal Bluetooth-capability homogeneity. The common implementation must not be relabeled as a Bluetooth-specific hardware registry.",
+    "source_vocabulary": "The isolated vli_bt string at 0x10ebefb0 is referenced by the source-label array entry at 0x10ebe414 beside track,tv,vli_airplay,vli_ot,linein. It is not itself a stream-framing specification. BTCLASSIC and object.item.audioItem.linein.bluetooth are vocabulary evidence, not proof of a local A2DP stack. The source classifier accepts bluetooth:, while the separate source-identifier constructor table uses unknown: for type 3 in this image; do not assume the two tables are inverse functions.",
+    "external_boundary": "The supplied inventory does not contain a btmanager executable or a live hardware/service snapshot. /btmanager-external is a crash-attachment label, not an implementation recovered from that label. This record therefore makes no claim about the unshipped peer daemon wire format or which Bluetooth hardware/services a deployed peer actually runs.",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10186330,f_101863b4,f_10908a38",
+      "address": "0x10186330-0x1018642c,0x10908a38-0x10908a50",
+      "callsite": "0x101863e0,0x101863e4,0x10186410",
+      "notes": "Default status and conditional pairing rejection. Raw 0x5463d97e at 0x10908a4c is rlwinm SH27,MB5,ME31,Rc0: genuine right-five applied to cntlzw, so xori 0x2f/cntlzw/shift tests model equality, not a HAL bit."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_10687be8,f_1068810c,f_102b5a1c",
+      "address": "0x10f015ec-0x10f01634",
+      "callsite": "0x1068816c,0x102b5b5c",
+      "notes": "Source prefix/type, display and capability-name arrays are distinct. Raw 0x5529103a scales the type index by four. Getter supplies a playback-metadata name."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_1068835c,f_10686c3c,f_10686f18",
+      "address": "0x10688390-0x106888a0",
+      "callsite": "0x10688434,0x106886ac,0x10688770",
+      "notes": "Common virtual capability/name dispatch and linking/GC branches. Base constructor installs vptr 0x10f015c0; not evidence that every generic branch is exercised for Bluetooth on this unit."
+     }
     ]
    },
    "netstart2": {
     "location": "wifi/netstartd (separate binary: the netstart2 literal lives in netstartd, not anacapad; earlier absence claim was anacapad-only scope)",
-    "transport": "DTLS over UDP (mbedtls_net_* + ssl_*): full DTLS state names {DISCONNECTED,CONNECTING,HELLO_VERIFY,CONNECTED,WRITING,CLOSING,CLOSE_NOTIFY_SENT,CLOSE_NOTIFY_DISCONNECT,CLOSE_IMMEDIATELY,CLIENT_RECONNECT}; app-level ACKs (message received without ACK for last payload / received unexpected ACK / replay detected retransmitting); ECJPAKE password handshake (ssl_set_hs_ecjpake_password): PAKE for PIN-less provisioning; DTLS PIN alternative; client ID set; PSK auth (Authenticating with PSK)",
-    "messages": "NS2_MSG_* {SETUP_BEGIN(mode arg), SETUP_CANCEL(flags), SETUP_CLIENT_HELLO, SETUP_CONTINUE, SETUP_REAUTHORIZE(flags), SETUP_SERVER_HELLO, SETUP_SERVER_HELLO_LEGACY, SETUP_STATUS(0x%x), GET_PSK(type), PSK, REGISTRATION_KEY} + BEGIN_SETUP control",
-    "setup_modes": "NS2_SETUP_MODE_* {NONE, CHIRP, CHIRP_WITH_BUTTON, CLIENT_PIN, MANUAL_PIN, NFC, QR_CODE, QR_CODE_WITH_BUTTON, QR_CODE_WITH_REMOTE}: 9 provisioning mechanisms incl. audio chirp, QR+remote, NFC, client/manual PIN",
-    "state_fsm": "NS2_STATE_SETUP_* {START, DISCOVERY, DISCOVERY_INTERACTION, PIN_EXCHANGED, ACTIVE, WAITING, UPDATE, STANDBY, COMPLETE}: 9-state setup FSM",
+    "transport": "The shipped netstartd imports mbedtls DTLS/UDP, SSL and ECJPAKE-password APIs. DTLS connection-state and application ACK/replay diagnostics are present. This inventory is not a claim that ECJPAKE is PIN-less or that the NS2 one-byte messages use the Unix IPC outer header.",
+    "messages": "NS2 messages have a one-byte type, validated as 0..23 by f_10028ddc. This type is not the BE32 Unix IPC type. f_100206f8 first parses it, checks acceptance through f_10023df4, then selects a message handler from the current setup-state row. Enum names do not by themselves imply one unconditional global handler per ID.",
+    "setup_modes": [
+     {
+      "id": 0,
+      "name": "NS2_SETUP_MODE_NONE"
+     },
+     {
+      "id": 1,
+      "name": "NS2_SETUP_MODE_NFC"
+     },
+     {
+      "id": 2,
+      "name": "NS2_SETUP_MODE_CHIRP"
+     },
+     {
+      "id": 3,
+      "name": "NS2_SETUP_MODE_MANUAL_PIN"
+     },
+     {
+      "id": 4,
+      "name": "NS2_SETUP_MODE_CLIENT_PIN"
+     },
+     {
+      "id": 5,
+      "name": "NS2_SETUP_MODE_CHIRP_WITH_BUTTON"
+     },
+     {
+      "id": 6,
+      "name": "NS2_SETUP_MODE_QR_CODE"
+     },
+     {
+      "id": 7,
+      "name": "NS2_SETUP_MODE_QR_CODE_WITH_BUTTON"
+     },
+     {
+      "id": 8,
+      "name": "NS2_SETUP_MODE_QR_CODE_WITH_REMOTE"
+     }
+    ],
+    "state_fsm": "Eighteen 44-byte state descriptors begin at 0x1004f4ac; message callback is at row+0x14. f_100206f8 bounds state index through 17, invokes the state callback with (context,type,message,length), or the generic f_1001d6d4 fallback when that slot is null. Authentication/acceptance gates run before that callback dispatch; rejection clears/resets the connection. This is not a nine-state unconditional message switch.",
     "psk_lifecycle": "device PSK: loaded with boot count (Netstart2 device PSK loaded, boot count %u), discarded on expiry OR max boot count; sends DTLS PSK to client; registration key set/clear (Netstart2 clearing registration signing key); unable to lock registration; no household configured",
     "files": "/jffs/net/settings/netstart2.txt (+ .tmp atomic write): persisted NS2 state; setup logs /jffs/setup.{log,dmesg} + /jffs/sys/log/setup/; chirp payload generation (Netstart2 failed to generate chirp payload); contactless setup attempt-limit + reauthorize (Contactless setup attempt limit reached)",
-    "netmanager": "states {ST_CCRD,ST_CCRDA,ST_CON,ST_CON_CR,ST_R} via handlers {NetManagerSonosNet{Base,NoWifi,WithPath},NetManagerStation{Base,CheckCarrier}}Handler; events NM_EVT_SONOSNET_ENABLED + SonosNet Hint; anacapa IPC notifies state update 0x%x + mode %d %d + recovery AP state; LED modes {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH,JOIN_HH_OPEN,BEGIN_SETUP_MODE,IN_SETUP_MODE}; wacd spawned on wacstart/wactimeout via /tmp/netstartd_wac.ipc"
+    "netmanager": "states {ST_CCRD,ST_CCRDA,ST_CON,ST_CON_CR,ST_R} via handlers {NetManagerSonosNet{Base,NoWifi,WithPath},NetManagerStation{Base,CheckCarrier}}Handler; events NM_EVT_SONOSNET_ENABLED + SonosNet Hint; anacapa IPC notifies state update 0x%x + mode %d %d + recovery AP state; LED modes {BOOTING,BYPASS,BYPASS_BLOCKED,CLONE_CHECK_FAIL,FACTORY_RESET,JOIN_HH,JOIN_HH_OPEN,BEGIN_SETUP_MODE,IN_SETUP_MODE}; wacd spawned on wacstart/wactimeout via /tmp/netstartd_wac.ipc",
+    "message_id_table": [
+     {
+      "id": 0,
+      "name": "NS2_MSG_KEEP_ALIVE"
+     },
+     {
+      "id": 1,
+      "name": "NS2_MSG_ACK"
+     },
+     {
+      "id": 2,
+      "name": "NS2_MSG_SETUP_CLIENT_HELLO"
+     },
+     {
+      "id": 3,
+      "name": "NS2_MSG_SETUP_SERVER_HELLO"
+     },
+     {
+      "id": 4,
+      "name": "NS2_MSG_SETUP_SERVER_HELLO_LEGACY"
+     },
+     {
+      "id": 5,
+      "name": "NS2_MSG_SETUP_CANCEL"
+     },
+     {
+      "id": 6,
+      "name": "NS2_MSG_ECHO"
+     },
+     {
+      "id": 7,
+      "name": "NS2_MSG_SETUP_BEGIN"
+     },
+     {
+      "id": 8,
+      "name": "NS2_MSG_SETUP_CONTINUE"
+     },
+     {
+      "id": 9,
+      "name": "NS2_MSG_SETUP_STATUS"
+     },
+     {
+      "id": 10,
+      "name": "NS2_MSG_GET_SCAN_LIST"
+     },
+     {
+      "id": 11,
+      "name": "NS2_MSG_SCAN_LIST"
+     },
+     {
+      "id": 12,
+      "name": "NS2_MSG_SET_NET_SETTINGS"
+     },
+     {
+      "id": 13,
+      "name": "NS2_MSG_GET_PSK"
+     },
+     {
+      "id": 14,
+      "name": "NS2_MSG_PSK"
+     },
+     {
+      "id": 15,
+      "name": "NS2_MSG_UPGRADE"
+     },
+     {
+      "id": 16,
+      "name": "NS2_MSG_START_OPEN_AP"
+     },
+     {
+      "id": 17,
+      "name": "NS2_MSG_COMMIT_SETTINGS"
+     },
+     {
+      "id": 18,
+      "name": "NS2_MSG_SETUP_REAUTHORIZE"
+     },
+     {
+      "id": 19,
+      "name": "NS2_MSG_ENABLE_WIFI"
+     },
+     {
+      "id": 20,
+      "name": "NS2_MSG_START_ISLAND"
+     },
+     {
+      "id": 21,
+      "name": "NS2_MSG_TIMED_OUT"
+     },
+     {
+      "id": 22,
+      "name": "NS2_MSG_LOCK_REGISTRATION"
+     },
+     {
+      "id": 23,
+      "name": "NS2_MSG_REGISTRATION_KEY"
+     }
+    ],
+    "table_layout": "NS2 enum pairs begin at 0x1004f848 and mode pairs at 0x1004f908, each {u32 id, char* name} with stride 8. The previous record started at the name pointer and consequently assigned every ID to the following row. Name getters f_10028c4c/f_10028d78 return null beyond 23/8; reverse message lookup f_10028cb4 uses strcasecmp and returns 24 if no name matches.",
+    "state_registry": [
+     {
+      "index": 0,
+      "name": "NS2_STATE_RESET",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 1,
+      "name": "NS2_STATE_SETUP_STANDBY",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 2,
+      "name": "NS2_STATE_SETUP_START",
+      "message_handler": "0x1001f138"
+     },
+     {
+      "index": 3,
+      "name": "NS2_STATE_SETUP_DISCOVERY",
+      "message_handler": "0x1001da10"
+     },
+     {
+      "index": 4,
+      "name": "NS2_STATE_SETUP_DISCOVERY_INTERACTION",
+      "message_handler": "0x1001dca0"
+     },
+     {
+      "index": 5,
+      "name": "NS2_STATE_SETUP_PIN_EXCHANGED",
+      "message_handler": "0x1001dbd0"
+     },
+     {
+      "index": 6,
+      "name": "NS2_STATE_SETUP_WAITING",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 7,
+      "name": "NS2_STATE_SETUP_ACTIVE",
+      "message_handler": "0x10020314"
+     },
+     {
+      "index": 8,
+      "name": "NS2_STATE_SETUP_COMPLETE",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 9,
+      "name": "NS2_STATE_SETUP_UPDATE",
+      "message_handler": "0x100202b0"
+     },
+     {
+      "index": 10,
+      "name": "NS2_STATE_OPEN_AP_PENDING",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 11,
+      "name": "NS2_STATE_OPEN_AP_STANDBY",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 12,
+      "name": "NS2_STATE_ENABLE_WIFI_PENDING",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 13,
+      "name": "NS2_STATE_DEACTIVATED",
+      "message_handler": "0x1001f6a8"
+     },
+     {
+      "index": 14,
+      "name": "NS2_STATE_REAUTH_PENDING",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 15,
+      "name": "NS2_STATE_ISLAND_PENDING",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 16,
+      "name": "NS2_STATE_SCANNING",
+      "message_handler": "f_1001d6d4 (fallback)"
+     },
+     {
+      "index": 17,
+      "name": "NS2_STATE_CHECKING_CREDS",
+      "message_handler": "f_1001d6d4 (fallback)"
+     }
+    ],
+    "authentication_note": "The ECJPAKE password API establishes password-authenticated exchange, not the old unsupported inference that all ECJPAKE setup is PIN-less. NS2 mode names include NFC, chirp and explicit PIN/QR modes; their presence is not proof that every mode is active on this platform.",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "netstartd",
+      "build": "86.10-80260",
+      "function": "f_10028c4c,f_10028cb4,f_10028d78,f_10028ddc",
+      "address": "0x1004f848-0x1004f94c",
+      "callsite": "0x10028c7c,0x10028ce4,0x10028da8",
+      "notes": "24 {id,name} messages and nine {id,name} modes. Raw 0x54631838/0x57ff1838 scale the table index by eight; byte parser rejects empty input and type>23."
+     },
+     {
+      "type": "firmware",
+      "binary": "netstartd",
+      "build": "86.10-80260",
+      "function": "f_100206f8,f_1001d6d4,f_10023df4",
+      "address": "0x1004f4ac-0x1004f7c3",
+      "callsite": "0x1002074c,0x100207a4,0x1002088c,0x10020898",
+      "notes": "Parsed one-byte type, acceptance predicate, 18 state rows of stride 44, state-specific +0x14 callback or generic fallback. Keeps this network protocol separate from Unix f_1000886c."
+     }
+    ]
    },
    "chsrc_chsnk": {
     "model": "CHSRC (channel source, chsrc.cxx) multicasts group audio to CHSNK (channel sink) receivers via nodetx_chsrc; chsnk refreshes multicast join on NetworkIfaceBouncedEvent/NetworkIpAddrAssignedEvent",
@@ -131764,18 +132318,70 @@
     ],
     "qos": "'NodeTx configured to handle %s audio (qos: %d)': per-channel QoS tags",
     "stats": "<NodeTXBuffer>%.3lf sec %s</NodeTXBuffer>; 'HT NodeTX Blocks'/'VLI NodeTX Blocks' block accounting",
-    "impl": "nodetx.cxx"
+    "impl": "nodetx.cxx",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_106c9c7c,f_106cb99c",
+      "address": "0x106c9c7c-0x106c9ce0",
+      "callsite": "0x106c9ccc-0x106c9ce0",
+      "notes": "VLI source manager object invokes its transport interface with the literal nodetx_vli; confirms a concrete integration consumer, not a Bluetooth-specific packet layout."
+     }
+    ]
    },
    "secure_eventing": {
-    "flags": "UPNP_OVER_TLS + 'Secure Eventing: %d' in Subscribe; 'securehhSSLPort'/'securehhsslport' + kSecureHHHttpsPortDeltaFromBase: household secure HTTPS port (base+delta); 'secure HH SSL server creds updated/cleared (port %u)'; SecureRegistration{State,Change}UpdateEvent state machine"
+    "flags": "UPNP_OVER_TLS + 'Secure Eventing: %d' in Subscribe; 'securehhSSLPort'/'securehhsslport' + kSecureHHHttpsPortDeltaFromBase: household secure HTTPS port (base+delta); 'secure HH SSL server creds updated/cleared (port %u)'; SecureRegistration{State,Change}UpdateEvent state machine",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_106734e8",
+      "address": "0x106734e8-0x10673660",
+      "callsite": "0x10673504,0x10673514,0x1067354c",
+      "notes": "Credential-change callback selects ordinary/secure server certificate update or secure-credential clear path and logs the corresponding port. Mere string adjacency is not the evidence for that distinction."
+     }
+    ]
    },
    "lechmere_detail": {
     "impl": "lechmere.cxx",
     "subprotocols": "Sec-WebSocket-Protocol: lechmere.%u / lechmere-v1 / lechmere.%hhu%n: versioned ws subprotocol",
-    "wire": "<Command namespace=\"%s\" cmd=\"%s\" method=\"%s\" credType=\"%s\" />: XML command envelope over ws",
+    "wire": "f_105d52e0 reads an eight-byte ASCII-hex prefix: two hex characters of protocol version (accepted numeric value >6), two of message type (0..6), and four of extended-header byte count. It then reads the extended header exactly and parses its JSON fields through f_109c4b34. The <Command .../> literal is a diagnostic rendering in f_1067d6fc, not the on-wire command envelope.",
     "outbound": "dials lechmere.%s.ws.sonos.com; /opt/log/anacapa.lechmere.event.log event log",
     "authz": "policy mapping per muse namespace + role from lechmere policy key; RMuseController 'activating namespace (apiVersion=%u, ns=%s, cmd=%s)'",
-    "blocks": "'Invalid namespace: UPnP subscribe/unsubscribe/renew not supported'; 'Namespace has no actor'; 'namespace is not supported'; SONOS_SERVER_LECHMERE_RECONNECT_LATER reconnect"
+    "blocks": "'Invalid namespace: UPnP subscribe/unsubscribe/renew not supported'; 'Namespace has no actor'; 'namespace is not supported'; SONOS_SERVER_LECHMERE_RECONNECT_LATER reconnect",
+    "header_errors": "Malformed/short header and extended-header mismatch return 7; cancellation returns 8, negative read returns 9 and EOF returns 10. Zero extended-header length takes the empty-field path. The caller buffer size is rejected above 0xfffe. Parsing uses width-limited sscanf, so the rendering layout does not imply a stricter all-hex parser than the executed conversion checks.",
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_105d52e0,f_1067d6fc",
+      "address": "0x105d52e0-0x105d5878",
+      "callsite": "0x105d548c,0x105d54f8,0x105d5574,0x105d55e8",
+      "notes": "Eight ASCII-hex bytes, version/type/extended-length conversions, exact reads and error/empty branches; Command diagnostic is not the fixed header."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_105d45f8,f_105d4310",
+      "address": "0x105d4310-0x105d46d0",
+      "callsite": "0x105d4658",
+      "notes": "WebSocket subprotocol lechmere.%hhu%n parsing, trailing whitespace/end validation and outgoing Sec-WebSocket-Protocol/X-Sonos-Udn formatting."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "f_109c1c64,f_109c4b34,f_109c1ea8",
+      "address": "0x109c1c64-0x109c1d18,0x109c4c74-0x109c4c9c",
+      "callsite": "0x105d5678,0x105d5808",
+      "notes": "JSON parser constructor clears +0x40. At normal parse entry, first non-whitespace byte AND 0xdf must equal 91: object/array braces { or [, not XML <. This disproves the Command-XML wire interpretation independently of its diagnostic attribution."
+     }
+    ]
    },
    "spotify_esdk": {
     "impl": "spotify/*.cxx + esdk mod_*",
@@ -131798,7 +132404,7 @@
    },
    "http2_client": {
     "lib": "nghttp2",
-    "role": "cloud transport: REST/ws API sessions over HTTP/2",
+    "role": "HTTP/2 client integration and nghttp2 frame-validation vocabulary. These symbols do not establish that every REST or WebSocket API session uses HTTP/2.",
     "surface": "nghttp2_session_{send,upgrade2}; nghttp2_submit_{request,ping,goaway,settings,window_update}; nghttp2_{set_,session_set_}local_window_size",
     "behavior": "h1->h2 upgrade ('(via h1 upgrade)','(upgraded to SSL)','session_upgrade2'); ping/goaway keepalive; per-stream window mgmt; 'send request NOT allowed (via nghttp2)' gating; 'PRIORITY: stream_id == 0' frame error; 'pack_settings_payload' path",
     "headers_frame_validation": "nghttp2 HEADERS-state literals: 'HEADERS: stream closed' / 'HEADERS: no HEADERS allowed from client in reserved state' / 'HEADERS: could not unpack' / 'HEADERS: insufficient padding space' / 'HEADERS: invalid padding' (@0x10f89708-0x10f89dbc) - frame-parser validation layer beyond the documented PRIORITY/RST_STREAM surface"
@@ -131813,9 +132419,22 @@
     "notes": "player-local and household-scoped forms of both topics; 'bluetooth:' prefix also present (auth/capability tag)"
    },
    "resolved_findings": [
-    "Resolved: MRPC is proven absent (zero literals - mrpc/mr_proto/mediaroom all 0 hits). Bluetooth is proven cloud/peer-mediated: no local stack (no bluedroid/bluez/a2dp), an explicit 'bluetooth pairing, unsupported' error, and the 0x10f9xxxx strings are muse/WSS topic vocabulary + settings keys served by the generic muse forwarding layer.",
-    "Established: the protocol census is decoded per-sub-block - sp_tlv/wss_tlv framing, netstartd IPC transport, SCI-as-board-enum resolution, lechmere/chirp/nodetx/chsrc all confirmed.",
-    "Established: honest negative - MRPC has zero literals in this build; boundary documented."
+    "The old seven-byte AP header and secure-pairing attribution were false. Both AP directions establish a three-byte header, implicit sequence nonce, encrypted payload and four-byte MAC. The full static state/key/nonce/MAC equations are documented in sp_tlv.",
+    "Unix IPC uses a BE32 type and 42-slot dispatch; NS2 uses a one-byte type with 24 separate message IDs and an 18-state dispatch registry. The old NS2 table interpretation shifted every ID and mode by one.",
+    "SCI_BOARD is index 48 in a 62-entry source table, not a separate protocol. Literal-only negatives do not prove MRPC absence or a cloud-only Bluetooth architecture; source-type capability names are not HAL feature bits.",
+    "Lechmere fixed-header reads are distinct from the diagnostic Command XML rendering. Other component inventories remain bounded vocabulary/integration summaries, with detailed domain contracts in their separate primitive records."
+   ],
+   "description": "Native-protocol inventory for the supplied image and its shipped companions. Spotify AP packets, WSS selectors, Unix IPC and NS2 setup messages have different encodings and namespaces. Component names and diagnostic strings in the remaining inventory identify integration surfaces; they are not a claim that every named protocol is enabled on every model, or a complete wire specification for each external service.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "shipped ELF inventory",
+     "build": "86.10-80260",
+     "function": "case-insensitive literal inventory",
+     "address": "82 ELF file paths under reference/public/files",
+     "callsite": "offline file-byte scan",
+     "notes": "Zero mrpc, mr_proto or mediaroom byte-string hits across 82 shipped ELF paths; this is vocabulary evidence only, not proof that an unlabeled protocol is absent."
+    }
    ]
   },
   "device_state_store": {
