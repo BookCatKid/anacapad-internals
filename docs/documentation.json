@@ -62051,7 +62051,7 @@
      ]
     },
     "SetPlayMode": {
-     "description": "Sets repeat/shuffle play mode. Impl f_102b9a9c gate (718) then body f_102b9aac: lock impl+0x458, log 'upnp'/'change play mode', call f_102b24dc(impl,mode-str) which maps the string to an enum {NORMAL=0,SHUFFLE_NOREPEAT=1,REPEAT_ALL=2,SHUFFLE=3,REPEAT_ONE=4,SHUFFLE_REPEAT_ONE=5}. Non-NORMAL modes require capability gates: f_10147928(impl+0x5dc)!=0 (source/queue present), f_10148308!=0 (cap), and byte impl+0x1a03 (shuffle-capable flag), else 712. Per-mode apply: mode==2 -> indexed path; mode==1 -> f_106a9e88(impl+0x5a0,1,mode_enum,0,0) streamer vfunc, its failure -> 712.",
+     "description": "Changes repeat/shuffle mode. The engine maps exact request strings to an enum; for an indexed source it submits op 11, and for streamer mode with an eligible URI it sets mode on the streamer. NORMAL alone can fall back to success without submitting a change.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f94a0",
@@ -62185,36 +62185,76 @@
       ]
      },
      "requirements": {
-      "description": "Non-NORMAL modes are capability-gated: active source must exist at impl+0x5dc and pass f_10147928/f_10148308 checks plus the impl+0x1a03 flag.",
+      "description": "InstanceID must parse to zero. Non-NORMAL modes require an allowed source prefix and a nonzero impl+0x1a03 byte; unknown names and unsupported apply paths fail.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b25d4",
-        "notes": "f_10147928 gate",
-        "function": "f_102b24dc"
+        "address": "0x102b9a9c",
+        "notes": "Checks parsed InstanceID; nonzero returns 718 via 0x102b9aa4. Only ID zero enters f_102b9aac.",
+        "function": "0x102b9a9c"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b25f0",
-        "notes": "impl+0x1a03 byte gate",
-        "function": "f_102b24dc"
+        "address": "0x102b25d4",
+        "notes": "For non-NORMAL names, requires f_10147928 == 0, f_10148308 == 0 and byte impl+0x1a03 != 0; any failure goes to 712 at 0x102b2554.",
+        "function": "0x102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10148308",
+        "notes": "Source checks exclude x-sonosapi-radio: through f_10147928 -> f_101478ec, and x-sonosapi-stream:, x-sonosapi-hls:, hls-aac://, hls-radio:// and x-rincon-mp3radio:// through f_10148308. Source exclusion is by prefix, not a general presence test.",
+        "function": "0x10148308"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2520",
+        "notes": "Case-sensitive strcmp chain accepts NORMAL=0 and, after the non-NORMAL gates, SHUFFLE_NOREPEAT=1, REPEAT_ALL=2, SHUFFLE=3, REPEAT_ONE=4 and SHUFFLE_REPEAT_ONE=5. A different string returns 712.",
+        "function": "0x102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2684",
+        "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+        "function": "0x102b24dc"
        }
       ]
      },
      "state_dependencies": {
-      "description": "mode impl+0x4654 selects the apply path: indexed (==2), streamer vfunc (==1); mode==0 has its own NORMAL path.",
+      "description": "Engine mode and, for mode 1, the f_10688070 URI predicate determine the destination. Indexed mode's op-11 completion byte and streamer mode's apply result independently control success.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b2530",
-        "notes": "cmplwi mode,2/1 dispatch",
-        "function": "f_102b24dc"
+        "address": "0x1032e538",
+        "notes": "Builds indexed op 11: stores 11 at request+0xe4 and the mode enum as a halfword at +0xfc. A zero f_10255f64 result turns into 712 at 0x102b2554.",
+        "function": "0x1032e538"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2684",
+        "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+        "function": "0x102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e6a8",
+        "notes": "The indexed submission stores the record at session+0x2594, signals, waits for request completion byte +0xe0 and returns result byte +0xe1 to the caller.",
+        "function": "0x1032e658"
        }
       ]
      },
@@ -62234,19 +62274,35 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No event is emitted directly by the wrapper or the mode worker. They submit op 11 and wait for its result, or invoke the streamer mode setter.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102f94a0",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1032e538",
+        "notes": "Builds indexed op 11: stores 11 at request+0xe4 and the mode enum as a halfword at +0xfc. A zero f_10255f64 result turns into 712 at 0x102b2554.",
+        "function": "0x1032e538"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2684",
+        "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+        "function": "0x102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e6a8",
+        "notes": "The indexed submission stores the record at session+0x2594, signals, waits for request completion byte +0xe0 and returns result byte +0xe1 to the caller.",
+        "function": "0x1032e658"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace the indexed op-11 consumer and the streamer object selected by f_106a9e88. Determine when they publish a CurrentPlayMode LastChange field, including calls that set the already-active mode."
       ]
      },
      "state_transitions": {
@@ -62263,15 +62319,47 @@
       ]
      },
      "return_behavior": {
-      "description": "Worker rc returned as impl status: 0 on success, 712 for unknown string, missing source, capability failure, or streamer rejection.",
+      "description": "718 for a nonzero InstanceID; 712 for name, capability, mode or apply rejection. A successful operation or the NORMAL no-submit case returns zero and clears impl+0x6ed8.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b2554",
-        "notes": "li r3,0x2c8",
-        "function": "f_102b24dc"
+        "address": "0x102b9a9c",
+        "notes": "Checks parsed InstanceID; nonzero returns 718 via 0x102b9aa4. Only ID zero enters f_102b9aac.",
+        "function": "0x102b9a9c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b25d4",
+        "notes": "For non-NORMAL names, requires f_10147928 == 0, f_10148308 == 0 and byte impl+0x1a03 != 0; any failure goes to 712 at 0x102b2554.",
+        "function": "0x102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2520",
+        "notes": "Case-sensitive strcmp chain accepts NORMAL=0 and, after the non-NORMAL gates, SHUFFLE_NOREPEAT=1, REPEAT_ALL=2, SHUFFLE=3, REPEAT_ONE=4 and SHUFFLE_REPEAT_ONE=5. A different string returns 712.",
+        "function": "0x102b24dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e538",
+        "notes": "Builds indexed op 11: stores 11 at request+0xe4 and the mode enum as a halfword at +0xfc. A zero f_10255f64 result turns into 712 at 0x102b2554.",
+        "function": "0x1032e538"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b2684",
+        "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+        "function": "0x102b24dc"
        }
       ]
      },
@@ -62286,34 +62374,21 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in,+0x40)",
-       "meaning": "impl returns 718 (Invalid InstanceID) when the handler-parsed InstanceID word is nonzero: handler parses literal InstanceID via req->v[+0x1c] -> f_105614e0 into a stack word, passes that word in r4 to the impl vfunc; impl guard cmpwi r4,0 / beq -> body, fallthrough returns 0x2ce (718); only instance 0 exists in this build; remaining rc paths call-derived",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f9554"
        ],
        "conditions": [
         {
-         "description": "parsed InstanceID != 0: impl/parse rc path to shared fault emitter (see evidence)",
+         "description": "The initial engine comparison rejects the ID before any play mode check or apply call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b9aa4",
-           "notes": "li 0x2ce",
-           "function": "f_102b9a9c"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x102b9a9c",
-           "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+           "address": "0x102b9a9c",
+           "notes": "Checks parsed InstanceID; nonzero returns 718 via 0x102b9aa4. Only ID zero enters f_102b9aac.",
+           "function": "0x102b9a9c"
           }
          ]
         }
@@ -62323,22 +62398,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b9aa4",
-         "notes": "li 0x2ce",
-         "function": "f_102b9a9c"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x102b9a9c",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "notes": "handler InstanceID parse via req->v[+0x1c]/f_105614e0 into stack word; r4=lwz (sp+0x18) at impl vfunc call; impl guard cmpwi r4,0 -> li r3,0x2ce"
+         "address": "0x102b9a9c",
+         "notes": "Checks parsed InstanceID; nonzero returns 718 via 0x102b9aa4. Only ID zero enters f_102b9aac.",
+         "function": "0x102b9a9c"
         }
        ],
        "unresolved": {
@@ -62363,56 +62425,58 @@
         0,
         718
        ],
-       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x40); sites: 0x102f9554).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "resolved_note": "AVT impl shape: InstanceID-path!=0 -> 0x2ce=718; else engine-vfunc rc passthrough (the uVar rets). concrete codes {402,718,1024,1025,1028}+worker."
       },
       {
        "code": 712,
        "code_expr": "vret(r5-in,+0x40)",
-       "meaning": "Play-mode rejected: unrecognized string, no eligible source for non-NORMAL modes, capability byte impl+0x1a03 blocks it, or the streamer mode-set vfunc failed.",
+       "meaning": "Unsupported play mode name/source combination, or apply failed.",
        "fault_sites": [
         "0x102f9554"
        ],
        "conditions": [
         {
-         "description": "NewPlayMode not in the 6-string table",
+         "description": "Non-NORMAL fails a source-prefix or capability gate, has an unknown name or an unsupported mode. A dispatched indexed or streamer apply returning false also produces 712, including for NORMAL.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b2674",
-           "notes": "falls through to li r3,0x2c8",
-           "function": "f_102b24dc"
-          }
-         ]
-        },
-        {
-         "description": "non-NORMAL mode but f_10147928(impl+0x5dc)==0 or f_10148308 or impl+0x1a03 flag fails",
-         "evidence": [
+           "address": "0x102b25d4",
+           "notes": "For non-NORMAL names, requires f_10147928 == 0, f_10148308 == 0 and byte impl+0x1a03 != 0; any failure goes to 712 at 0x102b2554.",
+           "function": "0x102b24dc"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b25d8",
-           "notes": "cap gates to 0x2c8",
-           "function": "f_102b24dc"
-          }
-         ]
-        },
-        {
-         "description": "mode==1 and f_106a9e88 streamer call failed",
-         "evidence": [
+           "address": "0x10148308",
+           "notes": "Source checks exclude x-sonosapi-radio: through f_10147928 -> f_101478ec, and x-sonosapi-stream:, x-sonosapi-hls:, hls-aac://, hls-radio:// and x-rincon-mp3radio:// through f_10148308. Source exclusion is by prefix, not a general presence test.",
+           "function": "0x10148308"
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102b26a8",
-           "notes": "streamer fail -> 0x2c8",
-           "function": "f_102b24dc"
+           "address": "0x102b2520",
+           "notes": "Case-sensitive strcmp chain accepts NORMAL=0 and, after the non-NORMAL gates, SHUFFLE_NOREPEAT=1, REPEAT_ALL=2, SHUFFLE=3, REPEAT_ONE=4 and SHUFFLE_REPEAT_ONE=5. A different string returns 712.",
+           "function": "0x102b24dc"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1032e538",
+           "notes": "Builds indexed op 11: stores 11 at request+0xe4 and the mode enum as a halfword at +0xfc. A zero f_10255f64 result turns into 712 at 0x102b2554.",
+           "function": "0x1032e538"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102b2684",
+           "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+           "function": "0x102b24dc"
           }
          ]
         }
@@ -62422,9 +62486,41 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102b2554",
-         "notes": "712 returns",
-         "function": "f_102b24dc"
+         "address": "0x102b25d4",
+         "notes": "For non-NORMAL names, requires f_10147928 == 0, f_10148308 == 0 and byte impl+0x1a03 != 0; any failure goes to 712 at 0x102b2554.",
+         "function": "0x102b24dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10148308",
+         "notes": "Source checks exclude x-sonosapi-radio: through f_10147928 -> f_101478ec, and x-sonosapi-stream:, x-sonosapi-hls:, hls-aac://, hls-radio:// and x-rincon-mp3radio:// through f_10148308. Source exclusion is by prefix, not a general presence test.",
+         "function": "0x10148308"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b2520",
+         "notes": "Case-sensitive strcmp chain accepts NORMAL=0 and, after the non-NORMAL gates, SHUFFLE_NOREPEAT=1, REPEAT_ALL=2, SHUFFLE=3, REPEAT_ONE=4 and SHUFFLE_REPEAT_ONE=5. A different string returns 712.",
+         "function": "0x102b24dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1032e538",
+         "notes": "Builds indexed op 11: stores 11 at request+0xe4 and the mode enum as a halfword at +0xfc. A zero f_10255f64 result turns into 712 at 0x102b2554.",
+         "function": "0x1032e538"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b2684",
+         "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+         "function": "0x102b24dc"
         }
        ]
       },
@@ -62499,13 +62595,65 @@
        "build": "86.10-80260",
        "address": "0x10eb31e0",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b9a9c",
+       "notes": "Checks parsed InstanceID; nonzero returns 718 via 0x102b9aa4. Only ID zero enters f_102b9aac.",
+       "function": "0x102b9a9c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b25d4",
+       "notes": "For non-NORMAL names, requires f_10147928 == 0, f_10148308 == 0 and byte impl+0x1a03 != 0; any failure goes to 712 at 0x102b2554.",
+       "function": "0x102b24dc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10148308",
+       "notes": "Source checks exclude x-sonosapi-radio: through f_10147928 -> f_101478ec, and x-sonosapi-stream:, x-sonosapi-hls:, hls-aac://, hls-radio:// and x-rincon-mp3radio:// through f_10148308. Source exclusion is by prefix, not a general presence test.",
+       "function": "0x10148308"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b2520",
+       "notes": "Case-sensitive strcmp chain accepts NORMAL=0 and, after the non-NORMAL gates, SHUFFLE_NOREPEAT=1, REPEAT_ALL=2, SHUFFLE=3, REPEAT_ONE=4 and SHUFFLE_REPEAT_ONE=5. A different string returns 712.",
+       "function": "0x102b24dc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1032e538",
+       "notes": "Builds indexed op 11: stores 11 at request+0xe4 and the mode enum as a halfword at +0xfc. A zero f_10255f64 result turns into 712 at 0x102b2554.",
+       "function": "0x1032e538"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b2684",
+       "notes": "Mode 1 calls f_10688070 on the current URI. Nonzero invokes f_106a9e88(*(impl+0x5a0),1,enum,0,0), where false returns 712. In mode 1 with zero URI predicate, or any engine mode other than 1 or 2, NORMAL alone succeeds without submitting. Every success clears impl+0x6ed8.",
+       "function": "0x102b24dc"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1032e6a8",
+       "notes": "The indexed submission stores the record at session+0x2594, signals, waits for request completion byte +0xe0 and returns result byte +0xe1 to the caller.",
+       "function": "0x1032e658"
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x102f94a0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": null
     },
     "SnoozeAlarm": {
      "description": "Snoozes the currently ringing alarm. Impl f_102d1fc4 is a thin shim: worker f_102d1d5c fills a status record and the impl returns the u16 at rec+4 as the SOAP rc. The worker enforces InstanceID==0 (718), parses Duration through shared parser f_10c3d2c4 (fail -> 402), requires engine+0x4654 in {1,2} (else 800), and requires byte impl+0x5a86 nonzero (the ringing-alarm flag (else 701). It then logs \"upnp\"/\"snooze\", submits a transport op via f_102d0ac8(impl,0,0,...)) the same submission helper as the Pause fallback: calls sonosClockGetTime(1), and stores the snooze timestamp/flag pair at impl+0x6ecc and impl+0x6ed0.",
