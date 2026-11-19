@@ -86143,7 +86143,7 @@
      ]
     },
     "CreateObject": {
-     "description": "Creates a CDS object: ContainerID/Elements -> impl->v[+0x20], returning ObjectID/Result.",
+     "description": "Creates through the resolved container implementation. Missing required strings return402; an unknown ContainerID returns710. Base unsupported creation returns713. Concrete writable routes include share-root S: and R:/FV: category nodes, with different XML collectors, persistence and DIDL result generation. It is not a universal saved-queue or arbitrary-container creation API.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10306b84",
@@ -86187,11 +86187,13 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x103026f8; share root0x1034abfc; R/FV node0x10380480",
+      "impl_vfunc": "cd_impl primary0x10eb3f20 +0x20; resolved object+0x1c"
      },
      "inputs": {
       "ContainerID": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103026f8",
+       "description": "ObjectID of the creation target, resolved before interpreting Elements.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -86200,36 +86202,46 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
-       "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "S: share root; R: radio category0/1 nodes; FV: category2 node. Other resolved types may use literal713 base stub.",
+       "range": "1024-byte request buffer including NUL",
+       "special_values": "Unknown namespace/object ->710. R/FV non-creatable node shape/category ->710.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Resolver and concrete per-node type/category gates; no global enum whitelist.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306bd4",
-         "notes": "in-arg access site"
+         "function": "0x103026f8",
+         "address": "0x1030273c",
+         "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb4324",
-         "notes": "argument name string"
+         "function": "0x10113db4",
+         "address": "0x10113db8",
+         "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10380480",
+         "address": "0x10380508",
+         "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
         }
        ],
        "notes": null,
        "buf_cap": 1024
       },
       "Elements": {
-       "description": "request-layer string/int parsed and handed to media-store impl 0x103026f8",
+       "description": "Selected backend XML input: share declaration or radio/favorite item metadata. This is not merely an opaque string stored unchanged.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -86238,29 +86250,39 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 16384 bytes (16383 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
-       "range": "max 16383 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
+       "unit": "none",
+       "accepted_values": "XML accepted by selected share/R/FV collector; exact collector field grammar remains narrowed below.",
+       "range": "16384-byte request buffer including NUL",
+       "special_values": "Empty/malformed or failed finalize ->712 on traced concrete collectors.",
        "required": true,
-       "default": "none - required argument",
-       "validation": "request parse proven; impl applies media-store semantics",
+       "default": "none; required",
+       "validation": "Required type7 bounded string, then selected container interprets text.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10306bfc",
-         "notes": "in-arg access site"
+         "function": "0x1034abfc",
+         "address": "0x1034ace0",
+         "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb4330",
-         "notes": "argument name string"
+         "function": "0x10380480",
+         "address": "0x10380508",
+         "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10384490",
+         "address": "0x10384530",
+         "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
         }
        ],
        "notes": null,
@@ -86269,221 +86291,423 @@
      },
      "outputs": {
       "ObjectID": {
-       "description": "produced by impl 0x103026f8 via media-store member this+0x168",
+       "description": "New backend object ID, emitted only on overall rc0.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "see impl 0x103026f8",
+       "semantic_type": "string",
+       "format": "S:<percent-encoded share>, R:0/<category>/<ID>, or FV:<category>/<ID>",
+       "unit": "none",
+       "accepted_values": "Backend-generated ID.",
+       "range": "1024-byte wrapper output buffer",
+       "special_values": "No output emitted when a post-create error is returned, even if persistent creation already occurred.",
        "required": false,
-       "default": "see impl 0x103026f8",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10306cc4",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eb32f8",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      },
-      "Result": {
-       "description": "produced by impl 0x103026f8 via media-store member this+0x168",
-       "direction": "out",
-       "primitive": {
-        "fmt_helper": null,
-        "fmt": null
-       },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "unrestricted/impl-validated per 0x103026f8",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "see impl 0x103026f8",
-       "required": false,
-       "default": "see impl 0x103026f8",
-       "validation": "impl-produced",
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10306cf4",
-         "notes": "out-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10eae830",
-         "notes": "argument name string"
-        }
-       ],
-       "notes": null
-      }
-     },
-     "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x10306b84",
-        "notes": "wrapper family decode"
-       }
-      ]
-     },
-     "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×2, raise-fault×1, required-arg fetch×2, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306b84",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×2, raise-fault×1, required-arg fetch×2, out-arg write×2, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10306b84",
-        "notes": "member vfunc calls: ['r30 v[+?]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "side_effects": [
-      {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "default": "none",
+       "validation": "Delegate must return0 before wrapper emits.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10306b84",
-         "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+         "address": "0x10306c50",
+         "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034abfc",
+         "address": "0x1034add8",
+         "notes": "After successful share add: ObjectID is S: plus percent-encoded share path via10c3a258, capacity supplied by wrapper. Builds bounded DIDL writer1054ad10 with header and temporary share node, calls metadata1034a3e8 with Filter *. Nonzero metadata rc forwarded, otherwise finalizes1054b2f4. No rollback if post-create Result generation fails."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038612c",
+         "address": "0x10386298",
+         "notes": "FV success formats FV:%s/%s with category and new ID, then DIDL serialization103833d8. R helper103863c8 formats R:%s/%s/%s (R:0/category/newID), serializes10382e94. R create selects transaction phase1; FV create phase2. No generic rollback for failure after store commit."
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "notes": null
+      },
+      "Result": {
+       "description": "Bounded DIDL-Lite metadata for created object, generated by backend serializers rather than echoing Elements.",
+       "direction": "out",
+       "primitive": {
+        "fmt_helper": null,
+        "fmt": null
+       },
+       "semantic_type": "XML text",
+       "format": "DIDL-Lite",
+       "unit": "none",
+       "accepted_values": "Share metadata via1034a3e8, R metadata10382e94, FV metadata103833d8.",
+       "range": "16384-byte wrapper output buffer",
+       "special_values": "Post-store metadata failure is not rolled back by cd_impl.",
+       "required": false,
+       "default": "none",
+       "validation": "Only emitted on overall rc0.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10306b84",
+         "address": "0x10306c50",
+         "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034abfc",
+         "address": "0x1034add8",
+         "notes": "After successful share add: ObjectID is S: plus percent-encoded share path via10c3a258, capacity supplied by wrapper. Builds bounded DIDL writer1054ad10 with header and temporary share node, calls metadata1034a3e8 with Filter *. Nonzero metadata rc forwarded, otherwise finalizes1054b2f4. No rollback if post-create Result generation fails."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038612c",
+         "address": "0x10386298",
+         "notes": "FV success formats FV:%s/%s with category and new ID, then DIDL serialization103833d8. R helper103863c8 formats R:%s/%s/%s (R:0/category/newID), serializes10382e94. R create selects transaction phase1; FV create phase2. No generic rollback for failure after store commit."
+        }
+       ],
+       "notes": null
+      }
+     },
+     "validation": {
+      "description": "Both strings required; no strict top-level XML parse before ContainerID resolution. Resolver failure710. Selected creation method controls XML/schema errors and backend statuses. Base creation713. Exact normal/empty/error wrapper output order is proven.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10306b84",
+        "address": "0x10306c50",
+        "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103026f8",
+        "address": "0x1030273c",
+        "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113db4",
+        "address": "0x10113db8",
+        "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034abfc",
+        "address": "0x1034ace0",
+        "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380508",
+        "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Resolved writable container. S: root and allowed R:/FV: category nodes have concrete overrides; A:/Q:/SQ: base unsupported creation returns713. Share manager must accept add/update; credentialed share creation additionally needs trial-mount manager. R/FV creation needs parseable existing userradio.xml and successful atomic rewrite.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103026f8",
+        "address": "0x1030273c",
+        "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113db4",
+        "address": "0x10113db8",
+        "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034abfc",
+        "address": "0x1034ace0",
+        "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ddf0",
+        "address": "0x1010de7c",
+        "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380508",
+        "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384490",
+        "address": "0x10384530",
+        "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Share list/count, manager scan/shutdown state and cached index stamp; optional global mount manager1109725c. R/FV provider identity/current version+0x14c, userradio.xml, collector state and store mutex+0x30. No unconditional cd_impl+0x4e0 read/write in outer worker.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103026f8",
+        "address": "0x1030273c",
+        "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034abfc",
+        "address": "0x1034ace0",
+        "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ddf0",
+        "address": "0x1010de7c",
+        "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380508",
+        "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384490",
+        "address": "0x10384530",
+        "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380918",
+        "notes": "Only after transaction rc0: calls1037e554 (R at10380918, FV at10380934) under favorites mutex+0x30. Worker increments provider+0x14c only when callback+0x110 non-NULL (1037e5b4), invokes callback+0x14 at1037e5e0, and informs replication with R:0 for categories0/1 or FV:%s otherwise. Concrete callback receiver/event scheduling not yet bound here."
+       }
+      ]
+     },
+     "side_effects": [
+      {
+       "description": "S: adds or updates share-manager list and schedules localAddShare processing. R/FV rewrites userradio.xml via .tmp, flush/fsync/close and rename; successful store then requests replication/notification. Wrapper does not provide a transaction spanning store and Result serialization.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103026f8",
+         "address": "0x1030273c",
+         "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ddf0",
+         "address": "0x1010de7c",
+         "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10384490",
+         "address": "0x10384530",
+         "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1038612c",
+         "address": "0x10386298",
+         "notes": "FV success formats FV:%s/%s with category and new ID, then DIDL serialization103833d8. R helper103863c8 formats R:%s/%s/%s (R:0/category/newID), serializes10382e94. R create selects transaction phase1; FV create phase2. No generic rollback for failure after store commit."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10380480",
+         "address": "0x10380918",
+         "notes": "Only after transaction rc0: calls1037e554 (R at10380918, FV at10380934) under favorites mutex+0x30. Worker increments provider+0x14c only when callback+0x110 non-NULL (1037e5b4), invokes callback+0x14 at1037e5e0, and informs replication with R:0 for categories0/1 or FV:%s otherwise. Concrete callback receiver/event scheduling not yet bound here."
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Outer cd_impl does not directly increment SystemUpdateID or call GENA. R/FV success explicitly calls1037e554, increments provider version if callback present, dispatches callback+0x14 and informs replication. Share add signals its worker. Exact downstream ContentDirectory callback/event binding remains narrowed.",
+      "todo": "Residual: bind favorites provider callback+0x110 used at1037e5e0 to its concrete receiver and trace localAddShare worker completion into ContentDirectory notification. Next: constructor/register stores to provider+0x110 and share worker consumer of localAddShare marker at1010e128.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306b84",
-        "notes": "bl call scan: notify-family sites = []"
+        "function": "0x103026f8",
+        "address": "0x1030273c",
+        "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ddf0",
+        "address": "0x1010de7c",
+        "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380918",
+        "notes": "Only after transaction rc0: calls1037e554 (R at10380918, FV at10380934) under favorites mutex+0x30. Worker increments provider+0x14c only when callback+0x110 non-NULL (1037e5b4), invokes callback+0x14 at1037e5e0, and informs replication with R:0 for categories0/1 or FV:%s otherwise. Concrete callback receiver/event scheduling not yet bound here."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "Mutation may persist before response generation; no rollback in103026f8. Share-list mutation enqueues localAddShare and records cached stamp; R/FV successful transaction advances provider version/replication callback. Exact XML SAX state transition grammar remains narrowed in action TODO.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10306b84",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+        "function": "0x103026f8",
+        "address": "0x1030273c",
+        "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1010ddf0",
+        "address": "0x1010de7c",
+        "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10384490",
+        "address": "0x10384530",
+        "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380918",
+        "notes": "Only after transaction rc0: calls1037e554 (R at10380918, FV at10380934) under favorites mutex+0x30. Worker increments provider+0x14c only when callback+0x110 non-NULL (1037e5b4), invokes callback+0x14 at1037e5e0, and informs replication with R:0 for categories0/1 or FV:%s otherwise. Concrete callback receiver/event scheduling not yet bound here."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Validator402; unresolved container710; base unsupported713; otherwise concrete creation rc unchanged after object release. rc0 emits ObjectID then Result and commits, with no scalar outputs. No speculative accumulator or literal-string-based fault domain.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10306b84",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 2, '0x10': 2, '0xc': 1}"
+        "address": "0x10306c50",
+        "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103026f8",
+        "address": "0x1030273c",
+        "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113db4",
+        "address": "0x10113db8",
+        "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034abfc",
+        "address": "0x1034ace0",
+        "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10380480",
+        "address": "0x10380508",
+        "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [
-      {
-       "site": "0x10306c6c",
-       "code": null,
-       "code_expr": "vret(r5-in,+0x20)"
-      }
-     ],
+     "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret(r5-in,+0x20); parse/req-layer",
-       "meaning": "impl accumulator r29: {710 literal (0x10302800), arg r7-seeded, call/lwz-derived}; rc forwarded verbatim via req v[+0x14] | Wrapper parse layer rejected an argument before the impl call.",
+       "meaning": "Missing required ContainerID or Elements.",
        "fault_sites": [
-        "0x10306c6c"
+        "0x10306ca8"
        ],
        "conditions": [
         {
-         "description": "req or impl gate failed",
+         "description": "Missing required ContainerID or Elements.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103026f8",
-           "notes": "impl"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10306b84",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10306b84",
+           "address": "0x10306c50",
+           "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
           }
          ]
         }
@@ -86493,121 +86717,405 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103026f8",
-         "notes": "rc path"
-        },
+         "function": "0x10306b84",
+         "address": "0x10306c50",
+         "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
+        }
+       ]
+      },
+      {
+       "code": 710,
+       "meaning": "ContainerID resolver NULL, or R/FV concrete node type/category does not permit create.",
+       "fault_sites": [
+        "0x10302800",
+        "0x10380518"
+       ],
+       "conditions": [
         {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10302800",
-         "notes": "li r29,0x2c6=710 literal exit"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10306b84",
-         "notes": "wrapper parse + fault path"
+         "description": "ContainerID resolver NULL, or R/FV concrete node type/category does not permit create.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x103026f8",
+           "address": "0x1030273c",
+           "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10380480",
+           "address": "0x10380508",
+           "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+          }
+         ]
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x103026f8 exits=[-316, 0, 20, 360]; literal exit paths bounded by accumulator scan",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x20); parse/req-layer; sites: 0x10306c6c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103026f8",
+         "address": "0x1030273c",
+         "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10380480",
+         "address": "0x10380508",
+         "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+        }
+       ]
+      },
+      {
+       "code": 713,
+       "meaning": "Resolved object uses base unsupported CreateObject implementation.",
+       "fault_sites": [
+        "0x10113db8"
+       ],
+       "conditions": [
+        {
+         "description": "Resolved object uses base unsupported CreateObject implementation.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10113db4",
+           "address": "0x10113db8",
+           "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10113db4",
+         "address": "0x10113db8",
+         "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+        }
+       ]
+      },
+      {
+       "code": 712,
+       "meaning": "Share/R/FV XML feed/finalize or concrete required-field/item-count checks fail.",
+       "fault_sites": [
+        "0x1034acec",
+        "0x10380654",
+        "0x103806d8"
+       ],
+       "conditions": [
+        {
+         "description": "Share/R/FV XML feed/finalize or concrete required-field/item-count checks fail.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1034abfc",
+           "address": "0x1034ace0",
+           "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10380480",
+           "address": "0x10380508",
+           "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034abfc",
+         "address": "0x1034ace0",
+         "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10380480",
+         "address": "0x10380508",
+         "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "meaning": "Credentialed share branch has no trial-mount manager; favorites store open/write/flush/fsync/close/rename I/O failure.",
+       "fault_sites": [
+        "0x1034ae70",
+        "0x10384528",
+        "0x10384678"
+       ],
+       "conditions": [
+        {
+         "description": "Credentialed share branch has no trial-mount manager; favorites store open/write/flush/fsync/close/rename I/O failure.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1034abfc",
+           "address": "0x1034ace0",
+           "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10384490",
+           "address": "0x10384530",
+           "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034abfc",
+         "address": "0x1034ace0",
+         "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10384490",
+         "address": "0x10384530",
+         "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+        }
+       ]
+      },
+      {
+       "code": 720,
+       "meaning": "Share-manager shutdown flag+0x4e12 set at entry or while waiting.",
+       "fault_sites": [
+        "0x1010de2c",
+        "0x1010df5c"
+       ],
+       "conditions": [
+        {
+         "description": "Share-manager shutdown flag+0x4e12 set at entry or while waiting.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010ddf0",
+           "address": "0x1010de7c",
+           "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ddf0",
+         "address": "0x1010de7c",
+         "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "meaning": "Share list already has16 entries and insertion would exceed bound.",
+       "fault_sites": [
+        "0x1010e034",
+        "0x1010e0c0"
+       ],
+       "conditions": [
+        {
+         "description": "Share list already has16 entries and insertion would exceed bound.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010ddf0",
+           "address": "0x1010de7c",
+           "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ddf0",
+         "address": "0x1010de7c",
+         "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+        }
+       ]
+      },
+      {
+       "code": 901,
+       "meaning": "Invalid share path normalized through HRESULT0x81000001 conversion.",
+       "fault_sites": [
+        "0x1034aedc",
+        "0x1010e1d4"
+       ],
+       "conditions": [
+        {
+         "description": "Invalid share path normalized through HRESULT0x81000001 conversion.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1034abfc",
+           "address": "0x1034ace0",
+           "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010ddf0",
+           "address": "0x1010de7c",
+           "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034abfc",
+         "address": "0x1034ace0",
+         "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ddf0",
+         "address": "0x1010de7c",
+         "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+        }
+       ]
+      },
+      {
+       "code": 911,
+       "meaning": "Share overlap conflict mapped from HRESULT0x8100000b.",
+       "fault_sites": [
+        "0x1010e108"
+       ],
+       "conditions": [
+        {
+         "description": "Share overlap conflict mapped from HRESULT0x8100000b.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1010ddf0",
+           "address": "0x1010de7c",
+           "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1010ddf0",
+         "address": "0x1010de7c",
+         "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+        }
        ]
       },
       {
        "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "favorites/userradio store-commit layer (dirObjFavorites vfunc -> f_10384490 userradio.xml atomic save): reachable codes {402,501,701,702,803,805,806,807}. Proven rungs in f_10384490: 805 = store count field *(ctx+0x20)>=70 (favorites cap); 806 = ftell()>0x20000 (serialized XML >128KiB); 807 = phase *(ctx+0x1c)>=6 with flag +0x30; 803 = phase *(ctx+0x1c)<2; 702 = flag *(ctx+0x2e); 501 = .tmp open failure; 402/701 = arg/resolver gates. Internal error strings (Invalid favorite id / Could not access favorites / initContentResource parse URI,extract item ID,Invalid item ID,No valid mapping for item type / Failed to parse account service ID) collapse into this rc domain on the wire. Applies when the ObjectID resolves into the favorites/userradio directory (FV:/R: prefixes).",
-       "fault_sites": [],
+       "meaning": "Residual per-backend status domain: authenticated-share trial mount and R/FV streaming store parser. The atomic rewrite checks are traced, but SAX phase/flag producers must be followed before asserting which of the generic commit semantic exits are reachable for create.",
+       "fault_sites": [
+        "0x1034ae8c",
+        "0x10386448",
+        "0x10386218"
+       ],
+       "todo": "Trace trial-mount1042b214 from call1034ae8c and SAX callbacks1038163c/10382c00 reached by1037b0d0; correlate phase/flags with create phase1(R) and2(FV), rather than copying generic commit fault inventory.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10384490",
-         "notes": "userradio.xml .tmp+fsync+rename atomic save; full literal exit set {402,501,701,702,803,805,806,807}"
+         "function": "0x1034abfc",
+         "address": "0x1034ace0",
+         "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103847a4",
-         "notes": "li r31,0x325 (805) gated on *(ctx+0x20)>=0x46"
+         "function": "0x10380480",
+         "address": "0x10380508",
+         "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x103847d8",
-         "notes": "806 selected when ftell>0x20000"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103847f0",
-         "notes": "807 late-phase guard"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10ec0af8",
-         "notes": "dirObj vtable slot -> f_1037f4a0 (favorites mutation fns 0x1037fxxx call f_10384490 at 0x1037f6ec/0x1037f860/0x1037fa00)"
+         "function": "0x10384490",
+         "address": "0x10384530",
+         "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
         }
        ],
-       "notes": "indirect dirObj-vfunc edge - bl-scan cannot see it; vtable xref proves reachability",
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "Only after resolving a concrete writable container and passing its XML/type gates: trial-mount rc is forwarded, or R/FV commit processes existing userradio.xml through mutation-specific SAX callbacks. Exact callback phase/error mapping remains TODO, not a universal fault inventory.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10384490",
-           "notes": "userradio.xml .tmp+fsync+rename atomic save; full literal exit set {402,501,701,702,803,805,806,807}"
+           "function": "0x1034abfc",
+           "address": "0x1034ace0",
+           "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847a4",
-           "notes": "li r31,0x325 (805) gated on *(ctx+0x20)>=0x46"
+           "function": "0x10380480",
+           "address": "0x10380508",
+           "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103847d8",
-           "notes": "806 selected when ftell>0x20000"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103847f0",
-           "notes": "807 late-phase guard"
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10ec0af8",
-           "notes": "dirObj vtable slot -> f_1037f4a0 (favorites mutation fns 0x1037fxxx call f_10384490 at 0x1037f6ec/0x1037f860/0x1037fa00)"
+           "function": "0x10384490",
+           "address": "0x10384530",
+           "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
           }
          ]
         }
-       ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ec0af8 emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
        ]
       }
      ],
@@ -86627,13 +87135,91 @@
        "build": "86.10-80260",
        "address": "0x10eb4270",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10306b84",
+       "address": "0x10306c50",
+       "notes": "Required ContainerID string cap0x400 and Elements string cap0x4000. Validator false ->402 at0x10306ca8. Primary+0x20 invokes f_103026f8 with ObjectID buffer cap0x400 and Result cap0x4000. Zero emits both strings at0x10306cd8/0x10306d08 then commits0x10306d1c; nonzero faults unchanged at0x10306c6c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103026f8",
+       "address": "0x1030273c",
+       "notes": "Proven service-level binding: cd_impl0x10eb3f20. Resolve ContainerID via impl+0x168/f_1034a224. NULL ->710 at0x10302800, NOT701. Otherwise resolved object+0x1c creates and +0x28 releases. Logging only after delegate; no result remap, rollback or direct increment."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10113db4",
+       "address": "0x10113db8",
+       "notes": "Base CreateObject returns literal713, NOT717 or success. A:/Q:/SQ: directory types without override route here. Share root vtable0x10ebb6f4 +0x1c ->1034abfc, share child0x10ebb644 uses base stub; R:/FV: pooled node0x10ec0ad4 +0x1c ->10380480."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1034abfc",
+       "address": "0x1034ace0",
+       "notes": "S: root parses Elements with streaming parser10c3fc68 and share collector vtable0x10ebb600 (callback1034b068). Feed or finalize failure ->712. Copies share path to0x401 buffer, validates f_10386fd0, invalid path maps HRESULT0x81000001 through10426c7c ->901. Optional credential flags at stack503/504 both set trigger trial mount1042b214 via global1109725c; missing manager ->501. Otherwise calls1010e1f4 with empty credentials."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1034abfc",
+       "address": "0x1034add8",
+       "notes": "After successful share add: ObjectID is S: plus percent-encoded share path via10c3a258, capacity supplied by wrapper. Builds bounded DIDL writer1054ad10 with header and temporary share node, calls metadata1034a3e8 with Filter *. Nonzero metadata rc forwarded, otherwise finalizes1054b2f4. No rollback if post-create Result generation fails."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1010ddf0",
+       "address": "0x1010de7c",
+       "notes": "Share add helper reached via1010e1f4: locks manager+0x20, shutdown+0x4e12 ->720. Waits via condition while state+0x52c8!=2, preserving wake/shutdown checks. At most16 entries (count>15 ->802). Invalid share ->901, overlapping-share path branch HRESULT0x8100000b ->911. Successful add/update mutates list, queue marker localAddShare and cached stamp via10c3f210; downstream worker performs actual scan/persistence."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10380480",
+       "address": "0x10380508",
+       "notes": "R:/FV: node classifier1037b9ac: accept R: category nodes (type2,R flagtrue,category0 or1) or FV: category2 (type1,R flagfalse). Other types/categories ->710. XML feed/finalize and local required-field checks ->712. R: uses parser collector10381428 then transaction103863c8; FV: collector initialized by103849f8, requires title/resource metadata and item-count1, then transaction1038612c. Collection schema remains separately narrowed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10384490",
+       "address": "0x10384530",
+       "notes": "Reached from R create103863c8 at10386448 and FV create1038612c at10386218, not assumed from strings. Opens userradio.xml, writes .tmp, streams existing file with1037b0d0, checks parser phase/flags, writes trailer, fflush/fsync/fclose, then rename only on clean status. Errors derive from final parser state. 805 branch compares count+0x20>70 (not>=70); 806 when ftell()>0x20000; byte+0x7d I/O failure overrides semantic rc to501. Caller-specific phase reachability still needs SAX callback1038163c/10382c00 trace."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1038612c",
+       "address": "0x10386298",
+       "notes": "FV success formats FV:%s/%s with category and new ID, then DIDL serialization103833d8. R helper103863c8 formats R:%s/%s/%s (R:0/category/newID), serializes10382e94. R create selects transaction phase1; FV create phase2. No generic rollback for failure after store commit."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10380480",
+       "address": "0x10380918",
+       "notes": "Only after transaction rc0: calls1037e554 (R at10380918, FV at10380934) under favorites mutex+0x30. Worker increments provider+0x14c only when callback+0x110 non-NULL (1037e5b4), invokes callback+0x14 at1037e5e0, and informs replication with R:0 for categories0/1 or FV:%s otherwise. Concrete callback receiver/event scheduling not yet bound here."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x10306b84; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "todo": "Established: service binding, required strings/capacities, container resolution, concrete creation routes, output formats/order, unsupported713, local creation gates, share-list mutation, atomic file rewrite and notification call sites. Residual sub-area: exact share/radio/favorite XML property grammar and streaming userradio SAX transitions/semantic faults; next trace share collector1034b068 and R/FV collector10381428/10381440, then existing-file callbacks1038163c/10382c00 through1037b0d0. Authenticated-share trial-mount fault detail starts1042b214. Event receiver residual is separately localized below.",
+     "implementation_notes": "Base713 and unresolved-container710 are statically distinguished from701. Generic save codes are not all assumed reachable for every mutation phase."
     },
     "DestroyObject": {
      "description": "Destroys ObjectID via impl->v[+0x28].",
