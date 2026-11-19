@@ -97104,7 +97104,7 @@
      ]
     },
     "GetRDM": {
-     "description": "Reads the RDM flag via impl->v[+0x40].",
+     "description": "Returns RDMValue as 0 or 1 by reading SystemSettings key R_RDM and testing a successfully parsed unsigned integer for nonzero. Missing backend/key, failed lookup or failed numeric parse yields 0 without a SOAP error.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732d6c",
@@ -97121,19 +97121,19 @@
         "site": "0x10732da0",
         "obj": "*(r3-in+0x4)",
         "slot": 64,
-        "arg4": "sp-0x15"
+        "arg4": "output byte at sp+0x1b"
        },
        {
         "site": "0x10732dfc",
-        "obj": "xor(*(r2+0xffff8ff8))",
+        "obj": "request",
         "slot": 36,
         "arg4": "RDMValue"
        },
        {
         "site": "0x10732e18",
-        "obj": "*(sp-0x30+0x2c)",
+        "obj": "request",
         "slot": 12,
-        "arg4": "?"
+        "arg4": "none"
        }
       ],
       "req_vcalls": []
@@ -97141,274 +97141,355 @@
      "inputs": {},
      "outputs": {
       "RDMValue": {
-       "description": "RDM flag/value emitted by handler 0x10732d6c",
+       "description": "Boolean interpretation of the stored R_RDM integer, serialized as 0 or 1.",
        "direction": "out",
        "primitive": {
-        "fmt_helper": null,
-        "fmt": null
+        "type_tag": 0,
+        "fmt_helper": "0x1055fc08",
+        "fmt": "0 or 1"
        },
-       "semantic_type": "response field",
-       "format": "text",
+       "semantic_type": "boolean flag",
+       "format": "ASCII 0 or 1",
        "unit": "none",
-       "accepted_values": "impl-produced",
-       "range": "per the response writer",
-       "special_values": "none identified",
-       "required": false,
-       "default": "none; written on success",
-       "validation": "arg-name string loaded at 0x10732df0 inside impl 0x1019db98; emitted via the response writer",
+       "accepted_values": "0 for absent backend, unsuccessful key lookup, failed paranoid_atoui parse, or parsed zero; 1 for a successfully parsed nonzero unsigned integer.",
+       "range": "0 or 1",
+       "special_values": "0 also masks missing/unreadable/malformed numeric data; it is not proof of a stored zero.",
+       "required": true,
+       "default": "0; output byte initialized before backend lookup",
+       "validation": "Backend result and imported paranoid_atoui status must both be nonzero before the parsed integer is converted to a boolean. The lookup buffer holds at most 15 value bytes plus NUL.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732df0",
-         "notes": "'RDMValue' arg-name load in impl 0x1019db98"
+         "address": "0x104b0bb0",
+         "function": "0x104b0b8c",
+         "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1019db98",
-         "notes": "impl emits this output"
+         "address": "0x1066c2a8",
+         "function": "0x1066c24c",
+         "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1055fc20",
+         "function": "0x1055fc08",
+         "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
         }
        ],
-       "notes": null
+       "todo": [
+        "Established: bounded R_RDM lookup, zero-default/nonzero-integer conversion and exact 0/1 wire formatting are recovered.",
+        "Residual: exact lexical/overflow acceptance inside imported paranoid_atoui is not established by this binary trace.",
+        "Next step: locate the loaded library exporting paranoid_atoui and reverse its parser contract."
+       ]
       }
      },
      "validation": {
-      "description": "Wrapper convention (verified on sibling handlers): inputs fetched via req->v[+0x1c] named lookup + typed parse helpers; req->v[+0x8] validity check (nonzero proceeds); impl->v[slot] rc -> cr0.eq emits outputs, nonzero faults through req->v[+0x14].",
+      "description": "No input arguments or request-validation call in this wrapper. The concrete delegate treats lookup or numeric-parser failure as output false, not a request fault.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732d6c",
-        "notes": "wrapper family decode"
+        "address": "0x10732da0",
+        "function": "0x10732d6c",
+        "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0bb0",
+        "function": "0x104b0b8c",
+        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: *(r3+4) v[+0x40]",
+      "description": "No input argument, account, or feature-flag precondition is tested. A null settings backend is explicitly supported and produces false. With an initialized backend, the request queries R_RDM.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10732da0",
         "function": "0x10732d6c",
-        "notes": "req-vfunc call map: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0bb0",
+        "function": "0x104b0b8c",
+        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b4f8",
+        "function": "0x1066b4bc",
+        "notes": "Initialization 0x10198298/0x101982e0 loads SystemSettings Z+0x29178 as r5 for 0x104b101c, which tail-calls this initializer. Stores backend at delegate+0x164. Constructor 0x1018f2d4 / 0x1066a514 installs vptr 0x10efe958; +0x24 = 0x1066c24c."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, out-arg write×1, commit×1); member delegates: *(r3+4) v[+0x40].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r3+4) v[+0x40]",
+      "description": "Reads delegate+0x164 SystemSettings, syssettings.xml via settings+0xa4, and R_RDM. Lookup uses settings+0x10 mutex. Invalid XML may inspect/set recovery flag +0xe4 and use replication member +0xec, format +0xbc and last-update device +0xe8.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732d6c",
-        "notes": "member vfunc calls: ['*(r3+4) v[+0x40]']"
+        "address": "0x104b0bb0",
+        "function": "0x104b0b8c",
+        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066b4f8",
+        "function": "0x1066b4bc",
+        "notes": "Initialization 0x10198298/0x101982e0 loads SystemSettings Z+0x29178 as r5 for 0x104b101c, which tail-calls this initializer. Stores backend at delegate+0x164. Constructor 0x1018f2d4 / 0x1066a514 installs vptr 0x10efe958; +0x24 = 0x1066c24c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2a8",
+        "function": "0x1066c24c",
+        "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r3+4) v[+0x40].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: concrete backend, file/key lookup, bounded output and recovery dispatch state are recovered.",
+       "Residual: complete state consumed by the settings+0xec recovery/replication receiver is not traced.",
+       "Next step: resolve initialization of settings+0xec and trace its slot +0x14 for the zero-length recovery request."
       ]
      },
      "side_effects": [
       {
-       "description": "read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x40] -> out-arg); result emitted via out-arg; no state mutation in impl path",
+       "description": "Normal query performs file reads and response formatting, not an R_RDM write. It is not unconditionally side-effect free: invalid XML can set settings+0xe4 and schedule recovery through settings+0xec slot +0x14 while preserving the lookup result.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x1066c2a8",
+         "function": "0x1066c24c",
+         "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066c2b8",
+         "function": "0x1066c24c",
+         "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732da0",
          "function": "0x10732d6c",
-         "notes": "impl vfunc delegate path: *(impl+0x4)->v[+0x40] -> out-arg (call-derived member-method semantics)"
+         "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - read-only query: read-only query delegate on impl+0x4 member (*(impl+0x4)->v[+0x40] -> out-arg); result emitted via out-arg; no state mutation in impl path.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: normal read path and invalid-XML recovery scheduling are recovered.",
+        "Residual: transitive recovery effects, including any repair writes or replication, remain untraced.",
+        "Next step: trace the concrete settings+0xec slot +0x14 receiver for the recovery call at 0x1066c32c."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No settings-write notification on the ordinary read/parse/response path. The exceptional invalid-XML path schedules recovery; absence of downstream events from that work is not established.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x104b0bb0",
+        "function": "0x104b0b8c",
+        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2a8",
+        "function": "0x1066c24c",
+        "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732da0",
         "function": "0x10732d6c",
-        "notes": "bl call scan: notify-family sites = []"
+        "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: normal GetRDM path has no 0x1067c6ec call or write-success observer callback.",
+       "Residual: event behavior of the recovery work dispatched at 0x1066c32c is not traced.",
+       "Next step: resolve settings+0xec slot +0x14 and follow its recovery callbacks and notification calls."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v[+0x40]",
+      "description": "Does not change R_RDM during the direct query. Invalid XML with recovery flag clear transitions settings+0xe4 from 0 to 1 before recovery dispatch. Found/parsed values only update local output state, which defaults false.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10732d6c",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r3+4) v[+0x40]']"
+        "address": "0x104b0bb0",
+        "function": "0x104b0b8c",
+        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2a8",
+        "function": "0x1066c24c",
+        "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r3+4) v[+0x40].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: no direct R_RDM write and the one-shot recovery-flag transition are recovered.",
+       "Residual: state transitions performed by scheduled recovery are not traced.",
+       "Next step: trace the receiver of the settings+0xec slot +0x14 call at 0x1066c32c."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The concrete delegate returns 0 on every normal exit, including null backend, failed lookup and failed numeric parse. Wrapper always emits RDMValue and commits success. Its generic nonzero fault arm at 0x10732dbc is unreachable with this delegate; there is no 402 validation path.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x104b0bb0",
+        "function": "0x104b0b8c",
+        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10732da0",
         "function": "0x10732d6c",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0x24': 1, '0xc': 1}"
+        "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1055fc20",
+        "function": "0x1055fc08",
+        "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [
-      {
-       "site": "0x10732dbc",
-       "code": null,
-       "code_expr": "vret(*(r3-in+0x4),+0x40)"
-      }
-     ],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "vret(*(r3-in+0x4),+0x40); parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x10732dbc"
-       ],
-       "conditions": [
-        {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732d6c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10732d6c",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732d6c",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10732d6c",
-         "notes": "wrapper parse + fault path"
-        }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; CR0.eq = success",
-        "unknown": "concrete rc domain of this impl",
-        "knowledge": "; member accessor (*(impl+0x292a4))",
-        "call_sources": [],
-        "impl_exit_literals": {
-         "function": "0x1019db98",
-         "lits": [
-          -1468,
-          -936,
-          0,
-          19744,
-          22308,
-          22528
-         ],
-         "passthrough_exits": 32
-        }
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "observable": [
-        {
-         "op": "recorded-impl",
-         "result": "GetRDM",
-         "basis": "disassembled impl body + store-vfunc mapping",
-         "provenance": "disas0x10e97e10"
-        }
-       ],
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(*(r3-in+0x4),+0x40); parse/req-layer; sites: 0x10732dbc).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      }
-     ],
+     "fault_sites": [],
+     "errors": [],
      "firmware_differences": [],
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x104b0f94",
+       "function": "0x104b0e84",
+       "notes": "Installs vptr 0x10ed75c4; +0x40 targets 0x104b0b8c and +0x4c targets getter 0x100c9be8. Caller 0x1018e594 constructs handler via 0x10732e94, storing this delegate at handler+4. Manager getter 0x1019db98 is not the action implementation."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10732da0",
        "function": "0x10732d6c",
-       "address": "0x10732d6c",
-       "notes": "action wrapper handler"
+       "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11138",
-       "notes": "action dispatch table entry"
+       "address": "0x104b0bb0",
+       "function": "0x104b0b8c",
+       "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10195810",
-       "notes": "shares the manager secondary-base impl object (vtable 0x10e98278) with DeviceProperties; slot +0x40"
+       "address": "0x1066b4f8",
+       "function": "0x1066b4bc",
+       "notes": "Initialization 0x10198298/0x101982e0 loads SystemSettings Z+0x29178 as r5 for 0x104b101c, which tail-calls this initializer. Stores backend at delegate+0x164. Constructor 0x1018f2d4 / 0x1066a514 installs vptr 0x10efe958; +0x24 = 0x1066c24c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066c2a8",
+       "function": "0x1066c24c",
+       "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066c2b8",
+       "function": "0x1066c24c",
+       "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055fc20",
+       "function": "0x1055fc08",
+       "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
       }
      ],
-     "notes": null,
-     "implementation_notes": "Outputs recovered from arg-name string loads inside the impl function (extractor missed them).",
+     "notes": "The statically constructed delegate is known. Fault-site and 402 records derived from an unrelated manager accessor were removed: the actual handler has no request validation and the concrete delegate returns zero.",
+     "implementation_notes": "Only reachable calls are listed in implementation.calls. The wrapper retains an unreachable generic fault call at 0x10732dbc. Imported paranoid_atoui is a trace boundary, not an assertion about exact accepted text. Numeric parse uses an initialized 32-bit out-word, not the request-dispatch return register.",
      "todo": [
-      "Established: virtual dispatch to handler 0x10732d6c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: concrete delegate, SystemSettings lookup, default-false semantics, zero return domain, 0/1 serialization and exceptional recovery dispatch are recovered.",
+      "Residual: imported paranoid_atoui lexical acceptance and full transitive recovery/replication behavior are not traced.",
+      "Next step: locate the paranoid_atoui library implementation and resolve settings+0xec slot +0x14 reached at 0x1066c32c."
      ]
     },
     "GetString": {
