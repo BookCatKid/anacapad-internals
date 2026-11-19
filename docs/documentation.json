@@ -151714,6 +151714,24 @@
      "type": "firmware",
      "address": "0x10e8a004",
      "notes": "share indexer"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10107e50 / caller0x101082e0",
+     "address": "0x10107f3c",
+     "callsite": "0x10107f50 / 0x10108038 / 0x10108070 / 0x101080c4",
+     "notes": "Raw shifts3/5 establish stride40; low16 iterator mask is not srwi. Format0x10e8964c binds field positions; count0 writes opening/closing container; snprintf result bounds distinguish positive fit from error/overflow. Atom and persistence writers not certified."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100fe850 / caller0x100ff2f0",
+     "address": "0x100fe918",
+     "callsite": "0x100fea74 / 0x100fe970",
+     "notes": "Unsigned depth guard10 follows cancellation and virtual predicate; caller passes incremented depth. Logging is not the guard itself; disabled logging still skips the deeper call."
     }
    ],
    "itp_parser": {
@@ -151722,13 +151740,16 @@
     "abstract_file": "Abstract-file store for playlists: 'Error writing offsets to abstract file','Failed to seek abstract file (errno = %d)','Abstract file track offset out of bounds','Failed to write URI atoms to abstract file','lookup resulted in path w/o share: %s','lookup resulted in path w/o share %zu times in a row','ignoring non-local track %s','Out of space processing track (%d - %s) - could not atomize'/'could not write','Failed to open file (%s)','Out of space processing file (%s%s%s%s) (%s)','Write error or invalid processing file (%s)'."
    },
    "todo": [
-    "Residual: the crawl engine internals (SMB walk -> index-entry format inside the versioned index file) - the sharelist grammar and recovery are proven; the per-file index record schema is the index-store internals."
+    "Established: bounded directory-depth guard and concrete40-byte title-array reader with seven atom-to-XML field bindings, track attribute, empty output and oversize skip. Remaining: follow the title-array constructors/writers feeding f_109bc7e0 and owner+0x88, bind fields+8/+0x18 and atom-store encoding, then join the crawler f_100feba4 to index-file serialization, version/recovery and /indexrepl readers. Start at exporter f_10107e50 and caller0x101082e0; do not equate this diagnostic XML with the disk or replication format. Scheduler and all persisted fields remain actionable static work, not an out-of-image index-store limitation."
    ],
    "resolved_findings": [
-    "Resolved: index store = the share-index table built by the crawler; crawl scheduler = the itp_parser-driven scan cadence.",
+    "The directory walker, title-array reader and XML export are concrete compiled paths. The earlier claim that iTunes parsing drives all scan cadence is not established; playlist import, crawl scheduling and index persistence must be traced separately.",
     "Engine decoded: shares persist as <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange> with per-share <Share Path/UserName/Password/VerifiedValidProtocol/Id> - the replicated sharelist. Protocol validation runs once per share (Successfully verified share uses supported protocol, skipping previously-validated, Removing share as it uses an unsupported protocol, Number of unsupported shares removed: %d with removalReason/numRemoved/sharesRemoved/musicShare fields). Add/remove validation taxonomy {share path already exists, maximum number of allowed shares, path subsumed by an existing share, Path is malformed, Access to share is denied, Unable to find given share}. Reindex request carries {ad, sf, fr, si, st, lc} args (request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)) and resort promotes to reindex (Turning resort request into full reindex). Index persistence is versioned with crash recovery (need to recover ix=%d ver=%d / recovered ix=%d with ver=%d, .bak file, processing index: source (%s:%u)); errors {Mounting failed, Local index storage error, Remote file share error, Indexing canceled, connection failure}. Coordinator election via us [%s|%u] vs them [%s|%u] comparison with Rejecting invalid sharelist; replication gates on format version (replication skipped: local fmt %u, remote fmt %u). Sort orders {R_BrowseByFolderSort, File, Tracknum}.",
     "Share-protocol selector recovered at 0x10ecde74 {LOCAL, HTTP, CIFS, SMB2, SMB3, UNKNOWN} and share-type at 0x10e89bb8 {NONE, ITUNES, WMP, BOTH} - the indexer distinguishes SMB protocol levels and itunes-vs-wmp share flavors.",
-    "Boundary named: the SMB2/SMB3 share walk uses libsmb2.so.1 (linked); anacapad's own sqlite3 is used only by timer.db (alarms), not the index - the index store itself is not a standalone local file in this image (shares.xml holds share config; index data replicates via /indexrepl)."
+    "A linked SMB library and the /indexrepl surface do not prove that the local index is absent or that its format is out of image. f_10107e50 reads a compiled title array and resolves stored atoms. Its XML output is a diagnostic/export representation, not proof of an identical persisted record. The earlier not-a-standalone-local-file boundary is withdrawn.",
+    "f_10107e50, called at0x101082e0, writes <Titles>, checks count at owner+0x88 and obtains the title-array base through f_109bc7e0. Each selected entry is40 bytes: raw left-shift-by3 plus left-shift-by5 at0x10107f3c-0x10107f4c. It resolves atom words through f_102a0750, then escapes/copies each string with capacity0x400. The format at0x10e8964c binds record+0 File, +4 Leaf, +0x10 Album, +0x14 Artist, +0x1c Composer, +0x20 Genre and +0xc Description; record+0x24 supplies the unsigned track attribute. Fields+8/+0x18 are not named by this exporter.",
+    "Empty count skips directly to </Titles>. Combined per-title formatting is bounded to4096 bytes; unsigned result-1<=4094 accepts positive lengths1..4095. Other results skip that title and may log Track data too large, then advance. The16-bit iterator truncation at0x10107f2c/0x101080b4 is a low16 mask, not division or right shift; this reader does not by itself establish the producer capacity.",
+    "Directory walker f_100fe850 tests the cancellation byte first, then calls its input object virtual+8. A successful object predicate leads to an unsigned incoming-depth check against10 at0x100fe918. Depth>10 takes the limit diagnostics and skips the processing call f_100feba4; depth<=10 reaches it at0x100fea74. The caller0x100ff2f0 explicitly increments the propagated depth before calling the walker. This is an actual crawl guard, not an iTunes XML stack-depth limit."
    ]
   },
   "user_update": {
