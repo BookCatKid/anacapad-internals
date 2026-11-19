@@ -97297,7 +97297,7 @@
    "events": {
     "mechanism": "GENA SUBSCRIBE acceptance at /MediaRenderer/VirtualLineIn/Event is separately recorded. The source-manager event-source serializer emits CurrentTrackMetaData; the metadata routine can dirty it and request a sender wakeup. Trigger reachability and end-to-end GENA/WSS delivery remain unresolved.",
     "lastchange_template": null,
-    "no_template_note": "The inspected static LastChange template/namespace registry lists AVT/RCS/Queue, not VLI. Absence from that registry does not prove that VLI emits no notification or no dynamically constructed payload; f_106ab4d4 has a concrete VLI event-source notification call.",
+    "no_template_note": "The bound VLI renderer writes CurrentTrackMetaData as an individual property in a generic propertyset, not as LastChange. This follows its concrete property-name constants and full/delta branches, not absence from a template registry. Other payload/delivery paths are not inferred.",
     "wss_event_names": [
      "virtualLineIn"
     ],
@@ -97342,6 +97342,20 @@
       "address": "0x10219cf0",
       "function": "0x10219600",
       "notes": "Recovered Spotify registration passes Spotify+0x148 as descriptor context. f_10219600 constructs it with f_104db630 at 0x1021992c; that constructor installs final primary vptr 0x10ed9c94 at 0x104db6e8 onward. Context slot+0x1c is f_104de170. Therefore the selected Spotify context metadata callback used at 0x106ab580 has a concrete target, while other source metadata providers remain unbound. Whole-text raw direct-branch scan found zero targets equal to f_106ab4d4; aligned pointer scan of initialized allocated ELF sections also found no pointer to it. This is negative static-reference evidence, not proof of runtime unreachability or of a connection from a SOAP action."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10f04658",
+      "notes": "Constructor stores event-source vptr 0x10f04644 at manager+8 at 0x106aaf54. Raw +0x14 word at 0x10f04658 is 0x106aa8e0; +0x18 at 0x10f0465c is 0x1067ab54. Thunk words 0x3863fff8/0x4bffff30 at 0x106aa8e0/e4 subtract eight and branch to f_106aa814. That wrapper calls f_106aa710 with full flag 1 at 0x106aa86c or delta flag 0 at 0x106aa884. Raw 0x3fa010eb/0x3bbdfcf0 at 0x106aa758/75c forms 0x10eafcf0, CurrentTrackMetaData; raw 0x4bfcc229 at 0x106aa76c calls f_10676994 with that property name. The value is manager+0x508 through f_10676cf8 at 0x106aa778, followed by the matching close at 0x106aa788. Full mode repeats the same name/value at 0x106aa7c0..0x106aa7f0. Delta can emit nothing and clears dirty +0x1509; full output preserves it. The complete renderer contains no LastChange property or universal RCS Event wrapper; the surrounding shared collector adds neither."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067ab64",
+      "notes": "Shared collector f_1067ab54 is dispatch only: raw 0x81280014 at 0x1067ab64 loads the source vtable +0x14, and raw 0x4e800420 at 0x1067ab70 tail-calls it. It does not introduce a LastChange property. f_1067693c/f_10676968 write the generic e:propertyset envelope, while f_10676994/f_10676a44 open/close the caller-supplied named property. Payload identity must come from the bound service renderer, not the shared collector or a NOTIFY header."
      }
     ],
     "notify_path": "f_106ab4d4 -> f_1067c6ec(manager+8) at 0x106ab6e8 -> f_1067c46c -> sender helper f_10678c50 at 0x1067c5c8 when attached. f_106ab4d4 builds DIDL-Lite metadata and marks manager+0x1509 dirty before notification. The sender helper marks sender+0x10e and signals sender+0xb8. The concrete VLI serializer f_106aa8e0 -> f_106aa814 -> f_106aa710 emits CurrentTrackMetaData from manager+0x508, unconditionally for full output or only when manager+0x1509 is dirty for delta output; delta output clears that byte.",
@@ -97353,7 +97367,12 @@
       "tag": 77
      }
     ],
-    "todo": "Established: CurrentTrackMetaData full/delta serialization f_106aa8e0/f_106aa814/f_106aa710, dirty-byte consumption, configuration-to-sender field copies, sender wakeup f_10678c50 and Spotify metadata callback f_104de170 are traced. Residual: identify the concrete sender from the media-player constructor r8 configuration and its delivery worker/GENA/WSS bridge, finish Spotify metadata population plus other source context+0x1c bindings, and establish a real trigger for f_106ab4d4. Whole-text raw direct-branch and initialized allocated-section pointer searches found no incoming reference to that routine; this does not exclude computed dispatch and is not proof of action-specific delivery."
+    "todo": [
+     "Established: Bound source +0x14 dispatch, CurrentTrackMetaData property rather than LastChange, full/delta dirty handling, source configuration copies, sender wakeup and Spotify metadata callback.",
+     "Unknown: Concrete sender/subscriber/WSS bridge, complete source metadata population and an actual incoming trigger for f_106ab4d4.",
+     "Next: Bind the sender from media-player constructor r8 configuration and its delivery worker; finish f_104de170 metadata population and other source context+0x1c callbacks; locate computed dispatch or another real incoming reference to f_106ab4d4. Prior whole-text direct-branch and initialized-pointer searches did not find that reference and do not prove it unreachable."
+    ],
+    "payload_model": "CurrentTrackMetaData property containing cached manager metadata. Full output includes it unconditionally; delta output requires the dirty byte and consumes it. The shared collector does not convert this property into LastChange."
    },
    "errors": [
     {
