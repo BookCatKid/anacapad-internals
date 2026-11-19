@@ -10248,14 +10248,14 @@
     }
    },
    "events": {
-    "mechanism": "AlarmClock has a concrete upnpeventing source at engine+8. It exposes full-state and dirty-only e:propertyset producers, and setters can mark that source pending and wake its asynchronous notification sender. WSS registry bindings and the separate alarmVersionChange observer producer are traced below; exact outgoing transport-frame construction remains a residual.",
+    "mechanism": "Concrete source at engine+8 produces full/incremental direct e:propertyset XML. Its asynchronous sender reaches GENA NOTIFY encoding and plain/TLS writes. The same sender also publishes source topic 5 to registered Muse/WebSocket observers; the separate alarm-version producer publishes topic 6. Subscription eligibility, pending work and connection state gate delivery, so scheduling is not a delivery guarantee.",
     "lastchange_template": null,
     "no_template_note": "The concrete AlarmClock producer emits seven named e:property values directly. It does not emit a LastChange element; this follows the producer, not absence from a namespace-string registry.",
     "wss_event_names": [
      "alarmClock",
      "alarmVersionChange"
     ],
-    "wss_note": "Index 5 is explicitly installed on the AlarmClock event source and maps to alarmClock. Index 6 is explicitly emitted by f_102779a8 and maps to alarmVersionChange; its observer handoff is traced. These bindings are no longer name-only. The transport sink and final WSS frame encoding are not yet linked to these producers.",
+    "wss_note": "Source index 5 maps to alarmClock; f_102779a8 explicitly publishes index 6, alarmVersionChange. Shared source fanout reads source+0xc0, and both publications reach the concrete registered connection observer and WebSocket writer traced below. This proves static transport reachability for eligible subscriptions, not delivery to an absent or disconnected client.",
     "evidence": [
      {
       "type": "firmware",
@@ -10291,10 +10291,66 @@
       "function": "0x102779a8",
       "address": "0x10277b98",
       "callsite": "0x10277b9c",
-      "notes": "Alarm version producer constructs identity:unsigned-revision from engine+0x7ec0/+0x7edc and passes the resulting string payload with topic index 6 to f_10677ccc at 0x10277b9c. f_10677ccc -> f_10677b94 -> f_10677970 at 0x10677bd4; f_10677970 maps the supplied index through f_109e1038 at 0x10677a88. f_109e1038 indexes 20-byte registry records at 0x110b8ce8. f_10098d34 builds index 5 alarmClock (literal 0x10f96140, record ID 20, tag 64) and index 6 alarmVersionChange (literal 0x10f9614c, record ID 24, tag 1). f_10677b94 invokes observer delivery f_1067b3a8 at 0x10677bf8, which iterates registered observers under the shared lock and invokes observer slot +8 at 0x1067b4b8. This is call-site-backed attribution for alarmVersionChange, not an assertion of end-to-end WSS frame delivery."
+      "notes": "Alarm version producer constructs identity:unsigned-revision from engine+0x7ec0/+0x7edc and passes the resulting string payload with topic index 6 to f_10677ccc at 0x10277b9c. f_10677ccc -> f_10677b94 -> f_10677970 at 0x10677bd4; f_10677970 maps the supplied index through f_109e1038 at 0x10677a88. f_109e1038 indexes 20-byte registry records at 0x110b8ce8. f_10098d34 builds index 5 alarmClock (literal 0x10f96140, record ID 20, tag 64) and index 6 alarmVersionChange (literal 0x10f9614c, record ID 24, tag 1). f_10677b94 invokes observer delivery f_1067b3a8 at 0x10677bf8, which iterates registered observers under the shared lock and invokes observer slot +8 at 0x1067b4b8. This establishes the topic-6 publisher; the concrete observer registration and transport continuation are traced separately below."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10679b14",
+      "address": "0x10679e54",
+      "notes": "f_1067c46c calls f_10678c50 to mark sender pending and signal its condition. Consumer f_10679b14 walks registered sources and calls f_10683da0 at 0x10679e54. f_10683da0 checks source/group eligibility, clears source pending at 0x10683fdc, skips empty subscription groups (0x10683ff8..0x10684004), and dispatches source slot +0x18 at 0x1068406c. AlarmClock slot points to f_1067ab54, forwarding to the already-bound +0x14 producer. ZGT instead overrides +0x18 with f_1012abe0. Thus the concrete producers, not the SOAP snapshot workers, feed the sender. After property/subscription preparation f_106845b4 at 0x106841d8, the sender enters f_1068108c at 0x106841f0. No eligible group means no corresponding outgoing notification."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1068108c",
+      "address": "0x106835f4",
+      "notes": "GENA branch calls header formatter f_10677350 at 0x106835f4. Formatter uses literal 0x10f00628 and __snprintf_chk at 0x1067740c: NOTIFY %s HTTP/1.1, HOST: %s:%d, CONNECTION: close, CONTENT-TYPE: text/xml, CONTENT-LENGTH: %d, NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s, CRLF-separated with a final blank line. f_10677478 is called at 0x10683650 and writes remaining buffered bytes: plain write at 0x106774e4, secure connection selection f_1056c6ac followed by f_1056c650/f_1056d9dc and mbedtls_ssl_write at 0x10677538. Positive full-length completion sets the completion byte at 0x106774fc; short/error results do not. Further sender branches call mbedtls_ssl_write at 0x10683768 and write at 0x10683900. This is actual socket output, unlike the property XML helpers."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1068108c",
+      "address": "0x10682810",
+      "notes": "Separate Muse fanout within the shared sender checks the subscription flags at 0x10682758..0x10682778, loads the source topic from source+0xc0 at 0x10682768, constructs the topic/payload handoff and calls f_10677b94 at 0x10682810. Consequently installed AlarmClock index 5 and ZGT index 72 reach the same registry/observer path as explicit topic-6 and topic-4 publications. f_10677b94 -> f_10677970 maps registry metadata through f_109e1038 and invokes f_1067b3a8. The latter first obtains matching event data through f_109e31b4 (0x1067b3f4); no match/empty result exits before observer dispatch."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x106260c0",
+      "address": "0x106261c4",
+      "notes": "Concrete WebSocket observer identity: f_106260c0 calls f_10625b7c, which allocates the connection and invokes f_106c3664 at 0x10625c34. Constructor calls f_10689000 then installs primary vptr 0x10f071e4 at 0x106c36d0 and observer vptr 0x10f07238 at connection+0xc4 (0x106c36d4). On successful f_10689310 setup, 0x106261b0..0x106261c4 registers connection+0xc4 with f_1067b318. That function links the object into global observer chain 0x11097824. f_1067b3a8 reads that chain at 0x1067b45c and calls observer slot +8 at 0x1067b4b8. Raw table 0x10f07240 contains f_106c2c18, which subtracts 0xc4 and branches f_106c2af4. This resolves the object identity, not merely a nearby WebSocket implementation."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x106c2af4",
+      "address": "0x106c2b34",
+      "notes": "Observer f_106c2af4 submits the supplied event vector to f_109e2064(connection+0xe8). f_109e2064 checks subscribed-event state through f_109e1e8c at 0x109e2100, queues eligible entries via f_109decc8 at 0x109e2114, and returns zero for an empty/no-eligible vector. Nonzero scheduled count wakes connection I/O through f_100ad260. Primary table 0x10f071e4 slot +0x14 contains drain f_106c2e1c. It uses the same context connection+0xe8 and callback vptr 0x10f071c4 (0x106c2e88..0x106c2ea0) with connection stored as callback+0x10 at 0x106c2e70. Drain calls f_109e3a1c -> f_109e36d8/f_109e296c; the latter invokes callback slot +0x14 at 0x109e2b38. Raw table 0x10f071d8 contains f_106c2818. This is the queue-to-serialization continuation for the registered observer. The drain dispatch is concrete: successful protocol upgrade installs f_10688fb4 as the connection callback through f_100ad234 at 0x10689650 (callback formed at 0x10689644). f_10688fb4 reads the supplied connection vtable slot +0x14 at 0x10688fc4 and invokes it at 0x10688fec, selecting installed f_106c2e1c rather than the base no-op f_10688fa4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x106c2818",
+      "address": "0x106c2888",
+      "notes": "f_106c2818 constructs a buffered Muse writer through f_109f6a48 using callback+0x10 as sink, then serializes the event through f_109e98c4 at 0x106c2888. f_109e98c4 selects f_109f6fb0 or f_109f6d7c according to event state. f_109f6fb0 -> f_109f6f0c emits the version-dependent header and payload callback, then flushes at 0x109f6f90 via f_109cdd28. Shared header producer f_109f6bc4 contains namespace, name, type and apiVersion keys; header selection depends on the writer mode rather than an AlarmClock-specific SOAP envelope. Writer constructor f_109cdc30 stores the connection sink at writer+0x2c (0x109cdc50). Flush loads that exact sink and calls its slot +0x0c at 0x109cdd7c. Primary connection table 0x10f071f0 contains f_10689924. Therefore event serialization reaches the concrete connection writer, not an unbound abstract sink."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10689924",
+      "address": "0x10689a00",
+      "notes": "Connection writer requires state byte connection+0xbd == 1 at 0x1068996c; otherwise it returns false. Open-connection path calls frame writer f_106897a8 at 0x10689a00. f_106897a8 writes opcode, then RFC6455 unmasked server length encoding: inline lengths through 125; marker 126 plus big-endian u16 through 65535; otherwise marker 127 plus high zero word and u32 length (0x10689808..0x106898d0), then payload at 0x10689910. It buffers via f_100acdf0/f_100accb0 and flushes via f_100acc2c at 0x106898e8. Plain flush -> f_100a791c -> write at 0x100a79cc; TLS flush -> f_100b333c -> mbedtls_ssl_write at 0x100b3380. Failure returns false and the caller logs Write to websocket failed. Empty payload writes only framing before flush. These are static eligible/open-connection paths, not a claim that every scheduled update was sent or acknowledged. Final-fragment path sets FIN with ori r30,r30,0x80 at 0x10689a50; intermediate fragments retain the continuation state."
      }
     ],
-    "notify_path": "f_10276e80 dirty-store -> f_1067c6ec(engine+8) -> f_1067c46c -> live sender f_10678c50; installed source slot +0x14 -> f_1027834c -> f_10278280 -> f_10277d6c full/incremental property writer.",
+    "notify_path": "f_10276e80 dirty-store -> f_1067c6ec(engine+8) -> f_1067c46c -> live sender f_10678c50; installed source slot +0x14 -> f_1027834c -> f_10278280 -> f_10277d6c full/incremental property writer. Shared consumer f_10679b14 -> f_10683da0 -> source slot +0x18 at 0x1068406c -> f_1068108c -> f_10677350/f_10677478; source topic fanout at 0x10682810 and explicit topic-6 publication -> f_1067b3a8 -> installed connection observer f_106c2c18 -> f_106c2af4 -> connection event context -> f_106c2e1c -> f_106c2818 -> f_109e98c4 -> buffered sink -> f_10689924 -> f_106897a8 -> connection plain/TLS writer.",
     "payload_model": "Direct e:propertyset: TimeZone, TimeServer, TimeGeneration, AlarmListVersion, TimeFormat, DateFormat, DailyIndexRefreshTime. Full snapshots contain all seven; incremental snapshots contain dirty fields only and can be empty (no document).",
     "wss_registry": [
      {
@@ -10310,9 +10366,7 @@
       "tag": 1
      }
     ],
-    "todo": [
-     "Trace the asynchronous sender consumer of AlarmClock source slot +0x18/+0x14 and the registered observer sink reached from f_1067b3a8 to outgoing GENA/WSS writes. Payload generation, dirty-byte scheduling, topic-5 source binding and topic-6 observer publication are recovered; the remaining gap is the concrete transport consumer/frame encoding, not runtime-injected AlarmClock worker dispatch."
-    ]
+    "shared_transport": "Shared with services//ZoneGroupTopology/Control/events. Existing shared_primitives/gena_eventing describes the sender, subscription lifecycle, retries and TLS, and shared_primitives/websocket_server describes framing, but neither supplied this source-to-socket address chain. The ELF evidence above supplies it without changing those cross-slice records."
    },
    "errors": [
     {
@@ -108988,7 +109042,7 @@
     }
    },
    "events": {
-    "mechanism": "Embedded event source at topology+8 produces direct e:propertyset XML. Source registration, payload callbacks and dirty scheduling are statically bound. Shared asynchronous GENA transport and separate observer/WSS delivery remain to be traced below.",
+    "mechanism": "Embedded source at topology+8 produces full/incremental direct e:propertyset XML. Shared asynchronous sender reaches GENA NOTIFY plain/TLS writes and source-topic Muse/WebSocket fanout. The concrete transport is traced in services//AlarmClock/Control/events and applies to this source through its installed +0x18 callback and index 72. Notification remains subscription- and connection-dependent.",
     "lastchange_template": null,
     "no_template_note": "Installed producer builds named e:property elements directly, including an XML-escaped ZoneGroupState string, not a LastChange attribute envelope. This follows concrete callbacks, not absence from a namespace registry.",
     "wss_event_names": [
@@ -108997,7 +109051,7 @@
      "zoneDefinitionsChange",
      "zoneError"
     ],
-    "wss_note": "Source constructor explicitly binds registry index 72 (zoneGroupTopology). Base producer publishes zoneError with explicit index 4. activeZonesChange and zoneDefinitionsChange are retained as registry vocabulary, not yet proven publisher bindings.",
+    "wss_note": "Source index 72 binds zoneGroupTopology and explicit topic 4 binds zoneError. Separate zones-manager producer f_10166b80 conditionally publishes index 3 zoneDefinitionsChange and index 2 activeZonesChange; these are not extra XML properties or unconditional side effects of every ZGT action. All use the shared registry/observer transport traced in AlarmClock events.",
     "evidence": [
      {
       "type": "firmware",
@@ -109022,9 +109076,33 @@
       "function": "0x1074d868",
       "address": "0x1074da80",
       "notes": "Conditional zone-error producer constructs topic index 4 through f_109dbdec at 0x1074da60, payload through f_1074abc0 at 0x1074da6c, then publishes with f_10677b94(source+8, topic, tag 10, payload) at 0x1074da80. This proves a zoneError producer independently of the registry name. f_10129888 publishes the same zone-error payload family with explicit topic 4 at 0x1012a3b4..0x1012a3dc; distinct payload construction is retained."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10683da0",
+      "address": "0x1068406c",
+      "notes": "Shared transport citation: services//AlarmClock/Control/events documents f_1067c46c/f_10678c50 -> consumer f_10679b14 -> f_10683da0 -> source +0x18 -> f_1068108c. Here +0x18 is concretely f_1012abe0 -> f_1012a694, not the generic AlarmClock forwarding thunk. Shared GENA encoding f_10677350 uses NOTIFY header literal 0x10f00628; f_10677478 reaches write/mbedtls_ssl_write. Muse fanout reads this source topic 72 at 0x10682768 and calls f_10677b94 at 0x10682810. Explicit topic-4 publications join that same path. f_106260c0 registers the concrete connection+0xc4 observer at 0x106261c4; f_1067b3a8 -> f_106c2c18 -> f_106c2af4 -> connection context+0xe8 -> f_106c2e1c -> f_106c2818 -> serialization -> f_10689924 -> f_106897a8 RFC6455 frame encoding -> f_100acc2c plain/TLS flush. Empty subscriptions, absent sender, closed connection and write failures prevent guaranteed delivery."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10166b80",
+      "address": "0x10166bec",
+      "notes": "Concrete companion-channel publishers, independently of registry names: f_10166b80 first calls f_10162ad8 to prepare zone-definition state; only nonzero result passes source=this+8, topic index 3 and that payload to f_10677ccc at 0x10166bec (li r4,3 at 0x10166be4). f_10162ad8 tests dirty byte this+0x2a0 at 0x10162b34 and returns zero when clear. It builds the supplied state via f_10170170/f_10b8f7b8 when dirty. The same producer calls f_10166998 for active-zone state, and only nonzero result publishes index 2 through f_10677ccc at 0x10166c18 (li r4,2 at 0x10166c10). f_10166998 tests this+0x2a1 at 0x101669d8, snapshots state under mutex this+0x208, and clears that dirty byte at 0x10166b48. Registry f_10098d34 maps indices 3/2 to zoneDefinitionsChange/activeZonesChange. Producer thunk f_10166ef4 subtracts 8 then enters f_10166b80; table entry 0x10e95c30 contains that thunk. These are concrete conditional publishers from the zones-manager object, not an inference that the ZGT XML producer emits them."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10162e90",
+      "address": "0x101631e8",
+      "notes": "Zones-manager source binding for the companion publishers: constructor f_10162e90 calls f_1067aec4(this+8) at 0x10162f44 with name Zones (0x10ebcc2c) and index 74. It installs primary vptr 0x10e95bac at 0x101631e0 and source vptr 0x10e95c10 at this+8 at 0x101631e8. Source +0x18 (0x10e95c28) is f_1067ab54, which forwards to +0x14 (0x10e95c24), f_100fd44c. That callback invokes source +0x20 at 0x100fd46c; entry 0x10e95c30 is f_10166ef4, subtracting 8 and branching to f_10166b80. Thus the shared eligible-source sender reaches the actual index-3/index-2 publisher, on a separate Zones source object, not by substituting the ZGT property producer. The constructor and dispatch chain also disprove attributing these publications solely from the event-name registry."
      }
     ],
-    "notify_path": "f_1074043c constructs source topology+8 through f_1067aec4 at 0x107404ec with name ZoneGroupTopology and topic index 72. Derived constructor installs vptr 0x10e8b184 at topology+8 (0x101261c4, 0x1012623c). Slot +0x18 is thunk f_1012abe0 -> f_1012a694, which invokes derived serializer f_10129888. Base producer f_1074d868 serializes ZoneGroupState through f_10743328 and property writer f_10676a44. The latter builds XML, not network delivery. GetZoneGroupState call 0x10752d2c is a SOAP snapshot, not initial notification dispatch.",
+    "notify_path": "f_1074043c constructs source topology+8 through f_1067aec4 at 0x107404ec with name ZoneGroupTopology and topic index 72. Derived constructor installs vptr 0x10e8b184 at topology+8 (0x101261c4, 0x1012623c). Slot +0x18 is thunk f_1012abe0 -> f_1012a694, which invokes derived serializer f_10129888. Base producer f_1074d868 serializes ZoneGroupState through f_10743328 and property writer f_10676a44. The latter builds XML, not network delivery. GetZoneGroupState call 0x10752d2c is a SOAP snapshot, not initial notification dispatch. Shared sender f_10679b14 -> f_10683da0 -> installed source +0x18 at 0x1068406c -> f_1068108c -> GENA header/write or source+0xc0 topic publication at 0x10682810. See services//AlarmClock/Control/events for concrete observer registration, queue drain, serialization and WebSocket/plain/TLS frame writes.",
     "payload_model": "Full and incremental direct propertysets. Derived producer includes MediaServers, AlarmRunSequence, AreasUpdateID, SourceAreasUpdateID and local-player changes; base producer includes ZoneGroupState and conditional group attributes. Dirty flags and force mode select fields.",
     "wss_registry": [
      {
@@ -109051,9 +109129,6 @@
       "id": 14,
       "tag": 82
      }
-    ],
-    "todo": [
-     "Trace the registered source through shared sender subscription eligibility, concrete outgoing GENA NOTIFY encoding/write, and observer sink/WSS encoding. Verify activeZonesChange and zoneDefinitionsChange publisher bindings rather than inferring from names."
     ],
     "resolved_findings": [
      "Corrected stale LastChange/delivery/initial-notify claims: XML property writer is not delivery, and f_10752ce4 is the GetZoneGroupState SOAP worker. Concrete derived source callback and topic-72 binding are recovered."
