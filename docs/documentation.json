@@ -39850,7 +39850,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Standalone setup depends on a coordinator lookup, the current URI category, live VLI state and saved source strings.",
+      "description": "Home-theater streams or certain VLI sources try an early source restore. The saved source can be reloaded later only when its URI is not empty and the early branch did not request a fallback.",
       "evidence": [
        {
         "type": "firmware",
@@ -39882,11 +39882,34 @@
         "address": "0x102d54d4",
         "notes": "If sp+0x47 is clear and the saved URI at sp+0x721 is nonempty, reenters f_102ceb40 with the saved URI, metadata and third saved string. Otherwise the alternative continuation deactivates local VLI through f_106aa3b0, f_102b1cc8(impl,0,0), and the +0xc method of impl+0x5a4 using the halfword from live VLI record +0xa.",
         "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10293058",
+        "function": "0x10293014",
+        "notes": "f_102931f0 tail-calls this parser without output buffers. It accepts the case-insensitive x-sonos-htastream: prefix, then exactly 24 bytes before the first colon, then a full suffix in the fixed set spdif, v-spdif, vli, chsnk, test (f_10292040; pointer list starts at 0x10eacd84 with spdif loaded separately). It does not check the 24 bytes for UUID spelling."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d5348",
+        "function": "0x102d4e80",
+        "notes": "A matching home-theater source calls f_102d086c directly. A different source is tested by f_10688070 (the x-sonos-vli grammar via f_10687e54); with no candidate, or a false f_1011f0b8 check, a VLI URI calls f_102d086c only if f_106a9118(impl+0x5a0's pointee, NULL) returns zero. The latter returns zero without an active registration/control pointer, otherwise dispatches control slot +0x20. If the topology check returns nonzero, the non-home-theater arm skips the VLI query and the early restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d08a4",
+        "function": "0x102d086c",
+        "notes": "Compares saved restore URI +0x2e2a with current URI +0x5dc. If different, sets the output byte and reloads the stored URI, metadata and auxiliary string via f_102ceb40, returning its result. If identical, returns zero and sets the byte only when the URI is empty. At 0x102d5368 the caller keeps the byte clear only on a zero return with a clear output; otherwise it calls f_102ceb40 with empty strings, sets the byte and discards the result of that empty-source call. After the indexed reconfiguration calls, 0x102d514c permits the later saved-source reload only with that byte clear and a nonempty saved URI; otherwise it takes the VLI deactivation arm."
        }
       ],
-      "todo": [
-       "Established: Standalone setup depends on a coordinator lookup, the current URI category, live VLI state and saved source strings.",
-       "Identify the exact source categories used by f_102931f0 and f_10688070 here, and map f_102d086c's output-byte conditions to the two local source branches."
+      "resolved_findings": [
+       "Home-theater and VLI classification are separate tests. The early restore checks saved and current URI equality; a changed URI tries to reload immediately, and the fallback flag blocks a second saved-source reload."
       ]
      },
      "side_effects": [
@@ -39981,11 +40004,35 @@
         "address": "0x102d524c",
         "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
         "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b582c",
+        "function": "0x102b5658",
+        "notes": "A mode change's +0x4658 byte contributes to the pending common TransportState/CurrentPlayMode/CurrentCrossfadeMode block +0x7785, the CurrentTransportActions block +0xa096 and the r:CurrentValidPlayModes block +0xa097. The two mask blocks also test masked changes from the latest action mask and +0x4251. See the serializers at 0x102e47d8, 0x102e4de0 and 0x102e4e40."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d528c",
+        "function": "0x102d4e80",
+        "notes": "The common tail calls f_102b4b48(impl,1). If AlarmRunning or SnoozeRunning was set, it clears the byte, marks +0x5a87 or +0x6ed1, and requests delivery. f_102b5658 latches those bytes at +0xa099 and +0xa09a for the LastChange alarm fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d50fc",
+        "function": "0x102d4e80",
+        "notes": "f_10147148 reads the current URI after topology setup. It requires x-rincon-queue: and a # suffix that strtol base 10 converts to a positive value with no remaining bytes. A match sets +0xa214; f_102b5658 promotes it to +0xa09c, and f_102e43a0 emits the DirectControlClientID, DirectControlIsSuspended and DirectControlAccountID block."
        }
       ],
       "todo": [
-       "Established: Local Standalone setup can signal URI and metadata changes, a cleared sleep timer generation, and cleared RestartPending. The derived peer SetAVTransportURI call is not a LastChange notification.",
-       "Map the snapshot field derived from +0x4658 and the event writes reached indirectly through f_102b4b48 and the indexed request callbacks."
+       "Established: local setup can publish URI, transport, control action, valid-mode, direct-control and timer/alarm deltas. The peer SetAVTransportURI call is not local LastChange.",
+       "Follow the indexed records submitted at 0x102d4f84, 0x102d5128 and 0x102d548c to identify additional LastChange dirties and which consumer branches request a wake."
       ]
      },
      "state_transitions": {
@@ -40038,11 +40085,27 @@
         "address": "0x102d524c",
         "notes": "On the nonzero source-operation result branch, clears the current URI, metadata and auxiliary string and marks +0x4251. If a next URI was present it clears the next URI and metadata and marks +0x4252, then schedules event processing. The later common tail also clears the active sleep generation if set and clears a set RestartPending byte, marking and scheduling each change.",
         "function": "0x102d4e80"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d5348",
+        "function": "0x102d4e80",
+        "notes": "A matching home-theater source calls f_102d086c directly. A different source is tested by f_10688070 (the x-sonos-vli grammar via f_10687e54); with no candidate, or a false f_1011f0b8 check, a VLI URI calls f_102d086c only if f_106a9118(impl+0x5a0's pointee, NULL) returns zero. The latter returns zero without an active registration/control pointer, otherwise dispatches control slot +0x20. If the topology check returns nonzero, the non-home-theater arm skips the VLI query and the early restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d08a4",
+        "function": "0x102d086c",
+        "notes": "Compares saved restore URI +0x2e2a with current URI +0x5dc. If different, sets the output byte and reloads the stored URI, metadata and auxiliary string via f_102ceb40, returning its result. If identical, returns zero and sets the byte only when the URI is empty. At 0x102d5368 the caller keeps the byte clear only on a zero return with a clear output; otherwise it calls f_102ceb40 with empty strings, sets the byte and discards the result of that empty-source call. After the indexed reconfiguration calls, 0x102d514c permits the later saved-source reload only with that byte clear and a nonempty saved URI; otherwise it takes the VLI deactivation arm."
        }
       ],
       "todo": [
-       "Established: Topology setup can set indexed mode 2, then reapply the saved source or deactivate VLI. A nonzero source operation can clear stored URI state.",
-       "Resolve exact source predicates for restore and deactivation, and trace the resulting renderer state through f_102ceb40 and the VLI clock removal."
+       "Established: topology setup enters indexed mode. The home-theater predicate and VLI provider result, followed by the restore URI comparison, select the early and late source branches.",
+       "Trace concrete renderer state after f_102ceb40 and the VLI clock removal, including the type-specific sink state left after deactivation."
       ]
      },
      "return_behavior": {
@@ -48805,11 +48868,27 @@
         "address": "0x102dddbc",
         "notes": "Home-theater fallback can change impl+0x4654 to 1, mark +0x4658, schedule LastChange and dispatch SessionChange. The success tail schedules an update and calls f_102b4b48(impl,1); that helper can clear +0x6ed0 and +0x5a86 while setting their paired dirty bytes +0x6ed1 and +0x5a87.",
         "function": "0x102ddbb0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b582c",
+        "function": "0x102b5658",
+        "notes": "A mode change's +0x4658 byte contributes to the pending common TransportState/CurrentPlayMode/CurrentCrossfadeMode block +0x7785, the CurrentTransportActions block +0xa096 and the r:CurrentValidPlayModes block +0xa097. The two mask blocks also test masked changes from the latest action mask and +0x4251. See the serializers at 0x102e47d8, 0x102e4de0 and 0x102e4e40."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d528c",
+        "function": "0x102d4e80",
+        "notes": "The common tail calls f_102b4b48(impl,1). If AlarmRunning or SnoozeRunning was set, it clears the byte, marks +0x5a87 or +0x6ed1, and requests delivery. f_102b5658 latches those bytes at +0xa099 and +0xa09a for the LastChange alarm fields."
        }
       ],
       "todo": [
-       "Established: The engine wrapper itself does not notify.",
-       "Match the +0x4658, +0x6ed1 and +0x5a87 flags to subscriber fields and identify the subset emitted by each URI and standalone arm."
+       "Established: the home-theater mode-change byte can publish the common transport, valid-mode and action-mask blocks; the common alarm clear can publish AlarmRunning and SnoozeRunning.",
+       "Trace the changed URI and mode values handed to the shared serializer by each direct URI, home-theater and standalone branch, including the indexed session's deferred wake conditions."
       ]
      },
      "state_transitions": {
@@ -71595,11 +71674,35 @@
         "address": "0x102b578c",
         "function": "0x102b5658",
         "notes": "The collector promotes impl+0xa214 to the latched dirty byte +0xa09c and clears +0xa214 at 0x102b57cc on a consuming pass. In delta mode f_102e43a0 checks +0xa09c at 0x102e4f40 and emits r:DirectControlClientID, r:DirectControlIsSuspended and r:DirectControlAccountID when set. These entries can be selected for publication without changing the field values."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102b582c",
+        "function": "0x102b5658",
+        "notes": "A mode change's +0x4658 byte contributes to the pending common TransportState/CurrentPlayMode/CurrentCrossfadeMode block +0x7785, the CurrentTransportActions block +0xa096 and the r:CurrentValidPlayModes block +0xa097. The two mask blocks also test masked changes from the latest action mask and +0x4251. See the serializers at 0x102e47d8, 0x102e4de0 and 0x102e4e40."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d528c",
+        "function": "0x102d4e80",
+        "notes": "The common tail calls f_102b4b48(impl,1). If AlarmRunning or SnoozeRunning was set, it clears the byte, marks +0x5a87 or +0x6ed1, and requests delivery. f_102b5658 latches those bytes at +0xa099 and +0xa09a for the LastChange alarm fields."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102d50fc",
+        "function": "0x102d4e80",
+        "notes": "f_10147148 reads the current URI after topology setup. It requires x-rincon-queue: and a # suffix that strtol base 10 converts to a positive value with no remaining bytes. A match sets +0xa214; f_102b5658 promotes it to +0xa09c, and f_102e43a0 emits the DirectControlClientID, DirectControlIsSuspended and DirectControlAccountID block."
        }
       ],
       "todo": [
-       "Established: successful mode-zero VLI startup marks AVTransport pending, dirties the DirectControl fields, and can publish cleared AlarmRunning and SnoozeRunning.",
-       "Trace the URI and transport-state dirty bytes set by f_102d4e80 and each URI-install/start arm in f_102da774; determine which of those deltas request a sender wake."
+       "Established: local group setup can mark mode-dependent LastChange fields, clear alarm/snooze and dirty direct-control fields for a qualifying queue URI. Successful mode-zero VLI startup also marks the direct-control fields.",
+       "Trace each URI-install/start arm in f_102da774 to its transport-state dirty bytes and determine which of those deltas request a sender wake."
       ]
      },
      "state_transitions": {
