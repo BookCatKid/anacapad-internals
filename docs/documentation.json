@@ -66476,7 +66476,7 @@
       }
      ],
      "events_triggered": {
-      "description": "Both indexed consumers complete an unchanged active crossfade value without requesting its change notification. A changed value can schedule LastChange for the current state snapshot, which reads and publishes the new CurrentCrossfadeMode with the other common transport fields. The stopped or paused path records state before scheduling; a SOAP success is not a guarantee of a dedicated event.",
+      "description": "Both indexed consumers complete an unchanged active crossfade value without requesting its change notification. A changed value can schedule LastChange for the current state snapshot, which reads and publishes the new CurrentCrossfadeMode with the other common transport fields. The stopped or paused path records state before scheduling; a SOAP success is not a guarantee of a dedicated event. The stopped or paused update can wake the sender before its snapshot becomes current. A snapshot installed at the head advances the change generation immediately; one queued behind it advances the generation when collection moves past older snapshots.",
       "evidence": [
        {
         "type": "firmware",
@@ -66573,11 +66573,39 @@
         "address": "0x10267e2c",
         "notes": "After returning request completion, the stopped/paused worker enters f_102642d4 only if its change flag is set; op 11 and op 12 set the flag on helper return 0 rather than on unchanged return 1. The worker records the current queue snapshot through f_103420a4 at 0x1026470c, and can schedule through the indexed sender at 0x102648c4 after checking the listener and sender. f_103420a4 can advance the state generation at 0x10342440 when recording the snapshot.",
         "function": "0x10267b68"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1026470c",
+        "notes": "Stopped/paused common notification f_102642d4 passes the indexed timeline at session+0x327f0 to f_103420a4. The state word comes from session+0x32800: values 1 through 8 map through 0x10ea8740 to 0,1,1,1,2,1,1,3; other values pass 1. f_103404c8 writes this mapped state at snapshot+0x288, the supplied track/index halfword at +0x28c and the two-word effective time (first stack argument, local sp+0x5c at the caller) at +0x290/+0x294.",
+        "function": "0x102642d4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10342250",
+        "notes": "The indexed timeline is ordered by the snapshots' effective time. f_105a8fd4 returns true for existing time >= new time, so insertion at that point replaces the existing node and returns its suffix to the free list. If all existing nodes are earlier, the usual path appends. The tail coalesces when the +0x28c halfwords match and its state is 1: for unequal times, a new state of 1 replaces it using the old effective time; any other new state appends. The equal-time tail subbranch also replaces (it retains the old time for new state 1).",
+        "function": "0x103420a4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10342440",
+        "notes": "Replacing the head (or installing the first node) increments timeline generation +8, which is session+0x327f8. Inserting or replacing after the head does not increment it here. Before collection compares the generation to +0xc at 0x10341ce0, f_103410d8 advances the head to the last snapshot due by the requested time, incrementing +8 for each node retired at 0x10341184. With no other dirty source, a sender pass before a non-head record becomes due does not make the common transport block dirty solely from that record.",
+        "function": "0x103420a4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10264784",
+        "notes": "The stopped/paused function continues after the timeline write regardless of the replacement helper's result (which it saves separately for its own return). After promoting the listener reference, it wakes the AVTransport event source at 0x102648c4 if that reference and session+0x2578 are nonnull; f_1067c6ec separately checks the live source and its sender. Scheduling this pass is not itself a generation increment.",
+        "function": "0x102642d4"
        }
-      ],
-      "todo": [
-       "Established: op 12 compares the active crossfade bit in both consumers. The running path advances the change generation when the bit changes; the stopped or paused path records a snapshot and can schedule the sender only on a changed bit.",
-       "Resolve the stopped or paused snapshot-replacement criteria for all source states passed to f_103420a4 to determine when the scheduled delta has a newly dirty common transport block."
       ]
      },
      "state_transitions": {
@@ -68556,7 +68584,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. The non-indexed streamer branch delegates to the active source rather than emitting LastChange itself.",
+      "description": "The indexed queue applies mode changes to the active track list and the LastChange snapshot reads the resulting mode. The playing consumer's same-mode success path does not raise a play-mode change notification. In stopped or paused playback, a changed mode can schedule the sender after a queue snapshot refresh. The non-indexed streamer branch delegates to the active source rather than emitting LastChange itself. A changed indexed mode can wake the sender before a queued snapshot becomes current; the wake alone does not dirty the common delta block.",
       "evidence": [
        {
         "type": "firmware",
@@ -68653,11 +68681,42 @@
         "address": "0x106a9f00",
         "notes": "f_106a9e88 resolves the streamer+0x354 target through its contained object's slot +0x2c. A returned object gets slot +0x34 with the original four arguments; the wrapper ignores that virtual method's return and reports 1. A missing source or null result from +0x2c reports 0 instead.",
         "function": "0x106a9e88"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1026470c",
+        "notes": "Stopped/paused common notification f_102642d4 passes the indexed timeline at session+0x327f0 to f_103420a4. The state word comes from session+0x32800: values 1 through 8 map through 0x10ea8740 to 0,1,1,1,2,1,1,3; other values pass 1. f_103404c8 writes this mapped state at snapshot+0x288, the supplied track/index halfword at +0x28c and the two-word effective time (first stack argument, local sp+0x5c at the caller) at +0x290/+0x294.",
+        "function": "0x102642d4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10342250",
+        "notes": "The indexed timeline is ordered by the snapshots' effective time. f_105a8fd4 returns true for existing time >= new time, so insertion at that point replaces the existing node and returns its suffix to the free list. If all existing nodes are earlier, the usual path appends. The tail coalesces when the +0x28c halfwords match and its state is 1: for unequal times, a new state of 1 replaces it using the old effective time; any other new state appends. The equal-time tail subbranch also replaces (it retains the old time for new state 1).",
+        "function": "0x103420a4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10342440",
+        "notes": "Replacing the head (or installing the first node) increments timeline generation +8, which is session+0x327f8. Inserting or replacing after the head does not increment it here. Before collection compares the generation to +0xc at 0x10341ce0, f_103410d8 advances the head to the last snapshot due by the requested time, incrementing +8 for each node retired at 0x10341184. With no other dirty source, a sender pass before a non-head record becomes due does not make the common transport block dirty solely from that record.",
+        "function": "0x103420a4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10264784",
+        "notes": "The stopped/paused function continues after the timeline write regardless of the replacement helper's result (which it saves separately for its own return). After promoting the listener reference, it wakes the AVTransport event source at 0x102648c4 if that reference and session+0x2578 are nonnull; f_1067c6ec separately checks the live source and its sender. Scheduling this pass is not itself a generation increment.",
+        "function": "0x102642d4"
        }
       ],
       "todo": [
-       "Established: both indexed consumers skip the mode-change work on equality. The running one advances the common change generation; the stopped or paused one can schedule after refreshing the snapshot. The streamer adapter reaches active source slot +0x34 through slot +0x2c.",
-       "For stopped or paused playback, trace the snapshot replacement and generation update in f_103420a4 to distinguish a scheduled pass from one that marks CurrentPlayMode eligible for the LastChange delta.",
+       "Established: both indexed consumers skip notification on equality. A changed indexed mode can advance the common generation immediately or after a newly queued snapshot becomes current; the stopped/paused wake and generation advance are separate. The streamer adapter follows source slot +0x2c to a slot +0x34 target.",
        "Resolve the concrete streamer slot +0x34 bindings and check whether their mode changes schedule LastChange, including same-mode suppression."
       ]
      },
