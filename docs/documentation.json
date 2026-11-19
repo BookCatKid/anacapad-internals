@@ -62019,7 +62019,7 @@
      ]
     },
     "Backup": {
-     "description": "Backs up queue state: the service-level analogue of AVTransport.BackupQueue (trackqueue.rsq persistence). impl is the queue-manager object (r5-in); the action invokes impl->v[+0x10](impl, args...) under the standard wrapper convention; QueueID selects the target queue in the registry, UpdateID is the optimistic-concurrency token (NewUpdateID is returned on mutation success). Worker semantics inside the queue-manager vfunc are unresolved.",
+     "description": "Takes no arguments and returns no values. On this firmware the action is a stub that always fails with UPnP error 800: its queue-manager slot returns the constant 800 and the wrapper raises it as a fault. Chain: wrapper f_10465660 (28 instructions) calls qm->v[+0x10](qm) at 0x10465684 on the queue manager passed in r5, then tail-calls req->v[+0x14](req, rc) at 0x104656b0 when rc is nonzero or req->v[+0xc](req) (commit) at 0x104656cc when rc is 0. qm vtable 0x10ed1bcc (stored by the qm ctor f_10465fac at 0x104660d0; the caller at 0x103fb6e8 stores no other vptr afterwards) has f_1046593c at slot +0x10, whose whole body is li r3,0x320; blr (0x10465940). The earlier text describing trackqueue.rsq persistence, QueueID/UpdateID arguments and an engine worker does not apply to this action.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10465660",
@@ -62062,7 +62062,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r5 v[+0x10]",
+      "description": "none; the call always fails with 800",
       "evidence": [
        {
         "type": "firmware",
@@ -62070,15 +62070,22 @@
         "build": "86.10-80260",
         "function": "0x10465660",
         "notes": "req-vfunc call map: {'0x14': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046593c",
+        "address": "0x1046593c",
+        "notes": "constant 800 body"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r5 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_1046593c reads no memory and calls nothing (4 instructions: stwu, li r3,0x320, addi, blr); the wrapper only performs the vcall and the fault tail-call, so there is nothing for this section to depend on or change."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r5 v[+0x10]",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -62086,16 +62093,23 @@
         "build": "86.10-80260",
         "function": "0x10465660",
         "notes": "member vfunc calls: ['r5 v[+0x10]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046593c",
+        "address": "0x1046593c",
+        "notes": "constant 800 body"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r5 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_1046593c reads no memory and calls nothing (4 instructions: stwu, li r3,0x320, addi, blr); the wrapper only performs the vcall and the fault tail-call, so there is nothing for this section to depend on or change."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r5 v[+0x10] (call-derived member-method semantics)",
+       "description": "none",
        "evidence": [
         {
          "type": "firmware",
@@ -62103,16 +62117,23 @@
          "build": "86.10-80260",
          "function": "0x10465660",
          "notes": "delegate map ['r5 v[+0x10]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1046593c",
+         "address": "0x1046593c",
+         "notes": "no stores, no calls"
         }
        ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r5 v[+0x10] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: none. Neither f_10465660 nor f_1046593c writes memory beyond the stack frame or calls any persistence routine."
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -62120,15 +62141,22 @@
         "build": "86.10-80260",
         "function": "0x10465660",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046593c",
+        "address": "0x1046593c",
+        "notes": "constant 800 body"
        }
       ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_1046593c reads no memory and calls nothing (4 instructions: stwu, li r3,0x320, addi, blr); the wrapper only performs the vcall and the fault tail-call, so there is nothing for this section to depend on or change."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v[+0x10]",
+      "description": "none",
       "evidence": [
        {
         "type": "firmware",
@@ -62136,15 +62164,22 @@
         "build": "86.10-80260",
         "function": "0x10465660",
         "notes": "no transition-literal/store pattern; member delegates: ['r5 v[+0x10]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046593c",
+        "address": "0x1046593c",
+        "notes": "constant 800 body"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r5 v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: f_1046593c reads no memory and calls nothing (4 instructions: stwu, li r3,0x320, addi, blr); the wrapper only performs the vcall and the fault tail-call, so there is nothing for this section to depend on or change."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "always raises fault 800; no outputs",
       "evidence": [
        {
         "type": "firmware",
@@ -62152,11 +62187,18 @@
         "build": "86.10-80260",
         "function": "0x10465660",
         "notes": "commit/fault slot usage: {'0x14': 1, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465660",
+        "address": "0x10465694",
+        "notes": "bc to commit path never taken"
        }
       ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: rc is always 800, so the beq at 0x10465694 to the commit tail-call is never taken; the wrapper tail-calls req->v[+0x14](req, 800) at 0x104656b0. No output arguments exist."
       ]
      },
      "fault_sites": [
@@ -62168,9 +62210,9 @@
      ],
      "errors": [
       {
-       "code": null,
-       "code_expr": "vret(r5-in,+0x10)",
-       "meaning": "nonzero worker rc surfaced verbatim; recovered domain: 800 preloaded on path-builder failure (0x102bd338); callee rc forwarded from the persistence path",
+       "code": 800,
+       "code_expr": "li r3,0x320 in f_1046593c (qm vtable 0x10ed1bcc slot +0x10)",
+       "meaning": "unconditional: Backup is a stub that always returns 800",
        "fault_sites": [
         "0x104656b0"
        ],
@@ -62209,46 +62251,22 @@
          "build": "86.10-80260",
          "function": "0x102bd324",
          "notes": "worker rc materializations decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10465660",
+         "address": "0x104656b0",
+         "notes": "bctr to req->v[+0x14] with r4=800"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x1046593c exits=[-8, 800]; queue-manager impl->v[+0x10] rc surfaced | worker literal bound [800] (worker_err_literals.json)",
        "literal_bound": [
         800
        ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x10); sites: 0x104656b0).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
-      },
-      {
-       "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
-       "fault_sites": [
-        "0x104656b0"
-       ],
-       "conditions": [
-        {
-         "description": "Missing or unparseable input argument at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10465660",
-           "notes": "parse vcalls then fault path"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10465660",
-         "notes": "wrapper parse + fault path"
-        }
+       "resolved_findings": [
+        "Resolved: the only producer is the constant return of f_1046593c; the earlier reference to 0x102bd338 belongs to the AddMultipleURIs engine worker f_102bd324, not to Backup."
        ]
       }
      ],
@@ -62275,14 +62293,29 @@
        "build": "86.10-80260",
        "address": "0x1046593c",
        "notes": "impl vfunc: li r3,0x320; blr"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10465660",
+       "address": "0x10465684",
+       "notes": "qm->v[+0x10](qm)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1046593c",
+       "address": "0x10465940",
+       "notes": "li r3,0x320 constant return"
       }
      ],
      "notes": null,
      "args_verified_empty": true,
      "implementation_notes": "impl f_1046593c unconditionally returns 0x320. Dead-action semantics: every structurally valid call reaches the impl and faults with the fixed code; malformed requests can still fail earlier inside the wrapper (402 gate).",
-     "todo": [
-      "Established: direct dispatch to handler 0x10465660; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "Resolved: wrapper f_10465660 (28 instructions) calls qm->v[+0x10](qm) at 0x10465684 on the queue manager passed in r5, then tail-calls req->v[+0x14](req, rc) at 0x104656b0 when rc is nonzero or req->v[+0xc](req) (commit) at 0x104656cc when rc is 0. qm vtable 0x10ed1bcc (stored by the qm ctor f_10465fac at 0x104660d0; the caller at 0x103fb6e8 stores no other vptr afterwards) has f_1046593c at slot +0x10, whose whole body is li r3,0x320; blr (0x10465940). The 402 parse-layer error entry was removed because the wrapper makes no argument-parse call (no req->v[+0x1c] or req->v[+0x8] in 0x10465660..0x104656cc). In plain terms: Queue.Backup is not implemented in build 86.10-80260; every call returns fault 800 and nothing is saved."
      ]
     },
     "Browse": {
