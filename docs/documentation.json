@@ -125699,11 +125699,77 @@
    ]
   },
   "sp_store_object": {
-   "name": "shared zone-settings store object (DP+SP)",
-   "role": "*svc+0x4 of /DeviceProperties and /SystemProperties svc objs; single shared impl instance Notify/commit helpers: f_10557d70 appends {key,value} as key\\0value\\0 into a flat change-list buffer at obj+0x14 (capacity check vs 0x1000, returns 1 appended / 0 overflow - flag, not fault). f_10558000 formats numeric value via snprintf(%d) then calls f_10557d70 (numeric-setting notify). f_1055847c conditional notify (skips when key ptr/byte null -> return 0). These close the DP/SP setter residual chain: impl applies change then appends dirty keys to the notify list.",
-   "dispatch": "handlers call store->v[slot] directly (SP: GetString +0xc f_1017fbcc, SetString +0x8 f_101939a4, Remove +0x10 f_10188024); SP action impl vfuncs are adjuster thunks into the same worker family (f_101981f0/f_10193708/f_101939a4/f_10188024/f_1017fbcc)",
-   "vtable": "0x10e97e10 (slice)",
-   "evidence": "disasm 0x10e97e10 vtable dump; handler impl_calls obj=*(r3-in+0x4); disasm 0x10557d70/0x10558000/0x1055847c notify-helper family"
+   "name": "concrete SystemProperties delegate and SystemSettings backend",
+   "identity": "SystemProperties is not a slice of the application-manager vtable and is not proven to share the DeviceProperties delegate. f_104b0e84 constructs the concrete SP object, installs primary vptr 0x10ed75c4 at +0 and event-source vptr 0x10ed7628 at +8. Application construction calls it at 0x1018e4f8. The manager thunk family f_1017fbcc/f_101939a4/f_10188024 is not the concrete SP GetString/SetString/Remove implementation.",
+   "dispatch": "SOAP handlers obtain the delegate from service+4. Primary SP slots are +8 SetString=f_1066aa24, +0xc GetString=f_104b1d90, +0x10 Remove=f_1066abb8. SetString and Remove run the shared key-specific permission/validation helper f_1066a788 before reaching the configured backend. UMTracking writes are rejected with 402; its GetString is routed to household reporting state (Report/NoReport), not blindly read from XML. R_ForceReIndex has a special GetString path; normal GetString falls through f_10669db4 to backend+0x1c.",
+   "backend": "f_1066b4bc installs the backend at SP+0x164; f_104b101c calls it at 0x104b11d8. Normal SetString calls backend slot+0x20 with one key/value pair; the insecure backend path rejects X_-prefixed keys. GetString has the corresponding insecure X_ rejection. The SystemSettings backend persists named settings through the XML writer/recovery path described in settings_xml, rather than treating a flat dirty-key buffer as the persistence implementation. Writer failure propagates an error (800 in f_1066bee0); successful replacement updates version/last-update-device and informs the replication receiver.",
+   "notification": "SP uses the secondary event-source interface at +8. Slot+0x18=f_1067ab54 forwards through slot+0x14=f_1066b0a0, adjusts this by -8 and reaches f_1066af90 -> f_1066ad04. Serialization emits CustomerID and UpdateID as appropriate to full/dirty state; full output also includes UpdateIDX and ThirdPartyHash. f_10669a28 marks UpdateID dirty (+0x208), increments +0x20c under the SP lock, then requests notification through f_1067c6ec. ReplicatedSettingsChangedEvent and SystemPropertiesChangeEvent are separate asynchronous paths, not proof of a settingsVersionChanged websocket emission.",
+   "buffer_helper_scope": "f_10557d70 is a separate bounded change-list helper: it appends key-NUL/value-NUL pairs into a 0x1000-byte region at helper+0x14, returning 0 for insufficient remaining capacity and 1 on append. Its existence does not establish SP delegate identity or replace the verified XML persistence/event-source chain.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0e84 / application construction",
+     "address": "0x104b0e84",
+     "callsite": "0x104b0f80-0x104b0fa4 / 0x1018e4cc-0x1018e4f8",
+     "notes": "Concrete primary and secondary vptr stores and reachable allocation/constructor call disprove manager-thunk attribution."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "SP SOAP handlers / concrete vtable",
+     "address": "0x10ed75c4",
+     "callsite": "0x10731b70-0x10731b88 / 0x10731a20-0x10731a3c / 0x10ed75cc-0x10ed75d4",
+     "notes": "Handlers load service+4 and call slots8/c; concrete table supplies SetString1066aa24,GetString104b1d90,Remove1066abb8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1066aa24 / f_1066abb8 / f_104b1d90 / f_10669db4",
+     "address": "0x1066aa24",
+     "callsite": "0x1066aa5c / 0x1066ab0c-0x1066ab68 / 0x1066abe4-0x1066ac18 / 0x104b1da8-0x104b1e20 / 0x10669df8-0x10669ebc",
+     "notes": "Shared mutation validation, UMTracking rejection/report-state read, special R_ForceReIndex read and normal backend calls are distinct paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1066b4bc / f_10669844 / f_10669bd4 / f_1066bee0",
+     "address": "0x1066b4bc",
+     "callsite": "0x104b11d8 / 0x1066b4f8 / 0x106698c0-0x10669910 / 0x10669bfc-0x10669cb0 / 0x1066bf44-0x1066bfd8",
+     "notes": "Backend binding, insecure X_ rejection, XML-writer failure800 and successful version/replication notification establish persistence beyond helper buffers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "SP secondary event source / f_10669a28",
+     "address": "0x10ed7628",
+     "callsite": "0x10ed763c-0x10ed7640 / 0x1067ab54-0x1067ab70 / 0x1066b0a0 / 0x1066b020 / 0x10669a54-0x10669a74",
+     "notes": "Concrete virtual forwarding reaches SP serializer; UpdateID dirty flag/counter are changed under lock before notification request."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1066ad04 / f_10652074 / SystemPropertiesChangeEvent queue",
+     "address": "0x1066ad04",
+     "callsite": "0x1066ada0-0x1066ae80 / 0x10652230-0x10652264 / 0x1066d684-0x1066d69c",
+     "notes": "Serializer names differ from registry topic settingsVersionChanged; replication and SP change events have distinct queued paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10557d70",
+     "address": "0x10557d70",
+     "callsite": "0x10557da8-0x10557e1c",
+     "notes": "Size checks cover both terminating NULs against remaining4096 bytes. This helper is not proof of the concrete SP delegate or commit behavior."
+    }
+   ]
   },
   "rmd_op_worker_class": {
    "name": "ZoneGroupTopology client-side outbound-call class",
