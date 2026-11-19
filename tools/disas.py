@@ -128,14 +128,16 @@ def fmt_ins(pc, ins):
         return "%s cr%d, %s, %s" % (op, a[0], r(a[1]), r(a[2]))
     if op in ("mtlr", "mtctr", "mflr", "mfctr"):
         return "%s %s" % (op, r(a[0]))
-    if op in ("rlwinm", "rlwinm.", "rlwnm"):
+    if op in ("rlwinm", "rlwinm.", "rlwimi", "rlwimi."):
         return "%s %s, %s, %d, %d, %d" % (op, r(a[0]), r(a[1]), a[2],
                                          a[3], a[4])
-    if op == "rlwimi":
-        return "rlwimi %s, %s, %d, %d, %d" % (r(a[0]), r(a[1]), a[2],
-                                             a[3], a[4])
-    if op in ("slwi", "srwi", "clrrwi"):
+    if op in ("rlwnm", "rlwnm."):
+        return "%s %s, %s, %s, %d, %d" % (op, r(a[0]), r(a[1]), r(a[2]),
+                                          a[3], a[4])
+    if op.rstrip(".") in ("slwi", "srwi", "clrrwi", "clrlwi", "rotlwi"):
         return "%s %s, %s, %d" % (op, r(a[0]), r(a[1]), a[2])
+    if op.rstrip(".") in ("extlwi", "extrwi"):
+        return "%s %s, %s, %d, %d" % (op, r(a[0]), r(a[1]), a[2], a[3])
     if op in ("andi.", "andis.", "ori", "oris", "xori", "xoris"):
         return "%s %s, %s, 0x%x" % (op, r(a[1]), r(a[0]), a[2])
     if len(a) == 3:

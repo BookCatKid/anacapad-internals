@@ -572,6 +572,10 @@ def _arg_details(out, args):
             extras.append("validation: %s" % _para(a.validation))
         if a.notes and _para(a.notes) != _para(a.description):
             extras.append(_para(a.notes))
+        findings = a.extra.get("resolved_findings")
+        if findings:
+            extras.append("**resolved findings:**\n" + "\n".join(
+                "    - %s" % _e(f) for f in findings))
         for t in _todo_lines(a.todo):
             extras.append("**TODO:** %s" % t)
         p = a.primitive

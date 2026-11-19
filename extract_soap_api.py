@@ -172,11 +172,24 @@ def decode(w, pc):
         rs, ra, sh = (w >> 21) & 31, (w >> 16) & 31, (w >> 11) & 31
         mb, me = (w >> 6) & 31, (w >> 1) & 31
         m = {20: "rlwimi", 21: "rlwinm", 23: "rlwnm"}[op]
-        if op == 21 and mb == 0 and me == 31 - sh:
-            return ("slwi", ra, rs, sh)
-        if op == 21 and sh == 0 and me == 31:
-            return ("srwi" if mb else "clrrwi", ra, rs, 32 - mb if mb else 0)
-        return (m, ra, rs, sh, mb, me)
+        suffix = "." if w & 1 else ""
+        if op == 21:
+            if mb == 0 and me == 31 - sh:
+                return ("slwi" + suffix, ra, rs, sh)
+            if me == 31 and mb > 0 and sh == 32 - mb:
+                return ("srwi" + suffix, ra, rs, mb)
+            if sh == 0 and me == 31:
+                return ("clrlwi" + suffix, ra, rs, mb)
+            if sh == 0 and mb == 0:
+                return ("clrrwi" + suffix, ra, rs, 31 - me)
+            if mb == 0 and me == 31:
+                return ("rotlwi" + suffix, ra, rs, sh)
+            if mb == 0:
+                return ("extlwi" + suffix, ra, rs, me + 1, sh)
+            if me == 31:
+                n = 32 - mb
+                return ("extrwi" + suffix, ra, rs, n, (sh - n) & 31)
+        return (m + suffix, ra, rs, sh, mb, me)
     if op == 31:
         xo = (w >> 1) & 0x3FF
         m = _XO.get(xo)
@@ -475,7 +488,9 @@ class FuncEmu:
         elif op == "subf":
             _, rd, ra, rb = ins
             self.reg[rd] = ("sub", R[rb], R[ra])
-        elif op in ("slwi", "srwi", "clrrwi"):
+        elif op.rstrip(".") in ("slwi", "srwi", "clrrwi", "clrlwi",
+                                 "rotlwi", "extlwi", "extrwi",
+                                 "rlwinm", "rlwnm", "rlwimi"):
             self.reg[ins[1]] = ("xform", op, R[ins[2]])
         elif op in ("slw", "srw", "rlwinm", "rlwnm", "rlwimi", "and", "andc",
                     "or", "xor", "orc", "nand", "nor", "extsh", "extsb",
