@@ -215542,7 +215542,7 @@
      ]
     },
     "account_family_lookup": {
-     "description": "f_10570e34 searches a table with count at+0 and records starting+4 with stride0x250. Record serial is+0, type+4, username+8 and flags+0x1f4. It compares normalized types N(t)=((t & 0xffffff7f) - (1 - (t & 1))) modulo2^32: bit0x80 is cleared and even values move to the preceding odd value. For example types7,8,0x87,0x88 match the same family; the mask retains upper bits, but subtraction can borrow into them when all low bits are zero. This is the implemented arithmetic even at that boundary. A non-null username requires an exact strcmp match (or an empty record username for an empty argument) and returns that record immediately, before the flags test. With a null username, records with flags&1 are skipped. Among remaining family matches it tracks the smallest unsigned serial, keeping the first on equal serial. The initial minimum is0xffffffff and replacement requires strict unsigned less-than, so serial0xffffffff never becomes this smallest-serial candidate. Separately it remembers the last matching record for which f_1056fd48 returns true and f_1056fe5c(username) returns zero. With selector argument6 zero, that special candidate is preferred, otherwise the smallest-serial candidate is returned; absence of either returns null. With nonzero selector, the explicit username-match fast return still works, but the null-username fallback returns null. f_1056fd48 is true for record+0x1ec nonzero or a username longer than3 beginning X_#. f_1056fe5c searches the first hyphen and parses its following bytes with strtoul(base16), returning zero if there is no hyphen. The selection is a type-family and flag policy, not a credential-validity check.",
+     "description": "f_10570e34 searches a table with count at+0 and records starting+4 with stride0x250. Record serial is+0, type+4, username+8 and flags+0x1f4. It compares normalized types N(t)=((t & 0xffffff7f) - (1 - (t & 1))) modulo2^32: bit0x80 is cleared and even values move to the preceding odd value. For example types7,8,0x87,0x88 match the same family; the mask retains upper bits, but subtraction can borrow into them when all low bits are zero. This is the implemented arithmetic even at that boundary. A non-null username requires an exact strcmp match (or an empty record username for an empty argument) and returns that record immediately, before the flags test. With a null username, records with flags&1 are skipped. Among remaining family matches it tracks the smallest unsigned serial, keeping the first on equal serial. The initial minimum is0xffffffff and replacement requires strict unsigned less-than, so serial0xffffffff never becomes this smallest-serial candidate. Separately it remembers the last matching record for which f_1056fd48 returns true and f_1056fe5c(username) returns zero. With selector argument r6 zero, that special candidate is preferred, otherwise the smallest-serial candidate is returned; absence of either returns null. With nonzero selector, the explicit username-match fast return still works, but the null-username fallback returns null. f_1056fd48 is true for record+0x1ec nonzero or a username longer than3 beginning X_#. f_1056fe5c searches the first hyphen and parses its following bytes with strtoul(base16), returning zero if there is no hyphen. The selection is a type-family and flag policy, not a credential-validity check. Flag semantics are assigned by writers and consumers: bit0 is the guest mark and bit1 is report-pending. New rows are zeroed by initializer f_1056fb1c (flags0), flags are copied verbatim by per-field row copy f_1056f738 at0x1056f798 and by table materializer f_1056f854 at0x1056f938 (load/migration paths including f_10286b08), and bit values originate from operation arguments (guest flag) and the persisted Flags attribute. Guest bit0 is consumed by the null-username filter here, by shared modify f_105709c0 which logs 'modifyRecord failed to upgrade guest account (sn=%u)' only when the existing row is flagged and the candidate is not (0x10570a8c-0x10570ad4) before its 30/31 row-count cap, by the add path's 'addAccount failed: guest upgrade not allowed via reauth.' rejection when a flagged existing row meets a flagged request (0x1028a64c-0x1028a69c), by the 'Updating guest account nickname from: %s to: %s' branch at0x1028a9dc, by the household-merge drop which requires bit0 clear at0x101b74f4, and by the report job which requires bit0 clear at0x1028f8a4. Report-pending bit1 is set through f_1028bdc0 ('Pending report for account %u'), which passes flag-mode mask2 into shared modifier f_1028b760; report job f_1028f5a4 selects only rows with bit1 set at0x1028f898 and revalidates each through this lookup with selector1 before reporting. Ordering: table rows mutate only through the shared modify/materialize copies under the manager lock at+0x20 (f_10988558/f_10988984), and readers call this lookup either under that lock or on snapshot tables produced under it by f_1028903c, so flag and field reads observe whole serialized rows. Direct-call census finds exactly16 call sites. Six pass selector0 with null username - 0x10069bb0 (fixed type0x907),0x1012a12c,0x101b7304 (household merge, type (svc<<8)|7),0x1028a104,0x1028a96c (duplicate test returning0x323) and0x1028c580 in removal core f_1028c3b8 gated by arg flag&0x40. Ten pass selector1 with an explicit username: three in tombstone eviction f_102863a8 (0x1028644c/0x102865a8/0x102865cc), two in credential add f_10289d48 (0x10289ee8 sel1 plus the sel0 site above), two in OAuth core f_1028a224 (0x1028a748 sel1 plus0x1028a96c sel0), two in shared modifier f_1028b760 (0x1028b8f8/0x1028ba08), one in report job f_1028f5a4 (0x1028f8bc with the row's own username) and two in delegate f_104b1844 (0x104b19dc/0x104b1a00). Synthetic-name grammar: guest/migrated rows carry usernames generated by f_1056fdec ('X_#Svc%u-%x-Token') and f_1056fe24 ('X_#Svc%u-%x-Key'); f_1056feb0 parses the decimal service after literal 'X_#Svc' with strtoul base10 and no end validation. Consistency helper f_1057007c requires the embedded service to equal record type and the post-hyphen hex (f_1056fe5c) to equal the UID embedded in the credential field by f_1056ffb0; it is consulted by f_105709c0 ('corruptModifyRecord'), f_1028c680 and f_104cb228. Credential fields can embed a UID as '<body>_<hex>': writer f_10570128 formats '%s_%x'; extractor f_1056ffb0 succeeds when the string exceeds32 bytes, has '_' at index0x20 and an entirely hexadecimal tail (strtoul base16 with checked end pointer), while strings of32 bytes or fewer yield zero UID without failing - used for Token/OAuthDevID in f_1028a224 and f_1028c08c. libc edge cases: f_1056fe5c's strtoul accepts leading whitespace and sign ('X_#Svc5--10-' yields0xfffffff0), stops silently at the first non-hex digit and never reads errno or end; f_1056ffb0 instead requires the whole tail to parse and returns failure otherwise; f_1056feb0 validates neither. Overflow therefore wraps to ULONG_MAX unchecked.",
      "evidence": [
       {
        "type": "firmware",
@@ -215578,9 +215578,78 @@
        "build": "86.10-80260",
        "address": "0x1056fe5c",
        "notes": "First-hyphen search and base16 strtoul with null end pointer; no errno check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1056fb1c",
+       "notes": "Row initializer zeroes flags +0x1f4 (0x1056fb74/0x1056fbfc) alongside serials/strings; rows start unflagged."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1056f854",
+       "notes": "Table materialize copies +0,+4 and flags+0x1f4 verbatim (0x1056f930-0x1056f938) with type clamp and string fields via f_1056f5cc; used by load/migration paths f_10286b08, f_10285e18, f_102892e4, f_1028d180, f_1028e1a8, f_1028ef24, f_1028f5a4, f_1028fa98."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028bdc0",
+       "notes": "'Pending report for account %u' calls shared modifier f_1028b760 with flag-mode mask2 at0x1028be24-0x1028be54: bit1 = report-pending."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028f890",
+       "notes": "Report job f_1028f5a4 selects rows with flags&2 set and flags&1 clear (0x1028f89c-0x1028f8a8), then revalidates each via this lookup with selector1 and the row username at0x1028f8bc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10570a8c",
+       "notes": "f_105709c0 guest-upgrade gate: existing flags&1 set && candidate flags&1 clear triggers 'modifyRecord failed to upgrade guest account (sn=%u)' before 30/31 cap; single-direction rejection proves bit0 is the guest mark."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b74f4",
+       "notes": "Household merge drop requires row+0x1e8 nonzero and flags&1 clear before f_1057082c; guest rows are excluded."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028644c",
+       "notes": "Selector census: 16 sites; sel0+null user at0x10069bb0,0x1012a12c,0x101b7304,0x1028a104,0x1028a96c,0x1028c580 (this one gated by arg flag&0x40); sel1+explicit user at0x1028644c,0x102865a8,0x102865cc,0x10289ee8,0x1028a748,0x1028b8f8,0x1028ba08,0x1028f8bc,0x104b19dc,0x104b1a00."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1056fdec",
+       "notes": "Synthetic username generators: f_1056fdec emits 'X_#Svc%u-%x-Token', adjacent f_1056fe24 emits 'X_#Svc%u-%x-Key' via __snprintf_chk."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1057007c",
+       "notes": "X_# consistency: requires fd48-recognized row, 'X_#Svc' decimal svc (f_1056feb0, strtoul base10 no end check) == record type+4, and post-hyphen hex uid (f_1056fe5c) == credential-embedded uid (f_1056ffb0 on record+0x18c); returns1 for non-X_# rows."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1056ffb0",
+       "notes": "Embedded-UID extractor: *out=0 first; requires strlen>0x20, byte0x20=='_' (0x10570000-0x10570008) and strtoul(str+0x21,&end,16) with *end==0 else failure (0x10570040-0x10570070); <=32-byte strings return success with uid0. Writer f_10570128 emits '%s_%x'."
       }
-     ],
-     "todo": "Established: row offsets used here, family normalization, explicit-user short circuit, null-user flag filter and fallback precedence are decoded. Remaining: trace record-field writers to assign flag meanings and ordering guarantees; audit all caller selector combinations, username/token naming and libc-dependent hexadecimal edge cases."
+     ]
     },
     "device_auth_acquisition": {
      "description": "f_10286e44 is the account manager's credential-acquisition shim around provider call f_1072a2a4 (getDeviceAuthToken). It is called directly only by OAuth-code addition at0x1028b568 inside f_1028b440 and OAuth-direct-control addition at0x1028b6dc inside f_1028b5bc; a full .text census confirms no other call sites. f_1028b440 is reached solely from public delegate f_104b052c (adapter vtable0x10ed75c4+0x1c, AddOAuthAccountX): an empty Token with a nonempty AuthorizationCode tail-calls it at0x104b060c, a nonempty Token instead reaches f_1028b2e4 at0x104b0660 with Tier clamped to0xffff, and both empty tail-calls f_1028ad54 at0x104b05c4. f_1028b5bc ('addAccountForOAuthDirectControl') is called only by f_1020eb2c at0x1020f02c and by the replication driver f_1028fa98 at0x102902ac; it runs manifest precondition f_10287238 before the acquisition. The shim constructs a fresh service descriptor on its stack. Only when ((accountType &0x7f) - (1-(accountType&1))) equals7 does it ask manager slot+0x2c (f_10284ec0) for the SID descriptor at0x10287170-0x10287188. It preserves its incoming callbackPath argument only if that lookup succeeds and descriptor authentication byte+0x12c equals4; otherwise it supplies null callbackPath to the provider (0x10287194-0x102871a0). It calls f_1072a2a4 with the stack descriptor, householdId, zonePlayerId from manager+0xb0, linkCode, linkDeviceId, the gated callbackPath, authToken output/capacity, privateKey output/capacity and userInfo output, plus null login username/password and a context value obtained from f_10674084 stored as the final argument. f_1072a2a4 itself requires descriptor byte+0x12c below5 and auth-table entry+0x44 equal2 (indexed at0x10f0e460); otherwise it logs 'WARNING! getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)' through facility 'sonoscp' and returns0x3e8 without traffic. Its request emits a 'credentials' element whose 'login' child carries 'username'/'password' only when both are nonempty, then conditional 'linkCode', 'householdId', 'linkDeviceId' and 'callbackPath' elements under action 'getDeviceAuthToken' in namespace http://www.sonos.com/Services/1.1; reply handling reads the authToken, privateKey, userInfo and getDeviceAuthTokenResult elements and reports transport failure as '%s: %s#%s failed, ret = %hu'. The context provider f_10674084 calls f_10987a78, which loads a pthread key through the GOT and calls pthread_getspecific; a non-null per-thread object is invoked through vfunc+0x18, so the concrete context is a runtime-injected TLS object with no static store to audit. The provider result is returned unchanged; failure logging ('getDeviceAuthToken failed (res = %d)' via 'accountsmgr' level3) does not translate it. The final stack boolean controls timing telemetry, not whether acquisition runs. When enabled it samples clock_gettime clock id1 before and after the call, converts the nanosecond delta to milliseconds by multiply-shift (zero start timestamp yields ms0), and submits a dcLogin object through the f_10559024 diagnostic singleton interface slot+0x1c with fields type=authToken, service=smapi, rsid=original accountType, ms and rc=provider result. The branch does not independently require success before recording this object. Both callers forward acquisition outputs to account core f_1028a224 only when the provider result is zero (0x1028b56c/0x1028b5b0 and0x1028b6e4/0x1028b754); the direct-control path additionally copies a supplementary string through f_1071a19c when its flag byte is set. Inside f_1028a224 the returned userInfo is copied into the new record through f_1056f738 only when both userInfo arguments are non-null and the source buffer is nonempty (0x1028a4b8-0x1028a4e4); after row insertion the store's vfunc+0x24 (f_1028be78) is invoked at0x1028a50c, which emits the 'add' zpAM diagnostic through slot+0x28 (f_10284950) and then the account-cache refresh through slot+0x34 (f_102850c4). Indirect use: f_1072a2a4 has exactly three other call sites - the two shim branches0x10286f40/0x10287000 plus0x1028b0f8 inside f_1028ad54 (the both-empty AddOAuthAccountX route's own descriptor-based acquisition, which submits its own f_10559024 telemetry at0x1028b150) and0x101b8f6c inside household/cloud merge worker f_101b869c, which repeats the same credentialType table check and f_10674084 context provider.",
