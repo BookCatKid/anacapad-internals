@@ -59675,17 +59675,46 @@
          "function": "0x105116e0",
          "address": "0x1051171c",
          "notes": "container empty test selects f_1014f808 vs f_1014fb34"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fc24",
+         "notes": "800 for newline in ContainerURI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b270",
+         "address": "0x1014b340",
+         "notes": "row+0x770 = ContainerURI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153fe0",
+         "address": "0x10154060",
+         "notes": "f_10147350(row+0x770)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153fe0",
+         "address": "0x101541dc",
+         "notes": "sid query parameter"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: ContainerURI is parsed into job+0x18 (cap 0x401) and selects the per-entry insert worker (empty -> f_1014f808, nonempty -> f_1014fb34 with the URI as its r4).",
-        "Residual: what f_1014fb34 stores from the container URI into each inserted track record is not traced; next step is to disassemble f_1014fb34 (shared with the AVTransport AddURI path at 0x102b672c) and follow its r4."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerURI` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding and dispatch): bound as a string by f_1056157c into job+0x18 with capacity 0x401 (r7 at 0x105118a8), parse site 0x10465240. In the per-entry callback f_105116e0 an empty ContainerURI (lbz job+0x18 == 0 at 0x1051171c) sends each entry to f_1014f808 at 0x10511750; a nonempty one sends it to f_1014fb34(job+0x18, job+0x419, ...) at 0x105117c4, i.e. the container URI and metadata travel with every entry insert."
+        "Resolved (binding and dispatch): bound as a string by f_1056157c into job+0x18 with capacity 0x401 (r7 at 0x105118a8), parse site 0x10465240. In the per-entry callback f_105116e0 an empty ContainerURI (lbz job+0x18 == 0 at 0x1051171c) sends each entry to f_1014f808 at 0x10511750; a nonempty one sends it to f_1014fb34(job+0x18, job+0x419, ...) at 0x105117c4, i.e. the container URI and metadata travel with every entry insert.",
+        "Resolved: The container URI is checked and then stored as a pointer in the row template, not copied per track. f_1014fb34 returns 800 when it contains a newline (strchr at 0x1014fc10, 0x1014fc24) and passes it to f_1014b270, which stores it at row+0x770 (0x1014b340). Its only reader is the container-expansion function f_10153fe0. That function tests whether it starts with 'x-sonosapi-rtrecent:' (f_10147350, string 0x10e93968, 20 bytes) and, if so, reads its 'sid' query parameter (f_10c3b830 with key 0x10f03718, 32-byte buffer, 0x101541dc). It then records whether sid is 254 (strtoul plus xori 0xfe at 0x101541f4..0x10154200) before choosing the expansion path (f_10153e98 at 0x1015421c, otherwise f_10153ddc or f_10153d24). The row writers (f_1014b624, f_1014b3a8) do not read row+0x770."
        ]
       },
       "ContainerMetaData": {
@@ -59721,17 +59750,38 @@
          "function": "0x105116e0",
          "address": "0x105117b8",
          "notes": "addi r6,job+0x419 into f_1014fb34"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b270",
+         "address": "0x1014b34c",
+         "notes": "row+0x774 = ContainerMetaData"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f508",
+         "notes": "800 for newline in metadata"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b624",
+         "address": "0x1014b6cc",
+         "notes": "DIDL parse of row+0x774"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: ContainerMetaData is parsed into job+0x419 (cap 0x1001) and handed to f_1014fb34 alongside ContainerURI.",
-        "Residual: how f_1014fb34 consumes the metadata (DIDL parse or verbatim copy) is not traced; next step is to follow the r5 argument through f_1014fb34."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerMetaData` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding): bound as a string by f_1056157c into job+0x419 with capacity 0x1001 (r9 at 0x105118c0); passed as the second argument of f_1014fb34 at 0x105117c4 and of the first-entry container record path only when ContainerURI is nonempty."
+        "Resolved (binding): bound as a string by f_1056157c into job+0x419 with capacity 0x1001 (r9 at 0x105118c0); passed as the second argument of f_1014fb34 at 0x105117c4 and of the first-entry container record path only when ContainerURI is nonempty.",
+        "Resolved: The container metadata is stored as a pointer at row+0x774 by f_1014b270 (0x1014b34c). f_1014f48c returns 800 for an entry when that string contains a newline (0x1014f4f0..0x1014f508). When an entry is written through f_1014b624 (0x1014b640), a nonzero row+0x774 with byte row+0x18 clear and f_10144a4c nonzero is parsed as DIDL: f_1041e6c4 sets up the parser, f_10423288(parser, metadata) parses it at 0x1014b6cc, and f_1041fc0c gives the item. That item is passed to the track writer f_1014b3a8 (0x1014b688). Otherwise the writer gets no item (r6=0)."
        ]
       },
       "DesiredFirstTrackNumberEnqueued": {
@@ -60461,14 +60511,39 @@
         "function": "0x10464f34",
         "address": "0x10464fa8",
         "notes": "mr. r4,r3; beq -> outputs"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014fb34",
+        "address": "0x1014fb98",
+        "notes": "803 queue full"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014fb34",
+        "address": "0x1014fcec",
+        "notes": "804 entry added no rows"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014fb34",
+        "address": "0x1014fcc0",
+        "notes": "per-entry rc passthrough"
        }
       ],
       "todo": [
-       "Established: wrapper behaviour and the engine-level code set are traced.",
-       "Residual: the set of u16 codes the f_1014ce8c parser stores at parser+0xc (including insert-worker rcs from f_1014f808/f_1014fb34) is not enumerated; next step is to trace the parser's error store and those workers' return literals."
+       "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
+       "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
       ],
       "resolved_findings": [
-       "Resolved: the engine rc is the wrapper rc. 0 -> four outputs emitted (0x10464fe8..0x10465070) then commit req->v[+0xc] at 0x10465084; nonzero -> req->v[+0x14](req, rc) at 0x10464fbc and no outputs. Codes: 800 (mode gate), 402 (missing arg, zero entries, count mismatch), 718 (unknown QueueID), 1028 (UpdateID mismatch), or the parser's u16 error from parser+0xc."
+       "Resolved: the engine rc is the wrapper rc. 0 -> four outputs emitted (0x10464fe8..0x10465070) then commit req->v[+0xc] at 0x10465084; nonzero -> req->v[+0x14](req, rc) at 0x10464fbc and no outputs. Codes: 800 (mode gate), 402 (missing arg, zero entries, count mismatch), 718 (unknown QueueID), 1028 (UpdateID mismatch), or the parser's u16 error from parser+0xc.",
+       "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
       ]
      },
      "fault_sites": [],
@@ -60537,6 +60612,30 @@
          "function": "0x105115b8",
          "address": "0x105116b4",
          "notes": "0x404 on UpdateID mismatch"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fb98",
+         "notes": "803 queue full"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fcec",
+         "notes": "804 entry added no rows"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fcc0",
+         "notes": "per-entry rc passthrough"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x1046594c exits=[-8]; literal exits bounded | worker literal bound [718, 800, 4097] (worker_err_literals.json)",
@@ -60546,11 +60645,12 @@
         4097
        ],
        "todo": [
-        "Established: all literal codes in the action path are enumerated with sites.",
-        "Residual: the u16 code domain recorded by the f_1014ce8c parser at parser+0xc is not enumerated; next step is to trace the parser error store and f_1014f808/f_1014fb34 return literals."
+        "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
+        "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
        ],
        "resolved_findings": [
-        "Resolved: the error path is the engine rc surfaced verbatim by req->v[+0x14] at 0x10464fbc; literals at 0x102bd338 (800), 0x105115f8/0x10511908 (402), 0x105116d0 (718), 0x105116b4 (1028)."
+        "Resolved: the error path is the engine rc surfaced verbatim by req->v[+0x14] at 0x10464fbc; literals at 0x102bd338 (800), 0x105115f8/0x10511908 (402), 0x105116d0 (718), 0x105116b4 (1028).",
+        "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
        ]
       },
       {
@@ -66926,17 +67026,46 @@
          "function": "0x102f7a50",
          "address": "0x102f7a88",
          "notes": "container empty test"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fc24",
+         "notes": "800 for newline in ContainerURI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b270",
+         "address": "0x1014b340",
+         "notes": "row+0x770 = ContainerURI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153fe0",
+         "address": "0x10154060",
+         "notes": "f_10147350(row+0x770)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153fe0",
+         "address": "0x101541dc",
+         "notes": "sid query parameter"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: ContainerURI is parsed into job+0x18 and selects the insert worker (empty -> f_1014f808, nonempty -> f_1014fb34 with the URI as r4).",
-        "Residual: what f_1014fb34 stores from the container URI into each inserted track is not traced; next step is to disassemble f_1014fb34 and follow its r4."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerURI` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding and dispatch): bound as a string by f_1056157c into job+0x18 (capacity from r7 set by the runner). In the per-entry callback f_102f7a50 an empty ContainerURI (lbz job+0x18 at 0x102f7a88) sends each entry to f_1014f808 (0x102f7abc); otherwise f_1014fb34(job+0x18, ...) at 0x102f7b30."
+        "Resolved (binding and dispatch): bound as a string by f_1056157c into job+0x18 (capacity from r7 set by the runner). In the per-entry callback f_102f7a50 an empty ContainerURI (lbz job+0x18 at 0x102f7a88) sends each entry to f_1014f808 (0x102f7abc); otherwise f_1014fb34(job+0x18, ...) at 0x102f7b30.",
+        "Resolved: The container URI is checked and then stored as a pointer in the row template, not copied per track. f_1014fb34 returns 800 when it contains a newline (strchr at 0x1014fc10, 0x1014fc24) and passes it to f_1014b270, which stores it at row+0x770 (0x1014b340). Its only reader is the container-expansion function f_10153fe0. That function tests whether it starts with 'x-sonosapi-rtrecent:' (f_10147350, string 0x10e93968, 20 bytes) and, if so, reads its 'sid' query parameter (f_10c3b830 with key 0x10f03718, 32-byte buffer, 0x101541dc). It then records whether sid is 254 (strtoul plus xori 0xfe at 0x101541f4..0x10154200) before choosing the expansion path (f_10153e98 at 0x1015421c, otherwise f_10153ddc or f_10153d24). The row writers (f_1014b624, f_1014b3a8) do not read row+0x770."
        ]
       },
       "ContainerMetaData": {
@@ -66972,17 +67101,38 @@
          "function": "0x1046538c",
          "address": "0x10465484",
          "notes": "f_1056157c bind"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b270",
+         "address": "0x1014b34c",
+         "notes": "row+0x774 = ContainerMetaData"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f508",
+         "notes": "800 for newline in metadata"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b624",
+         "address": "0x1014b6cc",
+         "notes": "DIDL parse of row+0x774"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: ContainerMetaData is parsed into job+0x419 and handed to f_1014fb34 with ContainerURI.",
-        "Residual: how f_1014fb34 consumes the metadata is not traced; next step is to follow its r5 argument."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `ContainerMetaData` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding): bound as a string by f_1056157c into job+0x419; consumed only by f_1014fb34 when ContainerURI is nonempty."
+        "Resolved (binding): bound as a string by f_1056157c into job+0x419; consumed only by f_1014fb34 when ContainerURI is nonempty.",
+        "Resolved: The container metadata is stored as a pointer at row+0x774 by f_1014b270 (0x1014b34c). f_1014f48c returns 800 for an entry when that string contains a newline (0x1014f4f0..0x1014f508). When an entry is written through f_1014b624 (0x1014b640), a nonzero row+0x774 with byte row+0x18 clear and f_10144a4c nonzero is parsed as DIDL: f_1041e6c4 sets up the parser, f_10423288(parser, metadata) parses it at 0x1014b6cc, and f_1041fc0c gives the item. That item is passed to the track writer f_1014b3a8 (0x1014b688). Otherwise the writer gets no item (r6=0)."
        ]
       },
       "CurrentTrackIndex": {
@@ -67428,14 +67578,39 @@
         "function": "0x10465090",
         "address": "0x104650f4",
         "notes": "impl call; rc test follows"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014fb34",
+        "address": "0x1014fb98",
+        "notes": "803 queue full"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014fb34",
+        "address": "0x1014fcec",
+        "notes": "804 entry added no rows"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014fb34",
+        "address": "0x1014fcc0",
+        "notes": "per-entry rc passthrough"
        }
       ],
       "todo": [
-       "Established: wrapper behaviour and the engine literal code set are traced.",
-       "Residual: the u16 code domain stored by the f_1014ce8c parser (including insert-worker rcs) is not enumerated; next step is to trace the parser error store."
+       "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
+       "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
       ],
       "resolved_findings": [
-       "Resolved: engine rc is the wrapper rc; 0 -> NewQueueLength and NewUpdateID emitted then commit; nonzero -> req->v[+0x14] fault, no outputs. Codes: 800 (mode gate or clear-submit failure), 402, 718, 1028, or the parser's u16 error."
+       "Resolved: engine rc is the wrapper rc; 0 -> NewQueueLength and NewUpdateID emitted then commit; nonzero -> req->v[+0x14] fault, no outputs. Codes: 800 (mode gate or clear-submit failure), 402, 718, 1028, or the parser's u16 error.",
+       "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
       ]
      },
      "fault_sites": [],
@@ -67497,6 +67672,30 @@
          "function": "0x102f7634",
          "address": "0x102f7738",
          "notes": "0x404"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fb98",
+         "notes": "803 queue full"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fcec",
+         "notes": "804 entry added no rows"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014fb34",
+         "address": "0x1014fcc0",
+         "notes": "per-entry rc passthrough"
         }
        ],
        "domain_note": "domain fully bounded: impl 0x10465970 exits=[-8]; literal exits bounded | worker literal bound [800] (worker_err_literals.json)",
@@ -67504,11 +67703,12 @@
         800
        ],
        "todo": [
-        "Established: all literal codes in the action path are enumerated.",
-        "Residual: the parser-recorded u16 code domain is not enumerated; next step is to trace the f_1014ce8c parser error store."
+        "Established: the insert-worker code domain is 0, 800, 801, 802, 803, 804, 1042..1045 (f_1014fb34 and f_1014f48c).",
+        "Residual: the codes the track-list parser f_1014ce8c itself stores at parser+0xc, beyond the insert-worker result it forwards, are not enumerated; next step is to trace the parser+0xc stores in f_1014ce8c."
        ],
        "resolved_findings": [
-        "Resolved: literals at 0x102bd504 (800), 0x102f80b0 (800 clear submit), 0x102f7640/0x102f7cb4 (402), 0x102f7788 (718), 0x102f7738 (1028)."
+        "Resolved: literals at 0x102bd504 (800), 0x102f80b0 (800 clear submit), 0x102f7640/0x102f7cb4 (402), 0x102f7788 (718), 0x102f7738 (1028).",
+        "Established: f_1014fb34 return codes: 803 when the queue length is already >= the entry limit q+0x26bc (0x1014fb8c..0x1014fb9c); 800 for a newline in ContainerURI (0x1014fc24); 0 for zero entries (0x1014fc30); the first nonzero per-entry result of f_1014f48c (0x1014fcc0); 804 when an entry adds no rows, i.e. row+0x50 equals row+0x44 after it (0x1014fcd0, 0x1014fcec, 0x1014fd00). f_1014f48c returns 800, 801, 802, 803, 1042, 1043, 1044 or 1045 by the same paths traced for AddURI (newline checks at 0x1014f4cc..0x1014f528, handler failure 803/800 at 0x1014f5c0, container expansion filtered by f_10c3ba54 to 1042..1045 at 0x10153c1c, 802 at 0x10153fcc). So the insert worker returns one of 0, 800, 801, 802, 803, 804, 1042..1045."
        ]
       },
       {
