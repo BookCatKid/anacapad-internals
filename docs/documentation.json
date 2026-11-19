@@ -154965,23 +154965,135 @@
   },
   "jwt_auth": {
    "name": "muse JWT/device-token auth",
-   "summary": "JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; alg HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,\"Failed to get the real/relative time\",\"Failed to stringify JWT\",\"Device failed to generate device/guest token\",\"Invalid Base64 encoded JSON object\",\"Device unavailable due to other requests\",\"Player not securely registered\",\"An unexpected grant type was provided\",\"An invalid JWT was provided. Reason:\",\"A malformed JWT header/payload was provided\",\"Player not in the assertion's aud field\",\"POST /authorizeDevice request failed\"}; claims exp+rexp {\"exp is missing\",\"Invalid exp value\",\"Expired exp value\",same for rexp}; token validation {\"Device token not minted in this HH\",\"Token is expired, security settings have changed since the token was issued\",\"Device token expired\",\"missing/invalid expiration time\",\"not minted by this device\",\"Device token is valid\"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; validation failure names {JWT_FAILED_TO_B64_DECODE,INPUT_JWT_HEADER_INVALID,INPUT_JWT_PAYLOAD_INVALID,INPUT_JWT_SIGNATURE_INVALID,INPUT_JWT_ALG_UNSUPPORTED,INPUT_JWT_ALG_MISSING,INPUT_JWT_X5C_MISSING,INPUT_JWT_X5C_INVALID,INPUT_JWT_X5C_UNTRUSTED,INPUT_JWT_PRIVATE_KEY_MISSING,INPUT_JWT_PRIVATE_KEY_INVALID}",
+   "summary": "JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; algorithms RS256 and HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,\"Failed to get the real/relative time\",\"Failed to stringify JWT\",\"Device failed to generate device/guest token\",\"Invalid Base64 encoded JSON object\",\"Device unavailable due to other requests\",\"Player not securely registered\",\"An unexpected grant type was provided\",\"An invalid JWT was provided. Reason:\",\"A malformed JWT header/payload was provided\",\"Player not in the assertion's aud field\",\"POST /authorizeDevice request failed\"}; claims exp+rexp {\"exp is missing\",\"Invalid exp value\",\"Expired exp value\",same for rexp}; token validation {\"Device token not minted in this HH\",\"Token is expired, security settings have changed since the token was issued\",\"Device token expired\",\"missing/invalid expiration time\",\"not minted by this device\",\"Device token is valid\"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; validation failure names {JWT_FAILED_TO_B64_DECODE,INPUT_JWT_HEADER_INVALID,INPUT_JWT_PAYLOAD_INVALID,INPUT_JWT_SIGNATURE_INVALID,INPUT_JWT_ALG_UNSUPPORTED,INPUT_JWT_ALG_MISSING,INPUT_JWT_X5C_MISSING,INPUT_JWT_X5C_INVALID,INPUT_JWT_X5C_UNTRUSTED,INPUT_JWT_PRIVATE_KEY_MISSING,INPUT_JWT_PRIVATE_KEY_INVALID}",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10f988e4",
      "notes": "JWT block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10099e18",
+     "address": "0x10099e90",
+     "notes": "RS256 first-row handler at stack+0x44 is f_109f4b88; HS256 second-row handler at +0x6c is f_109f3a8c. Both stride-40 rows are registered by f_109f63dc at 0x10099ee0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f3a8c",
+     "address": "0x109f3b28",
+     "notes": "Calls f_109f3820; that joins the two JWT segments and calls ZZ0065 at 0x109f3904. Length comparison at 0x109f3b40 precedes memcmp at 0x109f3b98."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0065",
+     "address": "0x7040",
+     "notes": "One-shot HMAC delegates ZZ0067 at 0x6e4c, update at 0x6f2c and finish at 0x6f38. Selector 1 maps to mbedtls digest type 9, SHA-256, at 0x6e98-0x6ea8; mbedtls_md_hmac_starts at 0x6efc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1061b5d0",
+     "address": "0x1061b8a8",
+     "notes": "Capacity-32 f_1064b9f4 read; nonempty length gates raw-key installation at 0x1061b928 and validation at 0x1061b934. f_109f6018 dispatches a valid raw key to f_109f5cc8 at 0x109f60a4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1064bc38",
+     "address": "0x1064bc78",
+     "notes": "Unsigned length<=32 check, wipe at 0x1064bd10, memcpy at 0x1064bd50, length stores at 0x1064bdac/0x1064be18. IPC switch 0x10f01d6c type 0x34 reaches this setter at 0x106913dc. Getter f_1064b9f4 copies owner+0x154/+0x174 under mutex+0x88."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_1001bcd0",
+     "address": "0x1001bd9c",
+     "notes": "f_10027004 requests 32 random bytes via ZZ0071 at 0x10027040. Persistence f_10022074 at 0x1001bee0 precedes callback at 0x1001be1c; failure restores the backed-up key at 0x1001bf08."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0071",
+     "address": "0x75ec",
+     "notes": "Random-byte wrapper calls mbedtls_ctr_drbg_random with requested output and size. No static key-byte value is supplied."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_1000ac9c",
+     "address": "0x1000acf8",
+     "notes": "Forms 36-byte key/length payload and sends type 0x34 via f_10006b2c. Callback pointer installed at main stack+0xa8, config+0x8c, at 0x10002f9c; config passed at 0x100030a8 and stored by 0x1001ebb8. Socket path /tmp/netstartd.ipc installed at 0x100099bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_10022074",
+     "address": "0x10022334",
+     "notes": "RegSigningKey literal 0x10035024; owner settings+0xb4 encoded by f_10026ebc/f_100270ac. PIC GOT base for writer/reader is 0x10057c6c. f_100270ac uses %02X at 0x10032af0 and appends NUL. Flush/close/rename at 0x100222cc-0x100222e0. Directory built at 0x10002e10, initial root /jffs at 0x10002af0."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_100223ac",
+     "address": "0x100224c8",
+     "notes": "Startup call at 0x1001ebf8 passes settings owner+0x5c. Reader callback GOT 0x1004fcc8 points to f_10020f68; parser callback at 0x100225c8. RegSigningKey strcmp at 0x10021038 selects settings+0xb4 and f_10026f58 at 0x10021050. Decoder f_100271c8 requires even length, capacity, xdigit checks and strtol base 16; f_10026f58 requires decoded length exactly 32."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_10028ddc",
+     "address": "0x10028de8",
+     "notes": "Reads first byte unchanged; f_1001f820 table 0x10033d88 selects input 22 and parser f_1002d22c independently compares 22 at 0x1002d27c. Key response f_1002d2c4 passes 23 at 0x1002d34c and writer f_1002e690 stores it directly at 0x1002e6d8. Name table rows 0x1004f8fc/0x1004f904 disagree with these executed values."
+    },
+    {
+     "type": "firmware",
+     "binary": "netstartd",
+     "build": "86.10-80260",
+     "function": "f_10020d9c",
+     "address": "0x10020e40",
+     "notes": "IPC type 0x18 dispatch 0x10008c1c reads registration boolean and calls at 0x10008c68. Positive registration state clears a present key via callback at 0x10020e60, wipe at 0x10020e7c, persist at 0x10020e88."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f86bc",
+     "address": "0x109f89f0",
+     "notes": "Explicit RS256 header at 0x109f879c. Time-provider optional reads at 0x109f89c8/0x109f8a1c; 3600 additions at 0x109f89f0/0x109f8a74, serializer virtual calls at 0x109f8a44/0x109f8a8c. Signing call at 0x109f8b10 reaches SHA-256 and signing-provider virtual +0x14 at 0x109f3d24. Provider setup 0x1019abcc -> f_109f7d30 stores +0xb0/+0xb8; concrete clock implementations and claim units remain residual."
     }
    ],
    "todo": [
-    "Residual: HS256 key bytes storage + rotation interval - key material arrives via the oauth client config (endpoint proven); rotation is per-account token_refresh FSM timing, not a literal"
+    "Established: the registration-signing key is generated by netstartd, persisted/restored as 32 bytes encoded in RegSigningKey, transferred by IPC 0x34, consumed by a concrete HS256 verifier, and cleared on secure-registration IPC 0x18. Executed setup request/response bytes are 0x16/0x17 despite the disagreeing name table. Remaining: bind the concrete signing/time providers supplied at 0x1019abcc (player+0xc7c and player+0x56c0), join the two 3600 additions in f_109f86bc to the exact exp/rexp claim fields, time units and failed-clock behavior, and trace refresh scheduling callers before asserting any token lifetime or periodic rotation policy. Follow provider virtual slots +8/+0x10/+0x14, the claim serializer for vtable 0x10f9a890, and callers of f_109f918c/the guest path at 0x109fb8a8. The prior OAuth-config key-source and per-account token_refresh rotation assertions are withdrawn; this record does not yet establish an exhaustive lifecycle for every JWT consumer."
    ],
    "resolved_findings": [
     "Resolved: JWT-gated routes = the admin/auth surface; key chain = the JWT_* error taxonomy {B64, MALFORMED, HEADER/PAYLOAD/SIGNATURE INVALID, ALG_*, X5C_*, PRIVATE_KEY_*} covering the verification path.",
-    "Consumers split by alg: the HS256 path (jwt_auth summary: oauth/v4/pdsw endpoint + jwt-bearer grant) is the cloud-token client; the RS256 minting path (smapi_jwt: {alg:RS256, x5c:[cert chain]}, claims {iss, exp}) is the outbound credential for SMAPI/SVE calls signed by the device registration cert - so JWT auth is required for SMAPI services and SVE, optional elsewhere. Error enum covers both directions (X5C_UNTRUSTED inbound validation, PRIVATE_KEY_* outbound signing).",
+    "Algorithm selection is concrete, not an assignment inferred from adjacent strings: f_10099e18 registers stride-40 RS256 and HS256 rows, with validation handlers f_109f4b88 and f_109f3a8c respectively. HS256 validation has a registration-signing-key consumer; the device/guest token builder f_109f86bc instead writes RS256 into its header and signs through a provider. The previous assignment of the HS256 path to the OAuth cloud-token client, and of its key rotation to the account token_refresh FSM, is withdrawn.",
     "Resolved: the oauth token endpoint is literal https://oauth.<region>ws.sonos.com/oauth/v4/pdsw (0x10f98cb0/0x10f98cc0) and the JWT error enum is fully compiled in @0x10f988e4+: {JWT_FAILED_TO_B64_ENCODE, JWT_FAILED_TO_B64_DECODE, JWT_MALFORMED, JWT_HEADER_INVALID, JWT_PAYLOAD_INVALID, JWT_SIGNATURE_INVALID, JWT_ALG_UNSUPPORTED, JWT_ALG_MISSING, INPUT_JWT_ALG_MISSING, INPUT_JWT_X5C_MISSING, INPUT_JWT_X5C_INVALID, INPUT_JWT_X5C_UNTRUSTED, INPUT_JWT_PRIVATE_KEY_MISSING, INPUT_JWT_PRIVATE_KEY_INVALID, OUTPUT_JWT_SIGNING_ERROR, OUTPUT_JWT_INVALID_STATE} + alg literal HS256 @0x10f98a78. The muse request path is profiled by muse::PerfProfiler with stage names {AUTH_IS_AUTHORIZED, AUTH_PARSE_DEVICE_TOKEN, AUTH_POLICY_TABLE_CACHE_FETCH, COMMAND_DISPATCH, COMMAND_EXECUTE, COMMAND_LOGGER, COMMAND_PARSE, COMMAND_REPORT, PLAYER_VOLUME_SET_VOLUME} @0x10f98b1c-0x10f98c04 - the muse pipeline stage order is literal.",
     "Token-validation states recovered at 0x10f990a4: {VALID, MALFORMED, EXPIRED, REVOKED, HOUSEHOLD, INVALID_REQUIRED_VALUE, NOT_MINTED_THIS_DEVICE, UNKNOWN} - the auth-token check result enum.",
-    "Auth role enum at 0x10f99420: {OWNER=1, GUEST=2, CRM=3, ADMIN=4, EMPLOYEE=5, PLAYER_TO_PLAYER=6, ...}; token-type enum at 0x10f99788 {GUEST_TOKEN=1, ACCESS_TOKEN=2, API_KEY=3, GUEST_TOKEN_PIN=4}."
+    "Auth role enum at 0x10f99420: {OWNER=1, GUEST=2, CRM=3, ADMIN=4, EMPLOYEE=5, PLAYER_TO_PLAYER=6, ...}; token-type enum at 0x10f99788 {GUEST_TOKEN=1, ACCESS_TOKEN=2, API_KEY=3, GUEST_TOKEN_PIN=4}.",
+    "HS256 verification: f_109f3a8c reconstructs the signed header.payload input through f_109f3820, which calls libsonoscrypto ZZ0065 with selector 1. That library selects SHA-256 and invokes mbedtls HMAC start/update/finish. The verifier compares the computed and supplied signature lengths before memcmp. The algorithm name alone was not used to identify the key source.",
+    "Concrete registration-key consumer: f_1061b5d0 calls f_1064b9f4 with a 32-byte output capacity at 0x1061b8a8, rejects an absent key on this branch, installs its pointer/length with f_109f4aec at 0x1061b928, and validates through f_109f6018 at 0x1061b934. The raw-key optional selects f_109f5cc8 rather than the no-key path. This establishes one live symmetric-key consumer, not that every JWT route uses that key.",
+    "Key ownership and transport: anacapad f_1064bc38 accepts a 32-byte buffer followed by a big-endian u32 length, rejects lengths above 32, wipes the previous buffer, copies a nonempty replacement into owner+0x154 and records length at +0x174 under the registration mutex. Length zero clears it. The concrete IPC type 0x34 reaches this setter at 0x106913dc after a payload-length check. f_1064b9f4 returns a mutex-protected copy. netstartd supplies the matching 36-byte payload through f_1000ac9c and f_10006b2c on /tmp/netstartd.ipc; its callback is installed at configuration+0x8c during main initialization.",
+    "Key generation and persistence: netstartd f_1001bcd0 checks household/registration state, backs up owner+0x110, and calls f_10027004 to obtain 32 bytes through libsonoscrypto ZZ0071 and mbedtls_ctr_drbg_random. It persists the changed internal settings before publishing the key through callback+0x8c; persistence failure restores the backup. f_10022074 writes RegSigningKey as uppercase hexadecimal, two digits per byte, in netstart2.txt beneath configuration+8. It writes a .tmp file, flushes/closes it and renames it. Main builds that configured directory with %s/net/settings; /jffs is the initial root, not an assertion that every invocation uses an immutable absolute path. Runtime random bytes are not a compiled secret or an OAuth endpoint string.",
+    "Persistent-key reader binding: startup f_1001eb64 calls f_100223ac with owner+0x5c settings. That reader opens the same configured netstart2.txt and passes f_10020f68 to the line parser f_100224ec. The RegSigningKey comparison selects settings+0xb4, exactly owner+0x110, and f_10026f58 accepts only a successfully decoded 32-byte value. The shared decoder requires an even number of hexadecimal characters and checks each pair before base-16 conversion. Thus a generated 32-byte key round-trips as 64 hexadecimal characters, not Base64.",
+    "Registration-message mapping follows executed code: f_10028ddc reads the first input byte unchanged and accepts values through 0x17. The f_1001f820 switch sends byte 0x16 to f_1002d22c, which checks that same value before calling key generation at 0x1001f9c8. The response builder f_1002d2c4 supplies 0x17 to f_1002e690, which writes it unchanged as the first output byte, followed by the key field serialized through f_1002eb84. This differs from the adjacent name/id table, whose LOCK_REGISTRATION row contains 0x17 and REGISTRATION_KEY row contains zero. Those labels must not replace the actual request/response dispatch values; no invented translation from 0x17 to 0x16 is involved.",
+    "Invalidation is event-driven on the traced path: netstartd IPC type 0x18 reads the secure-registration flag and calls f_10020d9c at 0x10008c68. A nonzero flag sets owner+0x1ac and, when a key is present, publishes a null/zero replacement, wipes owner+0x110, and persists settings. This path has no periodic key-rotation interval. It does not establish the timing of the external registration event or prove that all other key replacements have been enumerated.",
+    "Expiry/provider boundary: f_109f86bc constructs an RS256 header, obtains time representations through owner+0xb8 virtual slots +8 and +0x10, and performs literal 3600 additions at 0x109f89f0 and 0x109f8a74. The second representation is serialized through provider slot +0x14 before and after addition. A failed optional time read selects error paths rather than a default lifetime. Signing uses owner+0xb0 through f_109f3f9c/f_109f3bb4, a SHA-256 digest and provider virtual slot +0x14 at 0x109f3d24. Constructor f_109f7d30 stores these providers from its r5/r7 inputs; the player setup call at 0x1019abcc supplies player+0xc7c and player+0x56c0. These are token-building arithmetic and provider boundaries, not evidence of symmetric-key rotation or account refresh scheduling."
    ]
   },
   "muse_perf": {
