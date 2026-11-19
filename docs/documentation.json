@@ -120302,7 +120302,7 @@
    "idle_limits_and_volume": "Successful preparation copies nonzero discovery tag 27 to cap +0xa61 and waiting tag 28 to cap +0xa62. State-table timer uses min(60 seconds, nonzero cap), so zero/absence preserves 60, 1..59 shortens it and 60..255 cannot extend it. Discovery callback receives raw nonzero tag 27, or 60 if zero; a value above 60 is therefore forwarded even though the NS2 idle deadline remains capped at 60. Tag 29 zero/absent gives starting volume 30. Tag 30 zero/absent gives ending volume 60; explicit nonzero end is clamped to 20..65. Start is then clamped to 20..effective_end. These are numeric discovery-volume parameters, not claimed physical sound levels or percentages. Waiting zero/absence is logged as 60. Caps are installed before transition to DISCOVERY 3 through 0x1001c220.",
    "discovery_notification": "Main binds config+0x5c to 0x1000a9f8 at 0x10002f0c. After entering DISCOVERY, handler invokes it with (cookie,method,start_volume,end_volume,discovery_seconds,chirp_buffer,chirp_length), ignoring its return. Main maps methods 1..8 through u32 table 0x10030bcc to local modes {6,5,4,3,9,10,11,11}. It zeroes an 84-byte payload: u32 mapped mode +0, start +4, end +8, seconds +12, parameter bytes +16 with capacity 64, u32 parameter length +80. Rejects mode outside 1..8, mapped mode 0 or parameter length >64. Chirp methods 2/5 supply 64 bytes; client-PIN method 4 supplies length zero. Mapped modes 3..11 submit mode notification 0x10008298, selecting outgoing command 41 with 84-byte payload through semantic tail sender 0x10006b2c, then return 1 irrespective of send result. Mapped modes <=2 take the payloadless mode helper instead, but none of these table rows maps there. Local enqueue/write does not establish discovery execution by the external receiver, which remains excluded.",
    "failure_cleanup": "Preparation, client-PIN decode or chirp failure leads to 0x1001f5e0. Requested methods 2/6/8 first invoke contactless-termination helper 0x1001eed8 with max attempts reached; all failures common-reset 0x1001c984 with bad SETUP_BEGIN, then close DTLS through 0x100265a0(transport,1). It does not emit a SETUP_STATUS success/failure response in this branch. Message parse failure is different: it returns without that reset/close sequence. The later discovery callback can fail or be absent while state has already become DISCOVERY, and no rollback follows its result.",
-   "todo": "Residual: recover the full producer error propagation and the downstream consumers after the DISCOVERY_INTERACTION and PIN_EXCHANGED transitions. The discovery continuation begins in netstartd's DISCOVERY table row, not in the peer notification receiver. Notification submission is not proof of a physical discovery action.",
+   "todo": "Residual: the 64-byte chirp field encoding and authentication at builder 0x1002384c remain unresolved, along with complete producer error propagation and downstream consumers after the DISCOVERY_INTERACTION and PIN_EXCHANGED transitions. The local DISCOVERY table is separate from the peer notification receiver, and submission does not prove a physical discovery action.",
    "evidence": [
     {
      "type": "firmware",
@@ -120359,6 +120359,13 @@
      "build": "86.10-80260",
      "address": "0x100236b8",
      "notes": "Client-PIN decrypt requires exactly eight plaintext bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "wifi/netstartd",
+     "build": "86.10-80260",
+     "address": "0x1001f5c0",
+     "notes": "The setup handler sets a 64-byte output capacity at 0x1001f5b0 and calls chirp builder f_1002384c. The subsequent discovery continuation evidence does not describe the builder's field encoding or authentication."
     },
     {
      "type": "firmware",
