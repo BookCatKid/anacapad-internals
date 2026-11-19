@@ -156060,15 +156060,42 @@
      "type": "firmware",
      "address": "0x10fe21f0",
      "notes": "callbacks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d3a6d0",
+     "notes": "Playback callback pointers and application context stored globally."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d3a904",
+     "notes": "Six stream pointers installed together; incomplete sets are cleared."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d3aa40",
+     "notes": "Guarded stream-start callback invocation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d101e4",
+     "notes": "Pump dispatches stream data and consumes returned progress."
     }
    ],
-   "todo": [
-    "Residual: exact per-event callback ordering (lifecycle sequence proven at the SMAPI layer)."
-   ],
+   "todo": "Residual: trace the remaining pump/event branches for seek, flush, end and connection/playback notifications, including abort/restart cases, to establish the conditional callback order. Playback and six-member stream registration, null/partial removal and guarded start/data dispatch are now recovered.",
    "resolved_findings": [
-    "Resolved: track lifecycle = playback cbs {on_notify,on_seek,on_apply_volume} + stream cbs {on_data,on_start,on_end,on_flush,on_pos} registration + removal.",
-    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect.",
-    "Established: the playback/stream/connection/alias callback signatures and the register/remove logging."
+    "Registration is concrete native state, not a lifecycle inferred from SMAPI. f_10d3a638 copies playback callbacks {on_notify,on_seek,on_apply_volume} from input offsets 0/4/8 into global 0x110bf65c, and stores caller context at +0xc (0x10d3a6d0-0x10d3a6f4). Null/all-null low-level input clears the three pointers but retains the newly supplied context. This low-level removal path must not be confused with public f_10cfc0f8, which rejects a null callback struct with status 4 before calling the installer.",
+    "f_10d3a800 installs six stream pointers into that global at +0x10/+0x14/+0x18/+0x1c/+0x20/+0x24 and context at +0x28 (0x10d3a8e4-0x10d3a920). Every stream pointer is required by the low-level installer: a null struct or any missing pointer branches to a block clearing all six, returning zero (0x10d3a93c-0x10d3a990). Thus a partial stream registration is not partial enablement. The earlier five-callback stream description omitted on_seek.",
+    "Actual dispatch is guarded by the stored pointers: stream-start helper f_10d3a9c0 reads global+0x10 and invokes it with incoming arguments plus saved context at 0x10d3aa24-0x10d3aa40; null skips dispatch. Stream-data helper f_10d3aad4 reads global+0x14, invokes it at 0x10d3ab28-0x10d3ab44 and preserves its result. The playback pump f_10d0fc5c reaches start at 0x10d1044c and data at 0x10d101e4. The data call bounds a chunk by 4096 and advances track position by the returned quantity at 0x10d10214-0x10d1022c. Start is therefore not the data callback, and callback return values participate in progress rather than merely logging.",
+    "Those two call sites lie in distinct event/state branches of the same pump. They do not prove one universal sequence across start, seek, flush, pause and end, nor any ordering with application connection notifications. The previous SMAPI-lifecycle assertion did not establish Spotify SDK event ordering and is withdrawn. Remaining event branches are in the shipped SDK and can be traced directly."
    ]
   },
   "esdk_crypto": {
