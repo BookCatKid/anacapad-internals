@@ -54750,10 +54750,10 @@
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
    ]
   },
-  "/MediaRenderer/ConnectionManager/Control": {
+ "/MediaRenderer/ConnectionManager/Control": {
    "name": "ConnectionManager",
    "control_path": "/MediaRenderer/ConnectionManager/Control",
-   "description": "Standard UPnP ConnectionManager registered at /MediaRenderer/ConnectionManager/Control; identical handler pair to its sibling registration (handlers 0x10735xxx shared verbatim). impl = svc+4 member for info, r4-in arg for the ID-list/protocol getters.",
+   "description": "The MediaRenderer ConnectionManager shares the three-action SOAP dispatch table with its sibling but binds a distinct core at service+4. This registration reports Sink protocol formats, no active IDs, and no successful connection detail records.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -54775,7 +54775,7 @@
      "off": 22300
     },
     "cap_flags": "0x40",
-    "notes": "Service object constructed at zone-player init; always registered in this build - no feature-gate found at the registration site"
+    "notes": "The router sets the enabled byte to zp+0x571c XOR 1, then skips disabled records before matching paths. f_1018d27c sets zp+0x571c from (role == 1); role helper f_101b4e50 returns zero on this build, so this registration is enabled. The record carries tag 0x40."
    },
    "object": {
     "expr": "r3-in+0x3d270",
@@ -54808,7 +54808,7 @@
     ],
     "action_table": "0x10f118d4"
    },
-   "actions": {
+  "actions": {
     "GetCurrentConnectionIDs": {
      "description": "Returns an empty CurrentConnectionIDs list on every accepted request in this build. This endpoint does not consult a connection registry.",
      "visibility": "advertised",
@@ -56316,20 +56316,41 @@
      "build": "86.10-80260",
      "address": "0x10735574",
      "notes": "service dispatcher"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018f570",
+     "notes": "Zone-player init calls 0x1032eb80 on zp+0x3d150, then calls the shared SOAP constructor f_10735be8 with that core. It writes the core pointer at service+4 and the primary table 0x10f118bc at service+0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eb8710",
+     "notes": "MediaRenderer core table, statically installed by 0x1032eb80; slot +0x08 is role-specific, slots +0x0c and +0x10 are shared."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019564c",
+     "notes": "Inverts the role flag also stored in this record at 0x10195680; 0x1019573c reads each record's enabled byte before path matching."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b4e54",
+     "notes": "The role query f_101b4e50 returns zero; f_1018d27c writes (role == 1) into zp+0x571c at 0x1018dd6c."
     }
    ],
    "notes": null,
    "impl_files": [
     "compiled lib: no path literal (same family as MediaServer CM)"
-   ],
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
-   "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
    ]
-  },
+ },
   "/MediaRenderer/GroupRenderingControl/Control": {
    "name": "GroupRenderingControl",
    "control_path": "/MediaRenderer/GroupRenderingControl/Control",
