@@ -67192,7 +67192,7 @@
       }
      ],
      "events_triggered": {
-      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The next LastChange delta that consumes the flag includes both fields. The dirty write does not directly wake a sender. The indexed workers have separate notification paths when the operation targets their current list.",
+      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The action and the LastChange collector use the same engine lock, so a collector on that engine cannot run between the mutation and its dirty write. An eligible delta includes both fields, but the dirty write does not directly wake the sender and success does not guarantee a separate event.",
       "evidence": [
        {
         "type": "firmware",
@@ -67273,11 +67273,35 @@
         "address": "0x102689f4",
         "notes": "For stopped playback op 2 sets stack +0x2c after a current-list commit, but not after a non-current-list commit. The current-list op-14 handler sets the same flag at 0x10268d94 only if f_1014e9a8 returns true. The non-current-list branch does not set it. At 0x10267e04 the consumer requires that flag before entering the notification path.",
         "function": "0x10267b68"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af2cc",
+        "notes": "The action acquires impl+0x458 before checking indexed mode and calling f_102af1c8/f_102adf20, and releases the lock at 0x102af2e4 after that worker returns. Both dirty writes occur inside the worker. Even if indexed request completion wakes the sender before the write, the same-engine collector f_102e6048 locks impl+0x458 at 0x102e6170 before invoking the formatter at 0x102e61d4 or 0x102e61f8.",
+        "function": "0x102af288"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10678c80",
+        "notes": "The running indexed path's sender call reaches f_1067c46c and checks the live event sender at source+0xb4 before calling f_10678c50. This helper sets the sender's pending byte +0x10e and signals its condition at +0xb8; it does not serialize a delta on the indexed worker's stack.",
+        "function": "0x10678c50"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102e4d7c",
+        "notes": "f_102b5658 latches impl+0x4252 into pending byte impl+0xa095 at 0x102b56d8 when that byte was clear and clears the source byte only on its consuming path at 0x102b57bc. The delta formatter tests the pending byte at 0x102e4d7c and, when set, reads the current next URI at impl+0x1a03 and metadata at impl+0x1e04.",
+        "function": "0x102e43a0"
        }
       ],
       "todo": [
-       "Established: the action marks both fields dirty without a direct sender call. Indexed op 2 and accepted op 14 set the respective notification flag on the current-list path; the non-current list and rejected removal paths do not set it.",
-       "Follow the queue mutation callbacks and the running/stopped notification delegates to the first AVTransport collector pass. Determine whether an already pending or periodic pass publishes the new descriptor if it misses the dirty write, and whether any alternate path wakes that pass when the explicit indexed notification is skipped."
+       "Established: a current-list indexed mutation can schedule a collector that takes the same engine lock before reading the descriptor. The action does not wake the sender directly, and the non-current-list and rejected removal paths skip the current-list scheduling flag.",
+       "Resolve the active-session event-source binding and the notifier's per-source deadline checks in f_1067d028/f_10683da0. Determine when a skipped indexed wake is covered by an independent pending or timed dispatch and when the formatter consumes the next-URI pending bit."
       ]
      },
      "state_transitions": {
@@ -67439,11 +67463,35 @@
         "address": "0x1014b834",
         "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
         "function": "0x1014b700"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10153694",
+        "notes": "A nonzero descriptor byte +0x661 immediately selects the service loader. Otherwise f_1015367c parses descriptor +0x19 with f_1056fc20 and excludes packed types 7 and 8 (low seven bits). For SID other than 254, a URI that does not start with x-sonosapi-hls: returns the successful parse result unchanged at 0x10153744. If SID is 254 or the HLS prefix matches, the selector uses the x-sonosapi-rtrecent: comparison instead. An HTTP(S) URI therefore passes the fallback test for a successfully parsed descriptor of another SID and type, but not for SID 254.",
+        "function": "0x1015367c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10154124",
+        "notes": "With descriptor +0x661 nonzero, f_10153fe0 selects f_10153ddc for +0x662 equal to 2 and f_10153d24 otherwise. Both pass a null flag output to f_10153a38. With +0x661 clear, the worker returns 800 for a missing lookup result or packed type 7 or 8; otherwise it enters f_10153e98. That path performs a SID lookup and, on success, passes a flag output to f_10153a38. If that call returns zero and sets the byte, f_10153e98 substitutes 802 at 0x10153fc8.",
+        "function": "0x10153fe0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10153bf8",
+        "notes": "On the error-normalization branch, f_10153a38 preserves 801 when its input byte +0x1d is nonzero. Otherwise it calls f_10c3ba54 and maps statuses outside 1042 through 1045 to 800. The raw isel at 0x10153c1c chooses 800 when the predicate returns zero; this branch alone does not establish which values a callback can actually supply.",
+        "function": "0x10153a38"
        }
       ],
       "todo": [
-       "Established: local guards and the 800/803 remapping are traced; 804 is an equality test between the stored-entry and unplayable-candidate counts, not a check that all prepared entries are unplayable.",
-       "Complete the passthrough fault domain by tracing which HTTP(S) metadata IDs can select f_10153fe0 and whether the downstream f_10153a38 and f_10153e98 result paths, including the conditional 802 at 0x10153fc8, are reachable for those IDs."
+       "Established: the worker's local guards and 800/803/804 mapping are traced. The HTTP(S) service path can be selected by a positive metadata-resolution flag or the SA_RINCON fallback; only the fallback branch can directly reach the 802 literal in f_10153e98. Its callback-dependent reachability and the other browse results remain open.",
+       "Resolve the metadata-resolution calls f_101205fc and f_10120904, bind browse callbacks for f_10153ddc, f_10153d24 and f_10153e98, and trace their returns and output flags through f_10153a38 and the SOAP worker."
       ]
      },
      "fault_sites": [
@@ -67719,6 +67767,30 @@
          "address": "0x1014b834",
          "notes": "On the metadata-selected branch (f_1015367c returns nonzero), f_1014b700 invokes f_10153fe0 with the descriptor, its parsed ID, and the callback table at 0x10e93668. A result other than 800 is returned directly by f_1014f48c; 800 is checked against the queue/capacity flag at descriptor +0x12 and may become 803.",
          "function": "0x1014b700"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10153694",
+         "notes": "A nonzero descriptor byte +0x661 immediately selects the service loader. Otherwise f_1015367c parses descriptor +0x19 with f_1056fc20 and excludes packed types 7 and 8 (low seven bits). For SID other than 254, a URI that does not start with x-sonosapi-hls: returns the successful parse result unchanged at 0x10153744. If SID is 254 or the HLS prefix matches, the selector uses the x-sonosapi-rtrecent: comparison instead. An HTTP(S) URI therefore passes the fallback test for a successfully parsed descriptor of another SID and type, but not for SID 254.",
+         "function": "0x1015367c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10154124",
+         "notes": "With descriptor +0x661 nonzero, f_10153fe0 selects f_10153ddc for +0x662 equal to 2 and f_10153d24 otherwise. Both pass a null flag output to f_10153a38. With +0x661 clear, the worker returns 800 for a missing lookup result or packed type 7 or 8; otherwise it enters f_10153e98. That path performs a SID lookup and, on success, passes a flag output to f_10153a38. If that call returns zero and sets the byte, f_10153e98 substitutes 802 at 0x10153fc8.",
+         "function": "0x10153fe0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10153bf8",
+         "notes": "On the error-normalization branch, f_10153a38 preserves 801 when its input byte +0x1d is nonzero. Otherwise it calls f_10c3ba54 and maps statuses outside 1042 through 1045 to 800. The raw isel at 0x10153c1c chooses 800 when the predicate returns zero; this branch alone does not establish which values a callback can actually supply.",
+         "function": "0x10153a38"
         }
        ],
        "literal_bound": [
@@ -67732,8 +67804,8 @@
         701
        ],
        "todo": [
-        "Established: local guards and the 800/803 remapping are traced; 804 is an equality test between the stored-entry and unplayable-candidate counts, not a check that all prepared entries are unplayable.",
-        "Complete the passthrough fault domain by tracing which HTTP(S) metadata IDs can select f_10153fe0 and whether the downstream f_10153a38 and f_10153e98 result paths, including the conditional 802 at 0x10153fc8, are reachable for those IDs."
+        "Established: the worker's local guards and 800/803/804 mapping are traced. The HTTP(S) service path can be selected by a positive metadata-resolution flag or the SA_RINCON fallback; only the fallback branch can directly reach the 802 literal in f_10153e98. Its callback-dependent reachability and the other browse results remain open.",
+        "Resolve the metadata-resolution calls f_101205fc and f_10120904, bind browse callbacks for f_10153ddc, f_10153d24 and f_10153e98, and trace their returns and output flags through f_10153a38 and the SOAP worker."
        ]
       },
       {
@@ -68032,12 +68104,52 @@
        "address": "0x10148e0c",
        "notes": "The entry callback calls f_10147da8 at 0x10148a60; a false playability result takes the branch at 0x10148a8c to the unplayable-track log and increments descriptor +0x14 before the later LF and append checks. Descriptor +0x08 increments at 0x10148db4 once an entry has been written. The preparation helper compares the counts at 0x1014f7c4, not a direct query for any playable entry.",
        "function": "0x101489f0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10153834",
+       "notes": "f_1015379c parses the incoming metadata via f_102fd094 and f_10c3fc68 before the loader selector runs. It sets descriptor +0x661 only when f_101205fc succeeds and the follow-up f_10120904 returns a nonnull result, which it stores at +0x65c.",
+       "function": "0x1015379c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10153694",
+       "notes": "A nonzero descriptor byte +0x661 immediately selects the service loader. Otherwise f_1015367c parses descriptor +0x19 with f_1056fc20 and excludes packed types 7 and 8 (low seven bits). For SID other than 254, a URI that does not start with x-sonosapi-hls: returns the successful parse result unchanged at 0x10153744. If SID is 254 or the HLS prefix matches, the selector uses the x-sonosapi-rtrecent: comparison instead. An HTTP(S) URI therefore passes the fallback test for a successfully parsed descriptor of another SID and type, but not for SID 254.",
+       "function": "0x1015367c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1056fc54",
+       "notes": "The fallback descriptor parser matches SA_RINCON, parses a base-10 number, requires an underscore at the parse endpoint, and requires a nonzero packed value. It normalizes 1 or 2 to 0xca07, and 13 or 14 to 0xcb07. In either normalized case the low seven bits are 7, which the loader selector rejects; parsing a service descriptor alone is not sufficient to select service loading.",
+       "function": "0x1056fc20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10154124",
+       "notes": "With descriptor +0x661 nonzero, f_10153fe0 selects f_10153ddc for +0x662 equal to 2 and f_10153d24 otherwise. Both pass a null flag output to f_10153a38. With +0x661 clear, the worker returns 800 for a missing lookup result or packed type 7 or 8; otherwise it enters f_10153e98. That path performs a SID lookup and, on success, passes a flag output to f_10153a38. If that call returns zero and sets the byte, f_10153e98 substitutes 802 at 0x10153fc8.",
+       "function": "0x10153fe0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10153bf8",
+       "notes": "On the error-normalization branch, f_10153a38 preserves 801 when its input byte +0x1d is nonzero. Otherwise it calls f_10c3ba54 and maps statuses outside 1042 through 1045 to 800. The raw isel at 0x10153c1c chooses 800 when the predicate returns zero; this branch alone does not establish which values a callback can actually supply.",
+       "function": "0x10153a38"
       }
      ],
      "notes": null,
      "todo": [
       "Established: plain HTTP(S) goes through the queue-entry callback, recognized playlist markers select format loaders, and the metadata-selected service branch has its own loader. The counter compared with the stored-entry count for 804 increments when the queue-entry callback's playability check fails.",
-      "Trace each HTTP(S)-reachable parser's entry callback, order, nesting and stop conditions under f_104634c4. For f_10153fe0, identify which parsed metadata IDs produce entries and which reach pagination or service-specific results through f_10153a38."
+      "Trace each HTTP(S)-reachable playlist parser's entry callback, order, nesting and stop conditions under f_104634c4. Map the metadata combinations that set descriptor +0x661 through f_101205fc and f_10120904 or feed the fallback SA_RINCON parser, then trace concrete browse callbacks and pagination."
      ]
     },
     "SetPlayMode": {
