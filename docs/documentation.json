@@ -149856,16 +149856,36 @@
      "type": "firmware",
      "address": "0x10ecc67c",
      "notes": "didl extractor block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1041dd80",
+     "notes": "Null and empty compact metadata reject after reset."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ecc7d0",
+     "notes": "Nineteen-entry first-byte selector dispatch, not DIDL-class-string dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1041e070",
+     "notes": "Podcast/show positional tail and numeric conversion-success bookkeeping."
     }
    ],
-   "todo": [
-    "Residual: the exact extraMd field set selected per DIDL class (per-arm field lists inside f_1041dc78's class branches) - class vocabulary proven; per-arm field enumeration is mechanical branch data; no required-field rejection exists in the extractor."
-   ],
+   "todo": "Residual: join the recovered compact extraMd selector/position outputs (+0x2be,+4,+0x1eb,+0x19e,+0x248,+0x2a5,+0x33a and numeric fields) to semantic DIDL names through their getters/XML serializers. The complete A..S selector dispatch is recovered; it selects output classes rather than branching on input XML class strings.",
    "resolved_findings": [
-    "Resolved: loadFromExtraMd extraction = per-field handlers for the extra-metadata CSV block mapping each field to its DIDL element.",
-    "extraMd grammar proven (loadFromExtraMd pszTrackURI: %s pszExtraMd: %s, RTrackDIDLLiteMdExtractor): the blob is the r:-namespaced RINCON metadata XML carrying {r:radioName, r:streamContent, r:audioInputIcon, r:radioShowMd, r:streamInfo, r:connotation, r:state, r:rating, r:trackGain, r:policies, r:isAd, r:linkUrl, r:podcast, r:episodeNumber, r:releaseDate, r:chapterCount, r:chapterNum, r:narrator, r:albumArtist, r:numSections} plus upnp:album + upnp:originalTrackNumber + duration=\" attribute; class names bound: {object.item.audioItem.podcast, object.item.audioItem.show, object.item.audioItem.audioBook.chapter, object.item.audioItem.musicTrack.recentShow, object.item}. The URI-scheme->service map is enumerable: https:, aac:, file:, rhap:, radio-rhap:, radio-radea:, radio-npsdy:, pndrradio-http://, pndrradioad://, lfmtrack:, x-sonos-dock:, hls-static://, x-sonosapi-iqradio:, x-rincon-buzzer, x-rincon-internal + service hosts sonos.com-{rtrecent,spotify,http,mms}, real.com-rhapsody-{direct,http-1-0}, sirius.com-sirradio, last.fm-radio-http, pandora.com-pndrradio{,-ad}. MIME extraction: extractMimeTypeFromHttpContentType with truncation guards; protocolInfo wildcard :*:; WAV/RIFF INFO tags {IART, IGNR, INAM, IPRD, itrk}; rtsp-rtp-udp transport; album art URL %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg with folder.jpg/image-{jpg,gif} fallbacks.",
+    "General metadata vocabulary (loadFromExtraMd pszTrackURI: %s pszExtraMd: %s, RTrackDIDLLiteMdExtractor): the XML metadata vocabulary includes {r:radioName, r:streamContent, r:audioInputIcon, r:radioShowMd, r:streamInfo, r:connotation, r:state, r:rating, r:trackGain, r:policies, r:isAd, r:linkUrl, r:podcast, r:episodeNumber, r:releaseDate, r:chapterCount, r:chapterNum, r:narrator, r:albumArtist, r:numSections} plus upnp:album + upnp:originalTrackNumber + duration=\" attribute; class names bound: {object.item.audioItem.podcast, object.item.audioItem.show, object.item.audioItem.audioBook.chapter, object.item.audioItem.musicTrack.recentShow, object.item}. The URI-scheme->service map is enumerable: https:, aac:, file:, rhap:, radio-rhap:, radio-radea:, radio-npsdy:, pndrradio-http://, pndrradioad://, lfmtrack:, x-sonos-dock:, hls-static://, x-sonosapi-iqradio:, x-rincon-buzzer, x-rincon-internal + service hosts sonos.com-{rtrecent,spotify,http,mms}, real.com-rhapsody-{direct,http-1-0}, sirius.com-sirradio, last.fm-radio-http, pandora.com-pndrradio{,-ad}. MIME extraction: extractMimeTypeFromHttpContentType with truncation guards; protocolInfo wildcard :*:; WAV/RIFF INFO tags {IART, IGNR, INAM, IPRD, itrk}; rtsp-rtp-udp transport; album art URL %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg with folder.jpg/image-{jpg,gif} fallbacks.",
     "Metadata-ID-type enum at 0x10facf88: {DISCOGS=1, IPI=2, ISNI=3, ISRC=4, MBID=5, MUSICOBJECTID=6}.",
-    "Extractor class-dispatch vocabulary (loadFromExtraMd f_1041dc78): the parser branches on literal DIDL classes {object.item.audioItem.show, object.item.audioItem.audioBook.chapter, object.item.audioItem.podcast, object.item.audioItem.musicTrack(.recentShow), object.item.audioItem, object.item.audioItem.linein(.homeTheater/.airplay/.bluetooth), object.item.audioItem.audioBroadcast(.live), object.item.sonos-favorite}; extraMd CSV fields are tagged '|TITLE |ARTIST |ALBUM ...'. No 'missing required field' rejection exists anywhere in the extractor literal set - field selection is per-class branch data, not a mandatory/optional enforcement table."
+    "loadFromExtraMd f_1041dc78 is a compact comma-separated parser whose first byte selects the output class; it is not a branch on input DIDL class strings. It resets output strings and state at 0x1041dcec-0x1041dd74, tests null input at 0x1041dd80-0x1041dd88 (returns zero), and empty input at 0x1041dd8c-0x1041dd98 (returns zero). A leading B returns one immediately at 0x1041ddd0-0x1041ddd4. Other inputs extract a common field into owner+0x2be with bound 0x65, optionally another into +4 with bound 0x4d, then dispatch on firstByte-A using a nineteen-entry relative table at 0x10ecc7d0 (0x1041de04-0x1041de2c). Bytes outside A..S or unhandled entries return zero. Thus the old claim of no rejection anywhere based solely on literal absence is withdrawn.",
+    "The full compact selector dispatch is {A -> 0x1041df20, C -> 0x1041def0, D -> 0x1041dec8, P/S -> 0x1041de88}; B is the earlier immediate-success case, and all other A..S slots target failure at 0x1041de30. A selects object.item.audioItem.musicTrack and optionally reads a field into +0x1eb; C selects object.item.audioItem.audioBook.chapter and optionally reads +0x19e; P selects object.item.audioItem.podcast and S selects object.item.audioItem.show, optionally reading +0x248. D reaches shared parsing without setting one of these class literals. Output class text is stored at +0x346, not used as the input switch key.",
+    "Shared optional tails are comma-gated, with absent fields cleared or left at reset defaults: a bound-12 temporary is parsed with strtol base ten into the pair at +0x390 and validity byte +0x3a5 (0x1041df68-0x1041df98 and 0x1041e0dc-0x1041e100). P/S optionally fill +0x2a5 with bound 0x19 and parse an unsigned integer into +0x3a0, recording conversion success at +0x3a9 (0x1041e070-0x1041e0d8). C optionally parses an unsigned integer into +0x398 with success byte +0x3a7 (0x1041e030-0x1041e114). The final optional bound-12 string goes to +0x33a. These offsets and bounds are established; their exact DIDL field-name binding still needs the XML getter/serializer chain. Reset and comma checks are not a proof of a universal required/optional DIDL schema."
    ]
   },
   "sharelist": {
