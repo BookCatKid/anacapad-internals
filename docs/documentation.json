@@ -59767,17 +59767,62 @@
          "function": "0x10511858",
          "address": "0x10511a04",
          "notes": "lhz r7, 0x141e(r31) into f_1032e368"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: only the low 16 bits reach f_1032e368 as the insert position of the commit request submitted via f_10255f64.",
-        "Residual: the meaning of position 0 and out-of-range positions is decided inside f_1032e368/the session request consumer, not traced; next step is to disassemble f_1032e368 and its consumer behind f_10255f64."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding and use): bound as a u32 into job+0x141c; only its low 16 bits (lhz job+0x141e at 0x10511a04) are used, as the insert-position argument r7 of the commit-request builder f_1032e368 on the success path; the per-entry inserts do not receive it."
+        "Resolved (binding and use): bound as a u32 into job+0x141c; only its low 16 bits (lhz job+0x141e at 0x10511a04) are used, as the insert-position argument r7 of the commit-request builder f_1032e368 on the success path; the per-entry inserts do not receive it.",
+        "Resolved: Position rule, from f_1014dc98: desired = min(Desired, old_length+1) (isel 0x7f8ae75e at 0x1014ddb0). In a queue without the order array (bit 0 of q+0x26dc clear), FirstTrackNumberEnqueued is old_length+1 (0x1014dfec). When 1 <= desired <= old_length, f_101463c8(q, desired-1, new_length-(desired-1), old_length-(desired-1)) rotates the new block to that position and FirstTrackNumberEnqueued becomes desired (0x1014e028). So 0 or any value past the end appends. In the shuffled order-array mode (bit 0 set), the order array is extended by f_101457e0 (0x1014e06c) and FirstTrackNumberEnqueued is desired, or old_length+1 when desired is 0 (0x1014df7c..0x1014df80). The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       },
       "EnqueueAsNext": {
@@ -59813,17 +59858,86 @@
          "function": "0x10511858",
          "address": "0x10511a00",
          "notes": "lbz r8, 0x1420(r31)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e098",
+         "notes": "shuffle placement call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144fd4",
+         "address": "0x10145170",
+         "notes": "random slot via f_105a3b6c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105a3b6c",
+         "address": "0x105a3b98",
+         "notes": "ZZ0153 import (libsonoscrypto.so.3 0x761c, ZZ0071 -> mbedtls_ctr_drbg_random)"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: EnqueueAsNext is a byte flag forwarded only into the commit request built by f_1032e368.",
-        "Residual: how the request consumer uses the flag to override DesiredFirstTrackNumberEnqueued is not traced; next step is f_1032e368 and the consumer behind f_10255f64."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `EnqueueAsNext` = verbatim forward to impl vfunc +44 (obj r5-in, call site 0x10464fa0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved (binding and use): bound as a bool by f_10561444 into job+0x1420 (parse site 0x104652cc); its byte is passed as r8 of f_1032e368 at 0x10511a00 on the success path only."
+        "Resolved (binding and use): bound as a bool by f_10561444 into job+0x1420 (parse site 0x104652cc); its byte is passed as r8 of f_1032e368 at 0x10511a00 on the success path only.",
+        "Resolved: EnqueueAsNext only matters in the shuffled order-array mode of the playing queue. There, when the play index is not the last track, f_10144fd4(q, playidx, old_length, new_length, flag) at 0x1014e098 places the new tracks in play order. flag is 0 only when EnqueueAsNext is set and Desired is 0 (isel 0x1014def8): the new tracks then go right after the playing track (0x10145108..0x10145124). Otherwise each one gets a random slot after it, drawn by f_105a3b6c (0x10145170). f_105a3b6c calls libsonoscrypto ZZ0153, which does uniform rejection sampling over ZZ0071, and ZZ0071 calls mbedtls_ctr_drbg_random (lib 0x761c and 0x75ec). In unshuffled queues the flag is not read. The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       },
       "NumberOfURIs": {
@@ -60008,16 +60122,61 @@
          "function": "0x10511858",
          "address": "0x10511a50",
          "notes": "lhz r6,0x26(r1)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the value is the u16 out-param written by f_1032e368.",
-        "Residual: f_1032e368's computation of the new length is not traced; next step is to disassemble f_1032e368."
-       ],
        "resolved_findings": [
-        "Resolved (provenance): u16 out-param sp+0x26 of f_1032e368 (r10 at 0x10511a08), passed as r6 of adapter->v[+0xc], stored at adapter+0x10, emitted at 0x10465048."
+        "Resolved (provenance): u16 out-param sp+0x26 of f_1032e368 (r10 at 0x10511a08), passed as r6 of adapter->v[+0xc], stored at adapter+0x10, emitted at 0x10465048.",
+        "Resolved: NewQueueLength is the queue length after the insert, read from q+0x26c8 at 0x1014df9c inside the consumer. The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       },
       "NewUpdateID": {
@@ -60091,16 +60250,61 @@
          "function": "0x10511858",
          "address": "0x10511a58",
          "notes": "lhz r4,0x28(r1)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the value is the u16 out-param written by f_1032e368 while building the commit request.",
-        "Residual: how f_1032e368 computes it from DesiredFirstTrackNumberEnqueued/EnqueueAsNext and the queue length is not traced; next step is to disassemble f_1032e368."
-       ],
        "resolved_findings": [
-        "Resolved (provenance): u16 out-param sp+0x28 of f_1032e368 (r9 at 0x10511a10), passed as r4 of adapter->v[+0xc], stored at adapter+8 and emitted at 0x10465000."
+        "Resolved (provenance): u16 out-param sp+0x28 of f_1032e368 (r9 at 0x10511a10), passed as r4 of adapter->v[+0xc], stored at adapter+8 and emitted at 0x10465000.",
+        "Resolved: Position rule, from f_1014dc98: desired = min(Desired, old_length+1) (isel 0x7f8ae75e at 0x1014ddb0). In a queue without the order array (bit 0 of q+0x26dc clear), FirstTrackNumberEnqueued is old_length+1 (0x1014dfec). When 1 <= desired <= old_length, f_101463c8(q, desired-1, new_length-(desired-1), old_length-(desired-1)) rotates the new block to that position and FirstTrackNumberEnqueued becomes desired (0x1014e028). So 0 or any value past the end appends. In the shuffled order-array mode (bit 0 set), the order array is extended by f_101457e0 (0x1014e06c) and FirstTrackNumberEnqueued is desired, or old_length+1 when desired is 0 (0x1014df7c..0x1014df80). The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       }
      },
@@ -60697,16 +60901,61 @@
          "function": "0x102b62e8",
          "address": "0x102b66c8",
          "notes": "rlwinm r7,r4,0,16,31 (low 16 bits of Desired)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: only the low 16 bits reach f_1032e368 as the insert position; no validation exists in f_1046453c, f_102b6948, f_102b674c or f_102b62e8.",
-        "Residual: the meaning of position 0 and of positions past the queue end is decided inside f_1032e368/the request consumer behind f_10255f64, not traced; next step is to disassemble f_1032e368."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x104646b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
-        "Resolved: bound as a u32 (f_105614e0 at 0x1046461c) and passed unchanged as r8 into f_102b6948, then r27 of f_102b674c, which stores it as the first stack argument of f_102b62e8 (0x102b6888). f_102b62e8 passes its low 16 bits (rlwinm r7 at 0x102b66c8) as the insert-position argument of the commit-request builder f_1032e368 (0x102b66d4); the entry insert f_1014f808 does not receive it. In plain terms: the value is a 16-bit 1-based track position handed to the session commit request; there is no range check on the Queue service side."
+        "Resolved: bound as a u32 (f_105614e0 at 0x1046461c) and passed unchanged as r8 into f_102b6948, then r27 of f_102b674c, which stores it as the first stack argument of f_102b62e8 (0x102b6888). f_102b62e8 passes its low 16 bits (rlwinm r7 at 0x102b66c8) as the insert-position argument of the commit-request builder f_1032e368 (0x102b66d4); the entry insert f_1014f808 does not receive it. In plain terms: the value is a 16-bit 1-based track position handed to the session commit request; there is no range check on the Queue service side.",
+        "Resolved: Position rule, from f_1014dc98: desired = min(Desired, old_length+1) (isel 0x7f8ae75e at 0x1014ddb0). In a queue without the order array (bit 0 of q+0x26dc clear), FirstTrackNumberEnqueued is old_length+1 (0x1014dfec). When 1 <= desired <= old_length, f_101463c8(q, desired-1, new_length-(desired-1), old_length-(desired-1)) rotates the new block to that position and FirstTrackNumberEnqueued becomes desired (0x1014e028). So 0 or any value past the end appends. In the shuffled order-array mode (bit 0 set), the order array is extended by f_101457e0 (0x1014e06c) and FirstTrackNumberEnqueued is desired, or old_length+1 when desired is 0 (0x1014df7c..0x1014df80). The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       },
       "EnqueueAsNext": {
@@ -60742,9 +60991,36 @@
          "build": "86.10-80260",
          "address": "0x10eb34ec",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e098",
+         "notes": "shuffle placement call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10144fd4",
+         "address": "0x10145170",
+         "notes": "random slot via f_105a3b6c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x105a3b6c",
+         "address": "0x105a3b98",
+         "notes": "ZZ0153 import (libsonoscrypto.so.3 0x761c, ZZ0071 -> mbedtls_ctr_drbg_random)"
         }
        ],
-       "notes": null
+       "notes": null,
+       "resolved_findings": [
+        "Consumer use: EnqueueAsNext only matters in the shuffled order-array mode of the playing queue. There, when the play index is not the last track, f_10144fd4(q, playidx, old_length, new_length, flag) at 0x1014e098 places the new tracks in play order. flag is 0 only when EnqueueAsNext is set and Desired is 0 (isel 0x1014def8): the new tracks then go right after the playing track (0x10145108..0x10145124). Otherwise each one gets a random slot after it, drawn by f_105a3b6c (0x10145170). f_105a3b6c calls libsonoscrypto ZZ0153, which does uniform rejection sampling over ZZ0071, and ZZ0071 calls mbedtls_ctr_drbg_random (lib 0x761c and 0x75ec). In unshuffled queues the flag is not read."
+       ]
       }
      },
      "outputs": {
@@ -60801,15 +61077,60 @@
          "function": "0x1046453c",
          "address": "0x10464728",
          "notes": "lwz r4,0x34(r1) emit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the value is the r9 out-param of the commit-request builder f_1032e368.",
-        "Residual: how f_1032e368 derives it from Desired/EnqueueAsNext and the queue length is not traced; next step is to disassemble f_1032e368."
-       ],
        "resolved_findings": [
-        "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&First)=u16 sp+0x24, the r9 out-param of f_1032e368 (0x102b66bc). The pointer is the wrapper's sp+0x34 (r10 at 0x104646ac), emitted at 0x1046472c."
+        "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&First)=u16 sp+0x24, the r9 out-param of f_1032e368 (0x102b66bc). The pointer is the wrapper's sp+0x34 (r10 at 0x104646ac), emitted at 0x1046472c.",
+        "Resolved: Position rule, from f_1014dc98: desired = min(Desired, old_length+1) (isel 0x7f8ae75e at 0x1014ddb0). In a queue without the order array (bit 0 of q+0x26dc clear), FirstTrackNumberEnqueued is old_length+1 (0x1014dfec). When 1 <= desired <= old_length, f_101463c8(q, desired-1, new_length-(desired-1), old_length-(desired-1)) rotates the new block to that position and FirstTrackNumberEnqueued becomes desired (0x1014e028). So 0 or any value past the end appends. In the shuffled order-array mode (bit 0 set), the order array is extended by f_101457e0 (0x1014e06c) and FirstTrackNumberEnqueued is desired, or old_length+1 when desired is 0 (0x1014df7c..0x1014df80). The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       },
       "NumTracksAdded": {
@@ -60902,15 +61223,60 @@
          "function": "0x102b62e8",
          "address": "0x102b6654",
          "notes": "stw r10(sp26),0(r27)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014ddb0",
+         "notes": "desired clamped to old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014dfec",
+         "notes": "append position old_length+1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014e028",
+         "notes": "insert at desired after f_101463c8 rotation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014dc98",
+         "address": "0x1014df9c",
+         "notes": "NewQueueLength from q+0x26c8"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x102663d0",
+         "notes": "op 2 consumer call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1025a350",
+         "address": "0x1025a450",
+         "notes": "playing-queue commit"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the value is the r10 out-param of f_1032e368.",
-        "Residual: f_1032e368's computation of the length is not traced; next step is to disassemble f_1032e368."
-       ],
        "resolved_findings": [
-        "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&Len)=u16 sp+0x26, the r10 out-param of f_1032e368 (0x102b6600). Pointer is wrapper sp+0x3c, emitted at 0x10464774."
+        "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&Len)=u16 sp+0x26, the r10 out-param of f_1032e368 (0x102b6600). Pointer is wrapper sp+0x3c, emitted at 0x10464774.",
+        "Resolved: NewQueueLength is the queue length after the insert, read from q+0x26c8 at 0x1014df9c inside the consumer. The begin request (op 1, f_1032e350) is applied by f_1014b084 ('>>>> beginAppend'), which sets q+0x26b5 and bumps the append generation q+0x26b8. The commit request (op 2, f_1032e368) is applied at 0x1026634c: for a non-playing queue it calls f_1014dc98(q, gen, count, &desired, EnqueueAsNext!=0, 0, 0, &FirstTrackNumberEnqueued, &NewQueueLength) at 0x102663d0; for the playing queue f_1025a350 calls it at 0x1025a450 with the play index in r8 and then updates the play position (f_103411b0, f_10149e68, f_10259c1c). The consumer reports ok=1 for op 2 without looking at the result (0x102663cc). f_1014dc98 does nothing when count is 0 (0x1014dce4) or when q+0x26b8 differs from the request's generation (0x1014ddc4, a stale append). Otherwise it sets the length q+0x26c8 to old+count (0x1014de64), raises the high-water mark q+0x26ca, and writes NewQueueLength from q+0x26c8 (0x1014df9c)."
        ]
       },
       "NewUpdateID": {
