@@ -107237,7 +107237,7 @@
      "implementation_notes": "Argless report dispatches primary implementation slot +0x14 to f_1011cd78; request success commit is not an implementation delegate."
     },
     "ReportUnresponsiveDevice": {
-     "description": "Reports DeviceUUID unresponsive with DesiredAction via impl->v[+0x10] on the svc+4 member.",
+     "description": "Reports or removes a cached player/media server. DeviceUUID prefix routes to distinct concrete workers; DesiredAction controls removal or probing. This is not a generic warn/retry request and does not prove the target is offline.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733498",
@@ -107284,7 +107284,7 @@
      },
      "inputs": {
       "DeviceUUID": {
-       "description": "device UUID string; impl strncmp vs \"RINCON_\" (7) - non-Sonos IDs rejected",
+       "description": "Target UUID; RINCON_ prefix selects player handling, all other text selects media-server handling.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -107293,36 +107293,54 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
+       "semantic_type": "DeviceUUID",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "must begin with \"RINCON_\"",
+       "accepted_values": "opaque text; RINCON_ selects player routing",
        "range": "max 1023 chars",
-       "special_values": "none observed in this build",
+       "special_values": "Empty text routes to media-server handling.",
        "required": true,
        "default": "none - required argument",
-       "validation": "impl-level prefix check; mismatch -> 402",
+       "validation": "Required presence; bounded text copy; no prefix rejection.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x101214c8",
-         "notes": "strncmp RINCON_"
+         "function": "0x10733498",
+         "address": "0x1073359c",
+         "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x10121494",
          "address": "0x101214dc",
-         "notes": "beq to worker f_10747b74"
+         "notes": "strncmp(DeviceUUID,\"RINCON_\",7) at 0x101214c8: equality branches to f_10747b74, inequality tails to f_10121310. This is a player-versus-media-server routing predicate, NOT a 402 prefix requirement. No UUID suffix grammar check."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10121310",
+         "address": "0x1012136c",
+         "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747b74",
+         "address": "0x10747d40",
+         "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
         }
        ],
        "notes": null,
        "buf_cap": 1024
       },
       "DesiredAction": {
-       "description": "action string forwarded to report worker f_10747b74",
+       "description": "Case-sensitive operation selector.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -107331,22 +107349,39 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosBoolArg",
+       "semantic_type": "ActionSelector",
        "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
-       "unit": "none - boolean flag",
-       "accepted_values": "not impl-checked",
+       "unit": "n/a - text",
+       "accepted_values": "Remove, VerifyThenRemoveSystemwide; TopologyMonitorProbe only on RINCON_ branch",
        "range": "max 127 chars",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "validation": "Unknown or empty action -> 402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10121494",
-         "notes": "impl head"
+         "function": "0x10733498",
+         "address": "0x1073359c",
+         "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10121310",
+         "address": "0x1012136c",
+         "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747b74",
+         "address": "0x10747d40",
+         "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
         }
        ],
        "notes": null,
@@ -107355,152 +107390,365 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "Required bounded text registration followed by generic validation, then case-sensitive worker action selection. The seven-byte RINCON_ test selects player routing, not validity. Supplied empty DesiredAction selects 402; supplied empty UUID is a media-server target, so Remove can return success without finding an entry.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10733498",
-        "notes": "wrapper decode"
+        "function": "0x10733498",
+        "address": "0x1073359c",
+        "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121494",
+        "address": "0x101214dc",
+        "notes": "strncmp(DeviceUUID,\"RINCON_\",7) at 0x101214c8: equality branches to f_10747b74, inequality tails to f_10121310. This is a player-versus-media-server routing predicate, NOT a 402 prefix requirement. No UUID suffix grammar check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121310",
+        "address": "0x1012136c",
+        "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747b74",
+        "address": "0x10747d40",
+        "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, 0x34×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x10], *(r30+4) v[+0x10]",
+      "description": "Both named text inputs must be present. Empty text is not rejected at request parsing. Action names are case-sensitive. RINCON_ targets support Remove, VerifyThenRemoveSystemwide and TopologyMonitorProbe; other targets support the first two only. No blanket RINCON_ prerequisite.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733498",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0xc': 1, '0x14': 1, '0x34': 1}"
+        "address": "0x1073359c",
+        "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121494",
+        "address": "0x101214dc",
+        "notes": "strncmp(DeviceUUID,\"RINCON_\",7) at 0x101214c8: equality branches to f_10747b74, inequality tails to f_10121310. This is a player-versus-media-server routing predicate, NOT a 402 prefix requirement. No UUID suffix grammar check."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121310",
+        "address": "0x1012136c",
+        "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747b74",
+        "address": "0x10747d40",
+        "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×2, 0x34×1, validate×1, commit×1); member delegates: *(r30+4) v[+0x10], *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+0x10], *(r30+4) v[+0x10]",
+      "description": "Statically bound topology, mutex +0x318, local identity helper +0x310, player map +0x5a8, media-server map +0x11b8, byte +0xed8 controlling self-target acceptance/drop, endpoint lookup and optional diagnostic telemetry state. Verify may contact other members.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10733498",
-        "notes": "member vfunc calls: ['*(r30+4) v[+0x10]', '*(r30+4) v[+0x10]']"
+        "function": "0x10125b54",
+        "address": "0x10e8b034",
+        "notes": "Primary topology vptr 0x10e8b024 installed at 0x10126234; service constructor f_10733b28 receives it at 0x1018e2cc and stores service+4. Slot +0x10 is f_10121494. Wrapper calls this slot at 0x10733564 or 0x10733648; the second path only adds optional request-peer logging, not a different worker."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121310",
+        "address": "0x1012136c",
+        "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747b74",
+        "address": "0x10747d40",
+        "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747624",
+        "address": "0x107476d8",
+        "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10128e08",
+        "address": "0x10747c90",
+        "notes": "Player removal calls installed primary slot +0x118 (entry 0x10e8b13c -> f_10128e08) at 0x10747c90 with defunct record {UUID, zero source flags, DesiredAction reason}. f_10128e08 checks discovery-origin flags, updates local designation via f_1074700c -> f_10746e74, invokes f_10750cb8, and informs AlarmClock helper f_102766c8. f_10750cb8 removes active-list entry (0x10750e0c), conditionally transitions it to vanished list, marks topology data via f_10766064 and schedules topology+8 with f_1067c6ec at 0x10750ebc; follow-on f_10741960 processes topology changes. No guaranteed playback stop or device shutdown follows from the action name. Non-player removal f_1011e11c locks +0x318, removes media-server entry from +0x11b8 via f_10765118, and only if changed calls f_10760d48 and f_1067c6ec(topology+8) at 0x1011e1b4. No action-specific registration or alarm-definition persistence."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+0x10], *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: *(r30+4) v[+0x10], *(r30+4) v[+0x10] (call-derived member-method semantics)",
+       "description": "May probe a peer, broadcast Remove to other members, remove a cached media server or transition an active player into vanished state, update designation/group bookkeeping and inform AlarmClock of topology changes. Optional logging/telemetry. Self-probe, rejected and drop-as-success paths do not perform removal. No clock setting or alarm-definition save.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10121310",
+         "address": "0x1012136c",
+         "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747b74",
+         "address": "0x10747d40",
+         "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747624",
+         "address": "0x107476d8",
+         "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10128e08",
+         "address": "0x10747c90",
+         "notes": "Player removal calls installed primary slot +0x118 (entry 0x10e8b13c -> f_10128e08) at 0x10747c90 with defunct record {UUID, zero source flags, DesiredAction reason}. f_10128e08 checks discovery-origin flags, updates local designation via f_1074700c -> f_10746e74, invokes f_10750cb8, and informs AlarmClock helper f_102766c8. f_10750cb8 removes active-list entry (0x10750e0c), conditionally transitions it to vanished list, marks topology data via f_10766064 and schedules topology+8 with f_1067c6ec at 0x10750ebc; follow-on f_10741960 processes topology changes. No guaranteed playback stop or device shutdown follows from the action name. Non-player removal f_1011e11c locks +0x318, removes media-server entry from +0x11b8 via f_10765118, and only if changed calls f_10760d48 and f_1067c6ec(topology+8) at 0x1011e1b4. No action-specific registration or alarm-definition persistence."
+        }
+       ]
+      }
+     ],
+     "events_triggered": {
+      "description": "Conditional topology-source scheduling, not unconditional notification: local media-server removal schedules only when its map changed; player defunct handling marks cached topology and schedules source +8. Rejected, probe-only and dropped requests need not emit. Peer SOAP Remove is distinct from outgoing event notification.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747b74",
+        "address": "0x10747d40",
+        "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10128e08",
+        "address": "0x10747c90",
+        "notes": "Player removal calls installed primary slot +0x118 (entry 0x10e8b13c -> f_10128e08) at 0x10747c90 with defunct record {UUID, zero source flags, DesiredAction reason}. f_10128e08 checks discovery-origin flags, updates local designation via f_1074700c -> f_10746e74, invokes f_10750cb8, and informs AlarmClock helper f_102766c8. f_10750cb8 removes active-list entry (0x10750e0c), conditionally transitions it to vanished list, marks topology data via f_10766064 and schedules topology+8 with f_1067c6ec at 0x10750ebc; follow-on f_10741960 processes topology changes. No guaranteed playback stop or device shutdown follows from the action name. Non-player removal f_1011e11c locks +0x318, removes media-server entry from +0x11b8 via f_10765118, and only if changed calls f_10760d48 and f_1067c6ec(topology+8) at 0x1011e1b4. No action-specific registration or alarm-definition persistence."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747624",
+        "address": "0x107476d8",
+        "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Remove can evict a media server or move a player from active to vanished; verification can prevent removal. Repeating a report need not find an active entry. Self-target safety gate can reject or silently drop. No alarm-running state is set by this report.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121310",
+        "address": "0x1012136c",
+        "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747b74",
+        "address": "0x10747d40",
+        "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10128e08",
+        "address": "0x10747c90",
+        "notes": "Player removal calls installed primary slot +0x118 (entry 0x10e8b13c -> f_10128e08) at 0x10747c90 with defunct record {UUID, zero source flags, DesiredAction reason}. f_10128e08 checks discovery-origin flags, updates local designation via f_1074700c -> f_10746e74, invokes f_10750cb8, and informs AlarmClock helper f_102766c8. f_10750cb8 removes active-list entry (0x10750e0c), conditionally transitions it to vanished list, marks topology data via f_10766064 and schedules topology+8 with f_1067c6ec at 0x10750ebc; follow-on f_10741960 processes topology changes. No guaranteed playback stop or device shutdown follows from the action name. Non-player removal f_1011e11c locks +0x318, removes media-server entry from +0x11b8 via f_10765118, and only if changed calls f_10760d48 and f_1067c6ec(topology+8) at 0x1011e1b4. No action-specific registration or alarm-definition persistence."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Normal installed-worker domain {0,402,800,804}. Zero yields an empty success response, not proof of peer removal or network delivery. 402 is missing required input or unknown action for the selected target class; 800 is protected self-target or verification refusing/failing removal; 804 is player probe addressed to a nonlocal UUID. Internal 805 and arbitrary peer/probe errors are not directly propagated.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733498",
+        "address": "0x1073359c",
+        "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10121310",
+        "address": "0x1012136c",
+        "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747b74",
+        "address": "0x10747d40",
+        "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10747624",
+        "address": "0x107476d8",
+        "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
+       }
+      ]
+     },
+     "fault_sites": [
+      {
+       "site": "0x1073359c",
+       "code": null,
+       "code_expr": "402 request validation; installed-worker status 402/800/804"
+      }
+     ],
+     "errors": [
+      {
+       "code": 402,
+       "code_expr": "const",
+       "meaning": "Missing required DeviceUUID/DesiredAction, or DesiredAction not recognized by selected player/media-server worker.",
+       "fault_sites": [
+        "0x1073359c"
+       ],
+       "conditions": [
+        {
+         "description": "Missing required DeviceUUID/DesiredAction, or DesiredAction not recognized by selected player/media-server worker.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10733498",
+           "address": "0x1073359c",
+           "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10121310",
+           "address": "0x1012136c",
+           "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10747b74",
+           "address": "0x10747d40",
+           "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+          }
+         ]
+        }
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10733498",
-         "notes": "delegate map ['*(r30+4) v[+0x10]', '*(r30+4) v[+0x10]']; notify-family calls []"
+         "address": "0x1073359c",
+         "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10121310",
+         "address": "0x1012136c",
+         "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747b74",
+         "address": "0x10747d40",
+         "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: *(r30+4) v[+0x10], *(r30+4) v[+0x10] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
-      }
-     ],
-     "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733498",
-        "notes": "bl call scan: notify-family sites = []"
-       }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x10], *(r30+4) v[+0x10]",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733498",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+0x10]', '*(r30+4) v[+0x10]']"
-       }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+0x10], *(r30+4) v[+0x10].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
-      "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "function": "0x10733498",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0xc': 1, '0x14': 1, '0x34': 1}"
-       }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-      ]
-     },
-     "fault_sites": [
+      },
       {
-       "site": "0x1073359c",
-       "code": 402,
-       "code_expr": "const"
-      }
-     ],
-     "errors": [
-      {
-       "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "DeviceID lacks RINCON_ prefix (strncmp,7) - f_10121310 returns 402 | Wrapper parse layer rejected an argument before the impl call.",
+       "code": 800,
+       "code_expr": "const",
+       "meaning": "Player self-target Remove/Probe/Verify rejected while +0xed8 is zero; remote player verification returned 800 or 805; media-server verification request returned false.",
        "fault_sites": [
         "0x1073359c"
        ],
        "conditions": [
         {
-         "description": "DeviceID lacks RINCON_ prefix (strncmp,7) - f_10121310 returns 402",
+         "description": "Player self-target Remove/Probe/Verify rejected while +0xed8 is zero; remote player verification returned 800 or 805; media-server verification request returned false.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x101214d8",
-           "notes": "impl return path"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10121310",
+           "address": "0x1012136c",
+           "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733498",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10747b74",
+           "address": "0x10747d40",
+           "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10747624",
+           "address": "0x107476d8",
+           "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
           }
          ]
         }
@@ -107510,87 +107758,59 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x101214d8",
-         "notes": "impl return path produces rc 402"
+         "function": "0x10121310",
+         "address": "0x1012136c",
+         "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733498",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10747b74",
+         "address": "0x10747d40",
+         "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747624",
+         "address": "0x107476d8",
+         "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "code_expr": "const",
+       "meaning": "TopologyMonitorProbe on RINCON_ target that is not the local player.",
+       "fault_sites": [
+        "0x1073359c"
+       ],
+       "conditions": [
+        {
+         "description": "TopologyMonitorProbe on RINCON_ target that is not the local player.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10747b74",
+           "address": "0x10747d40",
+           "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+          }
+         ]
         }
        ],
-       "unresolved": {
-        "proven": "topology impl rc surfaced",
-        "unknown": "codes for validation/state failures",
-        "knowledge": "; impl f_10121494: tails {f_10121310,f_10747b74} call-derived",
-        "bounded_domain": [
-         402
-        ],
-        "bound_evidence": "worker literal-exit scan: f_10121310->[402];f_10121310->[402]",
-        "raw_exit_literals": {
-         "f_10121494": {
-          "lits": [
-           24
-          ],
-          "pt": 1
-         },
-         "f_10121310": {
-          "lits": [
-           32,
-           402
-          ],
-          "pt": 0
-         },
-         "f_10747b74": {
-          "lits": [
-           54
-          ],
-          "pt": 0
-         }
-        },
-        "literal_note": "worker literal return-int sites (r3 li before blr); 'pt'=passthrough exits returning caller r3/computed value - domain is internal status ints surfaced verbatim, not SOAP literals",
-        "impl_exit_literals": {
-         "function": "0x10121494",
-         "lits": [
-          24
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_10741ac4": {
-          "lits": [
-           20,
-           24,
-           26,
-           36
-          ],
-          "pt": 1
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain",
-        "bound_note": "worker-function immediate vocabulary (fault-band filtered superset; includes the concrete return candidates, excludes member-offset noise). Actual emitted subset is runtime-selected along the delegated path."
-       },
-       "worker_literal_bound": [
-        402,
-        402,
-        402,
-        402,
-        402,
-        402,
-        402,
-        402,
-        800,
-        800
-       ],
-       "literal_bound": [
-        0
-       ],
-       "resolved_note": "impl 0x10121494 void, no error literals (pure accept-report)",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x1073359c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10747b74",
+         "address": "0x10747d40",
+         "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+        }
        ]
       }
      ],
@@ -107600,23 +107820,61 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10733498",
-       "address": "0x10733498",
-       "notes": "action wrapper handler"
+       "function": "0x10125b54",
+       "address": "0x10e8b034",
+       "notes": "Primary topology vptr 0x10e8b024 installed at 0x10126234; service constructor f_10733b28 receives it at 0x1018e2cc and stores service+4. Slot +0x10 is f_10121494. Wrapper calls this slot at 0x10733564 or 0x10733648; the second path only adds optional request-peer logging, not a different worker."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11424",
-       "notes": "action dispatch table entry"
+       "function": "0x10733498",
+       "address": "0x1073359c",
+       "notes": "Wrapper registers required DeviceUUID (0x107334e0, text capacity 1024) and DesiredAction (0x10733508, capacity 128). f_1056157c tag 7 copies bounded text and NUL-terminates; long values truncate, present empty text passes. Request +8 validation at 0x10733528 false selects 402. Worker nonzero is faulted verbatim at 0x1073359c; zero commits empty success at 0x10733580. TopologyMonitorProbe bypasses peer logging; other actions can fetch request-server +0x34 for logging before the identical worker call."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10121494",
+       "address": "0x101214dc",
+       "notes": "strncmp(DeviceUUID,\"RINCON_\",7) at 0x101214c8: equality branches to f_10747b74, inequality tails to f_10121310. This is a player-versus-media-server routing predicate, NOT a 402 prefix requirement. No UUID suffix grammar check."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10121310",
+       "address": "0x1012136c",
+       "notes": "Non-RINCON branch compares exact VerifyThenRemoveSystemwide and Remove; other DesiredAction values return 402. Remove calls f_1011e11c then returns 0. Verify first calls f_101205fc for media-server URI lookup. Lookup false calls f_1074791c then removes locally with zero return. Lookup true builds f_106fb1c4 request and calls f_106f2750; zero result returns 800 at 0x10121440, nonzero result proceeds to broadcast/local removal and returns 0. No worker status from removal is propagated."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10747b74",
+       "address": "0x10747d40",
+       "notes": "RINCON branch recognizes exact Remove, TopologyMonitorProbe, VerifyThenRemoveSystemwide; other strings return 402. f_1075df68(topology+0x310,UUID) distinguishes local target. Remove of a remote target proceeds to local defunct handling; Remove of self returns 800 unless byte +0xed8 is nonzero, in which case it is dropped with success. Probe of a remote target returns 804 at 0x10747fac; probe of self returns 800 unless +0xed8 permits drop-as-success. Verify of self follows the same 800/drop gate. Verify of remote calls f_10747624; probe result 800 or 805 prevents removal and yields 800, otherwise calls f_1074791c then local removal. Unknown actions do not remove a device. Common exit 0x10747e30 returns r25; successful local removal unconditionally resets r25=0 (0x10747cf0 or 0x10747f74), so boolean/removal-count/peer statuses are not exposed as SOAP faults. Optional telemetry records action, probe error/result, hardware and elapsed time through f_10747820."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10747624",
+       "address": "0x107476d8",
+       "notes": "Looks up target under topology+0x318 in topology+0x5a8, copies endpoint via f_10762bac, then issues f_106e9814 with DesiredAction=TopologyMonitorProbe. Terminates retries on 0,402,800,804,805 or after five attempts; waits to maintain roughly two-second spacing. Lookup failure selects 805. Elapsed time stored through caller pointer. f_106e9814 at 0x106e98b8 explicitly builds ZoneGroupTopology ReportUnresponsiveDevice SOAP with DeviceUUID/DesiredAction. f_1074791c enumerates up to 114 members through f_10744d1c, excludes target, resolves each endpoint and sends DesiredAction=Remove via the same client; increments count of attempted sends, does not forward peer errors. Its return is used for telemetry and overwritten by successful local removal."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10128e08",
+       "address": "0x10747c90",
+       "notes": "Player removal calls installed primary slot +0x118 (entry 0x10e8b13c -> f_10128e08) at 0x10747c90 with defunct record {UUID, zero source flags, DesiredAction reason}. f_10128e08 checks discovery-origin flags, updates local designation via f_1074700c -> f_10746e74, invokes f_10750cb8, and informs AlarmClock helper f_102766c8. f_10750cb8 removes active-list entry (0x10750e0c), conditionally transitions it to vanished list, marks topology data via f_10766064 and schedules topology+8 with f_1067c6ec at 0x10750ebc; follow-on f_10741960 processes topology changes. No guaranteed playback stop or device shutdown follows from the action name. Non-player removal f_1011e11c locks +0x318, removes media-server entry from +0x11b8 via f_10765118, and only if changed calls f_10760d48 and f_1067c6ec(topology+8) at 0x1011e1b4. No action-specific registration or alarm-definition persistence."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10733498; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "Primary slot +0x10 resolves f_10121494; prefix comparison routes player and media-server workers. The previous prefix-invalid 402 claim was the branch polarity reversed."
     },
     "SubmitDiagnostics": {
      "description": "Submits diagnostics (IncludeControllers, Type) returning DiagnosticID via impl->v[+0x18] on the doubly-indirect member.",
