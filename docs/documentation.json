@@ -133508,18 +133508,68 @@
    "semantics": "per-channel HT DSP processing ('ChannelProcessing', RESET CHPROCESSING); CHSNK processor buffer w/ skipAheadLocked seek ('skipping in CHSNK processor buffer'); audio_stream{,_local,_dsp} under audio/playback implement the as-* node graph"
   },
   "upnp_eventing_impl": {
-   "files": "upnpeventing_{sender,source}.cxx + cprovider/sonos_cprovider.cxx",
-   "opt": "enableUPnPEventingGNDOptimization flag: GENA notify-dedup/batching",
-   "semantics": "upnpeventing module w/ 'svc:%s' service tagging",
-   "todo": [
-    "Established: sender counters, status-page XML rows, ddim delta (byte span of the dedup buffer), dedup flag byte at +0x10e, compaction = memmove of (span>>2) u32 entries with a 0x3fffffff span sanity cap - fully decoded, no hidden window constant exists."
-   ],
-   "gnd_optimization": "enableUPnPEventingGNDOptimization is a CONFIG-SYNCED feature flag, not a compile switch: f_10a581b0 (the muse config->settings applier that also writes 'disableWebSocketPerMessageDeflate', 'enableSpotifyConnectForAllAccts', 'enableSpotifySMAPIVolumeNormalization' and '_objectType') stores it into the settings store by name, so the eventing layer reads the live value at notify time via the generic settings getter. The consumer is LocalSettingsEventing (eventing.cxx): its notify model is notifyOnChange()->notifySubscribers paired with waitUntilEventNotificationCompletes() - an in-flight notification model where each change fans out to subscribers and callers can wait for completion. The GND ('GENA Notify Dedup') flag selects the deduplicated path: while a notification for a change is in flight, repeated changes to the same setting coalesce rather than queueing a notify per change - consistent with the completion-wait API existing to bound in-flight work. No dedup/batch vocabulary appears anywhere else in the binary (searched dedup/coalesce/batch - zero hits), so the dedup lives inside the notifySubscribers implementation and is behavior-only (same wire result, fewer GENA NOTIFYs).",
-   "resolved_findings": [
-    "Resolved: the flag is synced from config via f_10a581b0 and consumed by LocalSettingsEventing's in-flight notify model (notifyOnChange + waitUntilEventNotificationCompletes) - dedup coalesces repeat change-notifies while one is in flight; wire-visible result is identical, fewer NOTIFYs.",
-    "Resolved (partial): eventing mode is negotiated per peer by firmware version: on DiscoveredZP the code compares peer major vs 0x59(89) then 0x55(85) at 0x10763fe4-0x10763ff0, sets flag bytes at +0x82a/+0x1f4b, and logs 'DiscoveredZP version=%u.%u.%u, using %s eventing' where %s selects {'secure' (0x10f08074) or the legacy mode}. The GND optimization flag name is a household-settings key (feature-flag table 0x10a584f8). Secure eventing exists: 'Subscribe %s; Logical SID: %s; Port: %u; Secure Eventing: %d (srRet=%d)'. Timeouts updated via 'Updated upnp timeouts: main: %u, connect: %u, eventing: %u'; RZEXID_UPNP_EVENTING_TIMEOUT error code; 'UPnP Eventing denied. 403 Forbidden' auth path.",
-    "Resolved: sender instrumentation + status-page grammar literal (0x10f00718-0x10f00eec): subscription counters {countEventsSuccess, countEventsFailure, countEventsSuccessFirstTry, countEventsSuccessRetry, countFailuresRetry, countFailuresConnect, countFailuresHandshake, countFailuresRead, countFailuresWrite, countFailuresTimeout, avgHandshakeTimeMsOnSuccess, avgHandshakeTimeMsOnFailure, avgRoundTripTimeMsOnSuccess, avgRoundTripTimeMsOnFailure}; status page rows <Service name= current= max=>, <Subscription><EventKey>%u<NotifyErrors>%u<SubscriptionID>%s<NotificationAddr>wss://%s:%u (muse) | %s<IsSecure>%d, <Subscription name= type=> under <SubscribedEvents>, <ConnectionDetails><Command namespace= cmd= method= credType=><Version><Duration><NextPing>. Lifecycle logs: Canceled/Renewed/Terminated subscription, \"Clearing link-local subscription\", \"Removed Insecure UPnP\". fireNotificationData emits ddim=%lld (dedup-interval delta = *(+0x114)-*(+0x110)); a flag byte +0x10e gates the dedup compaction path (memmove on the event buffer).",
-    "Resolved: the +0x110/+0x114 pair are buffer-span pointers, not timers - fireNotificationData computes ddim = *(+0x114)-*(+0x110) (byte delta) and the dedup compaction memmoves (delta>>2) u32-stride entries (rlwinm 30,2,31 word count). The only numeric bound is a 0x3fffffff sanity cap (cmpl vs 0x3fffffff at 0x10679bec) on the span before the shift - there is NO fixed dedup-window constant; the window is the live notification buffer's own span. The +0x10e flag byte gates whether compaction runs at all."
+   "files": "upnpeventing_sender.cxx and upnpeventing_source.cxx, with service/provider integration. Sender scheduling, source data production and per-subscription transport are separate layers.",
+   "sender_queue": "f_10678c50 takes the sender lock, sets byte +0x10e and signals its condition variable. This is pending list/work-change state, not a dedup-enable flag. The sender loop f_10679b14 clears that byte, applies pending source removals through f_10679678, snapshots the source-pointer vector [+0x110,+0x114) and releases the lock before calling sources. Removal compares pointer identity and compacts the live list; memmove copies the snapshot in bytes. The 0x3fffffff comparison bounds a shifted element count for allocation, not a time window. Empty vectors skip source processing; termination and wake/timed-wait paths are explicit.",
+   "source_scheduling": "For each source the sender calls f_1067d028, examines a source timeval obtained through virtual slot +0x10, and calls f_10683da0 when notification work is due. A zero source timeval takes the immediate path. For a nonzero timeval, the loop computes elapsed microseconds from current/source time, divides by 1000, and subtracts elapsed milliseconds from the source interval returned through virtual slot +0xc. Positive remaining delay is logged as ddim and added to the next wake time; nonpositive delay fires notifications. A delay greater than 1000 ms reaches a warning/fallback branch rather than representing a fixed dedup window. The default interval method f_100c9bbc returns zero. Thus ddim is a scheduling-time delta, not the byte span at +0x110/+0x114.",
+   "feature_flag": "enableUPnPEventingGNDOptimization is present as a configuration/schema boolean. f_10a581b0 reads config byte +0xec1 and calls f_109d14e0 with its name; that helper writes a property name followed by literal true or false through an output interface. This is serialization, not evidence of a settings setter or a notify-time getter. Direct accesses to +0xec1 in this image belong to construction, copy, equality and serialization in f_10a56e7c/f_10a5702c/f_10a575f0/f_10a57aa0/f_10a581b0. Neither this reference nor the LocalSettingsEventing completion API establishes a GENA same-setting/in-flight coalescing implementation. The previous expansion of GND as GENA Notify Dedup, runtime flag linkage, identical-wire guarantee and fewer-NOTIFY claim were unsupported and are not part of this contract.",
+   "subscription_transport": "f_10683da0 walks eligible source subscriptions and drives notification transport; source and connection state can defer or skip work. Instrumentation f_1067ba44 emits success/failure, first-try/retry, connect/handshake/read/write/timeout counts and handshake/round-trip averages, with zero-count branches for averages. These are measured counters, not promises of unlimited retries or exactly-once delivery. HTTP subscription authorization in f_1068faa4 has a denied branch that returns status 403. f_10693df4 reads separate main, connect and eventing timeout settings and reports their effective values.",
+   "status_xml": "f_1067c980 and surrounding status writer emit Service name/current/max rows and Subscription children with EventKey, NotifyErrors, SubscriptionID and NotificationAddr. NotificationAddr is either a normal address string or wss://host:port (muse); IsSecure is emitted separately. These diagnostic rows describe active subscription state, not an additional subscription wire protocol. Sender counter fields are countEventsSuccess, countEventsFailure, countEventsSuccessFirstTry, countEventsSuccessRetry, countFailuresRetry, countFailuresConnect, countFailuresHandshake, countFailuresRead, countFailuresWrite, countFailuresTimeout, avgHandshakeTimeMsOnSuccess/Failure and avgRoundTripTimeMsOnSuccess/Failure.",
+   "peer_compatibility": "f_10763f90 extracts peer version bytes, evaluates major/minor compatibility branches including 85/86/89/94, and selects secure versus insecure eventing. It also consults owner/service capability state and writes interface flags; the result is not a simple major >=89 rule. Secure and legacy modes coexist. The discovery diagnostic alone does not establish encryption for every subscription or tie compatibility selection to the GND configuration field.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10678c50 / f_10679b14 / f_10679678",
+     "address": "0x10678c50",
+     "callsite": "0x10678c50-0x10678ca0; 0x10679b14-0x10679c24; 0x1067a100-0x1067a164; 0x10679678-0x10679b14",
+     "notes": "Pending flag set plus condition signal, clear after wake, pointer-identity removals and snapshot allocation/copy. Raw shift at 0x10679be4 precedes comparison with 0x3fffffff; memmove gets byte count r28, not span>>2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10679b14 / f_100c9bbc",
+     "address": "0x10679d9c",
+     "callsite": "0x10679d9c-0x10679e74; 0x10679ffc-0x1067a100; 0x1067a19c-0x1067a234; 0x1067a2c4-0x1067a2d4; 0x100c9bbc-0x100c9bcc",
+     "notes": "Source timeval zero check, 64-bit current-minus-source calculation, divide by 1000, interval-minus-elapsed and positive-delay scheduling. The actual ddim formatting arguments come from this calculation; buffer pointers are not its source. 1000-ms warning branch disproves the old no-timing-constant reasoning."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10a581b0 / f_109d14e0 / config object methods",
+     "address": "0x10a584f4",
+     "callsite": "0x10a584f4-0x10a58508; 0x109d14e0-0x109d1570; 0x10a56fb0; 0x10a571b8; 0x10a573a0; 0x10a577b8; 0x10a57e4c",
+     "notes": "Named boolean is written through an output interface as true/false, not installed through a generic settings setter. Exhaustive direct lbz/stb +0xec1 scan finds only config-object construction/copy/equality/serialization. No live GND-to-sender coalescing data flow is demonstrated."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10683da0 / f_1067ba44",
+     "address": "0x10683da0",
+     "callsite": "0x10683da0-0x10683f54; 0x1067ba44-0x1067bd68",
+     "notes": "Subscription iteration, eligibility/transport paths and actual counter/average serialization, including empty/zero-count handling. Counter labels do not prove retry policy or deduplication."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "subscription status writer",
+     "address": "0x1067caa0",
+     "callsite": "0x1067caa0-0x1067ccd0",
+     "notes": "Direct XML output calls for Service, Subscription, key/error/id, ordinary versus WSS muse address, and IsSecure fields. Removes unrelated guessed status grammar."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1068faa4 / f_10693df4 / f_10763f90",
+     "address": "0x1068faa4",
+     "callsite": "0x1068faf8-0x1068fb60; 0x10693df4-0x10693f20; 0x10763fd4-0x1076422c",
+     "notes": "Reachable subscription-denied 403, separate timeout loads and diagnostic, and multi-branch major/minor peer compatibility/capability selection. Does not conflate generic LocalSettingsEventing methods with GENA sender behavior."
+    }
    ]
   },
   "audioin_impl": {
