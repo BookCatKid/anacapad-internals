@@ -71965,7 +71965,7 @@
      ]
     },
     "GetLoudness": {
-     "description": "CONDITIONALLY IMPLEMENTED: vtable A has null stub f_100e44dc at slot +0x48; vtable B overrides with real impl 0x1046db28. SOAP-visible behavior depends on which impl class is installed (selection unresolved).",
+     "description": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073ad64",
@@ -72001,7 +72001,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "parsed by the request layer but never read - impl vfunc 0x100e44dc is a no-op stub",
+       "description": "Required rendering-instance selector. Only numeric zero reaches the read; other values return 702.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -72013,40 +72013,25 @@
        "semantic_type": "input",
        "format": "per request parse",
        "unit": "none",
-       "accepted_values": "per parse",
-       "range": "unconstrained",
+       "accepted_values": "0",
+       "range": "0",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "default": "none: required argument",
+       "validation": "Required request argument configured with f_105614e0; implementation rejects nonzero with 702",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ada4",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e44dc",
-         "address": "0x100e44dc",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x100d6cf4",
+         "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
         }
        ],
-       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
+       "notes": "No fallback rendering instance is selected."
       },
       "Channel": {
-       "description": "parsed by the request layer but never read - impl vfunc 0x100e44dc is a no-op stub",
+       "description": "Required exact case-sensitive channel name Master.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -72058,105 +72043,162 @@
        "semantic_type": "input",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "per parse",
-       "range": "max 1023 chars",
+       "accepted_values": [
+        "Master"
+       ],
+       "range": "Master only; request buffer capacity 1024",
        "special_values": "none",
        "required": true,
-       "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "default": "none: required argument",
+       "validation": "InstanceID is checked first; strcmp against Master then rejects every nonmatching string with 402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073adc8",
-         "notes": "in-arg access site"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e44dc",
-         "address": "0x100e44dc",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x100d6d30",
+         "notes": "strcmp result checked before mutex acquisition."
         }
        ],
-       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub.",
+       "notes": "No aliases or case folding in the concrete getter.",
        "buf_cap": 1024
       }
      },
      "outputs": {
       "CurrentLoudness": {
-       "description": "parsed by the request layer but never read - impl vfunc 0x100e44dc is a no-op stub",
+       "description": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "SOAP boolean formatted as 0 or 1",
        "unit": "none",
-       "accepted_values": "impl-produced or stale",
-       "range": "unconstrained",
+       "accepted_values": "0 or 1",
+       "range": "0..1",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "no impl-level use or validation (stub impl)",
+       "validation": "Emitted only on zero implementation status; f_1055fc08 maps zero to text 0 and any nonzero byte to text 1.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073ae7c",
-         "notes": "out-arg access site"
+         "address": "0x100d6d68",
+         "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0afe0",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x100e44dc",
-         "address": "0x100e44dc",
-         "notes": "impl vfunc body is stwu/addi/blr - arg unread"
+         "address": "0x1073ae80",
+         "notes": "Wrapper output load/format path after the zero-status test."
         }
        ],
-       "notes": " In impl class B the slot is a real impl (f_1046db28/f_1046d340) - semantics above describe the proven base-class stub."
+       "notes": "The output is not a write to renderer state."
       }
      },
-     "validation": "Request-layer parse.",
-     "requirements": "impl class determines all behavior",
-     "state_dependencies": "none - no state gating observed beyond argument checks",
+     "validation": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state. Channel must be exactly Master, compared with strcmp; invalid Channel returns 402 after the InstanceID test. Output formatting follows the explicit zero-status test, not an inherited condition-register value.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ae18",
+        "notes": "Fresh record-form move before the success/fault branch."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6cf4",
+        "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Requires request-layer validation and InstanceID zero; nonzero InstanceID returns 702 before reading rendering state. Channel must be exactly Master, compared with strcmp; invalid Channel returns 402 after the InstanceID test.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2754",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x48 contains 0x100d6cf4; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6cf4",
+        "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Uses the constructed RC object and mutex +0x938. Data source: 0x7fd. The returned value is copied from existing state; this action does not update that state.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6d68",
+        "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "None in impl class A - vfunc is the null stub f_100e44dc. In impl class B it is f_1046db28, which resolves a refcounted object at impl+0x2ac (stwcx loop) before dispatching.",
+       "description": "Acquires and releases mutex +0x938 and writes caller-owned output storage. No renderer setting, dirty byte, notification request, member request or persistence write occurs in the complete getter path.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100e44dc",
-         "address": "0x100e44dc",
-         "notes": "base stub; derived f_1046db28 refcount resolution at +0x2ac"
+         "address": "0x100d6cf4",
+         "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying Loudness (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists Loudness (read-only) into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Class A: stale-cr0 return - likely commits success with uninitialized output / no effect. Class B: real impl at 0x1046db28 (unexplored).",
+     "events_triggered": "none: the complete concrete getter path makes no event-source or observer call.",
+     "state_transitions": "none: this action does not change renderer settings or operation state.",
+     "return_behavior": {
+      "description": "Implementation status is 0 on the documented valid-input path and 702 for nonzero InstanceID. Invalid Channel with InstanceID zero returns 402. The wrapper emits its output and commits only on status zero; otherwise it forwards the numeric implementation status as a SOAP fault. Request-layer validation failure separately selects 402. Null service+4 and unknown action names use the dispatcher 401 path.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2754",
+        "notes": "Concrete primary vptr 0x10ed270c slot 0x48 contains 0x100d6cf4; service+4 writer 0x104d4dc0 is proven."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d6cf4",
+        "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ae18",
+        "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073ae80",
+        "notes": "Wrapper output load and formatter are reached only on zero implementation status."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073ae2c",
@@ -72167,21 +72209,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: the dispatcher found the action in the sorted table but the service object's implementation pointer (*(svc+4)) was null, so the request is faulted before any argument parsing.",
+       "meaning": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch time",
+         "description": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
           }
          ]
         }
@@ -72191,30 +72232,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action name or null SOAP implementation pointer; not returned by the bound getter after a validated call."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request parse/validation failure at the wrapper.",
+       "meaning": "Request-layer validation failed; or InstanceID zero with Channel not exactly Master.",
        "fault_sites": [
         "0x1073ae2c"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request-layer validation failed; or InstanceID zero with Channel not exactly Master.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site with the stated code under this condition",
-           "address": "0x1073ae2c"
+           "address": "0x1073ae2c",
+           "notes": "Request-layer validation failed; or InstanceID zero with Channel not exactly Master."
           }
          ]
         }
@@ -72224,12 +72262,38 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site: req vfunc +0x14 invoked with this code",
-         "address": "0x1073ae2c"
+         "address": "0x1073ae2c",
+         "notes": "Request-layer validation failed; or InstanceID zero with Channel not exactly Master."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero; tested before any output write or mutex acquisition.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d6cf4",
+           "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d6cf4",
+         "notes": "InstanceID is nonzero; tested before any output write or mutex acquisition."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -72238,37 +72302,38 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073ad64",
-       "address": "0x1073ad64",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2754",
+       "notes": "Concrete primary vptr 0x10ed270c slot 0x48 contains 0x100d6cf4; service+4 writer 0x104d4dc0 is proven."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11dac",
-       "notes": "action dispatch table entry"
+       "address": "0x100d6cf4",
+       "notes": "For InstanceID zero and exact case-sensitive Channel Master, locks +0x938 and copies byte +0x7fd to CurrentLoudness, then unlocks and returns 0. Nonzero InstanceID returns 702 before testing Channel; any other Channel returns 402 before locking. The concrete SOAP slot is neither f_100e44dc nor f_1046db28."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "null stub in vtable A",
-       "function": "0x100e44dc"
+       "address": "0x1073ae18",
+       "notes": "Wrapper uses mr. r4,r3 to set CR0 from the implementation return, then branches on equality to zero; stale CR0 does not control success."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable B slot +0x48 = 0x1046db28",
-       "address": "0x10ed279c"
+       "address": "0x1073ae80",
+       "notes": "Wrapper output load and formatter are reached only on zero implementation status."
       }
      ],
      "notes": "Loudness exists only on the derived/proxy impl class - plausible device-capability gating.",
-     "todo": [
-      "Established: dispatch and handler 0x1073ad64 are resolved; argument parsing, fault ladder, and request-layer behavior are documented.",
-      "Residual: the impl/engine function behind the handler is not traced, so the action's real work (state mutation, engine call, worker dispatch) is undetermined. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x48",
+      "function": "0x100d6cf4",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "GetMute": {
      "description": "Reads the per-channel mute flag stored in the rendering-control impl object (bytes +0x7f1 Master, +0x7f2 LF, +0x7f3 RF) under the impl mutex at +0x938.",
