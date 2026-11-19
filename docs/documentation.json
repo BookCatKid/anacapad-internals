@@ -132410,15 +132410,68 @@
    "threads": "asyncWorkerModZp + asyncMuseModZp worker pools"
   },
   "trackplaymonitor": {
-   "impl": "trackplaymonitor.cxx -> RTrackPlayMonitor thread",
-   "semantics": "CurrentTrackPlayed event: per-track play-duration monitor (telemetry/billing feed)",
-   "todo": [
-    "Established: the per-track duration monitor and CurrentTrackPlayed event are identified."
-   ],
-   "consumer": "CurrentTrackPlayed is consumed by the Spotify/eSDK playback tracker - the name sits in the spotify.cxx string region (0x10ea1480) directly beside 'AwaitingCurrentTrackAck' and 'AwaitingNextTrackAck' and above the '../zoneplayer/spotify/spotify.cxx' file label. The consumer object is VLIPlaybackTracker ('vli_playback_tracker'/'vliPlaybackTracker' literals) - the per-service position tracker. So play-duration data flows: duration monitor emits CurrentTrackPlayed -> the service's playback tracker records the completion -> position/duration reporting goes back through the service's session channel (SMAPI/esdk reporting), which is how the service meters listening for billing/telemetry. The two Ack names are the track-transition handshake states the tracker moves through.",
-   "resolved_findings": [
-    "Resolved: the consumer is the eSDK playback tracker (VLIPlaybackTracker) - CurrentTrackPlayed feeds per-service position/duration reporting which carries the billing-relevant listen data back over the session channel; the Awaiting*Ack pair are its transition states.",
-    "Resolved: consumers and data shape proven (trackplaymonitor.cxx + trackplayrecorder.cxx). Per-track record fields: {Track/Station URI, Extra Md, Context URI, CQ Auth Token, SMAPI Device Id, CloudQueueVersion, CQ Context Version, CQ Playback Id, API Key, Framer Name}. Segments carry play-seconds + timestamps + packetIds + error counts ('%s play time %fs @%d.%06d (pkt:%u,act:0x%x,off:%lld%s,err:%u,uri:%s)'; 'seg start @ %d.%06d (packetId: %u), end %d.%06d, errs=%u'). Stream ops consumed: R_STREAM_OP_{SAMPLE,OPEN,CLOSE,INTERRUPT,ACK,ERROR,IMMED_RESYNC,SCHED_RESYNC,BOUNDARY}. Report states {In progress, Final, LSE, unsampled}; on completion 'kicking reporting job' -> reportPlay -> uploads to O_TRACKPLAYBASE_URL (cloud). Memory pressure: fixed string pool ('pool has %d strings (%d%% full)', 'no free RTrackLogEntries' reset)."
+   "impl": "trackplaymonitor.cxx / trackplayrecorder.cxx / RPlayReportSubmitter",
+   "semantics": "Per-track playback accounting with sampled stream segments, in-progress/final reports and asynchronous reporting work. This is not evidence of a universal CurrentTrackPlayed event or a server-side billing contract.",
+   "consumer": "The monitor calls the notifier at object +0xa8, virtual slot +8, with a temporary report, track metadata and stream entry at 0x104c1e68-0x104c1e84. Its return controls follow-up recorder ACK processing; a successful callback on a non-final entry produces operation 4 via f_104c6264. The RPlayReportSubmitter notify implementation is f_104caf08 (vtable pointer at 0x10ed8fac), which distinguishes final/non-final entries and routes service-specific reporting. CurrentTrackPlayed at 0x10ea1608 is a Spotify state-name table entry at 0x10ea1480, adjacent to AwaitingCurrentTrackAck and AwaitingNextTrackAck. String adjacency does not establish that the monitor emits an event by that name, nor that Spotify and VLIPlaybackTracker are the same consumer. The previous universal Spotify/VLI/session-channel/billing claim is unsupported and is not part of this contract.",
+   "record_shape": "Track records retain URI/station identity and reporting metadata; the label table at 0x10ed83c8-0x10ed8460 names Track Or Station URI, Extra Md, Context URI, CQ Auth Token, SMAPI Device Id, CloudQueueVersion, CQ Context Version, CQ Playback Id, API Key and Framer Name. f_104c19e8 constructs a temporary report from the selected entry, computes duration through f_104c3808 and passes it to the notifier. Diagnostic output includes play seconds, timestamp, packet id, action, offset, error count and URI. In progress and Final are selected by the report-final flag, with a separate LSE annotation. These are diagnostic/report fields, not a wire schema guaranteed for every service.",
+   "stream_accounting": "f_104c6264 is the recorder operation dispatcher: an unsigned operation >10 returns through the default path, otherwise a relative jump table selects SAMPLE, OPEN, CLOSE, INTERRUPT, ACK, ERROR, IMMED_RESYNC, SCHED_RESYNC, BOUNDARY, ORIGIN_TIME_SELECTED or QUALITY_SELECTED processing. The latter two were missing from the previous inventory. Samples publish playback segments keyed by timestamps and packet ids; close, interrupt, error, resynchronization and boundaries are distinct inputs, not all treated as normal completion. The recorder retains segment collections and cancellation state; full-container paths can overwrite a segment or drop a report, so accounting is not lossless under all memory/error conditions.",
+   "report_job": "f_104c48d4 serializes scheduling under the recorder lock. Byte +0xb39 suppresses another kick while reporting work is already pending; a new kick sets it and submits callback f_100be4b8 with the owner identifier through the generic job interface. That adapter calls f_10188298, which finds the owner through f_1040edf4 and, only if found, calls f_103f76d0. The latter loads the monitor at owner +0x1904 and reaches f_104c25e8, which flushes work through f_104c228c and f_104c1f60. A missing owner safely skips dispatch. A kick therefore means queued work, not proof of a successful cloud upload. RPlayReportSubmitter separately prepares service/report data; f_104cbf1c contains submission and failure-dependent paths. Backend acceptance, service billing and the meaning assigned to listen data by a remote server are not recoverable from these local calls.",
+   "bounds_and_failure": "f_104c15a0 startup processing uses a bounded track-entry pool; exhaustion at 0x104c1738 logs Resetting due to no free RTrackLogEntries and calls f_104c0728 to reset before retrying the entry path. f_104bf7c8 diagnoses a too-small string pool. f_104c265c handles memory pressure by flushing with f_104c1f60 and recovering through f_104c228c. Recorder diagnostics and branches include cancellation of zero-sample streams, full segment containers and report dropping. No unconditional guarantee that every loaded track generates a completed, delivered report follows from this implementation.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "Spotify state-name table",
+     "address": "0x10ea1478",
+     "callsite": "0x10ea1478-0x10ea1480",
+     "notes": "Three absolute string pointers name AwaitingCurrentTrackAck, AwaitingNextTrackAck and CurrentTrackPlayed. This establishes names, not a monitor event dispatch or a VLI consumer alias."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104c19e8 / f_104caf08",
+     "address": "0x104c1e68",
+     "callsite": "0x104c1c3c-0x104c1f5c, 0x104caf08-0x104cb228; vtable entry 0x10ed8fac",
+     "notes": "Report construction, duration and diagnostic fields; virtual notifier call at 0x104c1e84, success/non-final ACK follow-up. Submitter notify handles final/non-final and service-dependent paths. Metadata label table in 0x10ed83c8-0x10ed8460 is vocabulary, not a universal serialized schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104c6264",
+     "address": "0x104c62e8",
+     "callsite": "0x104c62e8-0x104c6a30",
+     "notes": "Unsigned operation range <=10, relative dispatch table and operation-specific branches. ORIGIN_TIME_SELECTED and QUALITY_SELECTED are additional inputs; resync/error/close are distinct from samples."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104c48d4 / f_100be4b8 / f_10188298 / f_103f76d0 / f_104c25e8",
+     "address": "0x104c48d4",
+     "callsite": "0x104c4904-0x104c49f4, 0x100be4b8-0x100be4d0, 0x10188304-0x10188360, 0x103f76d0-0x103f76dc, 0x104c25e8-0x104c2618",
+     "notes": "Pending-byte scheduling guard, report callback and owner lookup/null handling, then monitor flush. Proves reachable reporting work, not successful remote delivery."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104c15a0 / f_104c265c / recorder finalization",
+     "address": "0x104c1738",
+     "callsite": "0x104c1738-0x104c176c, 0x104c265c-0x104c26d0, 0x104c4e58-0x104c57fc, 0x104c7484-0x104c7804",
+     "notes": "Pool exhaustion invokes reset; memory-pressure flush/recovery; bounded segment and cancellation paths. String-pool failure diagnostic at 0x104bf7c8. Lossless reporting is not guaranteed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104cbf1c / report preparation",
+     "address": "0x104cbf1c",
+     "callsite": "0x104cbf94-0x104cc2fc, 0x104ca364-0x104ca440",
+     "notes": "Submission builds report data, tests report/service fields and has failure-dependent exits. Does not prove a single universal Spotify/SMAPI/cloud route or backend billing semantics."
+    }
    ]
   },
   "watchdog": {
