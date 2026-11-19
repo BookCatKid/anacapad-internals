@@ -68472,7 +68472,7 @@
       {
        "code": null,
        "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "savedqueues store-commit layer (dirObj saved-queues vfunc -> f_1047ee0c savedqueues.xml atomic save): reachable codes {501,701,802,803,804,805,806,807,808,810,811,812,813,814,850,899}. f_1047ee0c literal exits {501,701,802-808,810-812}; f_1047db08 (queue-add path, 'UPNP error %d adding URI to saved queue') {805,814}; f_10477fe8 reorder engine {600,812,813,850,899}; f_10476cb4 returns 899 on equal list head/tail (+0x44 count nonzero). 899 = real return (li r3;blr), 850/813 in reorder domain, 600 lone. Per-rung trigger semantics undecoded except reorder guard.",
+       "meaning": "savedqueues store-commit layer (f_1047ee0c atomic save of the saved-queues file): for this action 0, 501, 701, 802..808, or a parse-callback code",
        "fault_sites": [],
        "evidence": [
         {
@@ -68517,6 +68517,62 @@
          "function": "0x104794d4",
          "address": "0x104797d4",
          "notes": "mr r3,r31 returns f_1047ee0c rc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x104796d4",
+         "notes": "kind ctx+0x3c = 1"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x1047985c",
+         "notes": "mobile-track counter"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104794d4",
+         "address": "0x10479704",
+         "notes": "flag 0x1000 counter"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f47c",
+         "notes": "805/806"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f314",
+         "notes": "0/807"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f52c",
+         "notes": "803/808"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "address": "0x1047f2e8",
+         "notes": "501 rename failure"
         }
        ],
        "conditions": [
@@ -68562,11 +68618,12 @@
         }
        ],
        "todo": [
-        "Established: f_104794d4 returns the f_1047ee0c code verbatim (0x10479798 -> 0x104797d4), including 803 after the ID has been written.",
-        "Residual: the trigger condition of each f_1047ee0c code (and of 803 in particular) is not decoded; next step is to disassemble f_1047ee0c's return sites."
+        "Established: f_104794d4 returns the f_1047ee0c code verbatim; for SaveAsSonosPlaylist (kind 1) that code is 0, 501, 701, 802, 803, 804, 805, 806, 807, 808, or a code a parse callback stored at ctx+6.",
+        "Residual: the codes the savedqueues XML callbacks (f_1047b66c, f_1047c740 and f_1047d67c, which stores 501) can store at ctx+6, and what sets ctx+0x40, ctx+0x6f and ctx+0x40d0/0x40d1, are not traced; next step is to disassemble those callbacks."
        ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure.",
+        "Established (f_104794d4 and f_1047ee0c): f_104794d4 builds the save context at sp+0x24, with the queue at ctx+0x5c (sp+0x80) and kind ctx+0x3c = 1 (0x104796d4). Before saving it walks every queue track (0x10479734..0x1047978c): f_10146a1c reads the track, and f_1014815c returns the integer 'flags' query parameter of its URI (f_10c3b830 with key 0x10eeead8, paranoid_atoi). A track counts in ctx+0x40e0 when flags & 0x1000 (f_101482c0). When byte ctx+0x59 is clear, a track whose URI host starts with 'mobile-' and ends with '.x-udn' (f_10475f00, 0x10475f6c..0x10475fa0) counts in ctx+0x40de (0x1047985c). Both counters are skipped-track counts. f_1047ee0c then returns: 501 when the '.tmp' file cannot be opened (f_103d1ca8 with 0x241, 0x1047f31c), when loading the existing file fails (f_1047ec6c: open or XML parse failure, 0x1047ecc4, 0x1047ede8) or when rename fails (0x1047f2e8); the u16 code a parse callback stored at ctx+6 (0x1047f27c, 0x1047ee00); 701 when ctx+0x40 < 0 and byte ctx+0x6f is set (0x1047f298); 802 or 501 when f_103d1b24 returns 0 (802 only with byte ctx+0x40d1 set and ctx+0x40d0 clear, 0x1047f1d0..0x1047f1f8). When every track was skipped (queue length == ctx+0x40de + ctx+0x40e0, 0x1047f2c4), it returns 804 if all were mobile tracks, 805 if all had flag 0x1000, 806 for a mix (0x1047f464..0x1047f47c). After a successful rename: 0 with no skipped tracks, 807 when only flag-0x1000 tracks were skipped (isel 0x1047f314), 803 when only mobile tracks were skipped, 808 when both were (isel 0x1047f52c). The kind-specific codes 810, 811, 812 (kinds 6, 2, 8 at 0x1047f2c8..0x1047f2e0) cannot occur for kind 1. 813, 850 and 899 are in f_10477fe8, which f_1047ee0c does not call, and 814 is a logged result of f_1047db08 that f_1047e16c discards (0x1047e6a4). In plain terms: the save succeeds with 803, 807 or 808 when some tracks could not be stored in the playlist, and fails with 804, 805 or 806 when none could."
        ]
       }
      ],
