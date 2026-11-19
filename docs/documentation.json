@@ -176751,7 +176751,7 @@
    "todo": "Established: Schema callback f_10118580 processes a string token (token kind 3) when its callback field metadata +8 equals 1. It parses the compiled supported string 1.0 and incoming schema string with f_10483e28; malformed input yields internal parse code 16. f_104840f8 compares the supported major/minor pair against the incoming pair. It accepts an incoming pair no greater than 1.0 under unsigned comparison and returns internal code 16 for a greater pair. These are JSON parser results, not independently established SOAP fault codes. The manifest binder requires schemaVersion; see music_service_manifest.required_fields. Shared lexical grammar is documented in music_service_version_string; libc/span boundaries and null/type/error aggregation remain to be traced. Remaining: Verify libc/span boundary assumptions, null/type handling and schema error aggregation; grammar is in music_service_version_string and required presence is established in music_service_manifest.required_fields."
   },
   "0x1011ad40": {
-   "description": "f_1011ad40 creates a .tmp path and opens it using f_1054f088. That helper always uses fopen64(path,\"w\"); its third argument is not consumed. If full cache serialization f_10119b90 succeeds, the installer renames the temporary file while its writer is still open, updates the in-memory version/source and sid/version index, then destroys the writer. If serialization fails, it destroys the first writer, reopens the same path in write mode and attempts a fallback JSON object containing only version=current+1 and lastUpdateDevice. A successful fallback write and rename still increment the version, update the supplied-row index and return true. Thus save success need not mean that the manifests array reached disk. Fallback rename failure unlinks the candidate. Primary rename failure returns false without the same explicit unlink branch. The writer destructor f_1054f15c delegates to f_1054f0e8 when open. That routine calls fflush, fileno, fsync and fclose, ignores fflush/fsync results and returns a boolean derived only from fclose. f_1011ad40 does not test that close result. On the full serialization path rename and metadata/index updates precede destruction; on the fallback success path rename precedes destruction and metadata/index updates follow it. These are static call-order facts, not a runtime durability test.",
+   "description": "f_1011ad40 resolves the svcmanifests.json path through f_10118a1c, appends '.tmp' to the same resolved string and opens it with f_1054f088, which always calls fopen64(path,\"w\") and does not consume its third argument. The underlying write primitive f_1054edf4 is fwrite(ptr,1,len) against the FILE* stored at writer+0x20 and returns only whether the full length was accepted. Full cache serialization f_10119b90 emits {\"version\":<obj+0xc0>+1,\"lastUpdateDevice\":<obj+0xa0> through a 0x400-byte stack JSON buffer, then streams ', \"manifests\": [' through f_10119720, which serializes each 0x4fc-byte row with f_10119034 (fields sid, version, uri, manifest) into a 0x1491-byte stack buffer and fwrites each piece, then ']' and '}'; f_10119b90 returns the final '}' fwrite result. If full serialization succeeds, the installer renames the temporary file while its writer is still open, updates the in-memory version/source and the sid/version index (f_10119dcc stores the count at obj+0xc8 plus up to 34 {sid word, version hword} pairs at obj+0xcc), then destroys the writer. If serialization fails, it destroys the first writer, reopens the same .tmp path in write mode and attempts a fallback JSON object containing only version=current+1 and lastUpdateDevice. A successful fallback write and rename still perform the rename, increment the stored version, update the supplied-row index and write the output revision, but the shared success tail returns the saved serialization result r26, which is zero on the fallback path: a fully successful stub install still returns false. Thus a true return means only that complete serialization succeeded, and a false return does not prove the on-disk file was untouched. Fallback rename failure unlinks the candidate; primary rename failure returns false without the same explicit unlink branch. The writer destructor f_1054f15c delegates to f_1054f0e8 when open, which calls fflush, fileno, fsync and fclose, ignores the fflush/fsync results and returns a boolean derived only from fclose; f_1011ad40 does not test that close result. Because rename runs before the destructor, stdio-buffered bytes can still be in flight at rename time and durability only holds after the destructor's fsync. A crash before rename leaves the old file intact; a crash in the rename-to-fsync window can install a truncated file, which the next load rejects through the streaming parser f_1011991c (nonzero tokenizer status returns false) rather than crashing. The loader f_1011a4bc opens only the resolved svcmanifests.json name via open64 and never references the .tmp file, so a stale temporary file persists until the next save truncates it. The only in-function allocation hazard is the std::string '.tmp' append: when fewer than 4 characters remain before max_size it throws std::length_error('basic_string::append') through f_108b134c, which allocates the exception and resumes unwinding; the function contains no landing pad, so the exception propagates uncaught. The resolved base directory is not statically known: f_1068ab6c reads it from a descriptor at 0x110a950c in .bss that is populated at runtime. The entry call f_10988268(obj+0x10,file,line) is an empty stub in this build, so f_1011ad40 itself takes no lock; the file mutex is the caller's responsibility.",
    "why_external": "Defines what manifest persistence success means and when a successful update can omit the manifest array.",
    "required_for_behavior": true,
    "role": "music_service_manifest",
@@ -176776,9 +176776,74 @@
      "build": "86.10-80260",
      "address": "0x1054f0e8",
      "notes": "Flush/sync/close and result handling."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011aee0",
+     "function": "0x1011ad40",
+     "notes": "Shared success tail 'mr r30,r26'; fallback reaches it with r26=0, so stub write+rename success still returns false after version++/index/out-revision updates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119b90",
+     "notes": "Writes version+1 and lastUpdateDevice header via 0x400-byte stack JSON buffer, calls f_10119720, writes '}'; return is the '}' fwrite result."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119720",
+     "notes": "Streams ', \"manifests\": [' plus per-row objects (stride 0x4fc via f_10119034 into 0x1491-byte buffer) and ']'; short fwrite returns 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1054edf4",
+     "notes": "fwrite(ptr,1,len,FILE* at +0x20); returns 1 only when the whole length was accepted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011afa4",
+     "function": "0x1011ad40",
+     "notes": "'.tmp' append guards 0x7fffffff-size<4 then calls f_108b134c, which allocates a std::length_error('basic_string::append') and calls _Unwind_Resume; no landing pad in f_1011ad40."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10118a1c",
+     "notes": "Resolves 'svcmanifests.json' via f_1068ab6c against base-dir descriptor 0x110a950c (.bss, runtime-populated); .tmp is the same string plus '.tmp'; rename(tmp,real) stays in one directory."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011a4bc",
+     "notes": "Loader opens only resolved svcmanifests.json via open64; .tmp is never referenced; f_1011991c returns 0 on nonzero tokenizer status so a truncated file fails the load."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10988268",
+     "notes": "Empty stub (falls through to blr); the obj+0x10 'lock' calls at svcmanifestfile.cxx line sites are no-ops in this build."
     }
    ],
-   "todo": "Established: both save paths and their observable return/order distinctions are decoded. Remaining: trace underlying writes, memory-allocation exceptions, temporary-file path ABI and interrupted-write/reload behavior."
+   "resolved_findings": [
+    "Established: the fallback path returns false even when the stub write and rename both succeed, because the shared success tail at 0x1011aed4 returns the saved f_10119b90 result in r26 (zero on that path); version, index and output revision are still updated.",
+    "Established: f_10119b90/f_10119720 write {\"version\":N+1,\"lastUpdateDevice\":...,\"manifests\":[...]} entirely through fwrite chunks from 0x400/0x1491-byte stack buffers; the return value is the final '}' fwrite result.",
+    "Established: rename(tmp,real) runs while the tmp FILE* is still open; buffered bytes can be unflushed at rename time and the destructor's fflush/fsync results are ignored, so a true return is not a durability proof.",
+    "Established: a crash before rename preserves the old file, a crash after rename before fsync can leave a truncated file that the streaming loader rejects with a parse error and false return; stale .tmp files are never unlinked and are truncated by the next save.",
+    "Established: the only throwing operation is the '.tmp' std::string append (length_error via 0x1011afa4 -> f_108b134c); it propagates uncaught since f_1011ad40 has no landing pad.",
+    "Resolved boundary: the concrete base directory of svcmanifests.json is read from a runtime-populated .bss descriptor at 0x110a950c via f_1068ab6c, so the absolute tmp path is not statically recoverable; the ABI is resolved-dir + '.tmp'."
+   ]
   },
   "0x10552c20": {
    "description": "Catalog XML start adapter: literal name/attribute recognition, active-state flags, numeric/version gates and processor callback argument mapping. Ratings retain parser+0x14 when Id is absent; see payload_formats.music_service_catalog.input_rules.",
