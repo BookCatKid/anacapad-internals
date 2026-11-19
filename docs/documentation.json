@@ -176863,7 +176863,7 @@
    ]
   },
   "0x10553ab0": {
-   "description": "f_10553ab0 takes the packed field, destination and capacity. A first byte in 1..4 expands the corresponding lowercase prefix from table 0x10ee9eb0 and appends the bytes at field+1 through snprintf. Other first-byte values copy the field as a plain string with f_10906304. It returns the destination pointer and ignores formatted-output truncation status. Valid fields made by f_10553994 need at most 75 bytes after expansion, including the terminator; the longest supported prefix is 12 bytes plus a 62-byte suffix. The plain-copy helper checks null destination/zero capacity and clears a nonzero-capacity destination for null input; the formatter branch has its own libc contract.",
+   "description": "Packed-URI expansion helper f_10553ab0(field, dst, cap): reads the tag byte at field+0. Tags 1..4 select the matching prefix from table 0x10ee9eb0 {ptr,len,tag} x4 (1='https://www.' 12B, 2='http://www.' 11B, 3='https://' 8B, 4='http://' 7B) and emit it plus the NUL-terminated suffix at field+1 via __snprintf_chk(dst,cap,1,-1,'%s%s'). Any other tag byte (0,5..255) takes the plain path: the whole field is copied as a C string through f_10906304. The tag table scan compares tag bytes at entry+8 and stops at the NULL-ptr terminator entry. It returns dst unconditionally and ignores the snprintf truncation status. Producer f_10553994 writes fields of at most 64 bytes ({tag,suffix<=62,NUL} when a case-insensitive strncasecmp prefix matches - note the prefix check is case-insensitive so input case is normalized to the lowercase table prefixes on expansion; suffix >62 or unprefixed strings >63 fail the pack), so a well-formed field expands to at most 75 bytes including terminator. Malformed input: a tag byte 1..4 with an unterminated suffix makes the snprintf '%s' read run past the 64-byte field into following descriptor storage until a NUL; a non-1..4 tag with an unterminated field makes f_10906304 copy up to dst cap-1 bytes from the field, again reading past the packed field. Plain-copy helper f_10906304(dst,src,cap) returns NULL for NULL dst or cap==0, writes dst[0]=0 and returns dst for NULL src or cap<=1, otherwise copies bytes until the source NUL or cap-1 written, then calls UTF-8 boundary fixer f_10905728 which truncates at the lead byte of an incomplete trailing multi-byte sequence (or clears dst[0] when the buffer is all continuation bytes), so a truncated copy never ends mid-character. No C++ exceptions on any path. Caller audit over all 26 direct call sites: caps are 0x80 (all but two sites), 0x401 (f_1011c078) and a forwarded argument (f_1011c1ec tail-jump); destinations are struct fields or stack buffers; no caller tests the return or detects truncation, and every well-formed field fits easily since expanded output is <=75 bytes.",
    "why_external": "Reconstructs endpoint and resource URLs from stored music-service descriptors.",
    "required_for_behavior": true,
    "role": "music_service_descriptor_uri",
@@ -176874,9 +176874,53 @@
      "build": "86.10-80260",
      "address": "0x10553ab0",
      "notes": "Instruction trace and raw boundary verification; see payload_formats.music_service_descriptor_uri."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553ae8",
+     "function": "0x10553ab0",
+     "notes": "Tag scan: lbz entry+8 vs field[0] at 0x10553ae8-0x10553af4; table 0x10ee9eb0 has four {ptr,len,tag} entries (1 https://www. 0xc, 2 http://www. 0xb, 3 https:// 8, 4 http:// 7) plus NULL terminator; tag 1 matched early at 0x10553acc-0x10553ad0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553b34",
+     "function": "0x10553ab0",
+     "notes": "Prefix path: __snprintf_chk(dst,cap,1,-1,'%s%s',prefix,field+1) at 0x10553b34-0x10553b50; return value ignored, dst returned at 0x10553b58."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105539fc",
+     "function": "0x10553994",
+     "notes": "Producer bound: strncasecmp match rejects suffix>0x3e at 0x105539fc; tag byte stored at dst+0 and suffix copied with cap 0x3f at 0x10553a70-0x10553a88; unprefixed input >0x3f rejected at 0x10553a30-0x10553a38; field total <=64 bytes."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10906304",
+     "function": "0x10906304",
+     "notes": "Plain-copy contract: NULL dst or cap==0 returns NULL at 0x1090631c-0x109063dc; NULL src or cap<=1 writes dst[0]=0 at 0x109063b8; byte loop to cap-1 then f_10905728 boundary fix at 0x109063f0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10905728",
+     "function": "0x10905728",
+     "notes": "UTF-8 fixer: scans back from end over continuation bytes (rlwinm &0xc0==0x80), table 0x10f33174 gives lead-byte lengths, NUL at lead when the sequence would overrun end at 0x10905780-0x1090578c, clears dst[0] when all bytes are continuations at 0x10905744-0x10905798."
     }
    ],
-   "todo": "Established: f_10553ab0 takes the packed field, destination and capacity. A first byte in 1..4 expands the corresponding lowercase prefix from table 0x10ee9eb0 and appends the bytes at field+1 through snprintf. Other first-byte values copy the field as a plain string with f_10906304. It returns the destination pointer and ignores formatted-output truncation status. Valid fields made by f_10553994 need at most 75 bytes after expansion, including the terminator; the longest supported prefix is 12 bytes plus a 62-byte suffix. The plain-copy helper checks null destination/zero capacity and clears a nonzero-capacity destination for null input; the formatter branch has its own libc contract. Remaining: Audit callers and malformed packed input; verify shared plain-copy exception/truncation behavior."
+   "resolved_findings": [
+    "Resolved via 26-site caller audit: all direct call sites enumerated (capacities 0x80 x24, 0x401, one forwarded); none consume the return as a status or detect truncation, and expanded output <=75 bytes always fits.",
+    "Resolved: malformed packed input behavior bounded - unterminated suffix/field reads past the 64-byte packed field into adjacent storage until NUL or cap, never writing past dst cap.",
+    "Resolved: plain-copy helper fully characterized including NULL/zero-cap early outs and the UTF-8-aware truncation fixer; no exception paths exist."
+   ]
   },
   "0x105543d0": {
    "description": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a {device} token it also uses strlcpy. The function returns the destination pointer and does not report truncation or {device} token substitution as a separate status. Other {device} tokens and subsequent occurrences are unchanged by this helper.",
