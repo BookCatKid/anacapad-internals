@@ -81982,7 +81982,7 @@
       }
      ],
      "events_triggered": {
-      "description": "f_1039d714 itself neither marks dirty nor calls a notification function. However the preceding reachable refresh f_1039c5f0 -> f_103a05d0 can call f_1067c6ec at 0x103a0704/0x103a0748 and f_103a6d74 at 0x103a0720 when local aggregate information changes. The latter prepares GroupVolumeChangedEvent work f_103a5e8c -> f_103a59b4; f_103a3abc manages its cancellation functor and f_103a3ce0 logs cancellation. An unchanged refresh does not request these notifications.",
+      "description": "f_1039d714 itself neither marks dirty nor calls a notification function. However the preceding reachable refresh f_1039c5f0 -> f_103a05d0 can call f_1067c6ec at 0x103a0704/0x103a0748 and f_103a6d74 at 0x103a0720 when local aggregate information changes. The latter prepares GroupVolumeChangedEvent work f_103a5e8c -> f_103a59b4; f_103a3abc manages its cancellation functor and f_103a3ce0 logs cancellation. An unchanged refresh does not request these notifications. Bound observer path: f_103a59b4 walks rb-tree 0x110a0288 and calls observer slot0; the concrete registered observer is the playback session's embedded +0x4c observer (registered by f_1021ab40, concrete vptr 0x10ea229c -> f_10214860 -> f_10214790), which stores the event volume into session+0x7ae8 via f_102267dc and tail-calls the session's eSDK bridge vptr[5] at +0x59f8. Bound sender path: worker f_10679b14 runOnce drains pending sources through fire gate f_1067d028 and next-allowed-time vptr[0x10] into f_10683da0 fireNotifications, which walks the subscriber tree via f_1068108c and emits GENA NOTIFY requests formatted from template 0x10f00628 (NT: upnp:event, NTS: upnp:propchange, SID/SEQ/X-SONOS-SERVICETYPE). 'groupRendering' is a registered topic name (entry 0x89 in .bss table 0x110c8ce8, written by static-init f_10098d34) with no static bridge from this event source or the sender worker; GENA subscriber delivery is established, WSS publication is runtime-bound.",
       "evidence": [
        {
         "type": "firmware",
@@ -81991,8 +81991,7 @@
         "address": "0x1039dcd4",
         "notes": "Refresh precedes snapshot; this proves action-specific reachability of the refresh notification gates, not completed delivery."
        }
-      ],
-      "todo": "Established: baseline copy has no direct event emission, while refresh notification requests and in-process work binding are traced. Residual: bind concrete observers at 0x103a5de4 and the sender/delivery worker behind f_1067c6ec before claiming GENA/WSS completion."
+      ]
      },
      "state_transitions": {
       "description": "Under mutex +0x1c8, every nonempty cache entry transitions savedVolume:=currentVolume, including fixed and not-fully-valid entries; aggregate savedSum:=currentSum. It does not apply a new current volume, mute/unmute members, set busy or persist the snapshot. The preceding refresh can change local cached validity/classification, current volume/mute aggregates, renderer sonar cache +0x930 and dirty state. No busy guard means this is a mutex-protected cache copy, not a guaranteed group-wide transaction barrier against a setter whose network stage runs unlocked.",
@@ -82158,11 +82157,59 @@
        "build": "86.10-80260",
        "address": "0x1039d7fc",
        "notes": "Current aggregate sum +0xd294 copied to saved sum +0xd296 after all 32 slots have been considered."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10679b14",
+       "function": "0x10679b14",
+       "notes": "Sender worker runOnce (upnpeventing_sender.cxx): clears sender+0x10e, drains the pending-source vector +0x110/+0x114; per source calls fire gate f_1067d028, next-allowed-time source->vptr[0x10], then f_10683da0 fireNotifications; logs 'runOnce starting', 'fireNotifications(%s)' and 'runOnce finished (naiz=%d,ep=%d)' under tag 'upnpeventing'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106841f0",
+       "function": "0x10683da0",
+       "notes": "fireNotifications calls subscriber-tree walk f_1068108c; request bytes are formatted at 0x106773f0 in f_10677350 from template 0x10f00628 'NOTIFY %s HTTP/1.1 ... NT: upnp:event, NTS: upnp:propchange, SID: %s, SEQ: %d, X-SONOS-SERVICETYPE: %s' with subscriber host text from inet_ntop."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1021ae5c",
+       "function": "0x1021ab40",
+       "notes": "Playback-session init registers the session's embedded +0x4c observer (session+0x12c+0x4c) into rb-tree 0x110a0288 under mutex 0x110a03c0, node value = refcounted keep-alive session+0x130. This is the only static writer of that map besides unregister f_1021a06c and delivery f_103a59b4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102198e4",
+       "function": "0x10219600",
+       "notes": "Session ctor installs the concrete observer vptrs over the earlier abstract-base stores: +0x4c=0x10ea229c (slot0 f_10214860), +0x2c=0x10ea2284, +0x6c=0x10ea22b4, +0x8c=0x10ea22cc, +0xac=0x10ea22e4, +0xcc=0x10ea22fc, +0xec=0x10ea2314, +0x10c=0x10ea232c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10214860",
+       "notes": "Concrete GroupVolumeChangedEvent observer: f_10214860 adjusts this by -0x4c and tails f_10214790, which gates on session+0x59f8 bridge vptr[4], stores the event u16 volume via f_102267dc(session+0x7ae8) and tail-calls bridge vptr[5]; logs 'Sent group volume change %u to eSDK (mute %d)' tag 'spot' lvl6. Unregister f_1021a06c sets observer+0x1c only while delivery is in progress, so flagged nodes skip dispatch and are bulk-removed in the trailing cleanup pass."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10098d34",
+       "notes": "WSS boundary: static-init writes 'groupRendering' as entry id 0x89 into .bss topic table 0x110c8ce8 alongside 'groups', 'groupCoordinatorChanged' and 'groupManagement'; no .text address formation reads that table and no static data pointer references it, so any WSS topic consumer binds only at runtime; there is no static bridge from the GRC event source or its sender worker to a WSS publisher."
       }
      ],
      "notes": null,
      "implementation_notes": "Primary GRC vptr 0x10ec3824 +0x1c -> f_1039dc74. InstanceID r4!=0 returns 702, not an output-pointer-null test. Group lookup miss returns 701; otherwise refresh -> lock -> f_1039d714 -> unlock -> 0. Session vptr 0x10ec37b4 and f_106ff898 do not implement SnapshotGroupVolume. Baseline copy is fully traced; residual uncertainty is concrete downstream refresh notification delivery, not snapshot storage or persistence.",
-     "todo": "Established: concrete +0x1c binding, InstanceID/group gates, renderer/cache dependencies, complete 32-entry baseline and aggregate copy, empty/fixed-entry behavior and status domain are traced. Residual: bind the concrete observer invoked by refresh work f_103a59b4 at 0x103a5de4 and the event-source sender/delivery worker behind f_1067c6ec. Snapshot itself performs no member operation; only the conditional preceding refresh can request these notifications."
+     "resolved_findings": [
+      "Established: the refresh work observer at 0x103a5de4 is bound to the session +0x4c observer (f_10214860 -> f_10214790, eSDK bridge vptr[5]) and sender delivery behind f_1067c6ec is bound through worker f_10679b14 -> f_10683da0 GENA NOTIFY; WSS remains a runtime-bound topic name."
+     ]
     }
    },
    "state_variables": {
