@@ -40155,7 +40155,7 @@
      ]
     },
     "BecomeGroupCoordinator": {
-     "description": "Makes this player the coordinator of an existing group, adopting the group source. Impl f_102de740 logs \"avt_impl\" \"BecomeGroupCoordinator\", locks impl+0x458, then requires impl+0x4654==0 OR the flag path at 0x102dea84: in mode 0 it dispatches op-1 through session helper f_10256a84, builds a request record via f_1032e270/f_1032e5d0, submits via f_10255f64, then writes group-identity outputs through a run of f_1014cdf4/f_1014ce3c calls. This is one of the four actions where engine classes A (vtable 0x10eaf2ec, impl 0x102de740) and B (vtable 0x10edfbb8, impl 0x105133e4) differ: B is the group-aware variant reached in grouped mode; semantics described are the A path.",
+     "description": "Imports coordinator state through a lazy request adapter. The engine can refuse a nonmember transition unless the clone header is present; the group-aware override can also decline it before the base action runs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fc8b0",
@@ -40191,7 +40191,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "renderer instance id (always 0)",
+       "description": "Must be zero when the base implementation reaches its InstanceID check. Earlier topology guards can win.",
        "direction": "in",
        "primitive": {
         "type_tag": null,
@@ -40214,15 +40214,29 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "A_ARG_TYPE_InstanceID (ui4): advertised argument | file:artifacts/downloads/rootfs-86.10-80260-1-9/opt/htdocs/xml"
+         "address": "0x102fc928",
+         "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+         "function": "0x102fc8b0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102de804",
+         "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+         "function": "0x102de740"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x105133e4",
+         "notes": "Derived +0xd0 runs f_109089f0 and then, only if needed, checks f_1075c4d0 with the zone name. It tail-calls 0x102de740 if either predicate permits it; otherwise returns 1023 before parsing SOAP fields.",
+         "function": "0x105133e4"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +208 (site 0x102fc928) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +208 (obj r5-in, call site 0x102fc928); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -40649,35 +40663,64 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v[+?], r30 v[+?]",
+      "description": "The group-aware override can reject the action before parsing. Inside the base path, mode zero or the clone header permits evaluating the action arguments, including the zero-ID requirement.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc8b0",
-        "notes": "req-vfunc call map: {'0x14': 1, '0xc': 1}"
+        "address": "0x102fc928",
+        "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+        "function": "0x102fc8b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102de804",
+        "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+        "function": "0x102de740"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105133e4",
+        "notes": "Derived +0xd0 runs f_109089f0 and then, only if needed, checks f_1075c4d0 with the zone name. It tail-calls 0x102de740 if either predicate permits it; otherwise returns 1023 before parsing SOAP fields.",
+        "function": "0x105133e4"
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, commit×1); member delegates: r4 v[+?], r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r4 v[+?], r30 v[+?]",
+      "description": "Engine mode and the clone header decide whether the base action can process the import. The derived override has a separate topology guard.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc8b0",
-        "notes": "member vfunc calls: ['r4 v[+?]', 'r30 v[+?]']"
+        "address": "0x102de804",
+        "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+        "function": "0x102de740"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105133e4",
+        "notes": "Derived +0xd0 runs f_109089f0 and then, only if needed, checks f_1075c4d0 with the zone name. It tail-calls 0x102de740 if either predicate permits it; otherwise returns 1023 before parsing SOAP fields.",
+        "function": "0x105133e4"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102deb2c",
+        "notes": "Member continuation calls f_10292f78, copies a transport record and decodes an incoming setting through f_1066e2dc.",
+        "function": "0x102de740"
        }
       ],
       "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r4 v[+?], r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace all current-group, imported-source and queue-state comparisons after the first guards."
       ]
      },
      "side_effects": [
@@ -40715,35 +40758,67 @@
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+?], r30 v[+?]",
+      "description": "Imports incoming transport state after the early guards. The source variant additionally runs standalone setup.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc8b0",
-        "notes": "no transition-literal/store pattern; member delegates: ['r4 v[+?]', 'r30 v[+?]']"
+        "address": "0x102fc928",
+        "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+        "function": "0x102fc8b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102de804",
+        "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+        "function": "0x102de740"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102deb2c",
+        "notes": "Member continuation calls f_10292f78, copies a transport record and decodes an incoming setting through f_1066e2dc.",
+        "function": "0x102de740"
        }
       ],
       "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r4 v[+?], r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace each serialized argument through its materializer and into the exact coordinator, source or queue state fields."
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The wrapper does not choose a fault code itself. The derived guard returns 1023, and the base entry guards can return 800 or 718.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x102fc8b0",
-        "notes": "commit/fault slot usage: {'0x14': 1, '0xc': 1}"
+        "address": "0x102fc928",
+        "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+        "function": "0x102fc8b0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102de804",
+        "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+        "function": "0x102de740"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x105133e4",
+        "notes": "Derived +0xd0 runs f_109089f0 and then, only if needed, checks f_1075c4d0 with the zone name. It tail-calls 0x102de740 if either predicate permits it; otherwise returns 1023 before parsing SOAP fields.",
+        "function": "0x105133e4"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Trace the remaining import and callback exits to their bounded error codes, including late payload faults."
       ]
      },
      "fault_sites": [
@@ -40815,20 +40890,29 @@
       {
        "code": 402,
        "code_expr": "parse/req-layer",
-       "meaning": "Request parse layer rejected an argument before the impl was invoked.",
+       "meaning": "The wrapper does not issue its own 402. It forwards a nonzero engine error; field parsing is performed through the request adapter in the base engine.",
        "fault_sites": [
         "0x102fc944"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input argument at the wrapper parse stage",
+         "description": "The wrapper does not issue its own 402. It forwards a nonzero engine error; field parsing is performed through the request adapter in the base engine.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102fc8b0",
-           "notes": "parse vcall +0x8 then fault path"
+           "address": "0x102fc928",
+           "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+           "function": "0x102fc8b0"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x102de804",
+           "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+           "function": "0x102de740"
           }
          ]
         }
@@ -40838,9 +40922,21 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102fc8b0",
-         "notes": "wrapper parse + fault path"
+         "address": "0x102fc928",
+         "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+         "function": "0x102fc8b0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102de804",
+         "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+         "function": "0x102de740"
         }
+       ],
+       "todo": [
+        "Identify the exact lazy materialization failure conditions and any action-specific late 402 exits."
        ]
       }
      ],
@@ -40874,14 +40970,45 @@
        "build": "86.10-80260",
        "address": "0x102fc8b0",
        "notes": "handler body: gate + impl call + commit only; no parse/emit arg sites"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102fc928",
+       "notes": "Engine +0xd0 receives the request adapter and a boolean x-sonos-clone-gc header-presence flag. Wrapper does not eagerly materialize SOAP fields; it commits on zero and faults on nonzero engine result.",
+       "function": "0x102fc8b0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102de804",
+       "notes": "The base engine holds impl+0x458 and requires mode zero or the clone flag; otherwise 800. The parsed nonzero ID exit is 0x102dea7c and returns 718. The worker also calls f_102ab92c at 0x102deb14 to match the current group.",
+       "function": "0x102de740"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105133e4",
+       "notes": "Derived +0xd0 runs f_109089f0 and then, only if needed, checks f_1075c4d0 with the zone name. It tail-calls 0x102de740 if either predicate permits it; otherwise returns 1023 before parsing SOAP fields.",
+       "function": "0x105133e4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102deb2c",
+       "notes": "Member continuation calls f_10292f78, copies a transport record and decodes an incoming setting through f_1066e2dc.",
+       "function": "0x102de740"
       }
      ],
      "notes": "None Engine-class split: on the group-capable engine (vtable 0x10edfbb8) this action dispatches to 0x105133e4 - delegates verbatim to class-A impl 0x102de740 when the zone is ungrouped; group path otherwise. Ungrouped zones get identical behavior to the standalone engine for the Become* actions.",
      "args_verified_empty": true,
      "implementation_notes": " Handler 0x102fc8b0 contains no argument-parser call and no arg-name string loads; the action is verified argless (no inputs, no outputs).",
      "todo": [
-      "Established: dispatch to handler 0x102fc8b0; engine-class split - group-capable engine dispatches to 0x105133e4, delegating to class-A impl 0x102de740 when ungrouped.",
-      "Residual: the group path's distinct behavior and the delegation's state cloning. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Map the lazy request adapter 0x102fc8b0 supplies to 0x102de740, then verify the exact serialized argument grammars, late fault conditions and local transport events."
      ],
      "resolved_findings": [
       "Resolved: the grouped branch of 0x105133e4 clones the group transport state into the new coordinator via the delegation path; state cloning = queue + position + playmode transfer.",
