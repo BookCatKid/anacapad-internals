@@ -64329,11 +64329,35 @@
          "function": "0x102d094c",
          "address": "0x102d09d0",
          "notes": "SetAVTransportURI with empty URI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102ce068",
+         "address": "0x102cf448",
+         "notes": "restore point written by SetAVTransportURI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d4e80",
+         "address": "0x102d5238",
+         "notes": "restore point cleared"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102af490",
+         "address": "0x102af600",
+         "notes": "current URI set to x-rincon:<coordinator>"
         }
        ],
        "todo": [
         "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
-        "Residual: the fields impl+0x2e2a and impl+0x5dc are not named (which writers store the restorable URI there), and when change index 3 marked on impl+0x10 is sent to subscribers is not traced; next step is a store scan for impl offsets 0x2e2a and 0x5dc and the event thread's handling of marked indices."
+        "Residual: two points are not settled. (1) Which current URIs make SetAVTransportURI record a restore point. The restore fields impl+0x2e2a (URI, 0x401 bytes), impl+0x322b (metadata, 0x1001) and impl+0x422c (0x25) are written only by f_102ed638. SetAVTransportURI f_102ce068 calls it at 0x102cf448 only when f_102b0974 is nonzero (0x102cf430), and f_102b0974 depends on f_102aee90(impl+0x5dc). f_102aee90 returns 0 for an 'x-rincon:' URI (strncmp at 0x102aeeb0) and for any URI accepted by f_10147b60, f_10147148, f_10292f78, f_10688070 or f_102931f0, but what those type checks accept is not decoded. The resume logic f_102de238 also writes the restore point (0x102df078, 0x102dfc80). f_102d4e80, the 'Became Coordinator of Standalone group' path, clears it (0x102d5238). f_102b09f4 copies impl+0x5dc/impl+0x9dd/impl+0x19de there but has no reference. impl+0x5dc is the current transport URI, and ChangeCoordinator f_102af490 writes it as 'x-rincon:%s' (0x102af600). (2) When the AVTransport change index 3 marked by f_1067b4f4 is sent to subscribers. That depends on the AVTransport event sender, outside this action. Next step is to decode the five type checks and the f_1067b4f4 consumer."
        ],
        "resolved_findings": [
         "Resolved (dispatch): see the chain: optional f_102d094c(engine), optional f_102c350c 'Replaced' call for a previous owner string at engine+0xa0a4, then the f_1032e56c request submitted to the session.",
@@ -64411,7 +64435,7 @@
       ],
       "todo": [
        "Established: the calls f_102d094c (when f_102b2ee4 is nonzero), f_102c350c('Replaced') (when engine+0xa0a4 is set) and the f_1032e56c request submit are identified with sites.",
-       "Residual: the fields impl+0x2e2a and impl+0x5dc are not named (which writers store the restorable URI there), and when change index 3 marked on impl+0x10 is sent to subscribers is not traced; next step is a store scan for impl offsets 0x2e2a and 0x5dc and the event thread's handling of marked indices."
+       "Residual: two points are not settled. (1) Which current URIs make SetAVTransportURI record a restore point. The restore fields impl+0x2e2a (URI, 0x401 bytes), impl+0x322b (metadata, 0x1001) and impl+0x422c (0x25) are written only by f_102ed638. SetAVTransportURI f_102ce068 calls it at 0x102cf448 only when f_102b0974 is nonzero (0x102cf430), and f_102b0974 depends on f_102aee90(impl+0x5dc). f_102aee90 returns 0 for an 'x-rincon:' URI (strncmp at 0x102aeeb0) and for any URI accepted by f_10147b60, f_10147148, f_10292f78, f_10688070 or f_102931f0, but what those type checks accept is not decoded. The resume logic f_102de238 also writes the restore point (0x102df078, 0x102dfc80). f_102d4e80, the 'Became Coordinator of Standalone group' path, clears it (0x102d5238). f_102b09f4 copies impl+0x5dc/impl+0x9dd/impl+0x19de there but has no reference. impl+0x5dc is the current transport URI, and ChangeCoordinator f_102af490 writes it as 'x-rincon:%s' (0x102af600). (2) When the AVTransport change index 3 marked by f_1067b4f4 is sent to subscribers. That depends on the AVTransport event sender, outside this action. Next step is to decode the five type checks and the f_1067b4f4 consumer."
       ],
       "resolved_findings": [
        "Resolved (within the front end): no notify call exists in f_10464bd0, f_102dff24 or f_102b2ee4; f_102c3694 calls f_102c350c with the reason 'Replaced' (0x10eac8c4) and code 6 when a previous owner string is present.",
@@ -64528,7 +64552,7 @@
       ],
       "todo": [
        "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
-       "Residual: the fields impl+0x2e2a and impl+0x5dc are not named (which writers store the restorable URI there), and when change index 3 marked on impl+0x10 is sent to subscribers is not traced; next step is a store scan for impl offsets 0x2e2a and 0x5dc and the event thread's handling of marked indices."
+       "Residual: two points are not settled. (1) Which current URIs make SetAVTransportURI record a restore point. The restore fields impl+0x2e2a (URI, 0x401 bytes), impl+0x322b (metadata, 0x1001) and impl+0x422c (0x25) are written only by f_102ed638. SetAVTransportURI f_102ce068 calls it at 0x102cf448 only when f_102b0974 is nonzero (0x102cf430), and f_102b0974 depends on f_102aee90(impl+0x5dc). f_102aee90 returns 0 for an 'x-rincon:' URI (strncmp at 0x102aeeb0) and for any URI accepted by f_10147b60, f_10147148, f_10292f78, f_10688070 or f_102931f0, but what those type checks accept is not decoded. The resume logic f_102de238 also writes the restore point (0x102df078, 0x102dfc80). f_102d4e80, the 'Became Coordinator of Standalone group' path, clears it (0x102d5238). f_102b09f4 copies impl+0x5dc/impl+0x9dd/impl+0x19de there but has no reference. impl+0x5dc is the current transport URI, and ChangeCoordinator f_102af490 writes it as 'x-rincon:%s' (0x102af600). (2) When the AVTransport change index 3 marked by f_1067b4f4 is sent to subscribers. That depends on the AVTransport event sender, outside this action. Next step is to decode the five type checks and the f_1067b4f4 consumer."
       ],
       "resolved_findings": [
        "Resolved (front end): f_102dff24 and f_102c3694 store only QueueID and stack data; any transition happens in f_102d094c or the request consumer.",
