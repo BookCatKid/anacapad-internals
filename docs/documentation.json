@@ -154214,18 +154214,31 @@
      "type": "firmware",
      "address": "0x10faf07c",
      "notes": "cert files"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb96e8",
+     "notes": "Certificate XML encryption-key-type is parsed numerically into output+0x2000."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libmbedcrypto.so.16",
+     "build": "86.10-80260",
+     "address": "0x0000e680",
+     "notes": "Shipped CBC implementation; decrypt block XOR and IV chaining at 0xe784-0xe830. Certificate consumer connection unverified."
     }
    ],
    "todo": [
-    "Residual: whether any shipped artifact implements the AES-CBC variant (no in-image consumer exists) - the ECB raw-key path is the only proven decrypt."
+    "Residual: trace the numeric encryption-key-type stored by the certificate-file XML parser through its actual private-key consumer to mode/IV selection. A shipped CBC implementation is now positively located, so absence of a direct CBC import cannot justify declaring the certificate path ECB-only. The separate sonoscp_crypto ECB helper does not bind this file-format field."
    ],
    "resolved_findings": [
     "Resolved: on-disk format = %s/%s.%s files with keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert} + failed-to-retrieve-key error path.",
     "Format proven: PEM - both -----BEGIN CERTIFICATE----- and -----BEGIN PUBLIC KEY----- literals are in the image, plus public key hash: sha256//%s (HPKP-style pin format) and DH signature params {dh(g), dh(pub_key), Signature}. cert.xml stores <DeviceCertInfo>; the X-Sonos-DeviceCert header carries the device cert on requests. Cert health states {DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked} gate the refresh job (Unknown cert metadata state: %s. Scheduling cert refresh job; %zu consecutive cert fetch failures. Trying again in %ld seconds). Trust roots ship as /certbundles/v4/trusted_roots.rcb via libsonos-root-cert-bundle.so.2; validation via libsonos-certval.so.2; fetchRegDeviceCert/refreshRegDeviceCert are the fetch verbs; NewCertRegistrationEvent fires on registration.",
-    "libsonoscrypto.so.3 is shipped and is mbedtls-based. Its dynsym imports reveal the crypto primitives used: mbedtls_cipher_update_ad + mbedtls_cipher_write_tag (AEAD - AES-GCM or AES-CCM, the .upd/envelope path), mbedtls_aes_setkey_dec + mbedtls_aes_crypt_ecb (AES-128 ECB/CBC - consistent with the cert AES-128/AES-CBC/AES-ECB strings), mbedtls_rsa_*/mbedtls_pk_* (RSA key-wrap and signing), mbedtls_md_hmac_* (HMAC), mbedtls_sha256_*, mbedtls_md5_* (legacy). So the crypto stack is: envelope payload = AEAD AES, key-wrap = RSA, private-key storage = AES-CBC/ECB. The exported API is ZZ-mangled (ZZ0052=envelope decrypt, ZZ0053=envelope parse, ZZ0070=key-source) but internally all mbedtls.",
-    "encryption-key-type domain proven: the cert-file XML reader (f_10bb95f8) collects {metadata, expiration, encryption-key-type, certificate, encrypted-private-key} elements; the key-type value domain is {AES-CBC, AES-ECB} - both literals sit in the sonoscp_crypto string pool at 0x10f0e930/0x10f0e938 next to the 'privateKey' field name, bound to the sonoscp_crypto unpack path (f_10716a08) which deserializes {privateKey, type} fields, enforces key-len and iv-len guards ('unpack: invalid key len=%zu', 'unpack: invalid iv len=%zu'), rejects 'unknown decryption type' and 'received NONE with key', then enters the ZZ0024/ZZ0023 decrypt helpers in libsonoscrypto.",
     "Decrypt primitives decoded in libsonoscrypto: ZZ0024 (0x3a48) = aes_init + mbedtls_aes_setkey_dec(ctx, key, keybytes*8) with a keybits sanity bound (<0x20000000), ZZ0025 on failure; ZZ0023 (0x3a24) = mbedtls_aes_crypt_ecb block-decrypt wrapper (mode forced to DECRYPT, 16B in->out). The encrypted-private-key is therefore decrypted with the stored key bytes used directly - there is no KDF step between the 'privateKey' field and mbedtls_aes_setkey_dec; the key IS raw AES key material. ZZ0023/24 are called from 4 sites (0x103eb104/0x104ccdf0/0x1050a174 scp cipher paths + 0x10716e60/0x10716e7c sonoscp_crypto unpack), confirming the shared AES-block engine.",
-    "CBC-vs-ECB reachability resolved by absence: the 'AES-CBC'/'AES-ECB' config literals (0x10f0e930/8) have no xrefs or pointer cells in anacapad, no shipped object imports mbedtls_aes_crypt_cbc, and the only reachable AES decrypt path is the ECB block loop ZZ0024+ZZ0023 (raw key to setkey_dec, ecb per 16-byte chunk, no chaining) - so encryption-key-type=AES-CBC, if honored at all, is handled outside this build's linked code."
+    "Certificate parser corrected at instruction level: f_10bb95f8 compares encryption-key-type at 0x10bb96c4-0x10bb96d8, then invokes paranoid_atoi(text,output+0x2000) at 0x10bb96dc-0x10bb96e8. Expiration is independently parsed by paranoid_strtoull into output+0x2008 at 0x10bb9770-0x10bb977c. Thus this XML metadata field is numeric, not a demonstrated AES-CBC/AES-ECB string enum. The sonoscp_crypto privateKey/type code and its raw ECB loop f_10716e2c belong to a separate parser; adjacency of strings does not link them to this certificate-file consumer.",
+    "Counterexample to the previous shipped-CBC-absence claim: lib/libmbedcrypto.so.16 exports mbedtls_aes_crypt_cbc at relative VA 0xe680, size 0x2f8. Its decrypt branch (mode=0) preserves the incoming ciphertext block, invokes mbedtls_aes_crypt_ecb at 0xe778, XORs all sixteen plaintext bytes with the IV at 0xe784-0xe7a4, updates the IV with saved ciphertext at 0xe7a8-0xe830 and repeats. It accepts empty input, rejects non-block-multiple length at 0xe6c8-0xe6cc, and has a separate encrypt branch at 0xe87c. This proves CBC is implemented in a shipped artifact, not that a particular certificate file reaches it. libsonoscrypto imports the generic mbedtls_cipher_setup/setkey/set_iv/update API, so searching only direct imports of mbedtls_aes_crypt_cbc cannot establish mode reachability. The actual certificate numeric-key-type dispatch is still unresolved."
    ]
   },
   "local_settings_mgr": {
