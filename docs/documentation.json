@@ -80877,7 +80877,7 @@
      ]
     },
     "Pause": {
-     "description": "Pauses VLI playback via impl->v[+0x18].",
+     "description": "Pause is not implemented by this SOAP source manager. Bound 0x106a613c optionally logs \"Pause\" and returns 401, ignoring its inputs. Request validation failure selects 402; no playback or volume operation occurs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073cf04",
@@ -80909,11 +80909,14 @@
         "slot": 8,
         "purpose": "parse"
        }
-      ]
+      ],
+      "impl_function": "0x106a613c",
+      "impl_vfunc": "static vtable 0x10f045c4 slot +0x18",
+      "description": "After successful request validation, 0x106a613c returns literal 401 at 0x106a6190, forwarded unchanged to the wrapper fault slot. Failed request validation selects 402. No outputs or successful commit are reached with this implementation."
      },
      "inputs": {
       "InstanceID": {
-       "description": "u32 parsed via f_105614e0; passed to impl; no handler-side range check observed",
+       "description": "InstanceID is parsed by the request layer and passed to the implementation, which ignores it and returns 401.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -80925,7 +80928,7 @@
        "semantic_type": "SonosUintArg",
        "format": "decimal text (lexical bounds set by request parse helper)",
        "unit": "none - dimensionless count/index",
-       "accepted_values": "any u32 - impl entry does not range-check it in this build",
+       "accepted_values": "No value enables Pause: after request validation, the bound implementation ignores InstanceID and returns 401.",
        "range": "u32",
        "special_values": "none observed in this build",
        "required": true,
@@ -80964,101 +80967,131 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x18]",
+      "description": "The named inputs must pass request parsing/validation to reach 0x106a613c. Dispatch requires nonnull service+4. No session, InstanceID or transport state value enables this action: the implementation always returns 401.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6190",
+        "function": "0x106a613c",
+        "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073cf80",
         "function": "0x1073cf04",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×1); member delegates: r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x18]",
+      "description": "No session, selected-source, group, transport or controller state is read by 0x106a613c. Logging configuration is tested, but either result reaches the same literal-401 return at 0x106a6190.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6190",
+        "function": "0x106a613c",
+        "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073cf80",
         "function": "0x1073cf04",
-        "notes": "member vfunc calls: ['r30 v[+0x18]']"
+        "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x18] (call-derived member-method semantics)",
+       "description": "The only optional implementation side effect is a diagnostic log: category \"vli\", level 8, format \"%s\", argument \"Pause\" at 0x10f04730, emitted at 0x106a6188. No playback or volume state is changed. The wrapper reports a SOAP fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "address": "0x106a6190",
+         "function": "0x106a613c",
+         "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073cf80",
          "function": "0x1073cf04",
-         "notes": "delegate map ['r30 v[+0x18]']; notify-family calls []"
+         "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x18] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No internal transport event, GENA notification or WSS notification is submitted by 0x106a613c. Its only callees are logging-related; controller/provider callbacks are not invoked.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6190",
+        "function": "0x106a613c",
+        "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073cf80",
         "function": "0x1073cf04",
-        "notes": "bl call scan: notify-family sites = []"
+        "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18]",
+      "description": "No playback, source-manager or volume-state transition is requested or completed. 0x106a613c neither reads nor mutates those fields and returns 401 after optional logging.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6190",
+        "function": "0x106a613c",
+        "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073cf80",
         "function": "0x1073cf04",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x18]']"
+        "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x18].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "After successful request validation, 0x106a613c returns literal 401 at 0x106a6190, forwarded unchanged to the wrapper fault slot. Failed request validation selects 402. No outputs or successful commit are reached with this implementation.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x106a6190",
+        "function": "0x106a613c",
+        "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073cf80",
         "function": "0x1073cf04",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0xc': 1}"
+        "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
@@ -81070,34 +81103,31 @@
      ],
      "errors": [
       {
-       "code": 402,
-       "code_expr": "vret(r5-in,+0x18); parse/req-layer",
-       "meaning": "request-layer parse/impl gate failure | Wrapper parse layer rejected an argument before the impl call.",
+       "code": 401,
+       "code_expr": "401",
+       "meaning": "Pause is not implemented by the bound SOAP implementation.",
        "fault_sites": [
         "0x1073cf9c"
        ],
        "conditions": [
         {
-         "description": "parse or impl arg gate failed",
+         "description": "Request validation succeeds; the bound stub returns 401 unconditionally regardless of input values or logging configuration.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x104164c4",
-           "notes": "impl/handler"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "address": "0x106a6190",
+           "function": "0x106a613c",
+           "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1073cf04",
-           "notes": "parse vcalls then fault path"
+           "address": "0x1073cf80",
+           "function": "0x1073cf04",
+           "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
           }
          ]
         }
@@ -81107,21 +81137,67 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x104164c4",
-         "notes": "402 path"
+         "address": "0x106a6190",
+         "function": "0x106a613c",
+         "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073cf04",
-         "notes": "wrapper parse + fault path"
+         "address": "0x1073cf80",
+         "function": "0x1073cf04",
+         "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
+        }
+       ]
+      },
+      {
+       "code": 402,
+       "code_expr": "402",
+       "meaning": "Request validation failed before the implementation call.",
+       "fault_sites": [
+        "0x1073cf9c"
+       ],
+       "conditions": [
+        {
+         "description": "The wrapper request+8 validation returns zero after named input parsing.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x106a6190",
+           "function": "0x106a613c",
+           "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1073cf80",
+           "function": "0x1073cf04",
+           "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
+          }
+         ]
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x104164c4 exits=[88]; impl f_104164b0: flag-setter thunk (r4=1) tail-calling shared transport worker f_1041616c; residual = worker rc domain (call-derived)",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x18); parse/req-layer; sites: 0x1073cf9c).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x106a6190",
+         "function": "0x106a613c",
+         "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073cf80",
+         "function": "0x1073cf04",
+         "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
+        }
        ]
       }
      ],
@@ -81131,23 +81207,28 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073cf04",
-       "address": "0x1073cf04",
-       "notes": "action wrapper handler"
+       "address": "0x104d4f64",
+       "function": "0x104d49e8",
+       "notes": "The services-block write at block+0x58 is VLI service+4 (zone-player+0x3fa84). Its source is media-player+0x19a0, constructed by f_106aae20 at 0x103fbe30; final primary vptr 0x10f045c4 is installed at 0x106aaf5c. The containing block is retained at media-player+0x220 (0x103fa75c) and loaded by initializer f_103fd65c at 0x103fdd08. This is the source manager, not the controller at media-player+0x1998."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11eec",
-       "notes": "action dispatch table entry"
+       "address": "0x106a6190",
+       "function": "0x106a613c",
+       "notes": "Raw 0x38600191 loads literal 401. The logging branch at 0x106a6164 (raw 0x419e0028) skips the optional log and joins the same return. The only calls are f_109b6fe4(\"vli\",8) and conditional f_109b72ac with format \"%s\" and string 0x10f04730 (\"Pause\"). No incoming object/input field is consumed, no application-state store or provider/controller call occurs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073cf80",
+       "function": "0x1073cf04",
+       "notes": "Wrapper fetches its named inputs, invokes request validation through +8, selects 402 on validation failure and otherwise calls implementation +0x18. Its nonzero result is forwarded unchanged through request fault +0x14; the zero-result commit path is not reached with the bound literal-401 stub. It has no output arguments."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: direct dispatch to handler 0x1073cf04; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot."
     },
     "Play": {
      "description": "Rejects the Play request with fault 401 after request validation. Handler f_1073d2dc parses InstanceID and Speed and calls service+4 slot +0x14. The bound implementation is f_106a60d4 on static vtable 0x10f045c4, installed by f_106aae20 and attached through f_104d49e8 at 0x104d4f64. It optionally logs \"Play\" and always returns 401, ignoring InstanceID and Speed. Request validation failure instead selects 402. It does not start or resume playback.",
