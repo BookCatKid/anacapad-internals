@@ -108988,35 +108988,44 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /ZoneGroupTopology/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission decoded: f_1074d9b4 -> f_10743328 serializer -> f_10676a44 delivery",
+    "mechanism": "Embedded event source at topology+8 produces direct e:propertyset XML. Source registration, payload callbacks and dirty scheduling are statically bound. Shared asynchronous GENA transport and separate observer/WSS delivery remain to be traced below.",
     "lastchange_template": null,
-    "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
+    "no_template_note": "Installed producer builds named e:property elements directly, including an XML-escaped ZoneGroupState string, not a LastChange attribute envelope. This follows concrete callbacks, not absence from a namespace registry.",
     "wss_event_names": [
      "zoneGroupTopology",
      "activeZonesChange",
      "zoneDefinitionsChange",
      "zoneError"
     ],
-    "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
+    "wss_note": "Source constructor explicitly binds registry index 72 (zoneGroupTopology). Base producer publishes zoneError with explicit index 4. activeZonesChange and zoneDefinitionsChange are retained as registry vocabulary, not yet proven publisher bindings.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "function": "0x1074043c",
+      "address": "0x107404ec",
+      "notes": "Source constructor arguments: r3=topology+8, r5=ZoneGroupTopology literal 0x10f9704c, r6=0x48. f_1067aec4 stores name at source+0xbc and index at source+0xc0. Derived constructor uses vtable 0x10e8b184; +0x18 -> f_1012abe0 -> f_1012a694. Its calls at 0x1012a95c, 0x1012aa04 and 0x1012aa2c enter f_10129888 with force/incremental selection. +0x14 is f_1067ab48, a no-op; do not substitute the generic +0x18 forwarding thunk used by some other services."
      },
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
-      "notes": "emitter f_1074d9b4 calls serializer f_10743328 then f_10676a44; 0x10752d2c second caller (initial notify)",
-      "address": "0x1074d9b4",
-      "pc": "0x1074d9b4"
+      "function": "0x1074d868",
+      "address": "0x1074d9c4",
+      "notes": "Producer starts propertyset through f_1067693c, serializes ZoneGroupState with f_10743328 at 0x1074d9b4, then wraps it through f_10676a44 at 0x1074d9c4. This is XML generation, not a socket write. Flag snapshot f_1074d644 and conditional f_1074388c add group state. Derived f_10129888 adds MediaServers, AlarmRunSequence, AreasUpdateID and SourceAreasUpdateID. f_1012a694 has full and incremental output paths and clears/snapshots flags under topology+0x318."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1074d868",
+      "address": "0x1074da80",
+      "notes": "Conditional zone-error producer constructs topic index 4 through f_109dbdec at 0x1074da60, payload through f_1074abc0 at 0x1074da6c, then publishes with f_10677b94(source+8, topic, tag 10, payload) at 0x1074da80. This proves a zoneError producer independently of the registry name. f_10129888 publishes the same zone-error payload family with explicit topic 4 at 0x1012a3b4..0x1012a3dc; distinct payload construction is retained."
      }
     ],
-    "notify_path": "f_1074d9b4 emitter: serializes <ZoneGroupState>/<ZoneGroups> full-state doc via f_10743328 -> delivery worker f_10676a44; svc+0xe7c flag gates a secondary emit via f_1074388c; f_1074d644 produces 3 flag bytes; initial-notify caller at 0x10752d2c; second emitter f_10129888 (topology.cxx): <MediaServers><Ex CURL= EURL= T= EXT=><MediaServer Name=> section + 'informLocalPlayerChange' + 'SourceAreasUpdateID'",
-    "payload_model": "direct <ZoneGroupState> XML (not LastChange attribute-form) - full-state push on topology change",
+    "notify_path": "f_1074043c constructs source topology+8 through f_1067aec4 at 0x107404ec with name ZoneGroupTopology and topic index 72. Derived constructor installs vptr 0x10e8b184 at topology+8 (0x101261c4, 0x1012623c). Slot +0x18 is thunk f_1012abe0 -> f_1012a694, which invokes derived serializer f_10129888. Base producer f_1074d868 serializes ZoneGroupState through f_10743328 and property writer f_10676a44. The latter builds XML, not network delivery. GetZoneGroupState call 0x10752d2c is a SOAP snapshot, not initial notification dispatch.",
+    "payload_model": "Full and incremental direct propertysets. Derived producer includes MediaServers, AlarmRunSequence, AreasUpdateID, SourceAreasUpdateID and local-player changes; base producer includes ZoneGroupState and conditional group attributes. Dirty flags and force mode select fields.",
     "wss_registry": [
      {
       "idx": 72,
@@ -109044,11 +109053,10 @@
      }
     ],
     "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `zoneGroupTopology`, `activeZonesChange`, `zoneDefinitionsChange`, `zoneError`.",
-     "Residual: the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "Trace the registered source through shared sender subscription eligibility, concrete outgoing GENA NOTIFY encoding/write, and observer sink/WSS encoding. Verify activeZonesChange and zoneDefinitionsChange publisher bindings rather than inferring from names."
     ],
     "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "Corrected stale LastChange/delivery/initial-notify claims: XML property writer is not delivery, and f_10752ce4 is the GetZoneGroupState SOAP worker. Concrete derived source callback and topic-72 binding are recovered."
     ]
    },
    "errors": [
@@ -109078,17 +109086,14 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x107330a0",
-       "notes": "fault raise site"
+       "function": "0x10732ff8",
+       "address": "0x10733090",
+       "notes": "Complete dispatcher 0x10732ff8..0x10733140 searches eight case-sensitive action names using table 0x10f113dc. Unknown-name rejection loads 401 at 0x10733090 and calls request virtual +0x14 once at 0x107330a0; no other dispatcher fault call exists. Successful lookup computes wrapper slot from action descriptor, using service wrapper table 0x10f113b8. Action-level validation/worker errors are separate from this dispatcher reject tail."
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10733090); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
+      "Single dispatcher unknown-action emit site 0x107330a0, with 401 loaded at 0x10733090. This is not a claim that action workers cannot produce 401 independently."
      ]
     }
    ],
@@ -109122,6 +109127,22 @@
      "address": "0x100df4a4",
      "callsite": "0x100dfa30",
      "notes": "Historical manager-cell candidate from f_100df3fc is a masked byte, not a right shift or a vtable: loads the stack argument pointer at 0x100df47c, lbz r26,0(r3) at 0x100df494, raw word 0x575a063e at 0x100df4a4 has opcode 21, SH=0, MB=24, ME=31, Rc=0, equivalent to clrlwi r26,r26,24 (r26 & 0xff). It does not update CR0. The later store 0x100dfa30 is stb r26,0x3a8(r31), not a vptr word store. This syntactic same-offset candidate is not the zone-player manager binding; actual zone-player initialization stores 0x10e98278 with stw at 0x1018dbd0 and 0x10192388."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1018e1dc",
+     "address": "0x1018e2cc",
+     "notes": "Zone-player initialization calls topology constructor f_10125b54 at 0x1018e204, installs primary implementation vptr 0x10e8b024 at 0x10126234, then constructs service through f_10733b28 at 0x1018e2cc. Constructor stores implementation argument in service+4 and service vptr 0x10f113b0 at service+0. Manager getter 0x10e98278+0x88 -> f_1019db90 subtracts 0x3a8 and enters f_1019db7c, returning zone-player+0x9d70. This agrees with member_ctx_off, not the unadjusted interface-relative getter_off 0x99c8. Implementation workers are statically bound; no runtime introspection is required to identify them."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10732ff8",
+     "address": "0x10733090",
+     "notes": "Complete dispatcher 0x10732ff8..0x10733140 searches eight case-sensitive action names using table 0x10f113dc. Unknown-name rejection loads 401 at 0x10733090 and calls request virtual +0x14 once at 0x107330a0; no other dispatcher fault call exists. Successful lookup computes wrapper slot from action descriptor, using service wrapper table 0x10f113b8. Action-level validation/worker errors are separate from this dispatcher reject tail."
     }
    ],
    "notes": null,
@@ -109133,7 +109154,7 @@
       "0x00": "f_10732ff8 (dispatcher)",
       "0x04": "f_1073331c CheckForUpdate (id 0xd)",
       "0x08": "f_10733140 BeginSoftwareUpdate (id 0x11)",
-      "0x0c": "f_10732ebc RegisterMobileDevice (id 0x15) - req->v[+0x0c] trampoline",
+      "0x0c": "f_10732ebc RegisterMobileDevice (id 0x15) - direct request success commit, no implementation dispatch",
       "0x10": "f_10733498 ReportUnresponsiveDevice (id 0x19)",
       "0x14": "f_107337cc ReportAlarmStartedRunning (id 0x1d)",
       "0x18": "f_1073365c SubmitDiagnostics (id 0x21)",
@@ -109149,12 +109170,8 @@
     "zoneplayer/zones_{mgr,storage}.cxx",
     "common/topology/topology_base.cxx"
    ],
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "The manager getter, service constructor, installed primary topology implementation and all eight wrapper bindings are statically recovered. RegisterMobileDevice commits success without implementation dispatch; the other seven workers and their return domains are documented individually."
    ]
   }
  },
