@@ -29205,10 +29205,38 @@
       "binary": "anacapad",
       "build": "86.10-80260",
       "address": "0x10684060",
-      "notes": "unreachable in this function: load of event-source slot +0x18"
+      "notes": "Loads source slot +0x18 after testing the notification group list head and the group's output vector."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10683e4c",
+      "notes": "f_10683da0 passes &frame[0x48] into f_10684d00 for each subscription name group rooted at source+0xa0. The helper forwards the same table to f_10684ac8 at 0x10684dfc."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10684c30",
+      "notes": "f_10684ac8 stores the new group node in table+8, i.e. caller sp+0x50. This is the indirect writer missed by the direct stack-reference scan."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10684308",
+      "notes": "For an eligible subscriber, f_10684e98 appends subscriber data to the group vector whose begin/end fields are tested at 0x10683ff8 and 0x10683ffc."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068406c",
+      "notes": "A populated group invokes the source's slot +0x18, which forwards to slot +0x14, HTControl thunk f_1024340c. f_102432dc calls the property renderer at 0x10243338 and 0x10243350 with the two non-null buffers."
      }
     ],
-    "notify_path": "f_10243170 emits {TOSLinkConnected, IRRepeaterState}. Registration of impl+8: f_10189a10 at 0x10189cd8 calls f_106795b4(sender at zp+0x5744, impl+8). Signal: f_1067c6ec -> f_1067c46c -> f_10678c50 -> pthread_cond_signal. Consumer: f_10679b14 walks sender+0x110 and calls f_10683da0. The slot +0x18 call that would enter f_1024340c is at 0x1068406c and is skipped while sp+0x50 is 0.",
+    "notify_path": "f_10189a10 registers the home-theater implementation's embedded source at impl+8 with the shared sender at 0x10189cd8 when the implementation pointer is present. f_1067c6ec signals through f_1067c46c and f_10678c50. Consumer f_10679b14 calls f_10683da0 at 0x10679e54. For a populated subscription group this calls event-source slot +0x18 at 0x1068406c; f_1067ab54 forwards to +0x14 (f_1024340c), which leads to f_10243170.",
     "wss_registry": [
      {
       "idx": 41,
@@ -29218,12 +29246,10 @@
      }
     ],
     "todo": [
-     "Established: the HTControl event source at impl+8 is passed to f_106795b4 at 0x10189cd8 and appended to the shared sender vector at sender+0x110 while sender+0x10d is 0. The sender constructor stores 0 at that byte. f_1067c6ec reaches pthread_cond_signal on that sender. Consumer f_10679b14 walks sender+0x110 and calls f_10683da0 for a source whose slot +0x08 is f_100c9bac, which the vtable at 0x10ea628c has. f_10243170 is the property body, reached from slot +0x14, and slot +0x18 tail-calls slot +0x14.",
-     "Residual: the slot +0x18 call at 0x1068406c, which would enter f_1024340c and then f_10243170 with the two property buffers, is skipped. f_10683da0 stores 0 at sp+0x50 and the compare at 0x10683fe0 takes the branch to 0x10684258. No live instruction in f_10679b14 or in the taken path of f_10683da0 calls f_1024340c or f_1067ab54.",
-     "Next step: find a store of a nonzero value to the word f_10683da0 reads at 0x10683fe0, or another live call of slot +0x14 or slot +0x18 whose r3 is the object at impl+8."
+     "Residual: map the accepted /HTControl/Event request to a concrete eligible record rooted at source+0xa0 and verify delivery to the callback. The subscribed-source renderer path and its population gates are identified; an accepted subscription alone does not establish successful notification delivery. The htControl WSS name is not proof of a WSS publisher."
     ],
     "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "The initial zero at sp+0x50 is not invariant: the subscription-group insert helper receives the containing table by address and writes the list head indirectly. The renderer call also requires a nonempty subscriber vector for that group."
     ]
    },
    "errors": [
@@ -29315,9 +29341,7 @@
     "audio/hometheater/htaudio_{configuration,chprocessing,chsnk_processor,chsnk_processor_stream,autoplay}.cxx"
    ],
    "todo": [
-    "Established: all eight HTControl actions are traced on the static implementation vtable 0x10ea6254 or by direct calls into the decoder at impl+0x218. IdentifyIRRemote, LearnIRCode, and CommitLearnedIRCodes return 0, 402, 801, 802, or 803 as documented on those actions. The irconfig writer is f_102457b8. The dispatcher 401 has one site, 0x107397d8. The event source at impl+8 is registered with the shared sender by f_10189a10 at 0x10189cd8.",
-    "Residual: the upnpeventing consumer reaches f_10683da0 with this event source, and f_10683da0 contains the slot +0x18 call at 0x1068406c that would run f_10243170, but that call is skipped because sp+0x50 is 0. The property body is therefore not yet shown to run for a live notification of this source.",
-    "Next step: find a store of a nonzero value to the word read at 0x10683fe0, or another live call of slot +0x14 or slot +0x18 on the object at impl+8."
+    "The original renderer reachability gap is narrowed to the live subscription-to-source association and callback delivery described on this service's events record. The embedded source, subscriber eligibility gates and render dispatch are statically traced."
    ],
    "resolved_findings": [
     "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
