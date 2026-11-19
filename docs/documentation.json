@@ -96066,7 +96066,7 @@
      "errors": [
       {
        "code": 402,
-       "meaning": "Required materialization missing or explicit string byte limit exceeded, including unused fields.",
+       "meaning": "Required materialization missing; request-validation fault at 0x107327c8.",
        "evidence": [
         {
          "type": "firmware",
@@ -96079,7 +96079,7 @@
        ],
        "conditions": [
         {
-         "description": "Required materialization missing or explicit string byte limit exceeded, including unused fields.",
+         "description": "Required materialization missing; request-validation fault at 0x107327c8.",
          "evidence": [
           {
            "type": "firmware",
@@ -96093,14 +96093,21 @@
         }
        ],
        "fault_sites": [
-        "0x10732650",
         "0x107327c8"
        ]
       },
       {
        "code": null,
-       "meaning": "Delegate/account/OAuth status propagated unchanged; known local statuses 401,802,803,809,810,4001 are distinguished from service-exchange faults.",
+       "meaning": "Post-validation fault at 0x10732650: explicit string byte limit exceeded yields 402, including unused fields; otherwise delegate/account/OAuth status propagates unchanged. Known local delegate statuses 401,802,803,809,810,4001 are distinguished from service-exchange faults.",
        "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10732620",
+         "function": "0x10732454",
+         "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+        },
         {
          "type": "firmware",
          "binary": "anacapad",
@@ -96173,8 +96180,16 @@
        ],
        "conditions": [
         {
-         "description": "Delegate/account/OAuth status propagated unchanged; known local statuses 401,802,803,809,810,4001 are distinguished from service-exchange faults.",
+         "description": "Post-validation fault at 0x10732650: explicit string byte limit exceeded yields 402, including unused fields; otherwise delegate/account/OAuth status propagates unchanged. Known local delegate statuses 401,802,803,809,810,4001 are distinguished from service-exchange faults.",
          "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10732620",
+           "function": "0x10732454",
+           "notes": "All eight arguments register required materialization through request +0x1c/+0x20, both concrete 0x1073017c in request vtable 0x10f10f20. AccountType/AccountTier use tag 4 with 24-byte buffers. The six tag-7 strings use capacities 2050,2050,66,1026,8194,26 respectively. After validation through 0x10730414, strlen checks at 0x1073262c..0x107326d4 independently reject Token/Key >2048, OAuthDeviceID >64, AuthorizationCode >1024, RedirectURI >8192 and UserIdHashCode >24 bytes with 402. These limits apply even to fields unused by the selected delegate route. Unlike AddAccountX, each string buffer holds limit+1 payload bytes, permitting rejection rather than acceptance of overlong text. Missing materialization faults at 0x107327c8; excess length or delegate status faults at 0x10732650."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
