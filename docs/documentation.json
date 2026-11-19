@@ -25446,7 +25446,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274) whose most-derived vtable is 0x10ebc630. 0x10ebd214 is the vtable of its direct base (constructor f_1035e5ac) and is not the runtime dispatch table. Slot +0x40 is not overridden by the most-derived class. Unlike SetAutoplayLinkedZones this worker emits no log line."
     },
     "SetZoneAttributes": {
-     "description": "Sets the zone name, icon, configuration and target room name. The wrapper parses the four strings (caps 1024, 1024, 16 and 65) and calls slot +0x08 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x10356df4. That override parses the bonded channel map stored at impl+0xe60 and, when this player is entry 0 (the primary) of that map, first forwards a SetZoneAttributes request carrying DesiredZoneName, DesiredIcon, DesiredConfiguration and an empty DesiredTargetRoomName to every other bonded member through f_10359898. It then applies the values locally with the base worker f_105b4574 and returns that worker's result; the forwarding result is discarded. Afterwards, when f_104d82ac reports the sonar flag of the object at impl+0x1368 and f_1075c4d0 confirms the local UUID in the topology object at impl+0x968, it calls f_10356c14 to clear sonar configuration. The worker calls the configuration object at 0x10356cfc and 0x10356d18, updates the +0xa54 flag at 0x10356d38, clears the sonar flag at 0x10356dd8 and requests event processing at 0x10356de0.",
+     "description": "Sets the zone name, icon, configuration and target room name. The wrapper parses the four strings (caps 1024, 1024, 16 and 65) and calls slot +0x08 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x10356df4. That override parses the bonded channel map stored at impl+0xe60 and, when this player is entry 0 (the primary) of that map, first forwards a SetZoneAttributes request carrying DesiredZoneName, DesiredIcon, DesiredConfiguration and an empty DesiredTargetRoomName to other bonded members through f_10359898, skipping any member whose URI lookup fails. It then applies the values locally with the base worker f_105b4574 and returns that worker's result; the forwarding result is discarded. Afterwards, when f_104d82ac reports the sonar flag of the object at impl+0x1368 and f_1075c4d0 confirms the local UUID in the topology object at impl+0x968, it calls f_10356c14 to clear sonar configuration. The worker calls the configuration object at 0x10356cfc and 0x10356d18, updates the +0xa54 flag at 0x10356d38, clears the sonar flag at 0x10356dd8 and requests event processing at 0x10356de0.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10736450",
@@ -25554,8 +25554,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101935f0",
-         "notes": "impl member write"
+         "address": "0x105b46e8",
+         "notes": "Base worker f_105b4574 dispatches the selected attributes in a batch"
         },
         {
          "type": "firmware",
@@ -25630,8 +25630,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101935f0",
-         "notes": "impl member write"
+         "address": "0x105b46e8",
+         "notes": "Base worker f_105b4574 dispatches the selected attributes in a batch"
         },
         {
          "type": "firmware",
@@ -25706,8 +25706,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101935f0",
-         "notes": "impl member write"
+         "address": "0x105b46e8",
+         "notes": "Base worker f_105b4574 dispatches the selected attributes in a batch"
         },
         {
          "type": "firmware",
@@ -25782,8 +25782,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x101935f0",
-         "notes": "impl member write"
+         "address": "0x105b46e8",
+         "notes": "Base worker f_105b4574 dispatches the selected attributes in a batch"
         },
         {
          "type": "firmware",
@@ -25921,7 +25921,7 @@
        ]
       },
       {
-       "description": "When this player is the primary of a bonded set, sends SetZoneAttributes SOAP requests to each other member with the same name, icon and configuration and an empty target room name; per-member results are only logged ('forwarded %s to %s, rc=%d').",
+       "description": "When this player is the bonded primary, it attempts to forward the name, icon and configuration with an empty target room name. A failed URI lookup skips the member before sending or queueing. The override discards the forwarding result.",
        "evidence": [
         {
          "type": "firmware",
@@ -25936,6 +25936,20 @@
          "build": "86.10-80260",
          "address": "0x10351538",
          "notes": "argument writer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10359a08",
+         "notes": "Call member URI lookup"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10359a10",
+         "notes": "Zero lookup result skips to the next member"
         }
        ]
       },
@@ -26150,8 +26164,22 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x101935f0",
-       "notes": "impl vtable 0x10e98278 slot +0x08; secondary-base trampoline via 0x101935f0"
+       "address": "0x1073658c",
+       "notes": "Runtime +0x08 dispatch to f_10356df4"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10359a08",
+       "notes": "Call member URI lookup"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10359a10",
+       "notes": "Zero lookup result skips to the next member"
       }
      ],
      "notes": null,
