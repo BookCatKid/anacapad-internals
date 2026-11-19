@@ -51557,7 +51557,7 @@
      "notes": null
     },
     "GetPositionInfo": {
-     "description": "Returns eight fields about the current track. Source mode selects indexed or streamer media retrieval or fixed placeholders. The default path uses track 1, the current engine URI, four NOT_IMPLEMENTED strings, and sentinel counts.",
+     "description": "Returns eight position fields for the active mode. Indexed playback reads a timeline snapshot and track list. Streamer playback reads the active stream record and uses the engine URI. Without stream data or in default mode, position fields can be NOT_IMPLEMENTED. Both counters always return 2147483647.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102fbda4",
@@ -51669,7 +51669,7 @@
      },
      "outputs": {
       "Track": {
-       "description": "Current track ordinal (queue position for indexed sources). Default mode returns 1.",
+       "description": "Indexed playback returns the ordinal in the current playback snapshot. A successful streamer query returns its track number when marked present, otherwise zero. No streamer result or default mode returns 1.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -51706,20 +51706,44 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b93c",
+         "notes": "The indexed worker holds session+0x208 while f_10341b9c advances the timeline at session+0x327f0 to the sample time. f_1034071c stores snapshot halfword +0x28c for the queue lookup at 0x103407d8 and +0x28e for Track at 0x103407e8. The worker widens the latter at 0x1025b938 and writes it even if media lookup fails.",
+         "function": "0x1025b768"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10488430",
+         "notes": "For a successful query the helper copies record word +0xf08 to Track if record byte +0xf04 is nonzero, otherwise it writes zero. A missing or unsuccessful query instead writes 1 at 0x10489ae8.",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104882f4",
+         "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
+         "function": "0x10488248"
         }
        ],
        "notes": null
       },
       "TrackDuration": {
-       "description": "Duration string of current track. Default mode returns NOT_IMPLEMENTED.",
+       "description": "Indexed playback formats the retrieved duration, or zero for an invalid duration. A streamer returns a formatted duration only after a successful query with a positive valid duration. Other successful streamer queries return an empty string; a missing query or default mode returns NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "string",
-       "format": "string",
-       "unit": "none - dimensionless",
+       "format": "H:MM:SS (with a minus sign for a negative value), empty, or NOT_IMPLEMENTED.",
+       "unit": "Whole seconds in the formatted time.",
        "accepted_values": "impl-defined engine state",
        "range": "impl-defined engine state",
        "special_values": "none observed in this build",
@@ -51748,12 +51772,44 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025bd50",
+         "notes": "f_1041f3cc fetches the two-word duration from media-info+0x3220 when both +0x3b8 and the +0x3228 validity byte are nonzero. Otherwise it takes +0x390 and validity byte +0x3a5. On invalid duration the indexed helper supplies zero seconds and calls f_10c394f0, rather than returning NOT_IMPLEMENTED.",
+         "function": "0x1025b768"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10488398",
+         "notes": "A successful streamer query formats both TrackDuration (record+0xf00) and RelTime (position output at stack+0xc4) only when record+0xefc is set and the signed duration is positive. It divides each signed millisecond value by 1000 with truncation toward zero, then passes seconds to f_10c394f0. That arm also writes NOT_IMPLEMENTED to AbsTime. Otherwise none of the three time outputs is written, so the wrapper's NUL-initialized buffers publish empty strings.",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104882f4",
+         "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c395d8",
+         "notes": "f_10c394f0 splits signed seconds into hours, minutes and seconds using division by 3600 and 60. The format pointer loaded from 0x1108dcdc is 0x10fb1300, %s%lld:%02lld:%02lld, with a leading minus only for negative input. Hours have no minimum width.",
+         "function": "0x10c394f0"
         }
        ],
        "notes": null
       },
       "TrackMetaData": {
-       "description": "DIDL metadata XML for the current track. Default mode returns NOT_IMPLEMENTED.",
+       "description": "Indexed playback serializes track metadata when a track URI exists, or writes an empty string if it does not. A successful streamer query builds track XML from the returned record and supplemental metadata. A missing streamer query or default mode returns NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -51790,12 +51846,44 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025be38",
+         "notes": "An empty indexed URI clears TrackMetaData. A nonempty URI goes through f_10424d30 with the media-info object and snapshot name. The serializer copies existing XML when media-info+0x3b8 is populated and its copy predicates allow it (0x10424db4); otherwise it invokes the metadata builder f_1042108c (0x10424e40). A failed media lookup initializes fallback media info with f_1014fff0 and copies it through f_1041f364 before this decision.",
+         "function": "0x1025b768"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10488374",
+         "notes": "A successful query builds TrackMetaData via f_10448f38 from the stream record and f_10487dd0's parsed supplemental metadata. The supplemental string is the NUL-initialized 1025-byte buffer passed to the topology object's slot +0x48 at 0x102b1a00. If the optional stream string at record+0x608 is absent, the metadata builder receives an empty string for that input (0x10488338); if present it copies the supplied span (0x10489af0).",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10ed9cb0",
+         "notes": "One binary table has f_104de170 at +0x1c, with its address point 0x10ed9c94 installed into the primary vptr at 0x104db70c. This method has the same argument and record layout as the consumer: it supplies duration validity and the duration word at 0x104de3e4/0x104de3f4 and the relative position out-parameter at 0x104de404, with a separate fallback for source position -1 at 0x104de674. The route installing this object into the active streamer has not been established here.",
+         "function": "0x104de170"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104882f4",
+         "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
+         "function": "0x10488248"
         }
        ],
        "notes": null
       },
       "TrackURI": {
-       "description": "URI of the current track. Default mode returns the current engine URI.",
+       "description": "Indexed playback returns the URI for the snapshot's lookup index, or an empty string when no entry is found. Streamer and default modes return the engine's current URI.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -51806,7 +51894,7 @@
        "unit": "none - dimensionless",
        "accepted_values": "impl-defined engine state",
        "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "special_values": "Empty string when no URI is available.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -51832,20 +51920,28 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b910",
+         "notes": "The queue lookup f_1014a28c receives the +0x28c halfword and the list at session+0x326c8. Its URI helper f_1014571c returns empty for index zero or beyond the list count, otherwise reads the entry at index minus one through f_10145594. f_1025b768 copies the returned URI, not the indexed media lookup's alternate identifier, via f_10906304 at 0x1025bd30. The outer worker skips the current engine URI overwrite in indexed mode.",
+         "function": "0x1025b768"
         }
        ],
        "notes": null
       },
       "RelTime": {
-       "description": "Elapsed position within the track. Default mode returns NOT_IMPLEMENTED.",
+       "description": "Indexed playback formats the time within the track from the current timeline snapshot. A successful streamer query formats the offset only when its duration is valid and positive; otherwise it returns an empty string. A missing streamer query or default mode returns NOT_IMPLEMENTED.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
        "semantic_type": "string",
-       "format": "string",
-       "unit": "none - dimensionless",
+       "format": "H:MM:SS (with a minus sign for a negative streamer offset), empty, or NOT_IMPLEMENTED.",
+       "unit": "Whole seconds in the formatted time.",
        "accepted_values": "impl-defined engine state",
        "range": "impl-defined engine state",
        "special_values": "none observed in this build",
@@ -51874,12 +51970,44 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10340b94",
+         "notes": "Indexed relative time starts from snapshot+0x298/+0x29c (seconds and microseconds). For snapshot state 2 only, the worker adds elapsed time since +0x290/+0x294, carrying microseconds at 1000000; a frozen seconds word of -1 or a negative result is rendered as zero. Playback states other than 2 use the stored seconds, also clamped at zero. The caller's string output uses %ld:%02ld:%02ld at 0x10eba240, with no fractional field.",
+         "function": "0x1034071c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10488398",
+         "notes": "A successful streamer query formats both TrackDuration (record+0xf00) and RelTime (position output at stack+0xc4) only when record+0xefc is set and the signed duration is positive. It divides each signed millisecond value by 1000 with truncation toward zero, then passes seconds to f_10c394f0. That arm also writes NOT_IMPLEMENTED to AbsTime. Otherwise none of the three time outputs is written, so the wrapper's NUL-initialized buffers publish empty strings.",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104882f4",
+         "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10c395d8",
+         "notes": "f_10c394f0 splits signed seconds into hours, minutes and seconds using division by 3600 and 60. The format pointer loaded from 0x1108dcdc is 0x10fb1300, %s%lld:%02lld:%02lld, with a leading minus only for negative input. Hours have no minimum width.",
+         "function": "0x10c394f0"
         }
        ],
        "notes": null
       },
       "AbsTime": {
-       "description": "Absolute time position. Default mode returns NOT_IMPLEMENTED.",
+       "description": "Returns NOT_IMPLEMENTED except on a successful streamer query without a positive valid duration, which leaves this field empty.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -51890,7 +52018,7 @@
        "unit": "none - dimensionless",
        "accepted_values": "impl-defined engine state",
        "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "special_values": "NOT_IMPLEMENTED or empty string.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -51916,12 +52044,36 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b828",
+         "notes": "Indexed AbsTime starts and remains NOT_IMPLEMENTED (literal 0x10ea9108). It is not mapped to the media-relative position. The default helper and the missing-stream branch write the same literal, but a valid streamer result without a positive duration leaves the wrapper's AbsTime empty.",
+         "function": "0x1025b768"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10488398",
+         "notes": "A successful streamer query formats both TrackDuration (record+0xf00) and RelTime (position output at stack+0xc4) only when record+0xefc is set and the signed duration is positive. It divides each signed millisecond value by 1000 with truncation toward zero, then passes seconds to f_10c394f0. That arm also writes NOT_IMPLEMENTED to AbsTime. Otherwise none of the three time outputs is written, so the wrapper's NUL-initialized buffers publish empty strings.",
+         "function": "0x10488248"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104882f4",
+         "notes": "The helper uses the active streamer pointer at *(impl+0x7758). f_106a9f90 forwards a metadata record and position output to streamer+0x354 -> +8 -> virtual slot +0x1c at 0x106aa01c. Null pointers or a zero method result select the no-data branch at 0x10489a6c; that branch writes Track=1 and NOT_IMPLEMENTED to TrackDuration, TrackMetaData, RelTime and AbsTime.",
+         "function": "0x10488248"
         }
        ],
        "notes": null
       },
       "RelCount": {
-       "description": "Relative byte/frame count position. Default mode returns 2147483647.",
+       "description": "Always returns the counter sentinel 2147483647, not a playback count.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -51930,9 +52082,9 @@
        "semantic_type": "signed int32",
        "format": "%d decimal",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "2147483647",
+       "range": "2147483647",
+       "special_values": "2147483647",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -51958,12 +52110,20 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b83c",
+         "notes": "The indexed worker writes 0x7fffffff to both count outputs (second store at 0x1025b850). The streamer helper writes the same constants after both its successful and missing-query arms at 0x10488444/0x10488458; the default helper does so at 0x10308b6c/0x10308b80. The SOAP wrapper emits the numbers via f_1055fcf4 at 0x102fc034 and 0x102fc058.",
+         "function": "0x1025b768"
         }
        ],
        "notes": null
       },
       "AbsCount": {
-       "description": "Absolute byte/frame count. Default mode returns 2147483647.",
+       "description": "Always returns the counter sentinel 2147483647, not a playback count.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -51972,9 +52132,9 @@
        "semantic_type": "signed int32",
        "format": "%d decimal",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "2147483647",
+       "range": "2147483647",
+       "special_values": "2147483647",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -52000,6 +52160,14 @@
          "address": "0x10308b64",
          "notes": "Default helper fills Track = 1, four string placeholders, and both counts with 0x7fffffff. The outer worker writes TrackURI from impl+0x5dc at 0x102b196c, so the final default placeholders are TrackDuration, TrackMetaData, RelTime and AbsTime (NOT_IMPLEMENTED).",
          "function": "0x10308aec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b83c",
+         "notes": "The indexed worker writes 0x7fffffff to both count outputs (second store at 0x1025b850). The streamer helper writes the same constants after both its successful and missing-query arms at 0x10488444/0x10488458; the default helper does so at 0x10308b6c/0x10308b80. The SOAP wrapper emits the numbers via f_1055fcf4 at 0x102fc034 and 0x102fc058.",
+         "function": "0x1025b768"
         }
        ],
        "notes": null
@@ -52070,7 +52238,7 @@
      },
      "side_effects": [
       {
-       "description": "Read-only under impl+0x458 mutex; no engine writes.",
+       "description": "Does not submit a playback request or schedule a notification. Indexed collection under the session lock can advance the timeline past due snapshots.",
        "evidence": [
         {
          "type": "firmware",
@@ -52079,12 +52247,20 @@
          "address": "f_102b1a88",
          "notes": "impl decode",
          "function": "f_102b1a88"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1025b93c",
+         "notes": "The indexed worker holds session+0x208 while f_10341b9c advances the timeline at session+0x327f0 to the sample time. f_1034071c stores snapshot halfword +0x28c for the queue lookup at 0x103407d8 and +0x28e for Track at 0x103407e8. The worker widens the latter at 0x1025b938 and writes it even if media lookup fails.",
+         "function": "0x1025b768"
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "None - pure read.",
+      "description": "The getter does not schedule a notification. The indexed snapshot read can bring due state current.",
       "evidence": [
        {
         "type": "firmware",
@@ -52093,6 +52269,14 @@
         "address": "f_102b1a88",
         "notes": "impl decode",
         "function": "f_102b1a88"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1025b93c",
+        "notes": "The indexed worker holds session+0x208 while f_10341b9c advances the timeline at session+0x327f0 to the sample time. f_1034071c stores snapshot halfword +0x28c for the queue lookup at 0x103407d8 and +0x28e for Track at 0x103407e8. The worker widens the latter at 0x1025b938 and writes it even if media lookup fails.",
+        "function": "0x1025b768"
        }
       ]
      },
@@ -52312,8 +52496,8 @@
      ],
      "notes": null,
      "todo": [
-      "Established: the principal handler selects an indexed, streamer or default getter and the default outputs are known.",
-      "Map each indexed and streamer output to its source field or fallback in f_1025b768 and f_10488248, including the stream metadata callback at 0x102b1a00 and the time-format and missing-track branches. The outer mode dispatch, default output values and fault domains are verified."
+      "Established: all eight output slots are mapped. Indexed values come from the due snapshot, queue entry and media record; streamer times are empty, formatted or NOT_IMPLEMENTED depending on result and duration availability. Stream metadata combines the provider record with the string from topology slot +0x48, and streamer/default URI is overwritten with the engine URI.",
+      "Bind topology slot +0x48 at 0x102b1a00 and the live streamer implementations of slot +0x1c at 0x106aa01c, starting with the f_104de170 table and its constructor. Trace provider selection, metadata and ordinal validity, and XML-field precedence when topology metadata and stream metadata disagree."
      ]
     },
     "GetRemainingSleepTimerDuration": {
