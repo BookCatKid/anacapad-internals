@@ -155913,20 +155913,46 @@
      "type": "firmware",
      "address": "0x10fdb154",
      "notes": "mod_track_playback.c + track_pipeline.c + device_alias.c literal pool"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d27370",
+     "notes": "Packed connection-status bit rising-edge predicate, GNU decoded."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0b930",
+     "notes": "Native AP state byte dispatch distinguishes 7/8/9."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0be28",
+     "notes": "State 7 success stores state 8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d0b770",
+     "notes": "No-response failure records timeout and enters common error handling."
     }
    ],
    "device_types": "{CARTHING,HOMETHING,COMPUTER,TABLET,SMARTPHONE,SPEAKER,AUDIODONGLE,GAMECONSOLE,CASTVIDEO,CASTAUDIO,AUTOMOBILE,SMARTWATCH,CHROMEBOOK}",
    "session": "desc fmt \"%.*s;%.*s;%.*s;%.*s;tpapi\"; device_id assert \"result == device_id + SHA1_HASH_LENGTH * 2 && *result == '\\0'\"; {sonos_ppc,\"socket init failed\",\"Failed to initialize module subsystem! Error %d\",\"Failed to initialize tls with %d\",\"Failed to get entropy for PRNG\",\"No data to play, will pause playback if network is not reconnected within %dms\",\"Notifying kSpConnectionNotifyLoggedOut\",\"reinit_session failed with error %d\",kSpErrorFailed,validate_no_api_reentry_status,\"3.205.205-gd0f06121\",accesstoken,GROUP,\"Decrypting ZeroConf blob failed\",\"Login with username '%s', blob '%s', tokentype '%s'\"}; track notify {\"Notify: track %d length: %u ms\",\"track %d error at position: %u ms is '%s'\",\"track %u playback started at timestamp %llu ms\",\"Integration reported invalid track to start/finish\",\"Invalid track %u, expected %u\",\"DLBUFFER CLEAR\"}",
    "connect_layer": "mod_track_playback.c Connect state machine: inbound hwptp command verbs {replace_state,set_volume,log_out,observe_state/OBSERVE,stop_and_observe/STOP_OBSERVE,product_state_change} + 'Got unknown command from HWPTP: %s'; observe gated 'Device is the Active device, Accepting Observe Command', 'eSDK is inactive. Ignoring state response.', stale-ref guard 'Got previous state reference that doesn't match our current local state reference, ignoring state response'; protobuf request/response pairs {StateRequest/StateResponse+tp_StateResponse,ReplaceStateCommand,AddToQueueCommand,DevicesRequest/DevicesResponse,StateConflictRequest/StateConflictResponse,SetVolumeCommand,PlayCommand,ConnectShuffleRequest,ConnectRepeatRequest,ConnectPullPlaybackRequest,TSV} each with encode ('Error encoding %s!') and decode-failure ('Failed to decode %s: %s', '!\"%s failed\"') ladders; per-request send errors 'Failed to send %s request (error %d)'; PUT-state engine {'put state request','Schedule additional PUT state. state_id=%s, timestamp=%llu, reason=%d','state_refresh_timer set to %u (received %u, jitter %u)', assert jitter_ms < timeout_ms, 'State update, position: %lu previous position: %lu, empty: %d counter: %lu source: %d'}; correcting-PUT policy {'Ignore correcting PUT state. Missing current_state/Already sent or not required/state_id mismatch %s vs %s','Playback started progressing after %llums. Send/Don't send correcting PUT state for state_id %s'}; state-conflict buffer {'Sending state conflict: machine: %s state: %s paused: %d available: %d position: %u','Conflict cache full, trying to send again','Conflict response pending and %d/%d in buffer. Waiting','State conflict response changed the state_id. Restarting track.'}; device registration {'RE-REGISTERING','Failed to send register request (registered:%d)','Will try again to register in HWPTP in %lu ms','stop_device_registration_timer'}; backend-driven update cadence {'time_to_first_update_requested: %u ms, next_push_ms_played set to: %u ms, periodic_update_time_ms requested: %u ms','Sending a per-track periodic update to track-playback. current-position %u periodic_update_counter %u','Setting next_push_ms_played to UINT_MAX - no periodic updates'}",
    "pipeline_detail": "track_pipeline.c: states {NOT_STARTED,IN_PROGRESS,DONE} on two axes DELIVERY_/DOWNLOAD_ plus slot states ->UPCOMING->PLAYING; invariants '!(delivery_state == DONE && download_state != DONE)', '!(delivery_state != NOT_STARTED && download_state == NOT_STARTED)', 'memory_size >= get_required_memory_bytes()'; lifecycle {track_pipeline_initialized,'Clearing track data pipeline','Shifting track pipeline','id: %u: %s ->','id: %u: UPCOMING -> PLAYING',start_track_delivery,end_track_delivery,restart_playing_track_download,end_track_download}; guards {'No PLAYING track when delivery started','No track with DELIVERY:NOT_STARTED/IN_PROGRESS','No track with DOWNLOAD:IN_PROGRESS'}; per-track dump fmt '%s: id: %u, DELIVERY:%s, DOWNLOAD:%s, length_ms: %u file.size: %d file.has_key: %d playback_id: %s uri: %s drm_format: %d media_format: %d error: %d'; latency accounting 'Latency: local=%llu, remote=%llu, playing=%llu, delivered=%llu, played=%llu, resume=%llu' + 'latencies are set to 0 on track transitions'; track-shifting {'shifting to paused state state_id=%s','Shifting state, operation: %d, initial_playback_position: %lu','no advance state returning!','stopping due to too many track errors (%d)!','Next track has no file. Advance!','State has track_idx -1','Reference to non-existing track/state: %d >= %d', index>=0 && index<MAX_NUM_TRACKS / index<MAX_NUM_STATES}; play {'Playing item %d: %s from pos %u','PLAY_FILE %d: %s (seek to %d) bitrate: %u','Tried to play an empty item!','Current state_id changed from '%s' to '%s'. Restarting track.','Play new state machine position: %lu'}; format fallback {TW_FORMAT_CHANGE {fall_back_to_ingested_track,SP_EVENT_REQUEST_BITRATE},'increase bitrate','External URL=%s, num_files=%d[, state_id=%s]','No next file in supported format','No ingested file in supported format for upcoming'}; volume path {per-channel pending 'Pending volume %u, %u/%d ongoing','Volume cb error %d channel_id %d, ongoing %u','Sent volume request, volume %u, ongoing %u, ch %d','rate limited'}; device_alias.c list fmt '%d:%s,' + 'Skipping empty alias at index %d' + 'Connectivity: %d Connected: %d Error: %d'; TSV {'TSV: play_track: %s ** ms_played: %llu ** playback_id_v3: %s ** next_playback_id: %s','Storage full, TSV lost!','tsv response error %d'}; version string 'esdk:3.205.205-gd0f06121'; DRM capabilities 'DRM %d media formats: %llu'/'Number of DRM formats: %d capabilities bitmask: %llu'; CDN fallback 'No CDN information provided, falling back to AP immediately' + 'Using %zu kB for %s buffer'; X-Spotify-Connect-Disabled header literal; ']%c|Partner %.*s %s' partner tag fmt",
-   "todo": [
-    "Residual: the numeric connection-FSM transition table (mod_ap_conn dispatch; handshake states proven)."
-   ],
+   "todo": "Residual: enumerate every state-byte +7 transition and its guards in f_10d0b3f8, including states 0..6, terminal/reset and retry branches, then bind those transitions to external notifications. Packed-status bit edges, AP state bytes and message-type dispatch are now distinguished.",
    "resolved_findings": [
-    "Resolved: Connection state changed %d -> %d transitions = the notify enum {Reconnect,LoggedIn,Disconnect,TemporaryError} + connection-layer state machine in connect_layer.",
-    "Context proven: this module is part of the vendored Spotify eSDK (source paths /var/lib/spotify/buildagent/teamcity/work/.../esdk/src/) - the client speaks Mercury/hermes (hermes record: methods {SEND, UNSUB, GETX}, vnd.spotify/mercury-mget-request, hwptp device topics) for Spotify Connect.",
-    "Corrected + expanded: the 413 'sp_<sha1>' literals (0x10fd4200-0x10fe4f6c plus shorter runs) are the eSDK's INTERNED-STRING table, interleaved with the eSDK source-path literals /var/lib/spotify/buildagent/teamcity/work/e48167fe44483028/esdk/src/code/{apio.c,cdnio.c,httpio.c,...} - interned keys used as message/field identifiers across the AP/CDN/HTTP IO layers, not a scope allowlist. Adjacent eSDK evidence: '!\"ApWelcome failed' assertion string and 'socketio %s operation timeout'.",
-    "Established: the eSDK build string (HEAD-v3.205.205, PPC e500v2), the notify enum, and the error vocabulary."
+    "The connection log is not a numeric notification-enum transition table. f_10cfa318 logs Connection state changed at 0x10cfb4c0, while transition helpers f_10d27370/f_10d27394 test bit 0x00800000 in old/new packed status operands. GNU e500 decoding at 0x10d2737c/0x10d273a4 shows rlwinm 9,31,31 extracting that bit as a boolean; the two helpers detect its rising and falling edges. Reconnect/LoggedIn/Disconnect/TemporaryError are notification vocabulary, not demonstrated AP-state integers. The earlier equality between these enums and the logged numeric states is withdrawn.",
+    "The actual mod_ap_conn pump is f_10d0b3f8 and reads a state byte at connection+7, with separate retry counter at +6. Its dispatch at 0x10d0b5d8-0x10d0b680 handles states 0..6 through an earlier branch group and explicitly distinguishes 7/8/9 at 0x10d0b930-0x10d0b960. State 7 calls f_10d0af44; success stores state 8 and calls f_10d39f64(1) at 0x10d0be14-0x10d0be34. State 8 dispatches a separate message type at connection+0x80, including 10/65/74/105 at 0x10d0bdc8-0x10d0bdf8. Thus there are nested state and message-type dispatches, not one notification table.",
+    "Handshake code is reachable from that pump: hello construction f_10d42270 at 0x10d0baac and response verification f_10d42658 at 0x10d0bbc0. Socket OS errors are recorded at +0x64a4 before f_10d0a234 handles failure at 0x10d0b484-0x10d0b4cc. The no-response timeout logs at 0x10d0b754, stores 10000 at +0x5c and takes that same failure path with -66. f_10d0c51c separately computes a reconnect delay using +0x64b0/+0x64b4, while f_10d0c5bc returns the saved OS error. Remaining state transitions and retry policy are present in the ELF and remain to be enumerated.",
+    "Interned sp_<hex> identifiers interleaved with SDK source paths are not a scope allowlist. The build string HEAD-v3.205.205-gd0f06121-dirty and Sonos_PPC_e500v2s target identify this implementation; source provenance alone does not establish any transition semantics."
    ]
   },
   "korn_kernel": {
