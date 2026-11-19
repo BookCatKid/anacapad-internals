@@ -69377,15 +69377,36 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
+        "address": "0x10cfd43c",
+        "notes": "The shuffle setter f_10cfd2f4 submits SDK ring record 33 (INTERNAL_SHUFFLE); f_10cfd580 submits 34 (INTERNAL_REPEAT) at 0x10cfd6a0. f_10d09770 writes the selector and integer value to record+0/+4. These are different selectors from the incoming state updates 31/32. The SDK device-command handler f_10d1eb48 is installed at 0x10d21528, and its table at 0x10fd9918 sends these selectors to 0x10d1fbec and 0x10d1f7e4 respectively. These branches encode a shuffle boolean or the repeat integer and use the request builders for %s/devices/%s/set_shuffle or %s/devices/%s/set_repeat, then dispatch with separate response callbacks."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10d1c224",
+        "notes": "The command response callbacks f_10d17978 and f_10d17a48 return on a zero response status without sending a mode notification themselves. Separately, f_10d1c198 submits ring records 31 and 32 using device-state bytes at +0xcd04 (shuffle), +0xcd05 (repeat unless repeat-one is set), and +0xcd06 (when nonzero, use repeat value 2). The state publication at 0x10d199c0/0x10d199ec uses those same byte offsets and mapping."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
         "address": "0x10cfa620",
-        "notes": "The SDK update table at 0x10fd3fd4 sends selector 31 to 0x10cfa620 (shuffle) and 32 to 0x10cfa5d4 (repeat). Shuffle compares the update word to the cached byte at +0xb86; repeat compares to the cached word at +0xb88. Equality takes the zero-result branch without calling the notification helper. Unequal values update those fields and call f_10d3bb08 with IDs 5/6 for shuffle on/off or 7/8 for repeat on/off. The repeat getter used to build the reported mode reads a different byte, +0xb8b."
+        "notes": "The SDK update table at 0x10fd3fd4 sends selector 31 to 0x10cfa620 (shuffle) and 32 to 0x10cfa5d4 (repeat). Shuffle compares the update word to the cached byte at +0xb86; repeat compares to the cached word at +0xb88. Equality takes the zero-result branch without calling the notification helper. Unequal values update those fields and call f_10d3bb08 with IDs 5/6 for shuffle on/off or 7/8 for repeat on/off. The repeat getter f_10cfd29c reads +0xb8b, the low byte of that same big-endian word, so transitions between repeat values 1 and 2 update the getter and request notification ID 7 even though both are nonzero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102142b4",
+        "notes": "Spotify setup builds the playback callback record at stack+52 with f_10213a48 as its first word (0x10213f70), and registers it with f_10cf52e0 and the Spotify work-queue context. f_10cfc0f8 calls f_10d3a638, which stores the callback at 0x110bf65c and the context at 0x110bf668. f_10d3bb08 skips a null callback or invokes it with the notification ID and context. f_10213a48 saves the ID and Spotify receiver in its work item and queues the closure whose invoke function is f_10218574 (0x10213c68 through 0x10213c98)."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10218150",
-        "notes": "f_10218574 dispatches the queued Spotify notification ID through f_10217d80; IDs 5 through 8 share the 0x10218150 entry. f_1022694c reads the SDK getters, producing shuffle bit 0 only for shuffle value 1, repeat bit 1 for repeat value 1 and repeat bit 2 for repeat value 2. The worker passes this mode to receiver slot +0x44, after its receiver readiness checks. Controller table word 0x10ea532c selects f_1022d5e4, which stores the mode through f_104dc1e8 at audio-input+0x584c and then sends onVirtualLineInPlayModesChanged. The embedded fallback thread's +0x44 entry at 0x10ea44a4 is a no-op."
+        "notes": "f_10218574 dispatches the queued notification ID through f_10217d80; IDs 5 through 8 share the 0x10218150 entry. The worker selects the controller at Spotify+0x59f8 when its slot +0x10 test (f_1022ac04, controller byte +0x18c) is nonzero; otherwise it uses the embedded receiver at Spotify+0x5a00. It requires the selected receiver's slot +0x10 test to pass before dispatch. f_1022694c reads the SDK getters, producing shuffle bit 0 only for shuffle value 1, repeat bit 1 for repeat value 1 and repeat bit 2 for repeat value 2. The worker passes this mode to receiver slot +0x44. Controller table word 0x10ea532c selects f_1022d5e4, which stores the mode through f_104dc1e8 at audio-input+0x584c and then sends onVirtualLineInPlayModesChanged. The embedded fallback's +0x44 entry at 0x10ea44a4 is a no-op."
        },
        {
         "type": "firmware",
@@ -69410,8 +69431,8 @@
        }
       ],
       "todo": [
-       "Established: the indexed same-mode path skips its wake; the Spotify SOAP path stages changes without an equality check. Spotify SDK update handlers suppress equal-value notifications; the traced VLI mode-event receiver dirties LastChange and collection reads the active provider's stored mode.",
-       "Bind the setter-issued SDK messages to selectors 31/32 and trace the effective repeat byte +0xb8b versus the notification comparison word +0xb88, including repeat-1 to repeat-all. Verify the notification callback registration and queue/lifecycle gates that select controller delivery, and the actor subscription and scheduler acceptance gates between VliPropertiesChangedEvent publication and the traced AVTransport receiver. Spotify type 2 is the only direct call to the registration helper in this build."
+       "Established: the indexed same-mode path skips its wake. Spotify setter commands submit separate device requests; equal state updates skip notification, but repeat 1 and 2 compare unequal. Registered SDK notifications queue work and reach the mode-event producer only when the controller is selected and passes the readiness test. The traced VLI mode-event receiver dirties LastChange; collection reads the active provider's mode.",
+       "Trace which incoming device-state cases reach f_10d1c198 or the other selectors 31/32 producer after a mode request, and when controller +0x18c permits delivery. Bind the actor subscription through f_100f14ec and scheduler acceptance through f_102eff8c to the AVTransport receiver. Spotify type 2 is the only direct call to the registration helper in this build."
       ]
      },
      "state_transitions": {
