@@ -148838,16 +148838,16 @@
     {
      "type": "firmware",
      "address": "0x10ef43f0",
-      "notes": "hhsettingsfile block"
-     },
-     {
-      "type": "firmware",
-      "binary": "anacapad",
-      "build": "86.10-80260",
-      "function": "f_105c6af0 / f_105c7248 / f_105c6d1c",
-      "address": "0x105c6af0",
-      "callsite": "0x105c72e0 / 0x105c730c",
-      "notes": "The alleged seed templates are sscanf inputs: f_105c7248 tries four conversions then the legacy three-conversion format. They do not prove what the current writer seeds. f_105c6af0 emits fileVersion, lastUpdateDevice, fileSchemaVersion=2 and householdSettings. Under restricted-admin/settings it emits explicitContentFiltering (+0x25), recentlyPlayed (+0x26), hhSwgenState (+0x2a), museHHName (+0x3b), userMetricsTracking (+0x28). Under restricted/settings it emits autoUpdatesEnabled (+0x27), then closes the objects. f_105c6d1c is reached from f_105c6e4c at 0x105c7098 for persistence. No protected or protected-admin object is emitted by this serializer. A fixed category list in this function disproves treating the adjacent legacy scanf grammar as a complete current membership schema; it does not by itself prove how other category objects arrive."
+     "notes": "hhsettingsfile block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105c6af0 / f_105c7248 / f_105c6d1c",
+     "address": "0x105c6af0",
+     "callsite": "0x105c72e0 / 0x105c730c",
+     "notes": "The alleged seed templates are sscanf inputs: f_105c7248 tries four conversions then the legacy three-conversion format. They do not prove what the current writer seeds. f_105c6af0 emits fileVersion, lastUpdateDevice, fileSchemaVersion=2 and householdSettings. Under restricted-admin/settings it emits explicitContentFiltering (+0x25), recentlyPlayed (+0x26), hhSwgenState (+0x2a), museHHName (+0x3b), userMetricsTracking (+0x28). Under restricted/settings it emits autoUpdatesEnabled (+0x27), then closes the objects. f_105c6d1c is reached from f_105c6e4c at 0x105c7098 for persistence. No protected or protected-admin object is emitted by this serializer. A fixed category list in this function disproves treating the adjacent legacy scanf grammar as a complete current membership schema; it does not by itself prove how other category objects arrive."
     }
    ],
    "todo": [
@@ -151203,23 +151203,23 @@
     {
      "type": "firmware",
      "address": "0x10ec4f88",
-      "notes": "hls blocks"
-     },
-     {
-      "type": "firmware",
-      "binary": "anacapad",
-      "build": "86.10-80260",
-      "function": "f_103b9328 / f_10804148 / f_103b84a4 / f_103bd098",
-      "address": "0x103b9328",
-      "callsite": "0x103b9410 / 0x103b84f8",
-      "notes": "Start validates context bit 0 via f_10804120, then f_10804148 copies words +0/+4 and the pair +8/+12 into bitrate/stream/segment log arguments. No variant comparison occurs here. The source-switch path tests bytes object+0xff77d and +0xff77c and calls f_103bd098 with r4=0. That helper compares variant count against 1, increments object+0x81de8, compares the unsigned new index against count, and wraps it to zero when out of range (0x103bd0dc-0x103bd0f8, 0x103bd188). This is index traversal, not evidence of bandwidth-tier ranking."
+     "notes": "hls blocks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103b9328 / f_10804148 / f_103b84a4 / f_103bd098",
+     "address": "0x103b9328",
+     "callsite": "0x103b9410 / 0x103b84f8",
+     "notes": "Start validates context bit 0 via f_10804120, then f_10804148 copies words +0/+4 and the pair +8/+12 into bitrate/stream/segment log arguments. No variant comparison occurs here. The source-switch path tests bytes object+0xff77d and +0xff77c and calls f_103bd098 with r4=0. That helper compares variant count against 1, increments object+0x81de8, compares the unsigned new index against count, and wraps it to zero when out of range (0x103bd0dc-0x103bd0f8, 0x103bd188). This is index traversal, not evidence of bandwidth-tier ranking."
     }
    ],
    "todo": [
     "The start callback f_103b9328 copies an already selected bitrate, stream index and segment from a valid context through f_10804148; it does not rank variants. The multiple-codec path f_103b84a4 calls f_103bd098, which advances the stream index and wraps to zero rather than comparing bandwidth. Still unresolved: same-codec bandwidth-tier ordering and its estimator inputs. Trace the writers of the context consumed at 0x103b9410 and the variant-array ordering upstream of f_103bd098; neither the start log nor the source-switch path proves a shared happy-metric predicate."
    ],
    "resolved_findings": [
-    "Resolved: forcing a source switch uses the variant-ranking inputs {bitrate ladder, bandwidth estimate, codec compatibility} - the ladder rules under playlist_parsers.",
+    "The source-switch path f_103b84a4 reaches index traversal in f_103bd098. Its relationship to bandwidth estimates and same-codec ranking remains in the todo; source-switch logging alone does not establish those inputs.",
     "Variant/segment machinery decoded (hlsaudio + segaudio tags): multi-codec-variant playlists force a re-source (forcing a source switch due to multiple codec variants in playlist) gated on group codec capability (requires group capabilities %u - all members must decode the variant). Playback starts at a chosen variant (starting at bitrate %u stream %u segment %llu offset %zu); seek maps time to segment+offset (seek to time %.3f (%lu:%02lu:%02lu) / from start of current segm) validated against the ADTS-derived position (cached seconds advanced %f does not line up with seek, offset %f MD: %ld.%06ld; ADTS metadata: %s / no ADTS metadata, bumping seconds advanced %f). Encryption: SAMPLE-AES sets up audio-framer decryption (SAMPLE-AES detected. Setting up audio framer decryption), missing key URI/data fail closed (encrypted, but no key URI / no data from key URI), absent IV falls back to media sequence number (No IV, using seq. num.), undefined method is unreachable (undefined encryption method). EXT-X-MAP byte-range maps need the file size (could not get file size from http headers for map / found offset %zu). Track init runs InitFramerForTrackList with time-offset bookkeeping (pEntry->m_dTimeOffset, Trim offset required). Adjacent float constants 0.05 and 0.25 are the seek/position tolerances.",
     "EXT-X-MEDIA rendition-attribute parse table recovered at 0x10ec6678: accepted attrs {TYPE, GROUP-ID, AUTOSELECT, SAMPLE-RATE, BIT-DEPTH, CHANNELS, NAME} with a channel-count guard ('rendition has invalid channel count, stop parsing %zu'); adjacent codec-marker literals {JOC, DOWNMIX, BINAURAL} and 'Downmixed from Atmos' identify the Atmos/JOC downmix rendition classes."
    ]
@@ -153189,22 +153189,21 @@
     {
      "type": "firmware",
      "address": "0x10ea7b44",
-      "notes": "tv_usage fields"
-     },
-     {
-      "type": "firmware",
-      "binary": "anacapad",
-      "build": "86.10-80260",
-      "function": "f_1024ffb8 / f_1055c248 / f_1055be08",
-      "address": "0x10250198",
-      "callsite": "0x10250220 / 0x10250400",
-      "notes": "f_1024ffb8 obtains a reporting object at 0x10250038-0x10250044 and skips an unset start time at 0x10250048-0x10250058. Its loop emits corrId, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, channels, playSeconds and topoType through typed builder calls (0x10250244-0x102503ec). Pointer words 0x10ea7ac8-0x10ea7ae4 resolve the latter field names; channels is at 0x10edc76c. The original r4 argument is compared with zero at 0x102501c0; cr4.eq at 0x102503c4 skips the forced=true insertion at 0x102503c8-0x102503d8 when zero. Both branches submit the same event name zpHTInputSession through f_1055c248, a tail branch to f_1055be08. The shared routine receives event name, built payload and category flag 1, checks reporting state/mask at 0x1055be58-0x1055be7c and local buffer capacity at 0x1055bf1c-0x1055bf2c. These calls describe local emission/queue admission, not a server response or server-required-field declaration."
+     "notes": "tv_usage fields"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1024ffb8 / f_1055c248 / f_1055be08",
+     "address": "0x10250198",
+     "callsite": "0x10250220 / 0x10250400",
+     "notes": "f_1024ffb8 obtains a reporting object at 0x10250038-0x10250044 and skips an unset start time at 0x10250048-0x10250058. Its loop emits corrId, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, channels, playSeconds and topoType through typed builder calls (0x10250244-0x102503ec). Pointer words 0x10ea7ac8-0x10ea7ae4 resolve the latter field names; channels is at 0x10edc76c. The original r4 argument is compared with zero at 0x102501c0; cr4.eq at 0x102503c4 skips the forced=true insertion at 0x102503c8-0x102503d8 when zero. Both branches submit the same event name zpHTInputSession through f_1055c248, a tail branch to f_1055be08. The shared routine receives event name, built payload and category flag 1, checks reporting state/mask at 0x1055be58-0x1055be7c and local buffer capacity at 0x1055bf1c-0x1055bf2c. These calls describe local emission/queue admission, not a server response or server-required-field declaration."
     }
    ],
    "resolved_findings": [
     "Local emission differs from cloud validation: the assembly loop emits its common fields for each input-format entry, including channels, while forced=true is added only for a nonzero caller argument. The cid set/clr literals are diagnostics, not field names in this builder. Submission goes to the shared local reporting buffer. Server-required versus server-optional fields are not encoded by these builder calls: observing unconditional local emission cannot establish a remote validation requirement, and conditional forced emission cannot establish what a server accepts. Recovering that separate contract requires the receiving service implementation or controlled server-response observations, neither of which is supplied by this firmware path.",
-    "Resolved: report assembly = the schema {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart/End, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} tagged {tv_usage, zpHTInputSession} -> shared report channel.",
-    "Report assembly proven: zpHTInputSession bundles {corrId, cid set/clr, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, playSeconds, forced, topoType} per HT input session; ForceSubmitTvSessionReport is the manual injection; upload rides the telemetry/product-data-telemetry channel (X-Sonos-MessageType). Reset timing telemetry covers per-stage reset durations."
+    "The zpHTInputSession builder emits corrId, sessionLength, sessionPlayTime, connectionType, GCUUID, GCBootSeq, GCTimeStart, GCTimeEnd, inputRate, dataBurstType, contentType, channels, playSeconds and topoType, with forced=true only for a nonzero caller argument. The shared submission routine is local reporting infrastructure, not evidence of cloud acceptance."
    ]
   },
   "sentry_upload": {
