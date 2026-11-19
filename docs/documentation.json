@@ -61400,7 +61400,7 @@
      },
      "side_effects": [
       {
-       "description": "inserts the URI into the selected queue and submits begin/commit (or abort) requests to the session",
+       "description": "inserts the URI into the selected queue and submits begin/commit (or abort) requests to the session A cancelled append (op 19) leaves the queue length unchanged.",
        "evidence": [
         {
          "type": "firmware",
@@ -61424,14 +61424,43 @@
          "function": "0x102b62e8",
          "address": "0x102b6698",
          "notes": "f_1032e5b4 on failure"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b5ddc",
+         "address": "0x102b5ec0",
+         "notes": "f_1025eb7c copy"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b5ddc",
+         "address": "0x102b5fe0",
+         "notes": "amp timer schedule"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266504",
+         "notes": "op 19 consumer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b1a8",
+         "address": "0x1014b24c",
+         "notes": "append flag cleared, length untouched"
         }
        ],
-       "todo": [
-        "Established: the insert worker, the three request kinds and the failure request are identified with call sites.",
-        "Residual: what f_102b5ddc does to engine state before the begin request, and whether the f_1032e5b4 request undoes a partial insert, are not traced; next step is to disassemble f_102b5ddc and f_1032e5b4."
-       ],
        "resolved_findings": [
-        "Resolved (dispatch): f_102b62e8 calls f_102b5ddc(engine) (0x102b6530), submits a begin request f_1032e350(req,kind) to the session via f_10255f64 (0x102b6580; kind 1 for s+0x2d890, 2 for s+0x2ff98), inserts the entry with f_1014f808(queue,&URI,&MD,1,&count,0,flags|2,0) (0x102b65d0), then submits the f_1032e368 commit request (0x102b662c). On begin-submit or insert failure it submits an f_1032e5b4 request (0x102b66a4) instead. The container branch f_1014fb34 (0x102b672c) is unreachable from AddURI because f_102b674c passes r9=0 (0x102b6864)."
+        "Resolved (dispatch): f_102b62e8 calls f_102b5ddc(engine) (0x102b6530), submits a begin request f_1032e350(req,kind) to the session via f_10255f64 (0x102b6580; kind 1 for s+0x2d890, 2 for s+0x2ff98), inserts the entry with f_1014f808(queue,&URI,&MD,1,&count,0,flags|2,0) (0x102b65d0), then submits the f_1032e368 commit request (0x102b662c). On begin-submit or insert failure it submits an f_1032e5b4 request (0x102b66a4) instead. The container branch f_1014fb34 (0x102b672c) is unreachable from AddURI because f_102b674c passes r9=0 (0x102b6864).",
+        "Resolved: Before the begin request f_102b5ddc only handles the amplifier: it checks for PLAYING or TRANSITIONING (f_102b52d0, strcmp at 0x10e99648/0x10e99650) and the amp state (f_102a5718/f_102a572c, the field +0xd4 of the amp object). Then it logs 'amp already on' and schedules f_102b7330 through the timer object (0x102b5fe0), or tries a preemptive turn-on ('prem-amp turn on', 0x102b6020..), logging 'could not preemptively turn on the amp' when that is not possible. When the byte at engine+0x10000-0x52d8 is clear it copies three words into s+0x326d8..s+0x326e0 through f_1025eb7c (0x102b5ec0). It does not touch the queue. The failure request f_1032e5b4 is op 19 ('<<<< cancelAppend', 0x10e93c2c). The consumer (0x102664e8, ok=1) calls f_1014b1a8, which clears the append flag q+0x26b5 and logs 'Append transaction ID mismatch' when the generation differs. It never changes the length q+0x26c8, and only the commit (op 2, f_1014dc98) grows the length. Entries staged since beginAppend therefore never become part of the queue."
        ]
       }
      ],
@@ -61502,14 +61531,67 @@
         "function": "0x1046453c",
         "address": "0x104646c0",
         "notes": "mr. r4,r3; beq -> outputs"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f808",
+        "address": "0x1014f884",
+        "notes": "803 queue full"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f808",
+        "address": "0x1014fa04",
+        "notes": "804 isel"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f48c",
+        "address": "0x1014f4cc",
+        "notes": "800 newline in URI"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014f48c",
+        "address": "0x1014f5c4",
+        "notes": "803/800 handler failure"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10153a38",
+        "address": "0x10153c1c",
+        "notes": "browse code filtered to 1042..1045 else 800"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10c3ba54",
+        "address": "0x10c3ba64",
+        "notes": "accepts 1042..1045"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10153e98",
+        "address": "0x10153fcc",
+        "notes": "802"
        }
       ],
-      "todo": [
-       "Established: wrapper behaviour and the engine literal code set are traced.",
-       "Residual: the return-code domain of the insert worker f_1014f808 is not enumerated; next step is to collect its return literals and those of its callees f_1014f48c and f_1014b270."
-      ],
       "resolved_findings": [
-       "Resolved: the engine rc is the wrapper rc. 0 -> four outputs emitted (0x10464710..0x10464798) then commit req->v[+0xc] at 0x104647ac; nonzero -> req->v[+0x14](req,rc) at 0x104646d4. Codes: 402 (wrapper parse), 718 (unknown QueueID), 1028 (UpdateID mismatch), 800 (mode gate, begin-submit or commit-submit failure), or the insert worker f_1014f808 rc passed through verbatim (0x102b6744)."
+       "Resolved: the engine rc is the wrapper rc. 0 -> four outputs emitted (0x10464710..0x10464798) then commit req->v[+0xc] at 0x104647ac; nonzero -> req->v[+0x14](req,rc) at 0x104646d4. Codes: 402 (wrapper parse), 718 (unknown QueueID), 1028 (UpdateID mismatch), 800 (mode gate, begin-submit or commit-submit failure), or the insert worker f_1014f808 rc passed through verbatim (0x102b6744).",
+       "Resolved: Return-code domain of the insert worker f_1014f808, traced to every literal: 803 when the queue length q+0x26c8 is already >= the entry limit q+0x26bc (0x1014f878..0x1014f884); 804 after the entry loop when the isel at 0x1014fa04 (0x7de97f9e) fires, that is when the sum of row+0x688 over the entries equals row+0x67c minus the initial *r7; otherwise the per-entry result of f_1014f48c (0x1014f984), which is returned unchanged when nonzero (0x1014f990). f_1014f48c returns 800 when the URI, the row string at row+0x774 or its third argument contains a newline (0x1014f4cc, 0x1014f508, 0x1014f528). It then picks a handler by URI prefix: 'x-rincon-playlist:' f_1014f20c, 'x-sonosapi-stream:' f_1014b934, 'x-rincon-mp3radio://' f_1014b854, 'x-rincon-cpcontainer:' f_10144f10, 'x-rincon-buzzer:' f_1014b624, 'x-rincon-configmode:' f_1014bb54, a saved-queue or container ObjectID f_1014b700, other track URIs f_10146300. A boolean handler that fails gives 803 when byte row+0x12 is set and 800 otherwise (0x1014f5c0..0x1014f5d0). f_1014b700 and f_10144f10 return 0 or 800 (isel 0x1014b784, 0x1014b7f8) or the container-expansion code from f_10153fe0. That code is 800 (0x10154160), or 802 from f_10153e98 when the expansion sets its flag byte (isel 0x10153fcc), or the result of f_10153a38. f_10153a38 keeps a browse-provider code only when f_10c3ba54 accepts it, i.e. 1042..1045 (0x10c3ba58..0x10c3ba64), or when it is 801 and byte ctx+0x1d is set (0x10153c04); any other nonzero code becomes 800 (isel 0x10153c1c). So f_1014f808 returns one of 0, 800, 801, 802, 803, 804, 1042, 1043, 1044, 1045."
       ]
      },
      "fault_sites": [
@@ -61584,6 +61666,62 @@
          "function": "0x102b674c",
          "address": "0x102b6934",
          "notes": "li 0x404"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014f884",
+         "notes": "803 queue full"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f808",
+         "address": "0x1014fa04",
+         "notes": "804 isel"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f4cc",
+         "notes": "800 newline in URI"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014f48c",
+         "address": "0x1014f5c4",
+         "notes": "803/800 handler failure"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153a38",
+         "address": "0x10153c1c",
+         "notes": "browse code filtered to 1042..1045 else 800"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10c3ba54",
+         "address": "0x10c3ba64",
+         "notes": "accepts 1042..1045"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10153e98",
+         "address": "0x10153fcc",
+         "notes": "802"
         }
        ],
        "unresolved": {
@@ -61635,12 +61773,9 @@
        "worker_literal_bound": [
         300
        ],
-       "todo": [
-        "Established: all literal codes in the action path are enumerated with sites.",
-        "Residual: the f_1014f808 insert-worker rc domain is not enumerated; next step is to collect its return literals."
-       ],
        "resolved_findings": [
-        "Resolved: literals at 0x102b68d4 (718), 0x102b6934 (1028), 0x102b6354/0x102b6674/0x102b66ac (800); insert rc passthrough at 0x102b6744."
+        "Resolved: literals at 0x102b68d4 (718), 0x102b6934 (1028), 0x102b6354/0x102b6674/0x102b66ac (800); insert rc passthrough at 0x102b6744.",
+        "Resolved: Return-code domain of the insert worker f_1014f808, traced to every literal: 803 when the queue length q+0x26c8 is already >= the entry limit q+0x26bc (0x1014f878..0x1014f884); 804 after the entry loop when the isel at 0x1014fa04 (0x7de97f9e) fires, that is when the sum of row+0x688 over the entries equals row+0x67c minus the initial *r7; otherwise the per-entry result of f_1014f48c (0x1014f984), which is returned unchanged when nonzero (0x1014f990). f_1014f48c returns 800 when the URI, the row string at row+0x774 or its third argument contains a newline (0x1014f4cc, 0x1014f508, 0x1014f528). It then picks a handler by URI prefix: 'x-rincon-playlist:' f_1014f20c, 'x-sonosapi-stream:' f_1014b934, 'x-rincon-mp3radio://' f_1014b854, 'x-rincon-cpcontainer:' f_10144f10, 'x-rincon-buzzer:' f_1014b624, 'x-rincon-configmode:' f_1014bb54, a saved-queue or container ObjectID f_1014b700, other track URIs f_10146300. A boolean handler that fails gives 803 when byte row+0x12 is set and 800 otherwise (0x1014f5c0..0x1014f5d0). f_1014b700 and f_10144f10 return 0 or 800 (isel 0x1014b784, 0x1014b7f8) or the container-expansion code from f_10153fe0. That code is 800 (0x10154160), or 802 from f_10153e98 when the expansion sets its flag byte (isel 0x10153fcc), or the result of f_10153a38. f_10153a38 keeps a browse-provider code only when f_10c3ba54 accepts it, i.e. 1042..1045 (0x10c3ba58..0x10c3ba64), or when it is 801 and byte ctx+0x1d is set (0x10153c04); any other nonzero code becomes 800 (isel 0x10153c1c). So f_1014f808 returns one of 0, 800, 801, 802, 803, 804, 1042, 1043, 1044, 1045."
        ]
       },
       {
