@@ -13047,7 +13047,7 @@
        ]
       },
       "Options": {
-       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 (log 'invalid input parameters v:%s t:%s', result 402). 'force' selects the path that removes the existing Trueplay asset directory through f_1035d8bc. The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options.",
+       "description": "Mode options string (cap 128), forwarded unchanged to the selected mode entry and to satellites. For Mode 'room_calibration-calibrate' the entry f_10364360 parses it as a structured object (f_10c3b6c4). The string field 'mode' must be 'spectral' or 'plug-in spectral'. 'ver' and 'tone' are validated by f_10364284 through f_1035b170, which accepts only a nonempty string other than '..' made of letters, digits and '-', '_' or '.'; anything else fails with 402 and the log 'invalid input parameters v:%s t:%s'. They are then used as path parts by f_103639d0, which loads tone files from https://sonar.ws.sonos.com as '%s/%s/%s/%s-%s' and keeps their eTags. 'force' removes the cached Trueplay asset directory through f_1035d8bc and reloads the tones ('force ' in the eTag reload log). The integer fields 'polarity', 'volume' (clipped, 'Sonar cal volume - using clipped volume %d instead of requested %d') and 'tone_duration' configure the calibration tone, which is played as x-rincon-configmode:sonar-calibrate-tone. Mode 'trueroom' validates its own options in f_10362190 and returns 800 when they are missing or invalid. button-notify and speaker-detect do not read Options.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -13226,6 +13226,41 @@
          "build": "86.10-80260",
          "function": "0x10363450",
          "notes": "speaker-detect entry ignores Options"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b1d0",
+         "notes": "isalnum check"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b1e4",
+         "notes": "strchr in '-_.'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035b1a8",
+         "notes": "'..' rejected"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10363dc0",
+         "notes": "tone download host"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10363de0",
+         "notes": "tone path format"
         }
        ],
        "notes": null,
@@ -13234,9 +13269,9 @@
         "Resolved: post-parse handling of `Options` = verbatim forward to impl vfunc +96 (obj r5-in, call site 0x107361d0); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ],
        "todo": [
-        "Established: the keys, their parse sites, the accepted 'mode' values, the ver and tone validation, the force asset-removal path and the tone parameters are traced, as is the absence of Options use in button-notify and speaker-detect.",
-        "Unknown: the accepted ranges for ver, tone, polarity and tone_duration and the volume clip bounds, which are checked inside f_10364284 and in the sonar helpers f_102a5124 and f_105d24f8.",
-        "Close it by tracing the comparisons in f_10364284, f_102a5124 and f_105d24f8."
+        "Established: every key, its parse site and its consumer is traced, as are the accepted characters for ver and tone and the force reload.",
+        "Unknown: the ranges accepted for polarity (forwarded to f_107f6c24 through f_102a5124), tone_duration (forwarded to f_105d22a4 through f_105d24f8) and the volume clip bounds, all checked in audio code outside DeviceProperties.",
+        "Close it by tracing the comparisons in f_107f6c24, f_105d22a4 and the clip at 0x10364700."
        ]
       }
      },
@@ -24931,8 +24966,8 @@
       ],
       "todo": [
        "Established: the evented values written here are exactly those f_105b5fe4 renders into the GENA property set.",
-       "Unknown: what invokes slot +0xac after a write; no call through that slot exists in the DeviceProperties code ranges 0x1034c000-0x10368000 and 0x105b4000-0x105b8000, so the trigger lives in the UPnP eventing framework or behind the impl+0x950 backend (stored by the dpZoneImpl constructor f_105b66f0 from its r8 argument, which f_103fa434 loads from its +0x2bc field).",
-       "Close it by finding the framework caller of vtable slot +0xac and the class of the object f_103fa434 passes as r8."
+       "Unknown: what invokes slot +0xac after a write. No call through that slot exists in the DeviceProperties code; elsewhere indirect calls through vtable offset 0xac exist at 0x101813c8, 0x103ca214, 0x103ca3cc, 0x103ca748, 0x103f748c, 0x1064cc7c, 0x1064d9cc, 0x1064da04, 0x10695838, 0x107f2ad4 and 0x107f2af8. None loads the DeviceProperties object visibly; 0x103f748c (object at +0x1924 of the zone-player core) is the most likely.",
+       "Close it by identifying the receiver object of those call sites (for 0x103f748c, what f_103fa434 stores at +0x1924) and the class of the impl+0x950 object that f_103fa434 passes as r8."
       ]
      },
      "state_transitions": {
@@ -26283,7 +26318,7 @@
     ],
     "todo": [
      "Established: the GENA property set is built by f_105b5fe4 under the impl+0x268 lock through runtime slot +0xac (f_1035dd84 -> f_105b643c), and includes ZoneName, Icon, Configuration, Invisible, WirelessMode, ConnectionType, ChannelFreq, BehindWifiExtender, WifiEnabled, EthLink, SettingsReplicationState, SecureRegState, IsIdle and MoreInfo. The WSS name 'deviceProperties' is registered in the name table at 0x10099150.",
-     "Unknown: the framework call site that invokes slot +0xac (subscribe and change notification), and which code path feeds the WSS deviceProperties event.",
+     "Unknown: which framework call site invokes slot +0xac for subscribe and change notification; indirect calls through vtable offset 0xac exist at 0x101813c8, 0x103ca214, 0x103ca3cc, 0x103ca748, 0x103f748c, 0x1064cc7c, 0x1064d9cc, 0x1064da04, 0x10695838, 0x107f2ad4 and 0x107f2af8. None loads the DeviceProperties object visibly; 0x103f748c (object at +0x1924 of the zone-player core) is the most likely.",
      "Close it by locating the indirect call through vtable offset 0xac in the UPnP service framework and the consumer of the 0x10099150 name table entry."
     ],
     "resolved_findings": [
