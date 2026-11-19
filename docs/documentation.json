@@ -60434,14 +60434,27 @@
          "function": "0x105116e0",
          "address": "0x1051182c",
          "notes": "first-entry request submit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1026571c",
+         "address": "0x10266504",
+         "notes": "op 19 consumer"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1014b1a8",
+         "address": "0x1014b24c",
+         "notes": "append flag cleared, length untouched"
         }
        ],
-       "todo": [
-        "Established: the insert workers and the three request kinds (f_1032e350 begin, f_1032e368 commit, f_1032e5b4 on count mismatch) are identified with call sites.",
-        "Residual: whether the f_1032e5b4 request rolls back entries already inserted is not traced; next step is to disassemble f_1032e5b4 and the request consumer behind f_10255f64."
-       ],
        "resolved_findings": [
-        "Resolved (dispatch): each entry is inserted by f_1014f808 (no container) or f_1014fb34 (container) from f_105116e0; the first entry also submits a request built by f_1032e350 via f_10255f64 (0x1051182c) and records its token at job+0x1438; success submits the f_1032e368 commit request (0x10511a2c); a count mismatch submits an f_1032e5b4 request (0x105119b4) before returning 402."
+        "Resolved (dispatch): each entry is inserted by f_1014f808 (no container) or f_1014fb34 (container) from f_105116e0; the first entry also submits a request built by f_1032e350 via f_10255f64 (0x1051182c) and records its token at job+0x1438; success submits the f_1032e368 commit request (0x10511a2c); a count mismatch submits an f_1032e5b4 request (0x105119b4) before returning 402.",
+        "Resolved: the failure request f_1032e5b4 is op 19 ('<<<< cancelAppend', 0x10e93c2c), stored at req+0xe4 by f_1032e5b4. The consumer (0x102664e8, ok=1) calls f_1014b1a8, which clears the append flag q+0x26b5 and logs 'Append transaction ID mismatch' when the generation differs. It never changes the queue length q+0x26c8, and only the commit (op 2, f_1014dc98) grows the length. The entries the per-entry inserts staged since beginAppend therefore never become part of the queue, so nothing has to be rolled back."
        ]
       }
      ],
