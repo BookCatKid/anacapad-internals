@@ -12977,7 +12977,7 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 32 bytes (31 chars + NUL)",
        "unit": "none - boolean flag",
-       "accepted_values": "button-notify, speaker-detect, trueroom (case-insensitive)",
+       "accepted_values": "button-notify, speaker-detect, trueroom, room_calibration-calibrate (case-insensitive)",
        "range": "32-byte parse buffer",
        "special_values": "none identified",
        "required": true,
@@ -13863,6 +13863,37 @@
        ]
       },
       {
+       "code": 401,
+       "code_expr": "0x191 at 0x103648a0",
+       "meaning": "Default result for unmatched mode while the local player is idle.",
+       "fault_sites": [
+        "0x107361ec"
+       ],
+       "conditions": [
+        {
+         "description": "No recognized mode matches while idle",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x103648b4",
+           "notes": "Selects 401 when idle, 810 otherwise"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x103648b4",
+         "notes": "Selects 401 when idle, 810 otherwise"
+        }
+       ]
+      },
+      {
        "code": 810,
        "code_expr": "0x32a at 0x103648b0",
        "meaning": "Default failure for an unrecognized mode when a mode is already active; the idle default is 401.",
@@ -13871,14 +13902,14 @@
        ],
        "conditions": [
         {
-         "description": "all three strcasecmp calls are nonzero",
+         "description": "No recognized mode matches when already active",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10364924",
-           "notes": "last comparison"
+           "address": "0x103648b4",
+           "notes": "Selects 401 when idle, 810 otherwise"
           }
          ]
         }
@@ -13953,8 +13984,9 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1012bb4c",
-       "notes": "impl vtable 0x10e98278 slot +0x60; secondary-base trampoline this-0x3a8 via 0x1012bb60; terminal returns adjusted member pointer"
+       "address": "0x107361d0",
+       "function": "0x103523fc",
+       "notes": "Runtime vtable 0x10ebc630 slot +0x60 dispatch"
       }
      ],
      "notes": null,
