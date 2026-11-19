@@ -70986,7 +70986,7 @@
   "/MediaRenderer/RenderingControl/Control": {
    "name": "RenderingControl",
    "control_path": "/MediaRenderer/RenderingControl/Control",
-   "description": "UPnP RenderingControl for the zone player: per-channel volume, mute, loudness and EQ state held in a large implementation object (fields through at least +0x9c8) guarded by a recursive mutex at impl+0x938. Two implementation classes share the same SOAP vtable layout: a base 'without proxy' class (vtable 0x10e872f0, methods 0x100dxxxx-0x100exxxx, e.g. SetMute logs 'SetMuteWithoutProxy') and a derived class (vtable 0x10ed279c, overrides at 0x1046xxxx) that performs a grouped-operation prelude (object built from impl+0xbc8 and impl+0x9c8 via f_1046dff0, submitted via f_1046c3cc) before tail-calling the base implementation - i.e. the proxy/grouped variant. Which class is installed at *(svc+4) is decided at rc_impl construction (selection condition unresolved); several actions are 3-instruction null stubs in one or both classes and are documented per-class below.",
+   "description": "The RenderingControl SOAP implementation is the concrete rc_impl_stp object constructed by f_1046c6a4 with primary vptr 0x10ed270c, not a runtime-unbound selection between base and derived address points. f_103fa434 stores it at media-player+0x1924; initializer f_103fd65c supplies that shared-pointer pair to f_104d49e8, whose store at 0x104d4dc0 populates SOAP service+4. Public methods occupy primary slots +0x08 through +0x70. Derived proxy methods and inherited base methods must each be traced from these actual slots; adjacent address points are not interchangeable.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -80677,9 +80677,44 @@
      "notes": "derived-class SetMute: calls f_1046dff0 (builds op object from impl+0xbc8/+0x9c8) and f_1046c3cc, then tail-calls base f_100db3fc",
      "address": "0x1046e50c",
      "function": "0x1046e50c"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fb320",
+     "notes": "Construct RC object through f_1046c6a4, then store r24 at media-player+0x1924 at 0x103fb390 (raw 0x931f1924)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1046c94c",
+     "notes": "Primary-vptr store 0x913f0000 installs 0x10ed270c formed at 0x1046c8f8/0x1046c8fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fdd18",
+     "notes": "r9=&media-player+0x1924; r3=services block from media-player+0x220. Call setter at 0x103fdd60."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104d4dc0",
+     "notes": "Setter retains incoming r9 in r25 at 0x104d4a08, loads *r25 at 0x104d4d78 and stores it with raw 0x913f0034. Services block is zone-player+0x3fa2c; +0x34 equals RC service+4 (zone-player+0x3fa60)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ed2714",
+     "notes": "Raw primary-table words from +0x08 through +0x70 establish all 27 SOAP action slots; see soap_slots, not neighboring secondary address points."
     }
    ],
-   "notes": "Impl vtables found in .rodata: base 0x10e872f0 (slots +0x08..+0x64, ends at GetRoomCalibrationStatus - no SetRoomCalibrationStatus/RampToVolume/RestoreVolumePriorToRamp entries) and derived 0x10ed279c. Neither vtable address is stored or materialized anywhere - objects are installed dynamically and derived classes may further override slots (this-adjusting thunks exist at 0x100d6600/0x100d6608/0x100d735c/0x100e32ec/0x100e34dc/0x100e4214 for secondary bases). Common field map established from impl bodies: mute bytes +0x7f1 Master / +0x7f2 LF / +0x7f3 RF / +0x7f4 'FocusMode' (SetMute only), volume u16 +0x7da mirrored to +0x3c8 on write, secondary u16 +0x7e0, flag bytes +0x7ff and +0x801 gating a volume-sync path, event-dirty flag +0x7f5, EQ word +0x898, context/state objects +0x3ac/+0x3c4/+0x9c8/+0xbc8, recursive mutex +0x938 (f_10988564/f_10988990 guard pair).",
+   "notes": "Concrete binding is established independently of per-action semantics. Existing action records not yet corrected can still contain obsolete base/derived slot attributions; use the proven soap_slots map while reversing each one.",
    "impl_files": [
     "zoneplayer/rc_impl.cxx",
     "zoneplayer/rc_impl_stp.cxx"
@@ -80749,15 +80784,173 @@
      "At least one is required: {volume,muted}"
     ],
     "volume_internals": "\"Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d\": balance+per-channel mutes; \"ramping to %d\"; GainTrimdB %.2f; FocusModeMute; \"setMonoMode %s\"; \"Set real channel map to L: %u - R: %u\"; \"bonded; set primary's default loudness %d\"; save collision policy delay|drop [cSC:%u|sC:%u|sCC:%u]",
-    "sonar": "\"sonar %sACTIVE (t:%d e:%d ac:%d id:%s)\"; \"sonar state changing %s -> %s\"; \"Will apply and store Sonar calibration %s\"/\"Will apply HT spatial coefficients\"; CalibrationMode must be spectral|spatial; events sonarEnabledChangedTo/sonarCalibConsistentChangedTo/sonarHasCalibrationChangedTo/orientationChangedTo"
+    "sonar": "\"sonar %sACTIVE (t:%d e:%d ac:%d id:%s)\"; \"sonar state changing %s -> %s\"; \"Will apply and store Sonar calibration %s\"/\"Will apply HT spatial coefficients\"; CalibrationMode must be spectral|spatial; events sonarEnabledChangedTo/sonarCalibConsistentChangedTo/sonarHasCalibrationChangedTo/orientationChangedTo",
+    "soap_slots": [
+     {
+      "action": "GetMute",
+      "slot": "0x8",
+      "word_address": "0x10ed2714",
+      "function": "0x1046dfe4"
+     },
+     {
+      "action": "SetMute",
+      "slot": "0xc",
+      "word_address": "0x10ed2718",
+      "function": "0x1046c0b0"
+     },
+     {
+      "action": "ResetBasicEQ",
+      "slot": "0x10",
+      "word_address": "0x10ed271c",
+      "function": "0x1046ff10"
+     },
+     {
+      "action": "ResetExtEQ",
+      "slot": "0x14",
+      "word_address": "0x10ed2720",
+      "function": "0x10470454"
+     },
+     {
+      "action": "GetVolume",
+      "slot": "0x18",
+      "word_address": "0x10ed2724",
+      "function": "0x1047095c"
+     },
+     {
+      "action": "SetVolume",
+      "slot": "0x1c",
+      "word_address": "0x10ed2728",
+      "function": "0x1046b180"
+     },
+     {
+      "action": "SetRelativeVolume",
+      "slot": "0x20",
+      "word_address": "0x10ed272c",
+      "function": "0x10470a34"
+     },
+     {
+      "action": "GetVolumeDB",
+      "slot": "0x24",
+      "word_address": "0x10ed2730",
+      "function": "0x100d65ac"
+     },
+     {
+      "action": "SetVolumeDB",
+      "slot": "0x28",
+      "word_address": "0x10ed2734",
+      "function": "0x100dc060"
+     },
+     {
+      "action": "GetVolumeDBRange",
+      "slot": "0x2c",
+      "word_address": "0x10ed2738",
+      "function": "0x100d65c8"
+     },
+     {
+      "action": "GetBass",
+      "slot": "0x30",
+      "word_address": "0x10ed273c",
+      "function": "0x100d6bb8"
+     },
+     {
+      "action": "SetBass",
+      "slot": "0x34",
+      "word_address": "0x10ed2740",
+      "function": "0x10470b54"
+     },
+     {
+      "action": "GetTreble",
+      "slot": "0x38",
+      "word_address": "0x10ed2744",
+      "function": "0x100d6b4c"
+     },
+     {
+      "action": "SetTreble",
+      "slot": "0x3c",
+      "word_address": "0x10ed2748",
+      "function": "0x10470bd0"
+     },
+     {
+      "action": "GetEQ",
+      "slot": "0x40",
+      "word_address": "0x10ed274c",
+      "function": "0x100d6d80"
+     },
+     {
+      "action": "SetEQ",
+      "slot": "0x44",
+      "word_address": "0x10ed2750",
+      "function": "0x10470c4c"
+     },
+     {
+      "action": "GetLoudness",
+      "slot": "0x48",
+      "word_address": "0x10ed2754",
+      "function": "0x100d6cf4"
+     },
+     {
+      "action": "SetLoudness",
+      "slot": "0x4c",
+      "word_address": "0x10ed2758",
+      "function": "0x10470cd8"
+     },
+     {
+      "action": "SetChannelMap",
+      "slot": "0x50",
+      "word_address": "0x10ed275c",
+      "function": "0x100db9a8"
+     },
+     {
+      "action": "GetSupportsOutputFixed",
+      "slot": "0x54",
+      "word_address": "0x10ed2760",
+      "function": "0x100d6adc"
+     },
+     {
+      "action": "SetOutputFixed",
+      "slot": "0x58",
+      "word_address": "0x10ed2764",
+      "function": "0x100dc548"
+     },
+     {
+      "action": "GetOutputFixed",
+      "slot": "0x5c",
+      "word_address": "0x10ed2768",
+      "function": "0x100d7364"
+     },
+     {
+      "action": "GetHeadphoneConnected",
+      "slot": "0x60",
+      "word_address": "0x10ed276c",
+      "function": "0x100d65e4"
+     },
+     {
+      "action": "GetRoomCalibrationStatus",
+      "slot": "0x64",
+      "word_address": "0x10ed2770",
+      "function": "0x100d7160"
+     },
+     {
+      "action": "SetRoomCalibrationStatus",
+      "slot": "0x68",
+      "word_address": "0x10ed2774",
+      "function": "0x10471e10"
+     },
+     {
+      "action": "RampToVolume",
+      "slot": "0x6c",
+      "word_address": "0x10ed2778",
+      "function": "0x10470d64"
+     },
+     {
+      "action": "RestoreVolumePriorToRamp",
+      "slot": "0x70",
+      "word_address": "0x10ed277c",
+      "function": "0x104712ec"
+     }
+    ]
    },
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
-   "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
-   ]
+   "todo": "Established: media-player construction, concrete primary vptr 0x10ed270c, all 27 public slot words and the services-block+0x34 store into RC service+4 are traced. Unknown: remaining action workers, routing predicate and event serializer/sender binding have not all been exhausted. Next: start each outstanding action at the exact soap_slots entry below, trace its validation, base/proxy callees and return/output paths; inspect router f_101953c8 and the event-source address point installed by f_1046c6a4 before claiming availability or subscriber delivery."
   },
   "/MediaRenderer/VirtualLineIn/Control": {
    "name": "VirtualLineIn",
