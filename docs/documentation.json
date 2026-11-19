@@ -52587,7 +52587,7 @@
        "buf_cap": 1024
       },
       "UpdateID": {
-       "description": "Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.",
+       "description": "Optional optimistic-concurrency token, initialized to 0 when omitted. Zero disables the check; any nonzero value must equal the current queue revision fetched via f_10149b24.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -52601,10 +52601,10 @@
        "unit": "n/a - text",
        "accepted_values": "0 (skip check) or exactly the current queue update-id - mismatch faults 1028",
        "range": "0 or current update-id",
-       "special_values": "none observed in this build",
-       "required": true,
-       "default": "none - required argument",
-       "validation": "Optimistic-concurrency token: 0 disables the check; any nonzero value must equal the session's current queue update-id fetched via f_10149b24.",
+       "special_values": "0, including omitted input, skips revision checking",
+       "required": false,
+       "default": "0 when omitted",
+       "validation": "Optional optimistic-concurrency token, initialized to 0 when omitted. Zero disables the check; any nonzero value must equal the current queue revision fetched via f_10149b24.",
        "evidence": [
         {
          "type": "firmware",
@@ -52628,6 +52628,14 @@
          "function": "0x10149b24",
          "callsite": "0x10149bac",
          "notes": "With r6=0, reads queue+0x70 and count +0x26c8 under f_10149598/f_10149614 lock; impl passes session+0x2d890."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102f9aa8",
+         "address": "0x102f9b50",
+         "notes": "UpdateID value sp+0x18 initialized to zero at 0x102f9adc/0x102f9ae0; descriptor obtained using name 0x10f14438 at 0x102f9b2c..0x102f9b3c and parsed with value address sp+0x18 at 0x102f9b40/0x102f9b48. Wrapper writes descriptor+0x30=1 at 0x102f9b50. Validator 0x107304b4..0x107304c8 permits an absent argument only with this flag. Missing UpdateID therefore remains zero; implementation f_102aa824..0x102aa84c bypasses checking zero."
         }
        ],
        "notes": null
@@ -52658,7 +52666,7 @@
       ]
      },
      "requirements": {
-      "description": "All three inputs are required. InstanceID must be 0; nonzero UpdateID must match queue+0x70; impl mode +0x4654 must be 1 or 2. ObjectID must resolve to an existing entry or worker completion fails with 800.",
+      "description": "InstanceID and ObjectID are required; UpdateID is optional and defaults to 0 when omitted. InstanceID must be 0; nonzero UpdateID must match queue+0x70; impl mode +0x4654 must be 1 or 2. ObjectID must resolve to an existing entry or worker completion fails with 800.",
       "evidence": [
        {
         "type": "firmware",
@@ -52677,6 +52685,14 @@
         "function": "0x10146db8",
         "callsite": "0x10146db8",
         "notes": "Compares ObjectID with strlen(queue+0x4c) bytes of queue prefix, then strtol(base10,NULL) starting one byte after prefix. Rejects zero and unsigned values above queue count; does not validate skipped separator or trailing characters. f_1014ed90 uses result as both inclusive endpoints for f_1014e9a8. Invalid ID returns false, mapped to SOAP 800."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102f9aa8",
+        "address": "0x102f9b50",
+        "notes": "UpdateID value sp+0x18 initialized to zero at 0x102f9adc/0x102f9ae0; descriptor obtained using name 0x10f14438 at 0x102f9b2c..0x102f9b3c and parsed with value address sp+0x18 at 0x102f9b40/0x102f9b48. Wrapper writes descriptor+0x30=1 at 0x102f9b50. Validator 0x107304b4..0x107304c8 permits an absent argument only with this flag. Missing UpdateID therefore remains zero; implementation f_102aa824..0x102aa84c bypasses checking zero."
        }
       ]
      },
@@ -52866,6 +52882,11 @@
         "callsite": "0x102e47d4",
         "notes": "Full output or latched impl+0x7785 enters the common transport-property block at 0x102e47e4; otherwise 0x102e47e0 skips to 0x102e4d38. The block serializes TransportState at 0x102e47e8, NumberOfTracks at 0x102e4870, CurrentTrack at 0x102e489c, CurrentTrackURI at 0x102e48f4 and AVTransportURI at 0x102e4a50. These values can therefore be repeated unchanged when another source-list change makes the block eligible. f_1026021c puts the source-node +0x28c track number through output-record+4 at 0x10260300..0x1026030c; live active-queue count +0x26c8 goes through record+8 at 0x10260790/0x102603a4, subject to the start-window adjustment at 0x102606b4..0x102607b4. CurrentTrackURI is obtained by f_1014a28c from the selected queue entry at 0x10260470, after invalid indexes are reduced to zero and optional shuffle mapping at 0x102607b8. AVTransportURI is copied from impl+0x5dc at 0x102b5a28..0x102b5a80; deletion does not itself replace that selected source URI. f_10341c74 maps source-head state +0x288 through table 0x10eba220: 0 STOPPED, 1 TRANSITIONING, 2 PLAYING, 3 PAUSED_PLAYBACK. Snapshot timing, not the SOAP return alone, determines which of those values is observed."
        }
+      ],
+      "todo": [
+       "Established: named mutations publish through f_1014d738 and the ContentDirectory observer chain; Queue LastChange uses f_10465b54 and its copied revision/dirty snapshot. AVTransport callback f_102e43a0 obtains a transport snapshot through f_102b5a1c at 0x102e4698 and gates grouped transport fields at 0x102e47d4..0x102e47e0. SOAP completion does not fix snapshot timing.",
+       "Unknown: the complete CurrentTrack/TransportState snapshot comparison and selection when the removed entry is the active buffered current source, versus a noncurrent entry; the exact emitted values before and after subsequent playback-controller advancement remain untraced.",
+       "Next: follow f_102aa770 and kind-3 running/stopped deletion through f_102b5a1c/f_10341c74 into f_1034071c, mapping selected source nodes and snapshot fields to the grouped emission gate and CurrentTrack/TransportState writers in f_102e43a0; distinguish immediate mutation snapshots from subsequent playback-controller snapshots."
       ]
      },
      "state_transitions": {
