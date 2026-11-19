@@ -69455,7 +69455,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x102c2df0",
-        "notes": "The AVTransport listener setup f_102c1f2c inserts the interface at object+0x258 into the same registry (key at entry+0x10; owning handle at +0x14) if not already present. Slot 0 is f_102bf138 at table word 0x10eaf7b4 (also 0x10ee0080), which subtracts 0x258 and tail-calls f_102beca8. Teardown f_102bfaf0 calls the removal helper f_102f1f4c for this registry at 0x102c040c."
+        "notes": "The AVTransport listener setup f_102c1f2c inserts the interface at object+0x258 into the same registry (key at entry+0x10; owning handle at +0x14) if not already present. Slot 0 is f_102bf138 at table word 0x10eaf7b4 (also 0x10ee0080), which subtracts 0x258 and tail-calls f_102beca8. The constructor clears listener byte +0x1c at 0x102c09bc. Holding the registry lock, teardown f_102bfaf0 removes the listener immediately through f_102f1f4c at 0x102c040c if dispatch-active byte 0x11096cc8 is clear, otherwise marks it for removal by setting listener+0x1c at 0x102bfe84. The dispatcher skips set bytes, clears the dispatch-active byte at 0x10418980, then clears each marked listener byte at 0x104189f8 as part of unlinking the node at 0x10418a78."
        },
        {
         "type": "firmware",
@@ -69473,8 +69473,8 @@
        }
       ],
       "todo": [
-       "Established: the indexed same-mode path skips its wake. Spotify setter commands submit separate device requests; equal state updates skip notification, but repeat-all and repeat-one compare unequal. The mode event requires the selecting/active Spotify control and a configured event loop; it goes through the registered AVTransport listener when enabled. The running callback dirties LastChange; collection reads the active provider's current mode, not the request or an event payload mode.",
-       "Trace which incoming device-state cases reach f_10d1c198 or the other selectors 31/32 producer after a mode request. Identify the mode work item's executor implementation behind 0x102efdc0 and the listener enable/disable writes for byte +0x1c. Spotify type 2 is the only direct call to the registration helper in this build."
+       "Established: the indexed same-mode path skips its wake. Spotify setter commands submit separate device requests; equal state updates skip notification, but repeat-all and repeat-one compare unequal. The mode event requires the selecting/active Spotify control, a configured event loop and the registered AVTransport listener not marked for removal. The running callback dirties LastChange; collection reads the active provider's current mode, not the request or an event payload mode.",
+       "Trace which incoming device-state cases reach f_10d1c198 or the other selectors 31/32 producer after a mode request. Identify the mode work item's executor implementation behind 0x102efdc0. Spotify type 2 is the only direct call to the registration helper in this build."
       ]
      },
      "state_transitions": {
@@ -73660,7 +73660,7 @@
     }
    },
    "events": {
-    "mechanism": "UPnP GENA NOTIFY. LastChange carries an AVTransport snapshot or a delta selected from dirty and pending state; the SOAP return does not deliver the event.",
+    "mechanism": "UPnP GENA NOTIFY. A separate event sender collects eligible batches from the registered AVTransport event source. LastChange carries a snapshot or a delta selected from dirty and pending state; the SOAP return does not deliver the event.",
     "namespace": "urn:schemas-upnp-org:metadata-1-0/AVT/ + xmlns:r=urn:schemas-rinconnetworks-com:...",
     "lastchange_var": "LastChange",
     "notify_template": "same NOTIFY template (X-SONOS-SERVICETYPE identifies service)",
@@ -73694,9 +73694,32 @@
       "address": "0x102e61d4",
       "notes": "AVTransport engine slot +0x200 enters f_102e6048, collects under the engine mutex, and calls f_102e43a0 for two subscriber groups where present, passing r7=1 and 0 respectively.",
       "function": "0x102e6048"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x103f8ae0",
+      "notes": "ZonePlayer startup f_103f8924 pairs the nonnull AVTransport object at zone+0x1934 plus 0x10 with the owner at zone+0x1938. It passes this pair with the event wrapper at zone+0x228 to f_104017c8. That wrapper loads the sender at +4 and calls f_1067938c, which appends the raw source to the sender vector at +0x110 and retains the owning pair in the vector at +0x11c. The +0x128 vector is different: f_103f6a48 passes that same AVTransport source to f_106794f0 at 0x103f6ad0 to queue its removal. f_10679678 removes matches from the scan vector, and the scan itself skips pending-removal matches at 0x10679cf0 through 0x10679cfc."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10679da8",
+      "notes": "The sender checks pending byte +0x10e at 0x10679bbc. A pending wake clears it and enters the scan. Otherwise it waits on sender+0xb8, with a timed wait only when it has a nonzero deadline; either wake path then copies the +0x110 vector. The scan tests readiness through f_1067d028 and reads the source's previous dispatch time through slot +0x10. A zero timestamp bypasses spacing; otherwise AVTransport's slot +0x0c supplies 250 ms (f_102aa368 -> f_102aa354). The elapsed-time test can contribute an earlier retry time at 0x1067a0f8 instead of dispatching. This is minimum spacing, not a fixed 250 ms poll.",
+      "function": "0x10679b14"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068406c",
+      "notes": "f_10683da0 updates source+0xc4/+0xc8, scans subscription groups from source+0xa0 and clears source+0x110. f_10684d00 takes the batch table at sp+0x48 and reaches f_10684ac8, which can populate the group-list head at sp+0x50 indirectly. The selector at 0x10683fe0 requires a group; 0x10683ff8 through 0x10684004 require its vector to be nonempty before calling source slot +0x18. The base and derived AVTransport event-source address points 0x10eaf510 and 0x10edfddc bind it to f_102e6400, which adjusts this by -0x10 and reaches f_102e6048.",
+      "function": "0x10683da0"
      }
     ],
-    "notify_path": "f_1067c6ec schedules eventing; AVTransport engine slot +0x200 (f_102e6048) calls f_102e43a0 to collect and serialize LastChange for InstanceID 0."
+    "notify_path": "f_1067c6ec can wake the shared event sender through f_1067c46c and f_10678c50. f_10679b14 scans registered sources, checks readiness and minimum dispatch spacing, and calls f_10683da0. For a nonempty batch the latter calls source slot +0x18, whose AVTransport thunk f_102e6400 reaches the locked collector f_102e6048. The collector calls f_102e43a0 to serialize LastChange for InstanceID 0."
    },
    "errors": [
     {
