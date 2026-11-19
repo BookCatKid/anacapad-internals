@@ -19485,7 +19485,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. f_105b5030 exists to make the action fail cleanly on builds where slot +0x78 is the base stub f_105b43d4: it returns 800 in that case. On this firmware slot +0x78 is f_10352dd4, so the 800 path is not reachable for the DeviceProperties object, and the previous attribution of this action to a shared_ptr accessor was wrong."
     },
     "RemoveHTSatellite": {
-     "description": "Detaches a home-theater satellite named by its room UUID. The wrapper parses SatRoomUUID (cap 25) and calls slot +0x4c of runtime vtable 0x10ebc630, f_1034e5c8, which starts with its result preset to 402, removes the satellite from the home-theater set, sends the removal to the satellite ('RemoveHTSat: error %d sending to Sat %s') and clears its room calibration ('failed to clear RoomCalibration on satellite %s - not found in topology', 'failed to clear RoomCalibration on satellites'), logging 'HT Sat %s removal (%u) via %s took %ld ms on %s'. As with AddHTSatellite the wrapper treats 1032 as success: it commits, sleeps one second and then calls slot +0x74 unless that slot is the empty stub f_1012b9a8.",
+     "description": "Dispatches SatRoomUUID through runtime slot +0x4c to f_1034e5c8. A missing or invalid current local HT map returns 402. If the target is absent from a valid map, the action succeeds without removal. On a primary, local removal can succeed even if notifying the satellite fails; failures in that notification are logged. A local satellite returning 1032 is committed before the follow-up.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737f3c",
@@ -19552,7 +19552,7 @@
      },
      "inputs": {
       "SatRoomUUID": {
-       "description": "Room UUID of the satellite to detach, parsed into a 25-byte buffer, which is exactly the size of a 24-character player UUID plus its terminator. f_1034e5c8 looks it up in the topology; a UUID that is not found is reported through the 'failed to clear RoomCalibration on satellite %s - not found in topology' path.",
+       "description": "The target room UUID, read by f_1034e5c8. If no member of the current HT map matches, the worker returns zero without removal. The calibration lookup log refers to remaining satellites, not necessarily this input UUID.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -19589,8 +19589,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1068b998",
-         "notes": "impl consumes the UUID"
+         "address": "0x1034e764",
+         "notes": "Looks up the target in the current HT map via f_1053cb88 -> f_1053dba0"
         },
         {
          "type": "firmware",
@@ -19661,21 +19661,42 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads the zone-player context at impl+0x25c and the home-theater channel map at impl+0xe60, and works on the topology objects it looks the satellite up in.",
+      "description": "Reads the zone-player context at impl+0x25c and the home-theater channel map at impl+0xe60, and works on the topology objects it looks the satellite up in. The worker also reads trigger byte +0xe34 and the calibration member +0x1a8c. Local removal reads the rendering/sonar manager at +0x1a80 and settings backend at +0x960.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1034e674",
-        "notes": "impl+0x25c"
+        "address": "0x1034e668",
+        "notes": "Trigger byte"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1034e67c",
-        "notes": "impl+0xe60"
+        "address": "0x1034e684",
+        "notes": "Current map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034eb30",
+        "notes": "Calibration member"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034dc3c",
+        "notes": "Rendering/sonar manager"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034dce8",
+        "notes": "Settings backend"
        }
       ]
      },
@@ -19713,45 +19734,80 @@
       }
      ],
      "events_triggered": {
-      "description": "No GENA event; the in-process bondedZoneChange topology event is published with eventType 'Removed'.",
+      "description": "Reachable primary local removal calls f_1067c6ec, requesting GENA processing. f_1067c46c checks for a sender; a wire NOTIFY is not guaranteed. bondedZoneChange with eventType Removed is a separate in-process event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035c968",
-        "notes": "literal"
+        "address": "0x1034e78c",
+        "notes": "Primary local removal"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035ca08",
-        "notes": "publisher"
+        "address": "0x1034dcac",
+        "notes": "GENA request"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034e858",
+        "notes": "Topology event"
        }
       ]
      },
      "state_transitions": {
-      "description": "On success the named satellite leaves the home-theater set and returns to standalone operation with its 'Unpaired*' settings; the primary's satellite map loses the entry.",
+      "description": "A valid map without the target returns zero with no removal. A successful primary removal updates the local map; any failure to tell the removed satellite is logged, so local success does not establish remote standalone operation. On the local satellite's standalone switch, 1032 triggers post-commit follow-up.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1034e5c8",
-        "notes": "removal path"
+        "address": "0x1034e760",
+        "notes": "Preset zero before membership lookup"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1034cf38",
-        "notes": "the unpaired settings saved when the satellite was attached"
+        "address": "0x1034e76c",
+        "notes": "Absent target skips removal"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034e794",
+        "notes": "Save local result"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034e900",
+        "notes": "Notify error does not change local result"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737fe0",
+        "notes": "Commit 1032 before follow-up"
        }
       ]
      },
      "return_behavior": {
-      "description": "f_1034e5c8 returns the result of the local removal f_1034d858. On a primary that function removes the entry, persists HTSatelliteDefn and ActiveZoneID, logs 'Remove HT Sat: %s; new map: %s' and returns 0. On a satellite it returns 0 unless SatRoomUUID is its own UUID, in which case it switches back to standalone mode ('Change from Sat to ZP mode') and returns 1032. The wrapper commits 1032 as success, sleeps one second and runs the slot +0x74 follow-up. When the primary notifies the removed satellite over SOAP, failures are only logged ('RemoveHTSat: error %d sending to Sat %s', with 1024 when the URI lookup fails) and do not change the result. The other results are 402 (no HT map, the primary's own UUID, or TRequest validation) and 0 for an unknown UUID.",
+      "description": "f_1034e5c8 returns the result of the local removal f_1034d858. On a primary that function removes the entry, persists HTSatelliteDefn and ActiveZoneID, logs 'Remove HT Sat: %s; new map: %s' and returns 0. On a satellite it returns 0 unless SatRoomUUID is its own UUID, in which case it switches back to standalone mode ('Change from Sat to ZP mode') and returns 1032. The wrapper commits 1032 as success, sleeps one second and runs the slot +0x74 follow-up. When the primary notifies the removed satellite over SOAP, failures are only logged ('RemoveHTSat: error %d sending to Sat %s', 1024 is written to the separate logging register r30 at 0x1034ebe4) and do not change the result. The other results are 402 (no HT map, the primary's own UUID, or TRequest validation) and 0 for an unknown UUID.",
       "evidence": [
        {
         "type": "firmware",
@@ -19794,6 +19850,13 @@
         "build": "86.10-80260",
         "address": "0x10737fd0",
         "notes": "1032 treated as success"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034e6ec",
+        "notes": "Returns r27, not logging register r30"
        }
       ]
      },
@@ -19889,8 +19952,8 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1068b998",
-       "notes": "impl vtable 0x10e98278 slot +0x4c; direct impl body"
+       "address": "0x10737fbc",
+       "notes": "Runtime vtable 0x10ebc630 selects f_1034e5c8 at +0x4c"
       }
      ],
      "notes": null,
