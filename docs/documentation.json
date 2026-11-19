@@ -62164,24 +62164,32 @@
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x8] (call-derived member-method semantics)",
+       "description": "Applies the requested descriptor locally or via the group fan-out. The success follow-up can forward a generated group URI to peers; this is separate from LastChange publication.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102fa71c",
-         "notes": "delegate map ['r30 v[+0x8]']; notify-family calls []"
+         "address": "0x102dc8b4",
+         "notes": "Calls the shared URI setter under impl+0x458. The same HTTP(S)-to-HTTP(S) source case changes one option byte and calls it at 0x102dc990.",
+         "function": "0x102dc81c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10512c80",
+         "notes": "With prior group-URI state and successful local result, calls f_102e0fb0. Its 0x102e10e4/0x102e1340 path forwards SetAVTransportURI with a generated group URI.",
+         "function": "0x10512bc0"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+0x8] (call-derived member-method semantics).",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Identify the local transport-side changes after each URI category in f_102ceb40 and their effects on what GetPositionInfo/GetTransportInfo return."
        ]
       }
      ],
      "events_triggered": {
-      "description": "The wrapper commits a response, not a transport event; local source changes occur in f_102ceb40. A successful forwarded request can be followed by local application.",
+      "description": "The wrapper commits a response, not a transport event. f_102e0fb0 on the group local-success path is a peer SetAVTransportURI fan-out, not a LastChange notification.",
       "evidence": [
        {
         "type": "firmware",
@@ -62206,10 +62214,26 @@
         "address": "0x10513088",
         "notes": "The other group path builds AVTransport:1 SetAVTransportURI forwarding requests from the parsed InstanceID, URI and metadata stored at 0x10512ebc-0x10512ecc. It reads per-target result halfwords starting at 0x10513158; a nonzero selected result is returned before local set, while zero can proceed to f_102dcb2c.",
         "function": "0x10512bc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102dc8b4",
+        "notes": "Calls the shared URI setter under impl+0x458. The same HTTP(S)-to-HTTP(S) source case changes one option byte and calls it at 0x102dc990.",
+        "function": "0x102dc81c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10512c80",
+        "notes": "With prior group-URI state and successful local result, calls f_102e0fb0. Its 0x102e10e4/0x102e1340 path forwards SetAVTransportURI with a generated group URI.",
+        "function": "0x10512bc0"
        }
       ],
       "todo": [
-       "Trace the specific f_102ceb40 URI changes that reach LastChange, and identify the additional fields published on the group local-success f_102e0fb0 branch at 0x10512c80."
+       "Trace f_102ceb40's local notifications to specific changed LastChange fields and distinguish them from effects of the peer SetAVTransportURI RPCs."
       ]
      },
      "state_transitions": {
