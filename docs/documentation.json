@@ -167822,21 +167822,23 @@
   },
   "bin_sonosledmgrd": {
    "name": "sonosledmgrd",
-   "summary": "sonosledmgrd (/opt/bin/sonosledmgrd): the LED manager daemon that executes the R_LED_* mode vocabulary shared with anacapad's leds_zp library - it owns the physical hal_led device, pattern engine, and captouch feedback color.",
-   "todo": "Established: startup 0x100024c8 -> f_10002a80 selects through 0x1000452c and conditionally applies via 0x10002b10 -> f_100050a0 -> f_1000ca54 -> ioctl 0x1000caf4; earlier MT19937 and wmemcpy IPC premises are disproved. Unknown: whether/how externally supplied commands reach daemon pattern operations, their registration/argument schema and complete mode-to-pattern mapping. Next: trace startup continuations and registered callbacks beyond 0x10002424, enumerate callers of f_10002a80/f_1000452c/f_100050a0 and join any external transport reads to these operations; reverse selection and f_1000c980 request construction before assigning numeric command layouts or claiming a separate request decoder exists.",
+   "summary": "sonosledmgrd (/opt/bin/sonosledmgrd): LED manager daemon with seven compiled startup/fallback mode selectors, pattern construction and guarded hardware ioctl application. Full runtime coverage of anacapad R_LED_* modes and their transport join is not established.",
+   "todo": "Established: complete built-in selector map 0..6 from 0x100ec9d0, pattern-ID arguments and out-of-range rejection are traced; argv --fr selects mode 0 and the boot-marker path selects mode 1, followed by the guarded ioctl chain. Unknown: additional runtime operation/transport attribution, any per-mode join from the larger anacapad R_LED vocabulary, and detailed constructed pattern/request semantics. Next: trace registered callbacks and callers of f_10002a80/f_100050a0 beyond the argv/startup paths, joining actual external reads to runtime operations if present; follow f_10003504 pattern construction and f_1000c980 request packing into the 0x1000caf4 ioctl before claiming full R_LED coverage or numeric runtime message layouts.",
    "artifacts": [
     "opt/bin/sonosledmgrd",
     "opt/conf/sonosledmgrd_logger.toml"
    ],
    "resolved_findings": [
     "The daemon logger configuration and anacapad-side R_LED names are separate evidence from the daemon startup-to-pattern path. They do not independently establish a daemon IPC command schema.",
-    "Mode execution: applies every mode in the anacapad-decoded table ('applyLEDMode R_LED_UPGRADE/BROKEN_DEVICE/JOIN_HH[_OPEN]/BEGIN_SETUP_MODE/IN_SETUP_MODE/WAC/WAC_TIMEOUT/BREAK_POP/SHUTDOWN/HHID/TRANSFER_REGISTRATION/CONTROL_FEEDBACK/IDENTIFY_PLAYER/AUDIO_OFF/MUTED/FAULT/WAITING_TO_PLAY/WAITING_TO_PAUSE/PLAYING/WARN/DEMO_MODE/DEMO_CONFIGURE_IR') plus hardcoded patterns set_pattern_for_mode {FACTORY_RESET, BOOTING, JOIN_HH, JOIN_HH_OPEN, BYPASS_BLOCKED, BYPASS, CLONE_CHECK_FAIL} and resumeDefaultLEDPattern fallbacks.",
+    "The former claim that this daemon applies every anacapad R_LED_* mode is withdrawn: shared vocabulary and anacapad-side logs do not demonstrate a daemon transport/dispatch join for every mode. Independently recovered daemon selectors 0..6 are FACTORY_RESET, BOOTING, JOIN_HH, JOIN_HH_OPEN, BYPASS_BLOCKED, BYPASS and CLONE_CHECK_FAIL, as named by the diagnostic string referenced in each native arm. These bounded built-in selectors must not be equated with the larger anacapad runtime enum.",
     "Pattern record format: 'cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x' with per-step 'step[%d]= r=%02x, g=%02x b=%02x hold_time=%u fade=%u' - RGB step sequences with hold/fade timing, repeated and bitmasked across LED ids; writes through hal_led_open/brightness with a hal token guard (led_get_hal_token), plus led_set_feedbackFlash and captouch default-color control.",
     "Lifecycle: /etc/runledmgrd respawns it with trackrestart and a stale-pid watchdog loop; --fr runs the factory-reset flash pattern (driven by frcheck rc != 1 in Configure); /var/run/sonosledmgrd.flash_booting_led marks boot-time LED activity; writes /var/run/sonosledmgrd.pid.",
     "Logger: /opt/conf/sonosledmgrd_logger.toml (/jffs/conf/ override first) - sonosledmgrd.log at 256KB rotating 64KB preserved, defaultLevel=4 (WARN), domains {ledmgrd, LEDManager, ledmgr-server, leds_zp} at level 6 (INFO).",
     "Prior inline-dispatch premise disproved at instruction level: f_10080e4c seeds a 624-word state array using multiplier 0x6c078965 (0x10080ec4-0x10080ecc), iterates indices 1..623, then stores index 624 at object+0x9c0. f_10081160 combines adjacent high/low bits, xors state word index+397, shifts by one, and conditionally xors 0x9908b0df (0x100811d4-0x10081218). f_100810a0 consumes that state and tempers the returned word with shifts 11/7/15/18 and masks 0x9d2c5680/0xefc60000 at 0x100810e0-0x10081138. These exact constants and dataflow identify MT19937 random-number generation. Bounds 226 and 622 divide the twist passes; they are neither a request-kind domain nor message-length bounds. No socket or LED-handler call occurs in the alleged dispatch loop.",
-    "Independent falsification of the earlier framing claim: instructions at 0x100e854c/0x100e856c/0x100e8588 only load r5=4 and call f_1004623c, not read(fd,buf,4). f_1004623c forwards its arguments to wmemcpy@plt at 0x1004627c (unless count zero), showing wide-character memory movement in an object operation, not connection reads. Also hostPort at 0x100ed394 is adjacent to logging-destination fields UDP, hostIP and STDERR, not a proven LED IPC field. Socket imports and these unrelated library helpers therefore do not establish a wire format. Actual command decoding remains open and is no longer assigned fabricated numeric ids.",
-    "Reachable startup-to-hardware path in the daemon itself: 0x100024c4 sets mode argument 1 and 0x100024c8 calls f_10002a80. That function selects a pattern through f_1000452c at 0x10002acc; a zero selection result returns without applying it. On nonzero selection it calls f_10002858, and only a nonzero result proceeds to f_100050a0 at 0x10002b10. The apply routine requires a non-null token at 0x100050d0-0x100050d4 and calls f_1000ca54 at 0x100050e0. That callee checks handle/state fields, constructs the request through f_1000c980 and calls ioctl at 0x1000caf4 with request 0x800cfc9c. This establishes a conditional startup pattern path, not a census proving or disproving an external request server."
+    "Independent falsification of the earlier framing claim: instructions at 0x100e854c/0x100e856c/0x100e8588 only load r5=4 and call f_1004623c, not read(fd,buf,4). f_1004623c forwards its arguments to wmemcpy@plt at 0x1004627c (unless count zero), showing wide-character memory movement in an object operation, not connection reads. Also hostPort at 0x100ed394 is adjacent to logging-destination fields UDP, hostIP and STDERR, not a proven LED IPC field. Socket imports and these unrelated library helpers therefore do not establish a wire format. Any additional runtime command path still requires a demonstrated transport/dispatch join and is not assigned fabricated numeric ids.",
+    "Reachable startup-to-hardware path in the daemon itself: 0x100024c4 sets mode argument 1 and 0x100024c8 calls f_10002a80. That function selects a pattern through f_1000452c at 0x10002acc; a zero selection result returns without applying it. On nonzero selection it calls f_10002858, and only a nonzero result proceeds to f_100050a0 at 0x10002b10. The apply routine requires a non-null token at 0x100050d0-0x100050d4 and calls f_1000ca54 at 0x100050e0. That callee checks handle/state fields, constructs the request through f_1000c980 and calls ioctl at 0x1000caf4 with request 0x800cfc9c. This establishes a conditional startup pattern path, not a census proving or disproving an external request server.",
+    "Complete built-in selector dispatch: f_1000452c compares unsigned r4 with 6 at 0x10004534, rejects larger values through zero-result path 0x10004890, and dispatches via signed offsets from fixed table base 0x100ec9d0 at 0x10004560-0x1000456c. Rows 0..6 target 0x10004690/0x100046e0/0x10004770/0x100047c0/0x10004840/0x10004570/0x10004600 respectively. Following shared tails as well as local arms gives pattern-ID arguments to f_10003504 of {0:4 then 9, 1:9 then 7, 2:4 then 7, 3:4 only, 4:10 then 4, 5:1 then 4, 6:0 then 9}. Each call supplies r6=750 and r7=0; no time unit is assigned here. Two-call cases pass the pattern destinations at the loaded object+0xc pointer and that pointer+8. Selector 3 additionally sets owner byte+0xb to 1 at 0x10004818. All seven handled selectors return 1, not a proof that hardware application succeeded.",
+    "A known external input is argv, not an inferred runtime IPC request: when argc>1, 0x1000236c-0x10002378 compares argv[1] case-insensitively with --fr at literal 0x100ec6d8. Equality leaves r3=0 from strcasecmp and 0x10002388 passes that value to f_10002a80, selecting FACTORY_RESET mode 0. The separate boot-marker path passes literal mode 1 at 0x100024c4-0x100024c8. Neither branch demonstrates that all anacapad R_LED operations are dispatched by this daemon."
    ],
    "evidence": [
     {
@@ -167868,6 +167870,20 @@
      "build": "86.10-80260",
      "address": "0x1000caf4",
      "notes": "f_100050a0 calls guarded f_1000ca54, which constructs the request and issues ioctl 0x800cfc9c."
+    },
+    {
+     "type": "firmware",
+     "binary": "sonosledmgrd",
+     "build": "86.10-80260",
+     "address": "0x100ec9d0",
+     "notes": "Seven signed fixed-base offsets independently read and joined to selector arms and pattern-ID calls; unsigned selectors above 6 return zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "sonosledmgrd",
+     "build": "86.10-80260",
+     "address": "0x10002378",
+     "notes": "Case-insensitive argv[1] comparison with --fr; equal return zero becomes mode-0 argument to f_10002a80 at 0x10002388."
     }
    ]
   },
