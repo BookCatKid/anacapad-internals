@@ -152601,16 +152601,36 @@
      "type": "firmware",
      "address": "0x10ec236c",
      "notes": "tokenrefresh block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "response worker to account refresh",
+     "address": "0x1038f8dc",
+     "callsite": "0x1038e93c / 0x1038eb24 / 0x1038edf8 / 0x1038ee78 / 0x1038f1bc",
+     "notes": "Reachable401 gate, nonempty service config, injected store slotsc/20, callback constructor and service call inspected. Missing account and false validation/reload branches disprove unconditional filename/token-use assumptions."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "per-account transaction timeout",
+     "address": "0x1038f42c",
+     "callsite": "0x1038f440 / 0x1038f44c / 0x1038f6f0",
+     "notes": "Clock1 timevalDiff elapsed comparison60000 belongs to in-flight refresh synchronization; no conversion into token lifetime or unconditional schedule is asserted."
     }
    ],
    "todo": [
-    "Residual: the runtime composition site for the account-store path (settings base + 'accounts.xml' via the shared join helper) - the literal is present but never statically referenced; path prefix proven as the settings dir family, not this exact file"
+    "Established: reachable401 refresh path, per-account synchronization, injected-store read/validation/reload slots and service-request callback, with missing-account/store-failure/transaction-timeout branches. Remaining: bind concrete writers of receiver+0x1208 to its store vtable+0xc/+0x20, follow the f_101b7cb4 callback back into persistence, and prove the exact base+accounts.xml composition/load/save path before assigning this file. Separately recover expiry/refresh-age producers rather than equating60000 transaction age with token lifetime. Start at0x1038eb24,0x1038edf8,0x1038f1bc and the service request constructor f_10723fbc. This remains actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: refresh scheduler = the device_auth FSM {expiry lookahead -> refresh -> cache}; token file = the cached credential under the token store.",
-    "Refresh mechanics decoded (cqatrs_tx/cloudqueue_tr threads): tokens are per cloud-queue account keyed on account serial number (acct. sn. %u); the persisted token loads via using token from file for acct. sn. %u. Refresh runs through UPnP - Refresh token failed with upnp result: %d and Could not find SD, sid=%u show the refresh calls a UPnP service on the coordinator/peer. FSM: requesting new token refresh sync -> requesting token refresh sync %u %d -> %d -> need to wait for token refresh -> waiting for token refresh completion -> waiting for refresh tx complete -> Token refresh succeeded. Beginning retry; wait timeouts (wait for tx ... timed out) and missing entries (expected entry ... not found to complete tx / not found waiting for tx) bound each state. Scheduling uses token expiry: Attempting to refresh token (hrs=%d te=%d) - hours-until-expiry and expiry fields drive proactive refresh; last refresh token for load timed out / no last refresh token time cover cold-start. On success the queued action retries (Beginning retry).",
-    "Resolved: the persisted token lives inside the shared accounts store, not a separate token file - the FSM logs 'using token from file for acct. sn. %u' per account serial, and the accounts layer ('accounts.xml' literal + zpserviceaccounts.cxx + accountReplication) owns the file. No standalone token path literal exists in the image; 'accounts.xml' is referenced via a composed base dir (no direct string xref), consistent with the same settings tree that holds /jffs/settings/{alarmclock.xml,areas.json,cloudconfig.json,householdsettings.json,zones.json,zpMetricsConfigV2.xml}.",
-    "Verified: 'accounts.xml' at 0x10eabd60 has no reachable reference - zero addis/addi/ori text refs (0x400 window), zero data pointers, zero rela addends; the literal survives in a merged string block but the path that consumes it builds the name by other means (the account-store path is composed from the settings base via the same join helper family as overrideconfig, 'settings/' + filename)"
+    "The accounts.xml literal0x10eabd60 still does not establish a reachable filename-composition writer. The checked refresh path instead reaches an injected account-store interface at receiver+0x1208; filesystem-family conclusions must remain separate from binding this exact file.",
+    "Reachability is concrete: caller0x1038f8dc, after checking serialized request length against0x5fff, invokes response worker f_1038e82c. HTTP401 at0x1038e93c enters the account refresh path when receiver+0x11fc is nonnull and nonempty. It loads account data through receiver+0x1208 virtual+0xc, keyed by receiver+0x1200; missing accounts log Refresh token failed. Could not find account and leave without proving a file read.",
+    "Per-account refresh synchronization uses a shared serial-number keyed tree under its mutex. f_1038edc4 requests new token-refresh synchronization, while the wait arm at0x1038f058 handles an existing transaction; missing expected synchronization entries log and call RabortIfUnlocked. This is not evidence for one periodic, unconditional refresh timer.",
+    "For a new refresh,0x1038edf4 rotates/masks the account service identifier before store virtual+0x20, then f_101b7cb4 constructs a callback holding store pointer at+4 and that identifier at+8. f_10723fbc constructs the service request and f_10725488 invokes the credentials/SMAPI path through its virtual+8 specialization. Store failure branches to0x1038f4a4 before the request call.",
+    "After waiting,0x1038f1b0 again calls store virtual+0xc, tests success, and only then copies the loaded token via f_1056f07c and resets request state before receiver virtual+0x30. Failure branches to0x1038f244 rather than silently using a purported persisted token. This proves an injected-store reload/retry contract, not the accounts.xml path.",
+    "At0x1038f42c sonosClockGetTime(1) and timevalDiff compare elapsed time since the per-account entry timestamp against60000; an over-threshold branch reaches last refresh token for load timed out. This is a transaction-age decision, not proof of token expiry, a universal refresh cadence or a timer derived from account-store filename."
    ]
   },
   "crash_report": {
