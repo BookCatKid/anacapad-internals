@@ -177110,7 +177110,7 @@
    "todo": "Established: Cache-file binder f_10119fe8 requires root version (numeric target at parser+0x1304) and lastUpdateDevice (fixed character buffer at +0x12e8, capacity 25). It leaves the manifests array optional. Row binder f_10119ec8 requires sid and version numeric fields and uri as a fixed buffer of capacity 1025; the nested manifest object binding has no required flag, although schemaVersion is required when that object is parsed. Required presence is checked separately from empty-text validity and numeric conversion. The row version is parsed into a 32-bit word at row+4, but saved through the halfword at row+6; round-trip emission therefore keeps only its low 16 bits. A syntactically valid header-only object containing version and lastUpdateDevice can pass cache parsing because manifests is optional. f_1011991c returns success when f_1011987c reports zero; the latter checks top-level binding status bit 0x2 but does not require an array. f_1011a4bc then copies source/version and rebuilds the public SID/version index from the supplied row table. If the caller supplied a fresh zero-row table, as the download worker does after f_101191c8 at 0x1011b7c4, the index is empty until later upserts. Parsing a header-only object does not itself clear an arbitrary already-populated supplied table. This closes the missing-array grammar question for the save fallback; it does not establish complete cache freshness/reconciliation behavior. Remaining: exhaust nested null/type/lexical/status and exception behavior, absent-manifest round trips and concrete cache/replication consumers."
   },
   "0x1011c078": {
-   "description": "The runtime manifest view used by f_1011c34c is a separate object from a persisted cache row. Constructor f_1011c034 places a 1025-byte base-URI buffer at +0, the parsed manifest model at +0x404, valid byte at +0x4f4 and service ID word at +0x4f8; it starts invalid with an empty base. Catalog constructor f_1011c078 looks up a descriptor through catalog slot +0x20 and requires descriptor capability 0x400000. It expands descriptor SecureUri from descriptor+0x20 into the view base, not the descriptor Manifest URI. It then retrieves the manifest row by service ID through f_100c6b10 -> f_1011a650, copies row+0x40c model to view+0x404 and marks the view valid only on successful lookup. Failed construction leaves the initialized view invalid. Other constructors f_1011c19c/f_1011c1ec can construct a valid view directly from a model; the former leaves the base empty, while the latter expands a supplied descriptor SecureUri.",
+   "description": "The runtime manifest view consumed by resolver f_1011c34c is a stack-resident snapshot object separate from a persisted cache row. Default ctor f_1011c034 builds the model via f_10239628 at +0x404, leaves the 0x401-byte base buffer at +0 empty, and clears the valid byte +0x4f4 and sid word +0x4f8. Catalog ctor f_1011c078(view, catalog, sid) additionally constructs a descriptor ctx via f_10554350, calls catalog vfunc+0x20 to fetch the descriptor for the supplied sid, and requires ctx flags at +0x130 to carry capability 0x400000; it then expands ctx+0x20 (the descriptor SecureUri) into the view base via f_10553ab0 with cap 0x401. Only after that does it fetch the manifest row through thunk f_100c6b10 -> f_1011a650 using the descriptor's own sid word at ctx+0x134 (not necessarily the ctor argument), and on success copies row+0x40c model to view+0x404 via f_102399a4 and sets the valid byte. Failure asymmetry: a failed descriptor lookup or a missing 0x400000 flag leaves the view invalid with an EMPTY base, while a failed row lookup leaves it invalid with the SecureUri base already FILLED; consumers such as f_1011c34c and the accessor f_1011c570 only test the valid byte, so the stale base is inert. Alternate ctors: f_1011c19c(view, model, sid) marks valid directly from a supplied model with an empty base and no capability check; f_1011c1ec(view, model, descriptor) is dead in this build (zero call sites) but would mark valid from a model, expand descriptor+0x20 SecureUri into the base and take sid from descriptor+0x134; f_1011c24c(view, model, sid) is the assign-flavored variant used to re-stamp an existing view, keeping the empty base. Caller audit: f_1011c034 is called twice inside the refresh worker (0x101b74c4, 0x101b8dfc) to re-init a view before an assign; f_1011c078 has seven sites (0x102b505c, 0x102c437c, 0x1038d1f8, 0x1038e5e8, 0x104c9bb4, 0x104c9c54, 0x104cc364) spanning endpoint URL accessors (f_1011c7b0/f_1011c7e4/f_1011c5f0), endpoint-type membership f_1011c29c and playback selection f_1011caec; f_1011c19c is used at 0x100c5c1c, 0x100c5ce0 and 0x100cc03c where the caller already ran f_1011a650 itself and wants a baseless view; f_1011c24c is used at 0x101b74d4, 0x101b9790 and 0x101b9b20 inside the refresh worker. Races: the view holds no lock; the row fetch shares f_1011a650's internal cache/file locking (which can also fill the cache and write the +0/+4 clock words), but after the ctor returns the snapshot is detached - later cache or file updates never propagate into an existing view, and concurrent views of one sid can hold different-generation models. The descriptor object must outlive the ctor since the base expansion reads ctx+0x20.",
    "why_external": "Determines whether a service has a valid runtime manifest view and which base URI endpoint resolution uses.",
    "required_for_behavior": true,
    "role": "music_service_manifest_consumer",
@@ -177121,9 +177121,52 @@
      "build": "86.10-80260",
      "address": "0x1011c078",
      "notes": "Instruction-level endpoint/view/caller trace; see music_service_manifest and svc_manifest.details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c138",
+     "function": "0x1011c078",
+     "notes": "ctx flags at ctx+0x130 tested for 0x400000 before SecureUri expansion; flag-miss exits invalid with empty base."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c15c",
+     "function": "0x1011c078",
+     "notes": "Row lookup: f_100c6b10(catalog, ctx+0x134 sid, &row) -> thunk -> f_1011a650; zero result leaves view invalid but base already filled."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c1ec",
+     "notes": "model+descriptor ctor: copy model at +0x404, sid from desc+0x134, expand desc+0x20 into base; zero static callers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c5c1c",
+     "function": "0x100c5bb4",
+     "notes": "f_1011c19c(view,row+0x40c model,sid) after caller's own f_1011a650 lookup; constructs valid view with empty base and no capability gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102b505c",
+     "notes": "Typical consumer chain: catalog ctor view then f_1011caec endpoint selection on the stack-resident view."
     }
    ],
-   "todo": "Established: The runtime manifest view used by f_1011c34c is a separate object from a persisted cache row. Constructor f_1011c034 places a 1025-byte base-URI buffer at +0, the parsed manifest model at +0x404, valid byte at +0x4f4 and service ID word at +0x4f8; it starts invalid with an empty base. Catalog constructor f_1011c078 looks up a descriptor through catalog slot +0x20 and requires descriptor capability 0x400000. It expands descriptor SecureUri from descriptor+0x20 into the view base, not the descriptor Manifest URI. It then retrieves the manifest row by service ID through f_100c6b10 -> f_1011a650, copies row+0x40c model to view+0x404 and marks the view valid only on successful lookup. Failed construction leaves the initialized view invalid. Other constructors f_1011c19c/f_1011c1ec can construct a valid view directly from a model; the former leaves the base empty, while the latter expands a supplied descriptor SecureUri. Remaining: Trace all constructors/callers, all cache/clock writers and races plus missing/invalid descriptor propagation; SID-only lookup policy is documented in svc_manifest.details.cache_lookup."
+   "resolved_findings": [
+    "Established: four view ctors exist; f_1011c1ec (model+descriptor) has zero call sites in this build, f_1011c19c builds a valid baseless view from a pre-fetched model with no capability check, f_1011c24c is the assign variant used by the refresh worker.",
+    "Established: f_1011c078 performs descriptor lookup (catalog vfunc+0x20), gates on ctx+0x130 flag 0x400000, expands ctx+0x20 SecureUri into the base, and fetches the row by the descriptor's own sid at ctx+0x134 via f_1011a650.",
+    "Established: invalid-view asymmetry - descriptor-lookup or capability failure leaves an empty base, row-lookup failure leaves a filled SecureUri base; consumers only test the +0x4f4 valid byte.",
+    "Established: the view is an unsynchronized stack snapshot; the shared lookup can itself fill the memory cache under the RCache/file locks, but post-construction updates never propagate into an existing view."
+   ]
   },
   "0x1011c34c": {
    "description": "Endpoint resolver f_1011c34c takes (view, endpointType, destination, capacity). It returns false for an invalid view, requested type zero, zero stored endpoint count or no matching row. It scans all stored endpoint rows in order and compares type exactly. If destination is null or capacity is zero, it skips URL writing but still returns true when a matching type is present, even if that row URI is empty. With output enabled it processes every matching row rather than returning at the first; later matches overwrite earlier output unless an earlier relative-join failure has already returned false. No-match/invalid exits do not clear the destination. A true result therefore establishes neither a nonempty URL nor lossless output. For a matching URI whose first byte is slash and a nonempty view base, the resolver copies the entire base with strlcpy and requires capacity>returned source length. It removes exactly one trailing slash from the copied base, then appends the endpoint URI verbatim with strlcat and again requires capacity>attempted length. This joins strings against descriptor SecureUri; it does not resolve a leading slash against just the URI origin or discard an existing base path. For example, base https://host/service and endpoint /report produce https://host/service/report/ after the final slash step. It then appends a trailing slash if the resulting nonempty output lacks one. A leading-slash endpoint with an empty base takes the direct-copy path instead. Non-leading-slash URIs are copied directly without scheme or absolute-URI validation by this resolver. The relative base-copy and endpoint-append length failures return false after possibly writing a truncated or partial destination. In contrast, the direct strlcpy return is ignored. Its output can be truncated and still reach success. The final trailing-slash strlcat result is checked only to decide whether to emit the Added trailing slash diagnostic: capacity>attempted length logs, while insufficient room still continues with success. Empty copied output skips slash insertion and also continues with success. Thus complete relative joining, direct copying and final slash insertion have different success criteria. The resolver makes no network request.",
