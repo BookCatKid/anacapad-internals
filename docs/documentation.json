@@ -151671,15 +151671,35 @@
      "type": "firmware",
      "address": "0x10f9bf94",
      "notes": "featureConfig block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a58454",
+     "notes": "TLS policy name is serialized from byte+0xeaf; no cipher mutation here."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a57c70",
+     "notes": "Independent comparison reads the normalization flag byte+0x5d."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a59450",
+     "notes": "Visitor maps byte+0xeaf to schema entry26, not a wire tag."
     }
    ],
-   "todo": [
-    "Residual: per-flag downstream behavior (what each gated code path actually changes) - each gate sites consumer semantics is a separate trace, not a flag-plane fact."
-   ],
+   "todo": "Established: named byte offsets and independent serializer/comparison/typed-visitor paths for concrete flags. Residual: trace each value from parsed configuration through its owning store/accessor to the actual enable/disable branch and side effects, including defaults and failure paths. Do not count serializer, equality or visitor xrefs as a complete runtime-reader census or infer product capability/service registration from this schema.",
    "resolved_findings": [
-    "Resolved: consolidated - feature_flag_registry holds the ~48 key registry, feature_config holds the fetch path, feature_flags is the umbrella; gate sites = the per-key readers.",
-    "Three-record consolidation complete: feature_flags (the enable*/disable* boolean vocabulary read at init from settings) + feature_flag_registry (the featureConfig*/lechmere-delivered channel with per-flag getter accessors) + feature_config (the fetch/persist path) are three views of one flag plane. Delivery splits in two: settings-local booleans read at init (enablePitchfork, enableSemiSleep, featureConfigSemiSleep, semiSleepConfig family proven at their gate sites) vs cloud-delivered flags riding the feature-config channel (modFetchFeatureConfiguration in the mDNS-era block; the feature-config ws service name). Gate pattern: each flag gets a getter (accessor returning the zp+MdpFlags/feature byte) and call sites test-and-branch; service/endpoint registration is the dominant consumer (audio-in flag gates /AudioIn/Control, QPlay gates the capability element).",
-    "Resolved (todo was stale): the per-flag reader census is complete - all ~78 keys across both tables (featureConfig* family at 0x10f97ab4, enable*/scalar family at 0x10f9bedc) are xref-mapped to their read sites, concentrated in the config-loader region 0x10a58xxx with the HT tuning cluster at 0x10a63xxx-0x10a65xxx."
+    "The enable/disable vocabulary is concretely bound to fields of the feature-configuration object, not established as independent process-init settings. f_10a581b0 emits disableTlsRsaCiphersuites from byte +0xeaf at 0x10a58454-0x10a58464, enablePitchfork from +0xf00 at 0x10a58594-0x10a585a8, and enableSslClientCacheRefresh from +0xf01 at 0x10a585ac-0x10a585bc. These are output calls through f_109d14e0; the latter forwards the supplied boolean and key through its writer interface. They do not themselves modify TLS ciphers, threads or endpoint registration.",
+    "Independent object comparison is a second kind of xref that must not be counted as a runtime feature gate. f_10a57aa0 compares two objects and returns1 on the first difference, including byte +0x5d at 0x10a57c70-0x10a57c84. That byte is independently named enableSpotifySMAPIVolumeNormalization by the serializer at 0x10a5828c-0x10a582a0. Its comparison establishes change detection, not audio normalization behavior.",
+    "The structured visitor f_10a59068 maps these same fields to numbered schema entries: entry8 carries object+0x5d at 0x10a591b4-0x10a591c4, entry26 carries +0xeaf at 0x10a59450-0x10a59460, and entry43 carries +0xf00 at 0x10a596f8-0x10a59708. Each uses f_10a5a608 to construct a typed value descriptor and invoke the supplied visitor virtual+8. The integer entry number is not a protobuf wire tag or a product-capability bit.",
+    "The old consolidation overclaimed a complete per-flag reader census and service/endpoint effects from schema-oriented xrefs. The shipped functions demonstrate serialization, comparison and typed visiting. Connecting the resulting feature values to TLS policy, Spotify normalization, Pitchfork and other actual side effects remains distinct native work; local-setting and cloud-delivery equivalence is not established merely by similar names."
    ]
   },
   "shutdown_reasons": {
