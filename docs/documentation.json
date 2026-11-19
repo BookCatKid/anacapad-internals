@@ -143620,18 +143620,41 @@
      "build": "86.10-80260",
      "address": "0x10ef3d34",
      "notes": "<ZoneExperiment id name value defaultValue> element schema"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105bdd98",
+     "address": "0x105bde48",
+     "notes": "Select compiled experiment definitions; 0x105bdeb8 loads id, name, default and separate runtime value for formatted output."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105bdd98",
+     "address": "0x10ef3800",
+     "notes": "Three 24-byte experiment definitions, inspected as big-endian words and string pointers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10a60108",
+     "address": "0x10a60148",
+     "notes": "Conditional experimentId member serialization; no cohort assignment established."
     }
    ],
    "schema": "<ZoneExperiments><ZoneExperiment id=\"%llu\" name=\"%s\" value=\"%u\" defaultValue=\"%u\" /></ZoneExperiments>: numeric value vs defaultValue, keyed by 64-bit id and name",
    "keys": "featureConfigZoneExperiment, zoneExperiments, experimentId, experiment",
    "fetch_pipeline": "RFeatureConfigManager/FeatureConfigManager (featureconfig.cxx region): fetches '/features/v1/config?' with query params {swVersion,hwVersion} over HTTPS with 'cache-control: no-cache'. Cache precedence: cloudconfig_override.json > cloudconfig.json (cloud-cached) > cloud-persisted: 'Using override config' / 'Using %s cloud-cached config' / 'Using cloud-persisted config'. Lifecycle: 'stale' marker, 'Already have fresh data. Skipping Fetch.', 'failed to fetch config: not securely registered', connect failure -> 'rescheduling in 1 hour'. Parse failure paths for each tier ('Error parsing feature config' / 'Error parsing cached config').",
-   "assignment_model": "NO on-device bucketing exists: the device sends only {swVersion,hwVersion} and receives per-experiment {id(%llu),name,value(%u),defaultValue(%u)} rows: cohort assignment happens entirely in the cloud config service; the device applies value-vs-defaultValue. The 'number of labels not equal to number of buckets' string is third-party (libbpf/perf), unrelated.",
+   "assignment_model": "The status serializer has a compiled table of three experiment definitions at 0x10ef3800, not exclusively runtime-supplied identifiers. Runtime values are collected separately from the manager. This investigation does not establish cohort assignment or retirement policy.",
    "todo": [
-    "Residual: per-experiment-id binding is runtime-document data - ids are %llu values with no literals in the image; the store schema and reader mechanism are closed, cohort assignment/retirement is cloud-side."
+    "Residual: trace the readers and initialization of the three compiled timeout experiments and the feature-config assignment path. Determine how runtime values override their defaults and whether any on-device assignment occurs; cloud-only assignment is not established."
    ],
    "resolved_findings": [
-    "Resolved: experiment ids gate via the replicated <ZoneExperiments> store rows {id,name,value,defaultValue} - the policy layer reads each row through the featureConfigZoneExperiment predicate and applies value-vs-defaultValue; /experiments is the local introspection endpoint; readers are the policy call sites matching each id string.",
-    "Experiment delivery bound to the feature-config pipeline: RFeatureConfigManager fetches /features/v1/config?{swVersion,hwVersion} over HTTPS (cache-control: no-cache); the reply mirrors into the featureConfig* key pool at 0x10f97ab4-0x10f97bd0 (DropoutContext, HomeTheaterWifiPerfTelemetry, MetricsService, Plink, Quickbonding, SemiSleep, SmartPlay, SpotABR, SsdpAdvertiseConfig, ZoneExperiment). <ZoneExperiment id name value defaultValue> rows (schema literal 0x10ef3d34) layer experiments on the same store: each row value overrides the flag defaultValue, consumed through the shared flag-getter pattern. No on-device bucketing - cohort assignment is cloud-side; featureConfigZoneExperiment arms the layer and /experiments (route literal 0x10e75d30) is the introspection page."
+    "Correction from instruction and data inspection: f_105bdd98 snapshots three runtime words under the manager lock (+0x70), taking them from manager+0x1074 with fallback to +0x1068. At 0x105bde48 it selects the compiled table 0x10ef3800 and emits exactly three rows, advancing definitions by 0x18 bytes and runtime values by 4 bytes (0x105bdeb8-0x105bdeec). Each definition supplies a 64-bit id at +0/+4, name pointer at +8, and defaultValue at +0x10. Rows are {0x63e56a7d,RZEXID_UPNP_TIMEOUT,20000}, {0x63e56a7e,RZEXID_UPNP_CONNECT_TIMEOUT,2000}, {0x63e56a7f,RZEXID_UPNP_EVENTING_TIMEOUT,15000}. The +0xc word is 300000 for each row; its role is not established. This disproves the previous claim that no experiment identifiers are compiled into the image. The separate experimentId serializer f_10a60108 only writes present object members and is not proof of this table's assignment policy."
    ]
   },
   "account_cert_lifecycle": {
