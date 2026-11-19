@@ -125201,56 +125201,282 @@
  },
  "shared_primitives": {
   "mega_impl_object": {
-   "description": "f_101a22c4 constructs a ~0x1b8 multi-base implementation object installing ~30 sub-vptrs from the 0x10e97* vtable family (0x10e97644..0x10e97e8c). Bound to svc px fields via shared_ptr{px,pn} assigns with new(0x14) control blocks (vptr 0x10e98974, strong/weak=1). Each service px points at a different base slice; DP/SP impl vtable 0x10e97e10 belongs to this family - DP and SP literally share one heap impl instance.",
+   "description": "The former mega-implementation attribution conflated three different objects. f_101a22c4 is a shared_ptr copy constructor, not an implementation constructor. The20 vptrs at0x10e97ae0..0x10e97ca8 describe an embedded0x280-byte typed-observer aggregate at RZonePlayer+0x124. f_101a2328 destroys that aggregate; it does not build a0x1b8-byte service object. The separate0x1b8 allocation at0x1018fc10 is passed through f_101b08a0 to media-player-manager constructor f_1040c02c.",
+   "owner_and_lifetime": "RZonePlayer constructor f_1018d27c initializes20 cached observer-label strings at root+0x128+i*0x20 with zp, installs the abstract aggregate vptrs at0x1018d8c0-0x1018d984, then the RZonePlayer override tables at0x1018db20-0x1018dbcc. Its destructor f_101921a0 destroys the embedded aggregate at0x10192dcc-0x10192dd0. f_101a278c is a deleting variant that runs f_101a2328 and sized delete0x280. Additional label-bearing bases at root+0xc..+0x108 are adjacent RZonePlayer interfaces, not more elements of this20-element aggregate.",
+   "interface_layout": "Each vtable group occupies24 bytes in the table, while each cached observer occupies32 bytes in the object. The base address point has two virtual methods: slot0 pure-virtual failure, slot4 cached-name copy. The RZonePlayer derived address point adds callback override at slot0, keeps the name-copy method at slot4, and has destructor adjustors at slots8/12. Each callback thunk subtracts its root offset from r3 before branching to its actual handler. This is not a table of span registrars or SOAP implementation methods.",
+   "cached_name": "The former registered-span claim misread a string return. Name-copy methods receive an output string in r3 and the observer in r4: initialize out.data=out+8, then copy observer.string.data(+4), length(+8) into that output. f_1018069c and f_100d698c are equivalent basic_string range constructors, not event registrars: <=15 bytes use the small buffer, larger ranges allocate and memcpy, length is stored and NUL appended. A null begin with nonnull end throws basic_string::_M_construct null not valid; an empty range produces an empty string. Constructor input zp is the cached observer label, not29 missing semantic field names.",
+   "observer_interfaces": [
+    {
+     "root_offset": "0x124",
+     "aggregate_offset": "0x0",
+     "base_vptr": "0x10e97ae0",
+     "derived_vptr": "0x10e98098",
+     "callback_thunk": "0x10187d14",
+     "callback_body": "0x10187c18",
+     "name_copy": "0x100e5628",
+     "behavior": "Ignores the event argument; replaces the callback/factory member at root+0x3fa98 and calls f_10693df4 on root+0x3a8."
+    },
+    {
+     "root_offset": "0x144",
+     "aggregate_offset": "0x20",
+     "base_vptr": "0x10e97af8",
+     "derived_vptr": "0x10e980b0",
+     "callback_thunk": "0x1017feb8",
+     "callback_body": "0x1017fe94",
+     "name_copy": "0x1019fb94",
+     "behavior": "Reads payload byte+0x54; zero returns, nonzero forwards to f_1068e260 on root+0x3a8."
+    },
+    {
+     "root_offset": "0x164",
+     "aggregate_offset": "0x40",
+     "base_vptr": "0x10e97b10",
+     "derived_vptr": "0x10e980c8",
+     "callback_thunk": "0x10180404",
+     "callback_body": "0x101803f4",
+     "name_copy": "0x1019fb4c",
+     "behavior": "Forwards to f_1068e180 on root+0x3a8 without reading the payload."
+    },
+    {
+     "root_offset": "0x184",
+     "aggregate_offset": "0x60",
+     "base_vptr": "0x10e97b28",
+     "derived_vptr": "0x10e980e0",
+     "callback_thunk": "0x1017f898",
+     "callback_body": "0x1017f884",
+     "name_copy": "0x100e55e0",
+     "behavior": "No-op: shared body f_1017f884 returns without reading the payload."
+    },
+    {
+     "root_offset": "0x1a4",
+     "aggregate_offset": "0x80",
+     "base_vptr": "0x10e97b40",
+     "derived_vptr": "0x10e980f8",
+     "callback_thunk": "0x1017f8a8",
+     "callback_body": "0x1017f884",
+     "name_copy": "0x1019fb04",
+     "behavior": "No-op: shared body f_1017f884 returns without reading the payload."
+    },
+    {
+     "root_offset": "0x1c4",
+     "aggregate_offset": "0xa0",
+     "base_vptr": "0x10e97b58",
+     "derived_vptr": "0x10e98110",
+     "callback_thunk": "0x10187e98",
+     "callback_body": "0x10187d1c",
+     "name_copy": "0x1012e2b0",
+     "behavior": "NewLocationIdEvent diagnostic; reads the current location ID through the location provider and refreshes the related state."
+    },
+    {
+     "root_offset": "0x1e4",
+     "aggregate_offset": "0xc0",
+     "base_vptr": "0x10e97b70",
+     "derived_vptr": "0x10e98128",
+     "callback_thunk": "0x1018801c",
+     "callback_body": "0x10187ea0",
+     "name_copy": "0x1012e268",
+     "behavior": "NewMuseHHIDEvent diagnostic; reads the current Muse household ID through its provider and refreshes the related state."
+    },
+    {
+     "root_offset": "0x204",
+     "aggregate_offset": "0xe0",
+     "base_vptr": "0x10e97b88",
+     "derived_vptr": "0x10e98140",
+     "callback_thunk": "0x1017ff30",
+     "callback_body": "0x1017fec0",
+     "name_copy": "0x100f72fc",
+     "behavior": "Registration-event diagnostic; updates boot sequence through f_1058b664, then calls f_1068e260."
+    },
+    {
+     "root_offset": "0x224",
+     "aggregate_offset": "0x100",
+     "base_vptr": "0x10e97ba0",
+     "derived_vptr": "0x10e98158",
+     "callback_thunk": "0x1018420c",
+     "callback_body": "0x10184128",
+     "name_copy": "0x100d5bd0",
+     "behavior": "Reads payload word+0: state0 and state1 take different clock/timer update paths; other values return."
+    },
+    {
+     "root_offset": "0x244",
+     "aggregate_offset": "0x120",
+     "base_vptr": "0x10e97bb8",
+     "derived_vptr": "0x10e98170",
+     "callback_thunk": "0x1018a204",
+     "callback_body": "0x10189e54",
+     "name_copy": "0x1019fabc",
+     "behavior": "Reads payload word+4, constructs deferred callback state and obtains current media-player/context providers before dispatch. See f_10189e54 for the implementation boundary."
+    },
+    {
+     "root_offset": "0x264",
+     "aggregate_offset": "0x140",
+     "base_vptr": "0x10e97bd0",
+     "derived_vptr": "0x10e98188",
+     "callback_thunk": "0x1018430c",
+     "callback_body": "0x101842fc",
+     "name_copy": "0x1019fa74",
+     "behavior": "Reads payload byte+0 and calls f_1018424c; forwarding through root virtual slot+0x8c is gated by root+0x571c and a property-selector25 lookup."
+    },
+    {
+     "root_offset": "0x284",
+     "aggregate_offset": "0x160",
+     "base_vptr": "0x10e97be8",
+     "derived_vptr": "0x10e981a0",
+     "callback_thunk": "0x10180c28",
+     "callback_body": "0x10180b90",
+     "name_copy": "0x100f72b4",
+     "behavior": "Certificate-update diagnostic; only provider state3 updates boot sequence and calls f_1068e260."
+    },
+    {
+     "root_offset": "0x2a4",
+     "aggregate_offset": "0x180",
+     "base_vptr": "0x10e97c00",
+     "derived_vptr": "0x10e981b8",
+     "callback_thunk": "0x1017fe18",
+     "callback_body": "0x1017fd8c",
+     "name_copy": "0x1019fa2c",
+     "behavior": "RemoteHTSwapStateChangedEvent diagnostic; reads source string+0 and flags+0x18/+0x19, forwarding source and active byte to f_103e944c."
+    },
+    {
+     "root_offset": "0x2c4",
+     "aggregate_offset": "0x1a0",
+     "base_vptr": "0x10e97c18",
+     "derived_vptr": "0x10e981d0",
+     "callback_thunk": "0x1017fe74",
+     "callback_body": "0x1017fe20",
+     "name_copy": "0x1019f9e4",
+     "behavior": "Reads payload word+0; only values4,6,7,10 are forwarded to f_10694248 on root+0x3a8."
+    },
+    {
+     "root_offset": "0x2e4",
+     "aggregate_offset": "0x1c0",
+     "base_vptr": "0x10e97c30",
+     "derived_vptr": "0x10e981e8",
+     "callback_thunk": "0x1017f890",
+     "callback_body": "0x1017f884",
+     "name_copy": "0x1019f99c",
+     "behavior": "No-op: shared body f_1017f884 returns without reading the payload."
+    },
+    {
+     "root_offset": "0x304",
+     "aggregate_offset": "0x1e0",
+     "base_vptr": "0x10e97c48",
+     "derived_vptr": "0x10e98200",
+     "callback_thunk": "0x10197230",
+     "callback_body": "0x101971c8",
+     "name_copy": "0x1012e388",
+     "behavior": "Empty changed-key collection or membership of R_MuseDuckingPolicy triggers f_101970e0; unrelated nonempty key sets return."
+    },
+    {
+     "root_offset": "0x324",
+     "aggregate_offset": "0x200",
+     "base_vptr": "0x10e97c60",
+     "derived_vptr": "0x10e98218",
+     "callback_thunk": "0x10184d2c",
+     "callback_body": "0x10184d20",
+     "name_copy": "0x1019f954",
+     "behavior": "Ignores payload; constructs x-sonos-htastream:<device-id>:spdif and forwards it to the installed transport implementation."
+    },
+    {
+     "root_offset": "0x344",
+     "aggregate_offset": "0x220",
+     "base_vptr": "0x10e97c78",
+     "derived_vptr": "0x10e98230",
+     "callback_thunk": "0x10180490",
+     "callback_body": "0x1018040c",
+     "name_copy": "0x1019f90c",
+     "behavior": "VoiceAccountTransactionEvent diagnostic plus unexpected event when mics not present; ends in RabortIfUnlocked."
+    },
+    {
+     "root_offset": "0x364",
+     "aggregate_offset": "0x240",
+     "base_vptr": "0x10e97c90",
+     "derived_vptr": "0x10e98248",
+     "callback_thunk": "0x1018b360",
+     "callback_body": "0x1018af8c",
+     "name_copy": "0x1019f8c4",
+     "behavior": "VolumeChangedEvent diagnostic; payload byte+0 and halfword+2 feed discovery/join-household chime and local-volume handling."
+    },
+    {
+     "root_offset": "0x384",
+     "aggregate_offset": "0x260",
+     "base_vptr": "0x10e97ca8",
+     "derived_vptr": "0x10e98260",
+     "callback_thunk": "0x1017fe8c",
+     "callback_body": "0x1017fe7c",
+     "name_copy": "0x1019f87c",
+     "behavior": "Forwards to f_1068e260 on root+0x3a8 without reading the payload."
+    }
+   ],
+   "destruction": "f_101a2328 writes the abstract aggregate tables, then unwinds20 cached observer bases in reverse order from+0x260 to+0. For each it compares the character pointer at base+4 against its inline buffer at base+0xc and deletes only a non-inline buffer. The writes of concrete base tables during this unwind are destruction-state changes, not a second construction sweep. The greatest member offset is0x260, not0x240; there are20 elements, not29.",
+   "shared_ownership_boundary": "f_101a22c4 copies the two shared_ptr words and increments the strong count at control+4 only when control is nonnull, using an atomic loop when pthread support is available and an ordinary increment otherwise. At0x1018fd18-0x1018fd48 a separate0x14-byte control block with vptr0x10e98974 owns the0x1b8 media-player-manager allocation. Neither these sites nor the observer aggregate establish shared DP/SP service ownership. SP independently installs primary0x10ed75c4 in f_104b0e84. Topology member-serialization tables and gm_impl are separate classes and do not name these observer labels.",
+   "resolved_findings": [
+    "Disproved the original constructor, size and DP/SP ownership attribution using the actual shared_ptr-copy body, a full aggregate destructor and the separate mediaplayermanager constructor call.",
+    "Resolved the alleged29 span names: there are20 cached typed-observer labels, initialized to zp. All20 concrete callback adjustors, bodies, cached-name methods and observable handler boundaries are listed; the two alleged registrars construct basic_string values. No nonexistent registration-field-name residual remains."
+   ],
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "function": "f_101a22c4",
      "address": "0x101a22c4",
-     "notes": "impl ctor: ~30 sub-vptr installs"
+     "callsite": "0x101a22c4-0x101a2324",
+     "notes": "Two-word shared_ptr copy and conditional strong-reference increment, not a vptr-installing constructor. Raw7d40492d at101a2300 preserves stwcx. condition semantics."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1018fd14",
-     "notes": "f_101b08a0 arg-pack build"
+     "function": "f_1018d27c",
+     "address": "0x1018d544",
+     "callsite": "0x1018d544-0x1018d984; 0x1018da20-0x1018dbcc",
+     "notes": "Twenty cached label strings are initialized from zp and overwritten with the derived observer dispatch tables. Each concrete table and its callback branch decoded directly."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1018fd48",
-     "notes": "px=r19 store + control-block bind"
+     "function": "f_101a2328 / f_101a278c / f_101921a0",
+     "address": "0x101a2328",
+     "callsite": "0x101a2328-0x101a27bc; 0x10192dcc-0x10192dd0",
+     "notes": "Reverse-order character-buffer frees prove destruction; embedded owner offset124 and sized delete280 disprove old object size/count/construction sweep."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "notes": "topology +0x124 slice vptr is 0x10e8b1bc (stw at f_10125b54:0x10126250); its slots +0x08..+0x14 = 0x1073e8f0/0x1073e980/0x10752ad4/0x1074d568, all r4(-0x124)-adjustor thunks to f_1073e7c8/f_1073e8f8/f_10752780/f_1074d02c: a member-serializer interface with convention f(r3=out-struct, r4=member-arg+0x124, r5=emit-buf): f_1073e7c8 emits arg+8 via tag-writers f_109dadb8/f_109dad10, f_1073e8f8 via f_109daf48, f_10753110 reads arg+0x438/+0x4c8/+0x4cc; a second vtable 0x10f123dc (installed by sub-ctor f_1074043c inside the same mega-ctor chain) exposes the same run shifted by one slot (+0x08..+0x14 = 0x1073e980/0x10752ad4/0x1074d568/0x107533fc)"
+     "function": "f_1019f87c and nineteen related name-copy methods",
+     "address": "0x1019f87c",
+     "callsite": "0x10e97ae0-0x10e97cbc; 0x10e98098-0x10e98274; 0x1019f87c-0x1019f8c0",
+     "notes": "Per-interface cached-name copy uses r3 as returned string and r4 as observer input. Both vtable families and all20 callback targets are independently read from raw words."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "notes": "GroupManagement impl hunt (final negative result): AddMember's impl call at 0x1073874c has an 8-arg out-fill signature (f(r3=impl, r4=&MemberIDbuf(sp+0x30), r5=BootSeq byte, r6=&out(sp+0x70), stack args 0x24/&sp+0x2b/&sp+0x4f8/0x401). Neither serializer-interface vtable matches: their vfuncs take (out, argobj, emitbuf) and would consume r5 as an emit target, not the BootSeq byte. Vtable-signature, thunk-signature, direct-store, indexed-store, registration-table, and px-address-compute searches all exhausted) GM px (ctx+0x3fa48) is bound by a shared_ptr copy-assign helper (f_101a20d0, dst=new/getter-returned ptr, src=ptr-to-{px,pn}) inside the master impl factory f_103fa434, where the dst address is produced by callees and resists static recovery"
+     "function": "f_1018069c / f_100d698c",
+     "address": "0x1018069c",
+     "callsite": "0x1018069c-0x10180790; 0x100d698c-0x100d6a80",
+     "notes": "Allocation threshold15, memcpy, length and NUL writes, and basic_string null-range error establish string construction, not registration. Raw7c9d2379 at101806a8 is mr. and updates the CR0 used by the null check."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "notes": "RESOLVED: GroupManagement impl = dedicated 'gm_impl' class (primary vptr 0x10ec2bc0, ctor f_103938f0 registers name 'gm_impl' via f_10391210, ~0xda8-byte multi-base object), NOT a topology-mega-impl slice. Bound via f_101a20d0 shared_ptr copy-assign at f_103fa434:0x103fbfe8. All four action impls verified: AddMember f_10394d10, RemoveMember f_10395b0c->f_10395854, ReportTrackBufferingResult f_105c53d0 (unconditional-402 stub), SetSourceAreaIds f_10395564: resolved via the 'gm_impl' debug-tag string inside the ctor"
+     "function": "RZonePlayer observer override bodies",
+     "address": "0x10187d14",
+     "callsite": "0x10e98098-0x10e98274; 0x10187d1c-0x10188018; 0x1017fd8c-0x10180494; 0x10184128-0x10184d30; 0x101971c8-0x10197234; 0x10189e54-0x1018a208; 0x1018af8c-0x1018b364",
+     "notes": "All20 callback entries inspected; actual diagnostics identify location/household IDs, registration/certificate changes, remote HT swap, voice transactions and volume changes. Other entries are documented by exact payload reads and forwarding/empty behavior rather than invented event names."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_101b08a0 / f_1040c02c / f_104b0e84",
+     "address": "0x1018fc10",
+     "callsite": "0x1018fc10-0x1018fd48; 0x101b0e04; 0x101b0ea4; 0x1040c060; 0x104b0f88-0x104b0fa4",
+     "notes": "The1b8 allocation follows the media-player-manager factory path; constructor names mediaplayermanager. Separate SP primary-vptr installation contradicts the former claimed common service implementation attribution."
     }
-   ],
-   "todo": [
-    "Established: the 29 member ops pairs are {panic-trap, span-registrar} descriptors (two registrars f_1018069c/f_100d698c), installed base-then-derived across +0x00..+0x240.",
-    "Residual: the semantic names of the 29 registered member spans (each registers [arg->4, +arg->8) at dispatch time; the field names are caller data)"
-   ],
-   "sub_vptr_slices": "20 secondary-base vtables at 0x10e97ae0..0x10e97ca8, stride 0x18, layout {dtor-stub f_10809540, method, 0, 0, -0x20*i back-offset, 0}: each is a single-method listener interface. All 20 methods are IDENTICAL 8-insn forwarding thunks (stw this+8<-this+8 fixup, copy arg+4/+8, tail-forward) - GCC secondary-base glue forwarding each interface to a shared parent handler. Slices: f_100e5628, f_1019fb94, f_1019fb4c, f_100e55e0, f_1019fb04, f_1012e2b0, f_1012e268, f_100f72fc, f_100d5bd0, f_1019fabc, f_1019fa74, f_100f72b4, f_1019fa2c, f_1019f9e4, f_1019f99c, f_1012e388, f_1019f954, f_1019f90c, f_1019f8c4, f_1019f87c.",
-   "resolved_findings": [
-    "Established: the ~30 sub-vptrs resolve to 20 single-method listener interfaces (stride-0x18 secondary bases with back-offsets), all GCC forwarding thunks to shared parent handlers, plus the separately proven topology-serializer and DP/SP impl slices. Still unknown: which internal-event type each listener interface subscribes to (the thunk bodies are uniform). Next step: find the registration calls that subscribe each slice to the internal_event_bus to name the 20 event subscriptions.",
-    "Resolved (reinterpretation): the ~30 \"sub-vptr\" installs in f_101a22c4 are not service vtables - each is a 2-entry ops pair {slot0=0x10809540 panic trap (write(2,buf,0x1b)+abort via f_108092bc), slot1=per-member span registrar}. Every slot1 body is the identical shape (e.g. 0x1019f87c, 0x1019f99c, 0x100e5628): store self+8 at self+0, then call a span registrar with [arg->4, arg->4+arg->8) - two registrar targets exist, f_1018069c (the embedded-member registrar) and f_100d698c. So the 0x1b8 object is a self-describing member-descriptor array: each member carries an ops pair that registers its own [begin,end) span. The ctor fills +0x00..+0x240 (stride 0x20, 19 slots) from the 0x10e97ae0..0x10e97c90 family, then a derived-class sweep overwrites +0x240..+0x80 with the 0x10e97644..0x10e97a80 family - a two-layer (base-then-derived) construction, 29 descriptor members total."
    ]
   },
   "svc_array": {
