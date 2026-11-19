@@ -137306,9 +137306,40 @@
          "build": "86.10-80260",
          "address": "0x100c7b54",
          "notes": "After rename success: cache invalidation, dirty/notify, source/version/ETag updates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1071f644",
+         "notes": "Locked rebuild of the sorted SMAPI-hostname registry in the shared descriptor cache: clears +0x8590/+0x8594, sorted-inserts each descriptor host through f_1071f35c, caps 0xff entries/0x80ff pool, returns 0 on overflow."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b7e90",
+         "notes": "Account reconciliation: optional session fetch via global 0x11095f88 vfunc+0x1c or f_1074700c; f_101b6dbc reads 'R_HideTuneIn'; locked apply/clear of pending list at mgr+0x5134 through f_101b7620/f_101b6fdc/f_105716f8; commit notifies global 0x11095f8c vfunc+8 with f_100bbc80 and signals f_101bb1d0 on mgr+0xc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1019941c",
+         "notes": "f_100c8230 moves the shared ReplicationManager shared_ptr (ctx+0x2900c, ctor f_10650660, vptr 0x10efcf88) into impl+0x1b8; slot +0x14 is f_10652074 informLocalReplicatedSettingVersion(6, device, version, 0)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1054b8e0",
+         "notes": "Write close-out: f_1054b738 is a 4KB-buffered writer (vptr+0xc flush, capacity cap, failures set error byte impl+0x1024); f_1054b8e0 flushes, fsyncs and closes; any error flag leads to unlink(temp) at 0x100cce50; rename runs only in install worker f_100c7898 after re-parse and version checks."
         }
        ],
-       "todo": "Established: trial-setting, temporary output, rename, cache and notification scheduling effects are traced. Remaining: bind provider/account reconciliation f_1071f644/f_101b7e90 and replication slot +0x14, and exhaust failed/short-write cleanup."
+       "resolved_findings": [
+        "Provider/account reconciliation and the replication slot are bound. f_1071f644 is a locked rebuild of the shared descriptor-cache sorted SMAPI-hostname registry: it clears +0x8590/+0x8594, inserts each descriptor host in order through f_1071f35c, caps at 0xff entries/0x80ff pool and returns 0 on overflow. f_101b7e90 reconciles accounts on reload-failure or count-growth paths: optional session fetch through global 0x11095f88 vfunc+0x1c or f_1074700c, R_HideTuneIn read via f_101b6dbc, locked apply/clear of the pending list at mgr+0x5134 through f_101b7620/f_101b6fdc/f_105716f8, then commit notify on global 0x11095f8c vfunc+8 with f_100bbc80 and signal f_101bb1d0 on mgr+0xc.",
+        "impl+0x1b8 is a shared_ptr<ReplicationManager> moved in by f_100c8230 from ctx+0x2900c (ctor f_10650660, vptr 0x10efcf88); slot +0x14 is f_10652074 informLocalReplicatedSettingVersion(6, device, version, 0). Write cleanup is exhausted: f_1054b738 is a 4KB-buffered writer whose vptr+0xc flush sets error byte impl+0x1024 on failure, f_1054b8e0 flushes, fsyncs and closes, any error flag leads to unlink(temp) at 0x100cce50, and rename runs only inside install worker f_100c7898 after re-parse and version checks."
+       ]
       }
      ],
      "events_triggered": {
