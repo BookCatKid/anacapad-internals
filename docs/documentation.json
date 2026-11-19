@@ -133971,15 +133971,69 @@
   },
   "hls_radio": {
    "schemes": "x-sonosapi-hls:%s?sid=%u&flags=288 + x-sonosapi-hls-static: + x-sonosapi-hls{,-static}:*:*:* + hls-static:// + sonos.com-hls-{static,radio,aac}",
-   "ops": "hls-{live,static,???} + hlsradio + hlsmeta/hlsplaylist/hlsrenditions + 'hls-%s said: %u (%g) %d %d' telemetry",
-   "routes": "/hls local route",
-   "todo": [
-    "Established: the HLS scheme family and ops vocabulary are recovered."
-   ],
-   "handlers": "Endpoint internals decoded (fns f_103ba37c live-start, f_103bb6e0/b850/ba88/bd2c/c1f50 meta, f_103bd650/e33c playlist, f_103c2d18/2df0 renditions, f_101473c8/f_104614b4 static). hlsmeta emits the session XML '<HLSInfo><HLS Name=\"Playlist\"><HLSVersion>%d<IsStatic>%s<IsEncrypted>%s<TargetDurationSec>%d<CurrentBitRate>%d<TrackEncryptionMethod>%s<TrackEncryptionFormat>%s</HLSInfo>' - the live session snapshot. hlsplaylist/hlsrenditions expose the variant ladder: '<BitrateStreams numBitrates><StreamEntry br strm codec segidx>' per rendition. LIVE vs STATIC: the IsStatic flag splits them - static sessions run a fixed list with simulated inter-segment delay ('static: %zu %zu delay=%u'); live sessions track a sliding MEDIA-SEQUENCE window resolved by EXT-X-PROGRAM-DATE-TIME reference time ('couldn't find segment %llu for ref time %s') with discontinuity handling ('seq discontinuity %llu %llu'). PLAYLIST ENGINE: parses #EXT-X-VERSION/MEDIA/STREAM-INF/EXTINF/TARGETDURATION/MEDIA-SEQUENCE/PLAYLIST-TYPE/ENDLIST/PROGRAM-DATE-TIME/KEY; master playlist resolution 'fetching master: %s'->'updated master URI'; storeStream validates each rendition - rejects binaural/downmix, unsupported/zero bandwidth, unsupported Atmos, unsupported codec ('at least one supported codec in playlist not found' aborts). ABR: 'version %u bitrate max:%u cur:%u min:%u' with 'downgrade bitrate'/'upgrade bitrate'/'advancing stream index to %d [%s]' switching and min-clamp ('already at the minimum'). ENCRYPTION: Sample-AES and EXT-X-KEY support - key URI fetch ('current key URI: %s', 'Failed to open key uri. http status=%d', 'Unable to read key') with the negotiated method/format surfaced in TrackEncryption*. Telemetry 'hls-%s said: %u (%g) %d %d' reports per-session state.",
-   "resolved_findings": [
-    "Resolved: hlsmeta=<HLSInfo> session snapshot; playlist/renditions expose the BitrateStreams ladder; live=PDT-mapped sliding window w/ seq discontinuity, static=fixed list w/ simulated delay; rendition validation + ABR switching + Sample-AES/EXT-X-KEY decrypt all decoded.",
-    "Resolved: handler internals decoded. Live vs static = playlist #EXT-X-ENDLIST presence - 'static HLS (end list)' marks finite VOD (stream duration extracted 'stream duration from HLSPlaylist: %f'); live sessions stream continuously (type tags {hls-live, hls-static, hls-???}). hlsrenditions parses #EXT-X-MEDIA groups: rejects non-#EXT-X-MEDIA lines, missing group-id, invalid channel count, non-audio renditions, duplicate group-ids, and binaural/downmix renditions explicitly; stores {group, autoselect, numchans, rendition, name}. hlsplaylist builds the segment map ('HLS Segment Map entry', segment URIs resolved against base). URI schemes: x-sonosapi-hls:%s?sid=%u&flags=288 (live), x-sonosapi-hls-static:/hls-static:/hls-static:// (VOD), hls-radio://, hls-aac://; service ids sonos.com-hls-{static,radio,aac}; <HLSInfo>/<HLS Name=Playlist><HLSVersion> status XML. AppleMusic HLSv7 gated by enableAppleMusicHlsv7 ('HLS_V7')."
+   "ops": "hls-live, hls-static and hls-??? are diagnostic mode labels; hlsradio, hlsmeta, hlsplaylist and hlsrenditions identify internal components, not separate HTTP endpoints. The hls-%s said diagnostic is local instrumentation, not an established telemetry wire format.",
+   "routes": "/hls is a local session-status route, registered at 0x110909c4 with handler f_100bacfc. It resolves the requested owner through f_101886e0, then f_10257624 obtains its HLS interface (kind 7) and calls f_103bac70 to write status XML.",
+   "status": "f_103bac70 emits HLSInfo / HLS Name=\"Playlist\" with HLSVersion, IsStatic, IsEncrypted, TargetDurationSec, CurrentBitRate, TrackEncryptionMethod and TrackEncryptionFormat. f_103bc7fc separately serializes BitrateStreams numBitrates and StreamEntry br, strm, codec, optional segidx, iterating the actual stored ladder; an empty ladder skips entries. These are diagnostic snapshots, not hlsmeta/hlsplaylist control APIs.",
+   "live_and_static": "f_101473c8 recognizes the x-sonosapi-hls-static: and hls-static: prefixes; f_101475dc recognizes hls-aac://, hls-radio:// and x-sonosapi-hls:. f_10147670 combines those classifications. During media processing ENDLIST selects finite/static processing, while PLAYLIST-TYPE VOD is also recognized, so ENDLIST is not the sole classification criterion. Static fetch processing in f_103ba524 uses finite indices and a computed delay. Live processing maintains media sequence and reference-time/segment mappings with discontinuity handling; it does not establish that every accepted live playlist must supply PROGRAM-DATE-TIME. f_103bb850 searches a bounded 32-entry metadata ring and reports failure when the requested sequence/reference-time mapping is absent.",
+   "playlist_engine": "f_103be33c parses initial/master playlists and rejects invalid tag sequences. f_103bea88 classifies media lines for VERSION, TARGETDURATION, MEDIA-SEQUENCE, PLAYLIST-TYPE, ENDLIST, PROGRAM-DATE-TIME, EXTINF, KEY, SESSION-KEY, DISCONTINUITY, INDEPENDENT-SEGMENTS, MAP and BYTERANGE. The media processor starting at f_103bf128 consumes these results, updates segment/key/map state, resolves relative segment URIs, rejects stale sequences, and permits a map-update exception to stale-data discard. Invalid/empty playlists and processing errors have explicit failure exits. f_104614b4 is another playlist reader, including linkUrl extraction, not the static HLS classifier.",
+   "renditions": "Stream storage validates bandwidth and codecs against supported capabilities, rejects invalid rendition references and unsupported Atmos/binaural/downmix selections, and can fail when no supported codec remains. Bandwidth parsing uses strtoull, rejecting zero and out-of-range high-word values. f_103c2df0 parses EXT-X-MEDIA attributes, requires a group id and audio type, checks rate/channel attributes, records group/autoselect/channels/URI/name, and handles map insertion failure. f_103c2d18 rejects duplicate group ids. These capability checks do not mean every encoded format mentioned by a playlist is decodable on every device.",
+   "adaptation": "f_103bcd64 and f_103bcf24 implement bounded lower/higher-bitrate selection over the stored ladder, update the selected index and transition flags and reset a selection counter. The downgrade path stops at the minimum and the upgrade path stops at the maximum; selection also compares the caller-provided threshold against ladder bandwidth. This is not evidence of exponential network retry/backoff or an invariant bitrate list.",
+   "encryption": "f_103c0364 parses METHOD: AES-128 selects method 1, SAMPLE-AES method 2; an AES/data-URI form also selects method 1, while unsupported/missing methods select 0. It extracts a quoted URI, optional KEYFORMAT and a 16-byte hex IV, marking the IV present only after a complete parse. f_103b8a80 requires a key URI for encrypted content, caches a successful URI and clears it after a failed changed-key fetch; HTTP 403 and 409 have separate error handling. f_103baed0 opens/reads the key with a 2000-ms read deadline: default length 16 if no header length, rejects a declared length greater than 32, and rejects a short read. Success stores validity/length. The segment path can derive an absent IV from the sequence number. SAMPLE-AES supplies the key pointer and a sample-encryption flag to f_1048396c, which retains them at +0x10/+0x28 in the framer adapter. Thus HLS selects and supplies decryption material; recognizing a method is not proof that arbitrary DRM/key formats are supported. Remote key-server authorization is outside the local parser contract.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "route table / f_100bacfc / f_10257624 / f_103bac70",
+     "address": "0x110909c4",
+     "callsite": "0x110909c4-0x110909cc, 0x100bad08-0x100bad40, 0x10257624-0x10257668, 0x103bac70-0x103bae6c",
+     "notes": "Actual /hls handler and owner-to-HLS status dispatch; XML writer, not a family of hlsmeta endpoints."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103bc7fc / URI classifiers",
+     "address": "0x103bc7fc",
+     "callsite": "0x103bc828-0x103bc954, 0x101473c8-0x10147438, 0x101475dc-0x101476b8",
+     "notes": "Status ladder traversal including zero-count skip, StreamEntry attributes; exact static/live URI prefixes."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103bea88 / media processor / f_103bb850",
+     "address": "0x103bea88",
+     "callsite": "0x103bea88-0x103bf000, 0x103bf2ec-0x103bff00, 0x103bb850-0x103bba88, 0x103ba524-0x103bab1c",
+     "notes": "Tag dispatch, ENDLIST and VOD handling, stale sequence/map exceptions, invalid/empty/error exits and finite-fetch delays. Metadata ring index is masked to 31; missing sequence mapping is an error, not universal PDT enforcement."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103be33c / stream storage / f_103c2df0",
+     "address": "0x103be33c",
+     "callsite": "0x103be33c-0x103be9b0, 0x103bdbdc-0x103be230, 0x103c2d18-0x103c3c10",
+     "notes": "Initial playlist tag validation; bandwidth strtoull and invalid/unsupported rendition/codec exits; rendition prefix, group id, audio type and attribute checks. Duplicate group-id and failed insertion paths verified."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103bcd64 / f_103bcf24",
+     "address": "0x103bcd64",
+     "callsite": "0x103bcd64-0x103bd0ac",
+     "notes": "Bounded bitrate-index updates and caller-threshold comparisons, minimum/maximum exits, reset counter and transition flags. No retry timing claim follows from these selectors."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103c0364 / key fetch / framer adapter",
+     "address": "0x103c0364",
+     "callsite": "0x103c0364-0x103c06d8, 0x103b8a80-0x103b8c28, 0x103baed0-0x103bb268, 0x103b8de4-0x103b8e10, 0x103b9140-0x103b9180, 0x1048396c-0x10483a14",
+     "notes": "METHOD/URI/KEYFORMAT/IV parser, changed-key cache and fetch failure mapping, key length/deadline/short-read checks, Sample-AES material passed to and retained by the framer adapter. Separates HLS material selection from general DRM support."
+    }
    ]
   },
   "http_range": {
