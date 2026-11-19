@@ -103403,7 +103403,7 @@
    },
    "actions": {
     "BeginSoftwareUpdate": {
-     "description": "Kicks off a software update from UpdateURL with Flags/ExtraOptions via impl->v[+0xc] on the svc+4 member.",
+     "description": "Submits a software-update handoff through statically bound topology worker f_107413c8. Requires UpdateURL and Flags; ExtraOptions is optional. Writes /var/run/upgradeinfo and requests deferred update/shutdown work, not synchronous installation. Repeated already-started coordinator status is successful.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10733140",
@@ -103418,9 +103418,9 @@
       "calls": [
        {
         "site": "0x107332b8",
-        "obj": "*(r3-in+0x4)",
+        "obj": "*(service+4), primary vptr 0x10e8b024",
         "slot": 12,
-        "arg4": "sp+0xa8"
+        "arg4": "UpdateURL; r5 normalized u32 Flags; r6 optional ExtraOptions"
        }
       ],
       "req_vcalls": [
@@ -103443,7 +103443,7 @@
      },
      "inputs": {
       "UpdateURL": {
-       "description": "URL fetched into the parsed-arg set; the impl pulls system_version/updateID keys and submits to the update worker",
+       "description": "Required update location with a permissive four-byte http prefix gate.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -103452,50 +103452,49 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosUriArg",
-       "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "any string accepted at parse; version/updateID substrings are truncated at first char outside \".-_\" / \"+-_/\" respectively",
-       "range": "max 1024 chars",
-       "special_values": "none observed in this build",
+       "semantic_type": "update location text",
+       "format": "bounded text, not fully validated URI",
+       "unit": "text",
+       "accepted_values": "Any text starting case-insensitively with http",
+       "range": "1024 bytes plus NUL before further percent-encoding into another 1025-byte buffer",
+       "special_values": "Empty faults 402; https and httpfoo both pass prefix gate. Escaping expansion may truncate without fault.",
        "required": true,
        "default": "none - required argument",
-       "validation": "parsed by request layer; impl sanitizes silently (truncation, no fault) at f_107413c8",
+       "validation": "No complete URL/scheme/host parser in submission path.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1074141c",
-         "notes": "system_version extract"
+         "function": "0x10733140",
+         "address": "0x10733228",
+         "callsite": "0x107332b8",
+         "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10741428",
-         "notes": "updateID extract"
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10741448",
-         "notes": "charset truncate \".-_\""
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1074146c",
-         "notes": "charset truncate \"+-_/\""
+         "function": "0x107412ec",
+         "address": "0x10741358",
+         "callsite": "0x10741344",
+         "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
         }
        ],
        "notes": null,
        "buf_cap": 1025
       },
       "Flags": {
-       "description": "numeric/flag arg parsed by request layer, forwarded to update worker f_107412ec",
+       "description": "Required unsigned decimal bitmask normalized using controller-version context.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -103504,28 +103503,48 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "decimal text (lexical bounds set by request parse helper)",
-       "unit": "n/a - text",
-       "accepted_values": "not range-checked in impl wrapper",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "none observed in this build",
+       "semantic_type": "u32 bitmask",
+       "format": "strtoul base 10, no end-pointer or errno checks",
+       "unit": "bits",
+       "accepted_values": "Any present decimal-prefix text, including empty/nonnumeric -> 0",
+       "range": "u32 result; input staging capacity 24 including NUL",
+       "special_values": "Bits 0x10/0x20 always cleared. Bit 4 forced for absent/newer-than-17.5.49009 controller version. Simultaneous bits 2 and 0x40 fault 402.",
        "required": true,
        "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "validation": "No numeric lexical/range rejection beyond required presence; normalized conflict check in launcher.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107413c8",
-         "notes": "impl head"
+         "function": "0x10733140",
+         "address": "0x10733228",
+         "callsite": "0x107332b8",
+         "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10733140",
+         "address": "0x10733298",
+         "callsite": "0x10733284",
+         "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
         }
        ],
        "notes": null
       },
       "ExtraOptions": {
-       "description": "optional options string forwarded to update worker",
+       "description": "Optional comma-separated options providing system_version and updateID.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -103534,22 +103553,42 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text, buffer cap 128 bytes (127 chars + NUL)",
-       "unit": "n/a - text",
-       "accepted_values": "any string",
-       "range": "max 127 chars",
-       "special_values": "none observed in this build",
-       "required": true,
-       "default": "none - required argument",
-       "validation": "request-layer parse only",
+       "semantic_type": "option-list text",
+       "format": "case-sensitive key=value tokens, backslash escaping supported",
+       "unit": "text",
+       "accepted_values": "Any text; recognized values trimmed then validated as alphanumeric plus .-_ or +-_/ respectively",
+       "range": "127 bytes plus NUL; extracted values at most 64 bytes plus NUL",
+       "special_values": "Missing/empty options or absent keys yield empty metadata. Invalid recognized value is cleared entirely without fault; unknown keys ignored.",
+       "required": false,
+       "default": "empty string",
+       "validation": "No options SOAP fault; whole-value character validation, not truncation at invalid character.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107413c8",
-         "notes": "impl head"
+         "function": "0x10733140",
+         "address": "0x10733228",
+         "callsite": "0x107332b8",
+         "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107413c8",
+         "address": "0x10741448",
+         "callsite": "0x1074149c",
+         "notes": "Reads system_version and updateID from ExtraOptions, NOT URL, through f_1073f0d0 at 0x1074141c/0x10741430. Extractor scans comma-separated tokens using f_10c39f14, supports backslash escapes, requires case-sensitive key= prefix and copies the first matching value into capacity 65. Both values start empty; missing key remains empty. Trims whitespace through sonosTrimWhitespace then f_10564d20 validates EVERY character as alphanumeric or the supplied allowlist: .-_ for system_version; +-_/ for updateID. Invalid value is cleared entirely at 0x10741454/0x10741478, not truncated at the invalid character. No fault for bad options. Calls f_107412ec with sanitized version and updateID."
         }
        ],
        "notes": null,
@@ -103558,159 +103597,447 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "UpdateURL and Flags must be present; ExtraOptions may be absent. Permissive text/u32 conversions followed by controller-version flag normalization, four-character case-insensitive http gate and mutually-exclusive 0x42 check. Malformed option values are discarded rather than faulted.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10733140",
-        "notes": "wrapper decode"
+        "function": "0x10733140",
+        "address": "0x10733228",
+        "callsite": "0x107332b8",
+        "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b40",
+        "callsite": "0x10560b50",
+        "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733140",
+        "address": "0x10733298",
+        "callsite": "0x10733284",
+        "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107413c8",
+        "address": "0x10741448",
+        "callsite": "0x1074149c",
+        "notes": "Reads system_version and updateID from ExtraOptions, NOT URL, through f_1073f0d0 at 0x1074141c/0x10741430. Extractor scans comma-separated tokens using f_10c39f14, supports backslash escapes, requires case-sensitive key= prefix and copies the first matching value into capacity 65. Both values start empty; missing key remains empty. Trims whitespace through sonosTrimWhitespace then f_10564d20 validates EVERY character as alphanumeric or the supplied allowlist: .-_ for system_version; +-_/ for updateID. Invalid value is cleared entirely at 0x10741454/0x10741478, not truncated at the invalid character. No fault for bad options. Calls f_107412ec with sanitized version and updateID."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107412ec",
+        "address": "0x10741358",
+        "callsite": "0x10741344",
+        "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1)",
+      "description": "No group-coordinator, playing-state or update-availability-cache prerequisite. Needs required inputs, http prefix, nonconflicting normalized Flags and writable runtime handoff file. Already-started update is not a fault and is detected only after handoff file replacement.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733140",
-        "notes": "req-vfunc call map: {'0x1c': 3, '0x8': 1, '0x14': 1}"
+        "address": "0x10733228",
+        "callsite": "0x107332b8",
+        "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733140",
+        "address": "0x10733298",
+        "callsite": "0x10733284",
+        "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107412ec",
+        "address": "0x10741358",
+        "callsite": "0x10741344",
+        "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f1c8",
+        "address": "0x10f12868",
+        "callsite": "0x1073f430",
+        "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2dd8",
+        "address": "0x106b2e80",
+        "callsite": "0x1073f490",
+        "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×3, validate×1).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): none - impl works on req/inline members only",
+      "description": "Reads controller version from request context, topology controller type +0xec4, provider +0x58c, legacy-ignore byte +0xa36, origin-client helper, local software/household metadata and coordinator +0xec8. Coordinator +0x90 is protected by its mutex; installed callback and handoff filename are statically constructed, not unknown delegates. No read of CheckForUpdate cache is required.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733140",
-        "notes": "member vfunc calls: []"
+        "address": "0x10733298",
+        "callsite": "0x10733284",
+        "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f1c8",
+        "address": "0x10f12868",
+        "callsite": "0x1073f430",
+        "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2dd8",
+        "address": "0x106b2e80",
+        "callsite": "0x1073f490",
+        "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10691e00",
+        "address": "0x10e983b8",
+        "callsite": "0x10344dd8",
+        "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): none - impl works on req/inline members only.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "impl delegates op internally (no member vfunc call captured); arg-driven, stores=1",
+       "description": "Stores topology+0xe7d=0 on this SOAP path, even before flag-conflict failure. Encodes URL, creates/truncates /var/run/upgradeinfo, writes update metadata, closes file and optionally marks Wi-Fi client 5 active. New start marks coordinator active, invokes cross-service AVTransport state-save helper and queues deferred update work. Open failure unlinks path; negative write returns 501 with no rollback guarantee. No alarm-definition/settings save. Success does not mean firmware installed.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
          "function": "0x10733140",
-         "notes": "delegate map []; notify-family calls []"
+         "address": "0x10733298",
+         "callsite": "0x10733284",
+         "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107412ec",
+         "address": "0x10741358",
+         "callsite": "0x10741344",
+         "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073f1c8",
+         "address": "0x10f12868",
+         "callsite": "0x1073f430",
+         "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b2dd8",
+         "address": "0x106b2e80",
+         "callsite": "0x1073f490",
+         "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10691e00",
+         "address": "0x10e983b8",
+         "callsite": "0x10344dd8",
+         "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b2fa4",
+         "address": "0x106b3164",
+         "callsite": "0x106b2f94",
+         "notes": "Queued f_105e80fc -> f_1068e2e8 loads zoneImpl+0xb30 -> f_106b2fa4. Queries cloud SW-generation minimum settings with 10000-ms deadline, may append MinVersion/PrevSWGenMinVersion to upgradeinfo, and reaches f_105e7398(10,1) at 0x106b3164 even on cloud-settings/read/write failure. f_105e7398 logs scheduling deferred shutdown and queues f_105e7598 at 0x105e74cc. This occurs after operation submission; asynchronous cloud/installation outcomes cannot change the already-returned SOAP result. No direct topology f_1067c6ec/GENA scheduling in synchronous launch/coordinator/hook or this deferred-shutdown submission. This evidence establishes submission, not successful image download, installation, reboot completion or subscriber delivery."
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - impl delegates op internally (no member vfunc call captured); arg-driven, stores=1.",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No direct topology property-event or GENA scheduler in this action submission chain. New coordinator start queues f_105e80fc; that job may query cloud settings and queues deferred shutdown. These scheduled jobs are not SOAP outputs or proof of a delivered subscriber event. Already-started status queues no second coordinator job. Installation/progress lifecycle after deferred shutdown is not promised by this action response.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733140",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x10733228",
+        "callsite": "0x107332b8",
+        "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2dd8",
+        "address": "0x106b2e80",
+        "callsite": "0x1073f490",
+        "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10691e00",
+        "address": "0x10e983b8",
+        "callsite": "0x10344dd8",
+        "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2fa4",
+        "address": "0x106b3164",
+        "callsite": "0x106b2f94",
+        "notes": "Queued f_105e80fc -> f_1068e2e8 loads zoneImpl+0xb30 -> f_106b2fa4. Queries cloud SW-generation minimum settings with 10000-ms deadline, may append MinVersion/PrevSWGenMinVersion to upgradeinfo, and reaches f_105e7398(10,1) at 0x106b3164 even on cloud-settings/read/write failure. f_105e7398 logs scheduling deferred shutdown and queues f_105e7598 at 0x105e74cc. This occurs after operation submission; asynchronous cloud/installation outcomes cannot change the already-returned SOAP result. No direct topology f_1067c6ec/GENA scheduling in synchronous launch/coordinator/hook or this deferred-shutdown submission. This evidence establishes submission, not successful image download, installation, reboot completion or subscriber delivery."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): none",
+      "description": "Validation/URL failures precede launcher mutation. Launcher then stores +0xe7d=0; conflict can fail before file creation. File failures precede coordinator entry. New coordinator moves +0x90 from 0 to 1 and submits deferred work after successful state-save hook. Already-active coordinator returns internal 806, mapped to success, leaving its state active and retaining newly written handoff file. No synchronous installed-version or grouping transition.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733140",
-        "notes": "no transition-literal/store pattern; member delegates: []"
+        "address": "0x10733298",
+        "callsite": "0x10733284",
+        "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107412ec",
+        "address": "0x10741358",
+        "callsite": "0x10741344",
+        "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f1c8",
+        "address": "0x10f12868",
+        "callsite": "0x1073f430",
+        "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2dd8",
+        "address": "0x106b2e80",
+        "callsite": "0x1073f490",
+        "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10691e00",
+        "address": "0x10e983b8",
+        "callsite": "0x10344dd8",
+        "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2fa4",
+        "address": "0x106b3164",
+        "callsite": "0x106b2f94",
+        "notes": "Queued f_105e80fc -> f_1068e2e8 loads zoneImpl+0xb30 -> f_106b2fa4. Queries cloud SW-generation minimum settings with 10000-ms deadline, may append MinVersion/PrevSWGenMinVersion to upgradeinfo, and reaches f_105e7398(10,1) at 0x106b3164 even on cloud-settings/read/write failure. f_105e7398 logs scheduling deferred shutdown and queues f_105e7598 at 0x105e74cc. This occurs after operation submission; asynchronous cloud/installation outcomes cannot change the already-returned SOAP result. No direct topology f_1067c6ec/GENA scheduling in synchronous launch/coordinator/hook or this deferred-shutdown submission. This evidence establishes submission, not successful image download, installation, reboot completion or subscriber delivery."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): none.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "SOAP-visible normal return domain is {0,402,501} for this installed binding. Zero commits an empty success response, including internal coordinator 806 (already started), explicitly swallowed by launcher. 402: missing required input, non-http prefix or mutually exclusive Flags. 501: runtime handoff open/negative write failure. Fixed nonempty callback filename excludes its defensive 501; installed callback otherwise returns zero, so there is no unbounded forwarded subsystem status. fclose failure is ignored; later deferred-operation failures cannot retroactively fault SOAP.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10733140",
-        "notes": "commit/fault slot usage: {'0x1c': 3, '0x8': 1, '0x14': 1}"
+        "address": "0x10733228",
+        "callsite": "0x107332b8",
+        "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10560a58",
+        "address": "0x10560b40",
+        "callsite": "0x10560b50",
+        "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10733140",
+        "address": "0x10733298",
+        "callsite": "0x10733284",
+        "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107412ec",
+        "address": "0x10741358",
+        "callsite": "0x10741344",
+        "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1073f1c8",
+        "address": "0x10f12868",
+        "callsite": "0x1073f430",
+        "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2dd8",
+        "address": "0x106b2e80",
+        "callsite": "0x1073f490",
+        "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10691e00",
+        "address": "0x10e983b8",
+        "callsite": "0x10344dd8",
+        "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106b2fa4",
+        "address": "0x106b3164",
+        "callsite": "0x106b2f94",
+        "notes": "Queued f_105e80fc -> f_1068e2e8 loads zoneImpl+0xb30 -> f_106b2fa4. Queries cloud SW-generation minimum settings with 10000-ms deadline, may append MinVersion/PrevSWGenMinVersion to upgradeinfo, and reaches f_105e7398(10,1) at 0x106b3164 even on cloud-settings/read/write failure. f_105e7398 logs scheduling deferred shutdown and queues f_105e7598 at 0x105e74cc. This occurs after operation submission; asynchronous cloud/installation outcomes cannot change the already-returned SOAP result. No direct topology f_1067c6ec/GENA scheduling in synchronous launch/coordinator/hook or this deferred-shutdown submission. This evidence establishes submission, not successful image download, installation, reboot completion or subscriber delivery."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "fault_sites": [
       {
        "site": "0x10733228",
-       "code": 402,
-       "code_expr": "const"
+       "code": null,
+       "code_expr": "402 validation/URL/Flags, or 501 handoff file I/O"
       }
      ],
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "UpdateURL does not begin with \"http\" (strncasecmp 4) -> 402 with detail \"Update URL is malformed\"; on http-URL the request delegates to launcher f_1073f1c8 (rc forwarded verbatim) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "constant in wrapper or concrete launch path",
+       "meaning": "Missing required input, malformed update prefix or conflicting Flags.",
        "fault_sites": [
         "0x10733228"
        ],
        "conditions": [
         {
-         "description": "strncasecmp(UpdateURL,\"http\",4)!=0 in worker f_107412ec",
+         "description": "Missing URL/Flags selects 402 at 0x1073320c. Non-http first four bytes selects 402 at 0x10741358. (normalized Flags & 0x42)==0x42 selects 402 at 0x1073f57c. Missing optional ExtraOptions and invalid option metadata do not fault.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10741344",
-           "notes": "strncasecmp http gate"
+           "function": "0x10733140",
+           "address": "0x10733228",
+           "callsite": "0x107332b8",
+           "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10741358",
-           "notes": "addi r3,0x192 + \"Update URL is malformed\" out-string"
-          }
-         ]
-        },
-        {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
-         "evidence": [
+           "function": "0x10560a58",
+           "address": "0x10560b40",
+           "callsite": "0x10560b50",
+           "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
+          },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10733140",
-           "notes": "parse vcalls then fault path"
+           "function": "0x10733140",
+           "address": "0x10733298",
+           "callsite": "0x10733284",
+           "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x107412ec",
+           "address": "0x10741358",
+           "callsite": "0x10741344",
+           "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x107413c8",
+           "address": "0x10741448",
+           "callsite": "0x1074149c",
+           "notes": "Reads system_version and updateID from ExtraOptions, NOT URL, through f_1073f0d0 at 0x1074141c/0x10741430. Extractor scans comma-separated tokens using f_10c39f14, supports backslash escapes, requires case-sensitive key= prefix and copies the first matching value into capacity 65. Both values start empty; missing key remains empty. Trims whitespace through sonosTrimWhitespace then f_10564d20 validates EVERY character as alphanumeric or the supplied allowlist: .-_ for system_version; +-_/ for updateID. Invalid value is cleared entirely at 0x10741454/0x10741478, not truncated at the invalid character. No fault for bad options. Calls f_107412ec with sanitized version and updateID."
           }
          ]
         }
@@ -103720,29 +104047,118 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107412ec",
-         "notes": "impl worker: http-prefix gate"
+         "function": "0x10733140",
+         "address": "0x10733228",
+         "callsite": "0x107332b8",
+         "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107413c4",
-         "notes": "tail into launcher f_1073f1c8"
+         "function": "0x10560a58",
+         "address": "0x10560b40",
+         "callsite": "0x10560b50",
+         "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10733140",
-         "notes": "wrapper parse + fault path"
+         "function": "0x10733140",
+         "address": "0x10733298",
+         "callsite": "0x10733284",
+         "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107412ec",
+         "address": "0x10741358",
+         "callsite": "0x10741344",
+         "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x107413c8",
+         "address": "0x10741448",
+         "callsite": "0x1074149c",
+         "notes": "Reads system_version and updateID from ExtraOptions, NOT URL, through f_1073f0d0 at 0x1074141c/0x10741430. Extractor scans comma-separated tokens using f_10c39f14, supports backslash escapes, requires case-sensitive key= prefix and copies the first matching value into capacity 65. Both values start empty; missing key remains empty. Trims whitespace through sonosTrimWhitespace then f_10564d20 validates EVERY character as alphanumeric or the supplied allowlist: .-_ for system_version; +-_/ for updateID. Invalid value is cleared entirely at 0x10741454/0x10741478, not truncated at the invalid character. No fault for bad options. Calls f_107412ec with sanitized version and updateID."
+        }
+       ]
+      },
+      {
+       "code": 501,
+       "code_expr": "constant in wrapper or concrete launch path",
+       "meaning": "Cannot create/write runtime update handoff file.",
+       "fault_sites": [
+        "0x10733228"
+       ],
+       "conditions": [
+        {
+         "description": "Null fopen64 reaches 501 at 0x1073f71c after unlink attempt; negative fprintf reaches 501 at 0x1073f6f0 after close. fclose return is ignored. Concrete coordinator hook is nonfailing for fixed nonempty handoff path, and 806 is explicitly mapped to success.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x1073f1c8",
+           "address": "0x10f12868",
+           "callsite": "0x1073f430",
+           "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x106b2dd8",
+           "address": "0x106b2e80",
+           "callsite": "0x1073f490",
+           "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10691e00",
+           "address": "0x10e983b8",
+           "callsite": "0x10344dd8",
+           "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+          }
+         ]
         }
        ],
-       "notes": "launcher f_1073f1c8 performs external-update hook (write+exec); its rc is forwarded verbatim and not statically bounded - operation-submitted semantics, not guaranteed success",
-       "domain_note": "domain fully bounded: impl 0x107413c8 exits=[24, 88]; topology impl rc surfaced",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10733228).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1073f1c8",
+         "address": "0x10f12868",
+         "callsite": "0x1073f430",
+         "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106b2dd8",
+         "address": "0x106b2e80",
+         "callsite": "0x1073f490",
+         "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10691e00",
+         "address": "0x10e983b8",
+         "callsite": "0x10344dd8",
+         "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+        }
        ]
       }
      ],
@@ -103752,23 +104168,94 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x10733140",
-       "address": "0x10733140",
-       "notes": "action wrapper handler"
+       "function": "0x10125b54",
+       "address": "0x10e8b030",
+       "callsite": "0x107332b8",
+       "notes": "Zone-player init calls f_10125b54 at 0x1018e204; derived primary vptr 0x10e8b024 installed at 0x10126234. Service constructor f_10733b28 stores implementation at service+4 and vptr 0x10f113b0; dispatcher f_10732ff8 searches table 0x10f113dc. BeginSoftwareUpdate wrapper f_10733140 calls implementation slot +0x0c at 0x107332b8. Entry 0x10e8b030 is f_107413c8, also present at base table 0x10f1226c+0x0c. This is static binding, not a runtime-analysis boundary."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f113dc",
-       "notes": "action dispatch table entry"
+       "function": "0x10733140",
+       "address": "0x10733228",
+       "callsite": "0x107332b8",
+       "notes": "UpdateURL registration f_1056157c at 0x1073319c uses capacity 1025. Flags tag-4 registration at 0x107331c0. ExtraOptions text capacity 128 at 0x107331ec, initially empty at 0x1073317c; optional byte argument+0x30 set at 0x107331f4. Validation +8 at 0x10733208 false selects 402 at 0x1073320c and shared fault call 0x10733228. Request +0x40 at 0x10733284 supplies controller-version tuple, not implementation dispatch. Actual worker arguments r4 URL, r5 normalized Flags, r6 ExtraOptions. Nonzero worker return faults verbatim at 0x10733228; zero commits empty response at 0x107332d4. No named outputs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10560a58",
+       "address": "0x10560b40",
+       "callsite": "0x10560b50",
+       "notes": "Type-7 copies bounded text and NUL-terminates; excess text truncates, present empty is accepted. Type-4 Flags uses strtoul(text,NULL,10) at 0x10560b50, stores u32 at 0x10560b54, with no end-pointer/errno/range validation. Its text staging capacity is 24 including NUL. Empty/nonnumeric text becomes zero and numeric prefixes are accepted. Validator f_10730414 checks parsed byte +0x31 or optional byte +0x30 at 0x107304b4..0x107304c8; missing required URL or Flags fails, missing optional ExtraOptions retains empty buffer."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10733140",
+       "address": "0x10733298",
+       "callsite": "0x10733284",
+       "notes": "Absent controller version, or tuple strictly greater than (17,5,49009), takes 0x10733290 and ORs Flags with 4. Older/equal tuple loads Flags at 0x107332ec without forcing that bit. All paths execute raw rlwinm at 0x10733298: SH=0, MB=28, ME=25, mask 0xffffffcf, clearing 0x10 and 0x20, NOT a shift. Launcher stores bool(Flags & 0x20) at topology+0xe7d before its conflict gate, so this SOAP path always stores zero; Offline and SWGenDowngrade file fields are likewise zero after wrapper normalization. Flag 4 suppresses the legacy-ignore field even if topology+0xa36 is set. Conflict test (Flags & 0x42)==0x42 returns 402 before file creation; diagnostic calls these MANAGED and MONITORED mutually exclusive."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107413c8",
+       "address": "0x10741448",
+       "callsite": "0x1074149c",
+       "notes": "Reads system_version and updateID from ExtraOptions, NOT URL, through f_1073f0d0 at 0x1074141c/0x10741430. Extractor scans comma-separated tokens using f_10c39f14, supports backslash escapes, requires case-sensitive key= prefix and copies the first matching value into capacity 65. Both values start empty; missing key remains empty. Trims whitespace through sonosTrimWhitespace then f_10564d20 validates EVERY character as alphanumeric or the supplied allowlist: .-_ for system_version; +-_/ for updateID. Invalid value is cleared entirely at 0x10741454/0x10741478, not truncated at the invalid character. No fault for bad options. Calls f_107412ec with sanitized version and updateID."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107412ec",
+       "address": "0x10741358",
+       "callsite": "0x10741344",
+       "notes": "Only case-insensitive first-four-byte comparison against http, literal 0x10e77b84. Nonmatch, including empty, returns 402 and local detail Update URL is malformed. Any matching prefix (http, https, httpfoo) reaches f_1073f1c8 by tail call 0x107413c4; no full scheme/host syntax validation here. f_1073f1c8 calls f_10c3a0f4 at 0x1073f24c to encode URL into capacity 1025: alphanumeric and :/.-_ copied, other bytes encoded with %%%02x literal 0x10fb1318 (percent plus two lowercase hex digits). Output stops when another encoded/copied character will not fit. This is escaping, not invalid-character rejection; truncation does not fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1073f1c8",
+       "address": "0x10f12868",
+       "callsite": "0x1073f430",
+       "notes": "Reads customer provider topology+0x58c R_CustomerID (type 7 controller instead uses POS), local household through f_105ad854 and current software via f_1090b078. Alphanumeric validation clears invalid customer ID; household additionally permits underscore. Missing/empty/exactly 0 customer ID becomes empty. Legacy flag field Ignore=1 only if normalized Flags lacks 4 and topology+0xa36 is nonzero. Builds /var/run/upgradeinfo and opens with fopen64(w) at 0x1073f388/0x1073f638. fprintf literal 0x10f12868 writes Progress, Ignore, Report=1, SonosID, HouseholdID, CurrentVersion, SystemVersion, UpdateID, Timestamp, URL, OriginClient, Offline and SWGenDowngrade. Progress is 1 without bit 2 and 0 with bit 2 on reachable nonconflict SOAP paths. Timestamp is empty unless f_1076ba0c deadline exceeds monotonic current seconds, then decimal milliseconds. OriginClient uses f_10674040 result+0x70 then +0xe4, or unknown. Current-version read failure logs but continues. Null fopen unlinks target and returns 501 at 0x1073f71c. Negative fprintf closes and returns 501 at 0x1073f6f0; fclose status is ignored. This is a runtime handoff file, not an alarm/settings definition or availability-property save."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106b2dd8",
+       "address": "0x106b2e80",
+       "callsite": "0x1073f490",
+       "notes": "After file write, optionally marks Wi-Fi idle-manager client 5 active via f_106b0538, then calls coordinator topology+0xec8. Under coordinator mutex, +0x90 already set returns 806 at 0x106b2e80 without callback. Launcher explicitly maps 806 to zero at 0x1073f724, leaves handoff file and does NOT fault. New start stores +0x90=1, option bytes +0x49d/+0x49e, calls functor +0x4ac at 0x106b2f38 with pointer to coordinator+0x9c, and on callback failure resets +0x90 and returns failure. On zero callback status queues f_105e80fc via scheduler slot +8 at 0x106b2f94, returns zero without awaiting completion."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10691e00",
+       "address": "0x10e983b8",
+       "callsite": "0x10344dd8",
+       "notes": "Coordinator statically constructed f_106b2cb0 at 0x10692564; captures embedded zoneImpl and functor f_1068c23c installed at 0x1069253c..0x10692554. Stores coordinator in zoneImpl+0xb30 at 0x106925b8. Zone-player constructor passes pair at main+0xed8 (= embedded zoneImpl+0xb30) through 0x1018e1a8/0x1018e1e0 to f_10125b54, base ctor f_1074043c keeps r10 in r29, copies pair to topology+0xec8/+0xecc at 0x10740af8/0x10740b04. Functor loads zoneImpl slot +0x140. Embedded zoneImpl at main+0x3a8 receives concrete vptr 0x10e98278 at 0x1018dbd0; entry +0x140=0x10e983b8 is f_10344efc, adjusts this -0x3a8 then f_10344d14. Constructor initializes coordinator+0x9c to nonempty /var/run/upgradeinfo at 0x106b2d40..0x106b2d84, so callback null/empty-path 501 is unreachable for this binding. Actual callback calls AVTransport helper f_102e04f0 then always returns zero at 0x10344e0c; its subordinate results do not propagate. Helper conditionally snapshots AVTransport state to app/run/avt.txt (0x102e06a8 literal /avt.txt, 0x102e0780 writer), not a playback-stop SOAP call."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106b2fa4",
+       "address": "0x106b3164",
+       "callsite": "0x106b2f94",
+       "notes": "Queued f_105e80fc -> f_1068e2e8 loads zoneImpl+0xb30 -> f_106b2fa4. Queries cloud SW-generation minimum settings with 10000-ms deadline, may append MinVersion/PrevSWGenMinVersion to upgradeinfo, and reaches f_105e7398(10,1) at 0x106b3164 even on cloud-settings/read/write failure. f_105e7398 logs scheduling deferred shutdown and queues f_105e7598 at 0x105e74cc. This occurs after operation submission; asynchronous cloud/installation outcomes cannot change the already-returned SOAP result. No direct topology f_1067c6ec/GENA scheduling in synchronous launch/coordinator/hook or this deferred-shutdown submission. This evidence establishes submission, not successful image download, installation, reboot completion or subscriber delivery."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: virtual dispatch to handler 0x10733140; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "notes": "Submission only, not installation confirmation. Corrected inherited required ExtraOptions, option truncation, URL-option attribution, opaque numeric type and unbounded runtime delegate claims. No synchronous exec call; deferred work requests shutdown after handoff."
     },
     "CheckForUpdate": {
      "description": "Checks software update metadata through concrete topology slot +8. CachedOnly selects cached Software metadata or a fresh network discovery. The Version input is required but ignored; UpdateType is checked only on the cached branch.",
