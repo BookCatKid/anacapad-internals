@@ -155722,17 +155722,37 @@
      "type": "firmware",
      "address": "0x10eb9c50",
      "notes": "sonoscp block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10716a08 unpack switch",
+     "address": "0x10f0e3e0",
+     "callsite": "0x10716be0 / 0x10716c78 / 0x10716dd4 / 0x10716ac4",
+     "notes": "All six relative switch targets checked. Raw mask552a0776 clears bit3, accepting24 as well as16;32 separately checked. IV16 accepted by both, IV0/no-colon only by2. NONE diagnostics are not failure predicates; null/out-of-range early success differs from explicit type5 failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "unpack callers / session helper",
+     "address": "0x107261a0",
+     "callsite": "0x10716f54 / 0x10717118 / 0x1071712c / lib0x3a38",
+     "notes": "Caller result is tested. Session entry uses equality2, not <=2; imported ECB wrapper reaches mbedtls primitive. No final payload-mode assignment or full-image negative CBC claim is made."
     }
    ],
    "todo": [
-    "Residual: the semantic split between unpack types 1 and 2 (mode-name assignment is not statically bound - the mode literals are dead and only an ECB primitive is reachable) and what type 3's base64 blob wraps beyond the {key,iv} envelope."
+    "Established: exact type1/type2 IV-presence distinction,16/24/32-byte key acceptance, raw bounded Base64 type3 storage, NONE-with-key success and session-only-type2 admission. Remaining: join every unpack caller and resulting record to the actual media decryptor before assigning CBC/ECB names; trace type3 consumers and the global0x1108792c provider constructor/virtual+0x18 contract. Start at0x107261a0/0x10729858/0x10729fc8 and session calls0x10717118/0x1071712c. The ECB wrapped-key helper and missing CBC imports do not establish payload mode or binary unavailability. This is actionable static work."
    ],
    "resolved_findings": [
     "Resolved: component = the content-policy domain {reports, playbackPolicies vars}; CQ cache = the object/service-id -> SMAPI mapping with default-account resolution.",
     "Identified: sonoscp = the Sonos content-provider layer - the component mapping universal content objects to SMAPI protocol URIs (cannot map content type %s to SMAPI protocol [accountId:%s,sid:%s,obj:%s] / cannot generate SMAPI URL / could not identify default account for object %s / Unable to validate specified service id %u / ignoring unsupported object %s). It owns playback policy records ({reports, playbackPolicies} vars) and the CloudQueue track-URI cache (Fetching CQ itemId %s using cached trackURI / Adding track URI for itemId %s / Invalidating CQ track URI cache / CloudQueueWindow init: %s). audio/x-spotify marks the spotify content type. sonoscp_crypto is the companion crypto helper (content-provider signing/encryption).",
-    "Resolved: sonoscp_crypto op set proven from literals (0x10f0e930-0x10f0ec70): cipher modes {AES-CBC, AES-ECB}; packed key record = {decryption type, key, iv} unpacked with per-field length guards (\"unpack: invalid key parse len/key len/iv parse len/iv len\", \"unpack: unknown decryption type\", \"unpack: received NONE with key\"); session-key ops {deserialize, decrypt, len-check} (\"session: unknown type %d\", \"session: key deserialize failure\", \"session: key decrypt failure\", \"session: key len mismatch: %zu\"); contentKey gets a strict-type check (\"contentKey: got unexpected key\"); base64 payload path (\"invalid base64 decode\"). Consumer tag hlsradio. The SMAPI fault-code enum is also literal here: {Client.LoginInvalid, LoginDisabled, LoginUnauthorized, LoginUnsupported, DeviceLimit, UnsupportedTerritory, SessionIdInvalid, ItemNotFound, AuthTokenExpired, TokenRefreshRequired, DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked, Server.*} mapped via \"SOAP fault '%s', returning %d\".",
-    "Decrypt-type enum proven by jump table @0x10f0e3e0 (unpack, f_10716a08): {0=NONE (rejects when a key arg is present: 'unpack: received NONE with key'), 1 and 2 share the serialized key+iv path - key bytes deserialize len {0x10,0x20} (AES-128/256) and iv len exactly 0x10 (AES-CBC/AES-ECB modes), 3=base64-encapsulated key blob (sonosBase64DecReset/Update/IsValid, 'invalid base64 decode'), 4=NONE-tolerant (same accept path as type0), 5='unpack: unknown decryption type' reject}. The session layer (f_10716f4c) additionally bounds session types to <=2 ('session: unknown type %d'), decrypting the session key via vfunc+0x18 then ZZ0038 ('session: key decrypt failure', len must be 0x10 or 0x20).",
-    "Decrypt-path primitive proven: the content-key/session decrypt helper f_10716e2c is a pure ECB block loop - ZZ0024 (aes_init + setkey_dec on raw key bytes) then repeated ZZ0023 (mbedtls_aes_crypt_ecb) over 0x10-byte chunks with no IV chaining. The 'AES-CBC'/'AES-ECB' literals at 0x10f0e930/0x10f0e938 have zero address-formation xrefs and zero pointer cells in any section (dead literals in this build), and no shipped module imports mbedtls_aes_crypt_cbc - so CBC chaining is not implemented by any in-image consumer."
+    "sonoscp_crypto contains concrete unpack/session functions, not just mode literals. The unpack record stores type at+0, key bytes+4 and length+0x24, IV bytes+0x28 and length+0x38. The mode-name and final media-decryptor joins remain separate from parsing this record. Base64 failure logging uses hlsradio. The SMAPI fault-code enum is also literal here: {Client.LoginInvalid, LoginDisabled, LoginUnauthorized, LoginUnsupported, DeviceLimit, UnsupportedTerritory, SessionIdInvalid, ItemNotFound, AuthTokenExpired, TokenRefreshRequired, DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked, Server.*} mapped via \"SOAP fault '%s', returning %d\".",
+    "Relative switch0x10f0e3e0 maps types0/4 to0x10716b50,1/2 to0x10716b98,3 to0x10716ac4 and5 to0x10716b14. Types1/2 accept serialized key lengths16,24 or32: raw0x552a0776 clears bit3, so16 and24 pass the first compare and32 the second. Type1 requires colon-separated IV length16; type2 also accepts absent colon or IV length0. Type3 directly Base64-decodes at most32 bytes into record+4 and stores decoded length at+0x24, type3 and zero IV length. It is not proven to wrap another key/IV envelope. Invalid Base64 returns0. Types0/4 log nonempty input but still return1; the old reject-on-NONE-with-key claim is false. Null receiver or type>5 returns1, while an in-range type5 reaches explicit unknown-type failure0.",
+    "f_10716e2c is an ECB helper over complete16-byte blocks, reached by calls0x10717118/0x1071712c in the session-key path. ZZ0023 delegates to mbedtls_aes_crypt_ecb in libsonoscrypto. This wrapped-key primitive does not identify the media payload cipher and does not prove CBC absent across the image; generic wrappers or hand-built chaining cannot be excluded by an import-name search. The previous global no-CBC-consumer conclusion is withdrawn.",
+    "Session function f_10716f4c accepts exactly type2 at its entry comparison; all other values, including0/1, take unknown-type failure. Thus the old <=2 bound was incorrect. It obtains its decrypt provider from global0x1108792c and calls virtual+0x18 before the ECB helper. Its concrete provider constructor and returned-key contract still require binding.",
+    "Unpack reachability is established by direct callers0x107261a0,0x10729858 and0x10729fc8. At0x107261a0 type and key text are passed into f_10716a08 and its success result gates subsequent handling; parsing is not dead merely because the AES-CBC/AES-ECB names have no simple literal xref. Key/IV parse and length errors clear lengths and return0; generated output types1/2 preserve the accepted input type."
    ]
   },
   "crossfade": {
