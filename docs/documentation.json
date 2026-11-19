@@ -85153,7 +85153,7 @@
   "/MediaServer/ContentDirectory/Control": {
    "name": "ContentDirectory",
    "control_path": "/MediaServer/ContentDirectory/Control",
-   "description": "UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. impl = content-index subsystem member.",
+   "description": "UPnP ContentDirectory for the local music index: browse, object create/destroy/update, prefix lookups, index refresh/resort and capability getters. The embedded service at ctx+0x3fa68 is statically bound to cd_impl with primary vtable 0x10eb3f20; see the service binding proof in resolved_findings.",
    "visibility": "advertised",
    "registration": {
     "router": "0x101953c8",
@@ -89412,7 +89412,7 @@
      ]
     },
     "GetSystemUpdateID": {
-     "description": "Reads the ContentDirectory update counter. Handler 0x1030751c calls request slot +0x08 without allocating or parsing inputs, then calls implementation slot +0x10. The recovered cd_impl vtable 0x10eb3f20 maps that slot to f_10302640, which copies u32 impl+0x4e0 under mutex impl+0x918 and returns 0. The handler emits Id as unsigned decimal and commits. The service-to-cd_impl binding remains to be proven.",
+     "description": "Returns the u32 cd_impl update counter without changing it. Handler 0x1030751c calls request +0x08 without registering inputs, then statically bound implementation +0x10 = f_10302640, which reads impl+0x4e0 under mutex impl+0x918 and returns 0. The handler emits Id as unsigned decimal and commits. See the ContentDirectory service-level binding and per-call request proofs.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1030751c",
@@ -89452,13 +89452,13 @@
        }
       ],
       "impl_function": "0x10302640",
-      "impl_vfunc": "candidate cd_impl primary vtable 0x10eb3f20 slot +0x10; service binding remains unverified",
+      "impl_vfunc": "cd_impl primary vtable 0x10eb3f20 slot +0x10; statically bound as proven in the service record",
       "description": "f_10302640 locks with f_10988558 and unlocks with f_10988984; only the output pointer is written. f_10303de4 is the constructor, not the event serializer; it installs primary vptr 0x10eb3f20 and secondary vptrs at +0x08, +0x11c and +0x13c. The service dispatcher uses service+4 as the implementation pointer."
      },
      "inputs": {},
      "outputs": {
       "Id": {
-       "description": "Unsigned 32-bit counter copied from candidate cd_impl+0x4e0 under mutex +0x918; not fetched from the media-store member +0x168.",
+       "description": "Unsigned 32-bit cd_impl counter at +0x4e0, copied under mutex +0x918 and formatted as unsigned decimal.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
@@ -89507,12 +89507,11 @@
          "notes": "notifyUpdateID log; updates container list, increments counter, sets dirty byte, calls event source notifier at 0x103048c4."
         }
        ],
-       "notes": null,
-       "todo": "Established: dispatcher 0x10307608 loads the implementation from service+4 at 0x1030777c and passes it as r5 at 0x103077b4; service ctor 0x10307e94 installs vptr 0x10eb4258 and initially zeros service+4. The candidate cd_impl constructor 0x10303de4 installs vptr 0x10eb3f20 whose +0x10 is 0x10302640. Residual: the assignment connecting service+4 at ctx+0x3fa6c to this cd_impl instance has not been located. Next RE step: follow writes to service+4 after 0x1018fb90, including shared-pointer assignment helpers and SPE pair copies in context initialization, then verify the stored primary vptr."
+       "notes": null
       }
      },
      "validation": {
-      "description": "There is no named input fetch and no typed input parser in 0x1030751c. Request validation f_10730414 validates registered records, not the number of raw SOAP children. With a zero registered count it returns 1, bypassing the wrapper 402. A nonzero worker result would be forwarded as a fault, but f_10302640 always returns 0.",
+      "description": "No named input fetch or typed parser occurs. Per-call TRequest construction leaves registered count zero and f_10730414 immediately returns 1. The wrapper 402 branch at 0x103075c4 therefore cannot execute in this SOAP path, even for extra raw SOAP children. f_10302640 always returns 0, so the generic nonzero-worker fault branch is also unreachable.",
       "evidence": [
        {
         "type": "firmware",
@@ -89537,12 +89536,19 @@
         "function": "0x10730414",
         "address": "0x1073051c",
         "notes": "Zero registered input count at request+0x3a68 returns 1 immediately; constructor zeros count at 0x1073120c; allocator 0x1073017c increments it."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Constructs TRequest at sp+0xd8 per SOAP call and passes it to f_1069388c at 0x10696428. Constructor zeroes registered-input count at 0x1073120c; zero-count validator returns 1 at 0x1073051c."
        }
-      ],
-      "todo": "Established: f_10730414 returns 1 immediately for zero registered inputs; constructor 0x107310c8 initializes request+0x3a68 to zero and this handler allocates no inputs. Residual: freshness/reset of this count on the inbound request dispatch path is not yet proven, so external reachability of the wrapper 402 is not settled. Next RE step: trace the caller supplying the request to 0x10307608 through construction/reuse and enumerate every store to request+0x3a68."
+      ]
      },
      "requirements": {
-      "description": "No action arguments. Request validity must return nonzero; f_10302640 has no readiness, ownership or range precondition.",
+      "description": "No action arguments or library-readiness checks. The per-call TRequest has zero registered inputs, so request validation always succeeds for this handler; see the service-level request construction proof.",
       "evidence": [
        {
         "type": "firmware",
@@ -89567,12 +89573,19 @@
         "function": "0x10730414",
         "address": "0x1073051c",
         "notes": "Zero registered input count at request+0x3a68 returns 1 immediately; constructor zeros count at 0x1073120c; allocator 0x1073017c increments it."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106960f8",
+        "address": "0x10696404",
+        "notes": "Constructs TRequest at sp+0xd8 per SOAP call and passes it to f_1069388c at 0x10696428. Constructor zeroes registered-input count at 0x1073120c; zero-count validator returns 1 at 0x1073051c."
        }
-      ],
-      "todo": "Established: f_10730414 returns 1 immediately for zero registered inputs; constructor 0x107310c8 initializes request+0x3a68 to zero and this handler allocates no inputs. Residual: freshness/reset of this count on the inbound request dispatch path is not yet proven, so external reachability of the wrapper 402 is not settled. Next RE step: trace the caller supplying the request to 0x10307608 through construction/reuse and enumerate every store to request+0x3a68."
+      ]
      },
      "state_dependencies": {
-      "description": "Candidate cd_impl state is counter +0x4e0 and mutex +0x918. Constructor 0x10303de4 sets the counter to 1 and dirty byte +0x4e4 to 0. notifyUpdateID worker 0x10304808 increments the 32-bit counter with addi 1 and no overflow guard, so arithmetic wraps modulo 2^32.",
+      "description": "Reads cd_impl+0x4e0 while holding mutex +0x918. Constructor f_10303de4 stores 1 at 0x10304078. The only counter stores in cd_impl methods are 0x10304078 and 0x103048c0; the latter adds 1 in notifyUpdateID worker f_10304808 with no overflow guard, wrapping modulo 2^32. There are no direct BL callers of f_10304808 in .text. Adjustor f_10304904 tail-branches at 0x10304908 after subtracting 0x11c; secondary listener vtable 0x10eb3fa0 slot +0x00 and primary vtable 0x10eb3f20 slot +0x44 expose this callback. Each notifyUpdateID callback carrying the container/update record increments once, including repeated container IDs.",
       "evidence": [
        {
         "type": "firmware",
@@ -89598,15 +89611,11 @@
         "address": "0x103048c0",
         "notes": "notifyUpdateID log; updates container list, increments counter, sets dirty byte, calls event source notifier at 0x103048c4."
        }
-      ],
-      "todo": [
-       "Established: dispatcher 0x10307608 loads the implementation from service+4 at 0x1030777c and passes it as r5 at 0x103077b4; service ctor 0x10307e94 installs vptr 0x10eb4258 and initially zeros service+4. The candidate cd_impl constructor 0x10303de4 installs vptr 0x10eb3f20 whose +0x10 is 0x10302640. Residual: the assignment connecting service+4 at ctx+0x3fa6c to this cd_impl instance has not been located. Next RE step: follow writes to service+4 after 0x1018fb90, including shared-pointer assignment helpers and SPE pair copies in context initialization, then verify the stored primary vptr.",
-       "Established: immediate-offset store search across 0x10302400..0x10306200 finds initialization to 1 at 0x10304078 and increment at 0x103048c0 only. f_10304808 is reached through adjustor 0x10304904 on secondary vtable 0x10eb3fa0 at impl+0x11c. Residual: all upstream producers of this callback and possible aliased/indexed counter stores are not exhausted. Next RE step: follow callback registration from the cd_impl constructor into 0x1034a058, enumerate invocations of secondary slot +0x00 and audit their update-record producers; inspect indexed/paired writes for aliases of impl+0x4e0."
       ]
      },
      "side_effects": [
       {
-       "description": "The recovered worker only locks, copies the counter to the caller and unlocks. It does not increment the counter, update containers, set the dirty flag or call the notifier.",
+       "description": "Locks, copies the counter to the caller and unlocks. It does not increment the counter, change the container list, set a dirty flag or invoke an event notifier.",
        "evidence": [
         {
          "type": "firmware",
@@ -89616,12 +89625,11 @@
          "address": "0x1030266c",
          "notes": "Locks impl+0x918, copies u32 impl+0x4e0 to the out pointer, unlocks, returns zero."
         }
-       ],
-       "todo": "Established: dispatcher 0x10307608 loads the implementation from service+4 at 0x1030777c and passes it as r5 at 0x103077b4; service ctor 0x10307e94 installs vptr 0x10eb4258 and initially zeros service+4. The candidate cd_impl constructor 0x10303de4 installs vptr 0x10eb3f20 whose +0x10 is 0x10302640. Residual: the assignment connecting service+4 at ctx+0x3fa6c to this cd_impl instance has not been located. Next RE step: follow writes to service+4 after 0x1018fb90, including shared-pointer assignment helpers and SPE pair copies in context initialization, then verify the stored primary vptr."
+       ]
       }
      ],
      "events_triggered": {
-      "description": "This getter does not trigger a GENA event. The separate notifyUpdateID worker 0x10304808 records the container update with f_103032fc, optionally calls f_1030470c when update-record+0x1c is nonzero, increments +0x4e0, sets +0x4e4, then calls f_1067c6ec on impl+8. Serializer 0x103035c4 writes SystemUpdateID from +0x4e0 to the full-state stream; the dirty branch writes it to the change stream and clears +0x4e4. The full notifier-to-serializer dispatch and delivery timing are not yet traced.",
+      "description": "This getter triggers no GENA event. Separately, notifyUpdateID worker f_10304808 updates container records via f_103032fc, optionally invokes f_1030470c when update-record+0x1c is nonzero, increments SystemUpdateID, sets dirty byte +0x4e4 and calls notifier f_1067c6ec(impl+8) at 0x103048c4. The event-source secondary vtable 0x10eb3f78 has serializer thunk 0x10303d94 at +0x14; it subtracts 8 and branches to f_103035c4. That serializer renders SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress and ShareIndexLastError, plus the container-specific update variables registered in the constructor. SystemUpdateID is written at 0x103036b0 in full state and at 0x10303ae8 in the dirty-change branch, which clears +0x4e4 at 0x10303af8. This is a separate update-notification path, not an effect of reading Id.",
       "evidence": [
        {
         "type": "firmware",
@@ -89647,11 +89655,10 @@
         "address": "0x10303ae8",
         "notes": "Serializes SystemUpdateID and clears dirty byte at 0x10303af8; full-state stream also writes counter at 0x103036b0."
        }
-      ],
-      "todo": "Established: producer notifier call 0x103048c4 and SystemUpdateID serialization at 0x10303ae8 are present. Residual: notifier-to-serializer reachability and coalescing/timing conditions remain incomplete. Next RE step: trace f_1067c6ec scheduling and event-source vtable 0x10eb3f78 through thunk 0x10303d94 to f_103035c4, including the elapsed-time branch 0x10303aa0..0x10303ac0."
+      ]
      },
      "state_transitions": {
-      "description": "The getter performs no library-state transition. Independently, the cd_impl constructor initializes the counter to 1; notifyUpdateID increments it once per callback and marks it dirty. This does not yet establish which library operations generate those callbacks.",
+      "description": "No getter state transition. The separate update callback increments the u32 counter once and marks it dirty, while construction initializes it to 1. Duplicate callbacks are not deduplicated at the counter increment.",
       "evidence": [
        {
         "type": "firmware",
@@ -89677,11 +89684,10 @@
         "address": "0x103048c0",
         "notes": "notifyUpdateID log; updates container list, increments counter, sets dirty byte, calls event source notifier at 0x103048c4."
        }
-      ],
-      "todo": "Established: immediate-offset store search across 0x10302400..0x10306200 finds initialization to 1 at 0x10304078 and increment at 0x103048c0 only. f_10304808 is reached through adjustor 0x10304904 on secondary vtable 0x10eb3fa0 at impl+0x11c. Residual: all upstream producers of this callback and possible aliased/indexed counter stores are not exhausted. Next RE step: follow callback registration from the cd_impl constructor into 0x1034a058, enumerate invocations of secondary slot +0x00 and audit their update-record producers; inspect indexed/paired writes for aliases of impl+0x4e0."
+      ]
      },
      "return_behavior": {
-      "description": "f_10302640 returns 0. At 0x103075e0 the handler creates output Id with request slot +0x24, formats the saved u32 with f_1055fcbc at 0x103075e8, and commits through slot +0x0c at 0x103075fc. The nonzero implementation-return branch forwards r3 through request slot +0x14, but this recovered worker cannot take it.",
+      "description": "f_10302640 returns 0. At 0x103075e0 the handler creates Id through request +0x24, formats the saved u32 with f_1055fcbc at 0x103075e8 and commits through request +0x0c at 0x103075fc. Neither the no-input request-validity fault nor the nonzero-worker fault is reachable with this concrete binding.",
       "evidence": [
        {
         "type": "firmware",
@@ -89699,40 +89705,30 @@
         "address": "0x1030266c",
         "notes": "Locks impl+0x918, copies u32 impl+0x4e0 to the out pointer, unlocks, returns zero."
        }
-      ],
-      "todo": "Established: dispatcher 0x10307608 loads the implementation from service+4 at 0x1030777c and passes it as r5 at 0x103077b4; service ctor 0x10307e94 installs vptr 0x10eb4258 and initially zeros service+4. The candidate cd_impl constructor 0x10303de4 installs vptr 0x10eb3f20 whose +0x10 is 0x10302640. Residual: the assignment connecting service+4 at ctx+0x3fa6c to this cd_impl instance has not been located. Next RE step: follow writes to service+4 after 0x1018fb90, including shared-pointer assignment helpers and SPE pair copies in context initialization, then verify the stored primary vptr."
+      ]
      },
      "fault_sites": [],
      "errors": [
       {
        "code": 402,
-       "code_expr": "wrapper request-validity zero",
-       "meaning": "Literal 402 selected at 0x103075c4 if request slot +0x08 returns 0; not an implementation error and not a missing action-argument parser error.",
+       "code_expr": "unreachable wrapper request-validity zero",
+       "meaning": "Dead wrapper branch: literal 402 at 0x103075c4 would be sent through 0x10307590 only if request validity returned zero. Per-call construction and no registered inputs prove it cannot do so here.",
        "fault_sites": [
         "0x10307590"
        ],
        "conditions": [
         {
-         "description": "Request validity returned zero. For a fresh request with zero registered inputs f_10730414 returns one immediately, so this branch is dead under that condition. Inbound lifecycle verification remains open.",
+         "description": "No reachable condition in this SOAP handler: registered count is zero and validator returns 1. f_10302640 also always returns 0.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x1030751c",
-           "address": "0x10307574",
-           "notes": "No input allocation or parse; request +0x08 gate, implementation +0x10 call, Id output and commit."
-          },
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "function": "0x10730414",
-           "address": "0x1073051c",
-           "notes": "Zero registered input count at request+0x3a68 returns 1 immediately; constructor zeros count at 0x1073120c; allocator 0x1073017c increments it."
+           "function": "0x106960f8",
+           "address": "0x10696404",
+           "notes": "Constructs TRequest at sp+0xd8 per SOAP call and passes it to f_1069388c at 0x10696428. Constructor zeroes registered-input count at 0x1073120c; zero-count validator returns 1 at 0x1073051c."
           }
-         ],
-         "todo": "Established: f_10730414 returns 1 immediately for zero registered inputs; constructor 0x107310c8 initializes request+0x3a68 to zero and this handler allocates no inputs. Residual: freshness/reset of this count on the inbound request dispatch path is not yet proven, so external reachability of the wrapper 402 is not settled. Next RE step: trace the caller supplying the request to 0x10307608 through construction/reuse and enumerate every store to request+0x3a68."
+         ]
         }
        ],
        "evidence": [
@@ -89740,20 +89736,11 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1030751c",
-         "address": "0x10307574",
-         "notes": "No input allocation or parse; request +0x08 gate, implementation +0x10 call, Id output and commit."
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x10730414",
-         "address": "0x1073051c",
-         "notes": "Zero registered input count at request+0x3a68 returns 1 immediately; constructor zeros count at 0x1073120c; allocator 0x1073017c increments it."
+         "function": "0x106960f8",
+         "address": "0x10696404",
+         "notes": "Constructs TRequest at sp+0xd8 per SOAP call and passes it to f_1069388c at 0x10696428. Constructor zeroes registered-input count at 0x1073120c; zero-count validator returns 1 at 0x1073051c."
         }
-       ],
-       "todo": "Established: f_10730414 returns 1 immediately for zero registered inputs; constructor 0x107310c8 initializes request+0x3a68 to zero and this handler allocates no inputs. Residual: freshness/reset of this count on the inbound request dispatch path is not yet proven, so external reachability of the wrapper 402 is not settled. Next RE step: trace the caller supplying the request to 0x10307608 through construction/reuse and enumerate every store to request+0x3a68."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -89820,14 +89807,25 @@
        "function": "0x10730414",
        "address": "0x1073051c",
        "notes": "Zero registered input count at request+0x3a68 returns 1 immediately; constructor zeros count at 0x1073120c; allocator 0x1073017c increments it."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104d49e8",
+       "address": "0x104d4e54",
+       "notes": "r3 service block is retained as r31 at 0x104d4a20; r10 cd_impl shared pointer is retained as r26 at 0x104d4a10. [r26] is stored at block+0x40, exactly ctx+0x3fa6c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106960f8",
+       "address": "0x10696404",
+       "notes": "Constructs TRequest at sp+0xd8 per SOAP call and passes it to f_1069388c at 0x10696428. Constructor zeroes registered-input count at 0x1073120c; zero-count validator returns 1 at 0x1073051c."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: dispatcher 0x10307608 loads the implementation from service+4 at 0x1030777c and passes it as r5 at 0x103077b4; service ctor 0x10307e94 installs vptr 0x10eb4258 and initially zeros service+4. The candidate cd_impl constructor 0x10303de4 installs vptr 0x10eb3f20 whose +0x10 is 0x10302640. Residual: the assignment connecting service+4 at ctx+0x3fa6c to this cd_impl instance has not been located. Next RE step: follow writes to service+4 after 0x1018fb90, including shared-pointer assignment helpers and SPE pair copies in context initialization, then verify the stored primary vptr.",
-      "Established: immediate-offset store search across 0x10302400..0x10306200 finds initialization to 1 at 0x10304078 and increment at 0x103048c0 only. f_10304808 is reached through adjustor 0x10304904 on secondary vtable 0x10eb3fa0 at impl+0x11c. Residual: all upstream producers of this callback and possible aliased/indexed counter stores are not exhausted. Next RE step: follow callback registration from the cd_impl constructor into 0x1034a058, enumerate invocations of secondary slot +0x00 and audit their update-record producers; inspect indexed/paired writes for aliases of impl+0x4e0.",
-      "Established: f_10730414 returns 1 immediately for zero registered inputs; constructor 0x107310c8 initializes request+0x3a68 to zero and this handler allocates no inputs. Residual: freshness/reset of this count on the inbound request dispatch path is not yet proven, so external reachability of the wrapper 402 is not settled. Next RE step: trace the caller supplying the request to 0x10307608 through construction/reuse and enumerate every store to request+0x3a68."
-     ]
+     "notes": null
     },
     "RefreshShareIndex": {
      "description": "Triggers a share-index refresh (AlbumArtistDisplayOption) via impl->v[+0x30].",
@@ -91981,18 +91979,65 @@
      "build": "86.10-80260",
      "address": "0x10307608",
      "notes": "service dispatcher"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x104d49e8",
+     "address": "0x104d4e54",
+     "notes": "r3 service block is retained as r31 at 0x104d4a20; r10 cd_impl shared pointer is retained as r26 at 0x104d4a10. [r26] is stored at block+0x40, exactly ctx+0x3fa6c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106960f8",
+     "address": "0x10696404",
+     "notes": "Constructs TRequest at sp+0xd8 per SOAP call and passes it to f_1069388c at 0x10696428. Constructor zeroes registered-input count at 0x1073120c; zero-count validator returns 1 at 0x1073051c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1018d27c",
+     "address": "0x1018ef1c",
+     "notes": "Computes ctx+0x3fa2c, stored sp+0xfc and passed at 0x1018fc28 through f_101b08a0 to manager constructor; manager stores block pointer at +0xbc at 0x1040c0fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1040fffc",
+     "address": "0x10410244",
+     "notes": "Loads manager+0xbc and passes it as r6 to media-player ctor at 0x10410744; ctor stores service block at +0x220 at 0x103fa75c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103fa434",
+     "address": "0x103fb000",
+     "notes": "Constructs cd_impl and stores pointer at media-player+0x190c at 0x103fb048; ctor 0x10303de4 installs primary vptr 0x10eb3f20 at 0x10303fcc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103fd65c",
+     "address": "0x103fdd60",
+     "notes": "Calls shared service initializer with service block from media-player+0x220 and cd_impl shared pointer at media-player+0x190c."
     }
    ],
    "notes": "None Browse internals decoded: handler shim 0x10306b3c -> real handler f_10304390 -> executor f_103042f0. BrowseFlag is literal-validated (BrowseDirectChildren / BrowseMetadata, else 402); DIDL output is generated by per-item writer callbacks (f_10306088/0x10306098/0x103060a8) driven through request v[+0x24]. UpdateID comes from the container record via f_1034a224(obj+0x168, selector 0x2bd).",
    "impl_files": [
     "compiled lib (libsonos-upnp family): impl classes generated/static"
    ],
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
+   "todo": "Established: the service-to-cd_impl binding and per-call TRequest construction are statically traced in resolved_findings. Residual: remaining action records still need their individual implementation, output and fault analyses. Next RE step: follow each remaining handler slot through primary vtable 0x10eb3f20 and document that worker without assuming runtime injection.",
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "The ContentDirectory service is ctx+0x3fa68, vptr 0x10eb4258, constructed by 0x10307e94 at 0x1018fb90. Its implementation is statically bound cd_impl, constructed by 0x10303de4 at 0x103fb000 with primary vptr 0x10eb3f20. The shared service-block initializer f_104d49e8, not a service virtual setter, assigns the pointer: it receives the DeviceProperties-led block at ctx+0x3fa2c as r3 and &media-player+0x190c as r10, saves them to r31/r26, loads [r26] at 0x104d4e48 and stores it to block+0x40 at 0x104d4e54. This is ctx+0x3fa6c, exactly service+4. The ownership pointer is copied to block+0x44 at 0x104d4ecc. Dispatcher 0x10307608 loads service+4 at 0x1030777c and passes it as handler r5 at 0x103077b4.",
+    "Binding provenance: ctx constructor computes the service-block pointer at 0x1018ef1c, saves it at sp+0xfc at 0x1018ef2c and passes it as r5 at 0x1018fc28 to f_101b08a0 (call 0x1018fd14). That wrapper saves it in r19 at 0x101b09c0 and passes r4=r19 at 0x101b0dfc to f_1040c02c at 0x101b0ea4; manager+0xbc receives it at 0x1040c0fc. Media-player construction path loads manager+0xbc at 0x10410244, passes it as r6 at 0x104106fc to f_103fa434 at 0x10410744, which saves r6 in r17 and stores it at media-player+0x220 at 0x103fa75c. f_103fd65c loads that field at 0x103fdd08, passes r10=&media-player+0x190c at 0x103fdd20 and calls f_104d49e8 at 0x103fdd60. The cd_impl pointer was stored at media-player+0x190c at 0x103fb048 after construction.",
+    "Per-call request construction: SOAP dispatch f_106960f8 constructs TRequest at sp+0xd8 with call 0x10696404, then passes the same stack object as r5 to f_1069388c at 0x10696428. Constructor f_107310c8 writes input count +0x3a68=0 at 0x1073120c. No-input wrappers allocate no records, so validator f_10730414 returns 1 at 0x1073051c. Their wrapper 402 branches are unreachable in this dispatch path, including requests containing extra raw SOAP children."
    ]
   },
   "/MusicServices/Control": {
