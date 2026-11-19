@@ -11647,7 +11647,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 at 0x10351bf4 over the base vtable 0x10ebd214 installed by f_1035e5ac. 0x10ebd214 is the base vtable only; the slots used by the bonding actions are overridden in 0x10ebc630. Slot +0x18 of the base vtable 0x10ebd214 is f_1035a390, a stub returning 401, which is why reading the base vtable makes this action look unimplemented; the runtime object dispatches to f_1035560c instead. f_1035560c passes zero for the worker's fifth to eighth arguments, so the SOAP path never supplies the optional trigger, bond-duration or Muse-API arguments that f_103548f4 also accepts."
     },
     "AddHTSatellite": {
-     "description": "Adds a home-theater satellite with HTSatChanMapSet via impl->v[+0x48].",
+     "description": "Attaches a home-theater satellite. The wrapper parses HTSatChanMapSet (cap 640) and calls slot +0x48 of runtime vtable 0x10ebc630, f_1034f670, a thunk that calls f_1034f5b0 with two zero arguments. f_1034f5b0 asks f_1065a73c about the zone-player context at impl+0x25c: when it answers nonzero this player acts as the primary and the work is done by f_1034ec5c; otherwise f_1065a6cc validates the map for the satellite role, returning 402 when it refuses, and f_1034cf38 converts this player into a satellite. The result is then banded: 1032 and 1035 pass through unchanged, any other value in 1000..9999 becomes 800, and values outside that band are returned as they are. When the result is 1032 the wrapper commits success and afterwards calls slot +0x74 (f_1034c82c, which forwards to slot +0x80, f_1034cabc) unless that slot is the empty stub f_1012b9a8.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737e14",
@@ -11659,42 +11659,61 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "worker": "0x1034f5b0",
+      "worker_slot": "0x48",
+      "thunk": "0x1034f670",
+      "primary_path": "0x1034ec5c",
+      "satellite_path": "0x1034cf38",
+      "post_commit_slot": "0x74 -> 0x80 (f_1034c82c -> f_1034cabc, called with (0, 5, 0))",
       "calls": [
        {
-        "site": "0x10737e94",
-        "obj": "r5-in",
-        "slot": 72,
-        "arg4": "sp-0x294"
+        "site": "0x10737e54",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate HTSatChanMapSet input record"
        },
        {
-        "site": "0x10737edc",
-        "obj": "r5-in",
-        "slot": 116,
-        "arg4": "?"
+        "site": "0x10737e60",
+        "purpose": "parse through f_1056157c, capacity 640"
        },
-       {
-        "site": "0x10737f30",
-        "obj": "xor(*(r2+0xffff8ff8))",
-        "slot": 12,
-        "arg4": "?"
-       }
-      ],
-      "req_vcalls": [
        {
         "site": "0x10737e74",
+        "obj": "TRequest (r4-in)",
         "slot": 8,
-        "purpose": "parse"
+        "purpose": "validate; 0 leads to 402 at 0x10737ee8"
+       },
+       {
+        "site": "0x10737e94",
+        "obj": "DeviceProperties impl (r5-in)",
+        "slot": 72,
+        "target": "0x1034f670",
+        "purpose": "add the satellite"
        },
        {
         "site": "0x10737eb8",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "purpose": "commit"
+        "purpose": "commit success (also taken for rc 1032)"
+       },
+       {
+        "site": "0x10737edc",
+        "obj": "DeviceProperties impl (r5-in)",
+        "slot": 116,
+        "purpose": "post-commit follow-up, skipped when slot +0x74 is the stub f_1012b9a8"
+       },
+       {
+        "site": "0x10737ef8",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "fault with the worker rc or 402"
        }
       ]
      },
      "inputs": {
       "HTSatChanMapSet": {
-       "description": "Home-theater satellite channel-map string",
+       "description": "Channel map naming the satellite and the channel it is to play, in the same ';'-separated UUID:channel form as the bonded-zone maps (parser f_1053c234/f_1053e0c4, 24-character UUIDs, at most 16 entries, duplicates rejected). On the satellite path f_1065a6cc validates it before f_1034cf38 applies it.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -11706,12 +11725,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 640 bytes (639 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
+       "accepted_values": "a channel map within the 640-byte parse buffer that the role-specific validator accepts",
        "range": "max 639 chars",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "TRequest parse, then f_1065a6cc for the satellite role or the primary-side checks in f_1034ec5c",
        "evidence": [
         {
          "type": "firmware",
@@ -11733,14 +11752,38 @@
          "build": "86.10-80260",
          "function": "0x1017fa08",
          "notes": "impl consumes the map string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737e58",
+         "notes": "capacity 640"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034f64c",
+         "notes": "f_1065a6cc validation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034f654",
+         "notes": "402 when it refuses"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034ecf4",
+         "notes": "primary-side map handling"
         }
        ],
        "notes": null,
        "buf_cap": 640,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `HTSatChanMapSet` is parsed then forwarded verbatim to r5-in vfunc +72 (site 0x10737e94) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `HTSatChanMapSet` = verbatim forward to impl vfunc +72 (obj r5-in, call site 0x10737e94); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -11760,101 +11803,190 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×2); member delegates: r30 v[+0x48], r30 v[+0xc]",
+      "description": "The zone-player context at impl+0x25c decides the role: f_1065a73c nonzero takes the primary path, zero the satellite path. On the satellite path f_1065a6cc must accept the map, the named primary must exist ('Primary device %s is not found'), must be compatible ('incompatible primary device %s') and this player must not already have satellites ('unable to become satellite, device has satellites'). On the primary path the named secondary must exist ('secondary device %s not found') and be compatible ('incompatible secondary device %s').",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737e14",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}"
+        "address": "0x1034f5e0",
+        "notes": "f_1065a73c role query"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f64c",
+        "notes": "f_1065a6cc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034cf38",
+        "notes": "satellite-path rejection strings"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034ec5c",
+        "notes": "primary-path rejection strings"
        }
       ],
       "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×2); member delegates: r30 v[+0x48], r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the wrapper, the role split in f_1034f5b0, the 402 validation exit, the 1000..9999 to 800 banding, the 1032 follow-up and the rejection reasons named by the log strings are traced.",
+       "Unknown: which of the literals 401, 402, 1000, 1029, 1034 and 1035 inside f_1034ec5c and f_1034cf38 belongs to which rejection, because the two bodies are 597 and 584 instructions of topology and Muse-API work whose branch conditions are not resolved yet.",
+       "Close it by walking f_1034ec5c and f_1034cf38 branch by branch from their entry points and binding each result literal to the condition that reaches it."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x48], r30 v[+0xc]",
+      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration').",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737e14",
-        "notes": "member vfunc calls: ['r30 v[+0x48]', 'r30 v[+0xc]']"
+        "address": "0x1034f5dc",
+        "notes": "impl+0x25c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034cf38",
+        "notes": "unpaired-setting literals saved when the player becomes a satellite"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x48], r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to impl->v[+0x48] then impl->v[+0x0c]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Applies the home-theater satellite configuration: on the primary path f_1034ec5c updates the satellite map ('Add HT Sat.  New map: %s'), clears the local sonar configuration ('Clearing local sonar configuration in AddHTSatellite on SOURCE %s'), starts the topology monitor and notifies netstartd ('Failed to send IPC message to netstartd to notify about satellite addition' on failure); on the satellite path f_1034cf38 switches the player into satellite mode ('Change from ZP to Sat mode.  Map: %s (%s)') after saving its unpaired settings.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10737e14",
-         "notes": "impl vfunc delegate path: impl->v[+0x48] then impl->v[+0x0c] (call-derived member-method semantics)"
+         "function": "0x1034ec5c",
+         "notes": "primary-path literals"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034cf38",
+         "notes": "satellite-path literals"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to impl->v[+0x48] then impl->v[+0x0c]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "description": "Publishes the internal bondedZoneChange topology event through f_1035c748 with zoneType 'HT'.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034d750",
+         "notes": "f_1035c748 call from the satellite path"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035c970",
+         "notes": "zoneType 'HT'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035ca08",
+         "notes": "publisher"
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA event is raised by the wrapper or the worker. The role implementations publish the in-process bondedZoneChange topology event (zoneType 'HT').",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737e14",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1035c9f4",
+        "notes": "event name"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034f5b0",
+        "notes": "no publisher call in the worker itself"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x48], r30 v[+0xc]",
+      "description": "A player that takes the satellite path leaves standalone operation for satellite mode and keeps its previous LED, button-lock, name, icon and configuration as the 'Unpaired*' settings so they can be restored. A primary gains the satellite in its map. Result 1032 means the operation completed but the player must still run the slot +0x74 follow-up.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737e14",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x48]', 'r30 v[+0xc]']"
+        "function": "0x1034cf38",
+        "notes": "unpaired-setting saves and mode switch"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737ea8",
+        "notes": "1032 treated as success with a follow-up"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x48], r30 v[+0xc].",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The wrapper commits on 0 and also on 1032, in which case it then runs the slot +0x74 follow-up. 402 is the TRequest validation failure or the map rejection in f_1065a6cc. f_1034f5b0 passes 1032 and 1035 through unchanged, maps any other result between 1000 and 9999 to 800, and returns anything else verbatim.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737e14",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}"
+        "address": "0x10737ea8",
+        "notes": "1032 comparison"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737ee8",
+        "notes": "wrapper 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f654",
+        "notes": "map-rejection 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f600",
+        "notes": "1032 and 1035 pass-through tests"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f620",
+        "notes": "isel selecting 800 for the 1000..9999 band"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the wrapper, the role split in f_1034f5b0, the 402 validation exit, the 1000..9999 to 800 banding, the 1032 follow-up and the rejection reasons named by the log strings are traced.",
+       "Unknown: which of the literals 401, 402, 1000, 1029, 1034 and 1035 inside f_1034ec5c and f_1034cf38 belongs to which rejection, because the two bodies are 597 and 584 instructions of topology and Muse-API work whose branch conditions are not resolved yet.",
+       "Close it by walking f_1034ec5c and f_1034cf38 branch by branch from their entry points and binding each result literal to the condition that reaches it."
       ]
      },
      "fault_sites": [
@@ -11867,33 +11999,40 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 at 0x1034f654 and at 0x10737ee8",
+       "meaning": "TRequest validation failed, or f_1065a6cc rejected the submitted HTSatChanMapSet for the satellite role.",
        "fault_sites": [
         "0x10737ef8"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "f_1065a6cc returns 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737e14",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
+           "address": "0x1034f64c",
+           "notes": "call"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f658",
+           "notes": "branch to the 402 exit"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737e14",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10737ee8",
+           "notes": "addi r4,0x192"
           }
          ]
         }
@@ -11903,85 +12042,102 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737e14",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737e14",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10737ef8",
+         "notes": "fault emit"
         }
-       ],
-       "unresolved": {
-        "proven": "impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
-        "unknown": "the concrete rc set each impl can produce",
-        "impl_exit_literals": {
-         "function": "0x1017fa08",
-         "lits": [
-          -900,
-          28,
-          936
-         ],
-         "passthrough_exits": 1
-        },
-        "delegated_sources": {
-         "f_1040e4cc": {
-          "lits": [
-           8,
-           16,
-           20
-          ],
-          "pt": 0
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "resolved_note": "impl-return-scan: this impl is a void commit-handler (or returns a member ptr/field, not an rc). No rc-return domain exists; action faults surface via the request-object raise path req->v[+0x14](code): the code literal is set at the raise site, not returned. See the handler's raise-site literal for the concrete code.",
-       "literal_bound": [
-        0
-       ],
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10737ef8).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103619c8",
-         "notes": "dp_zpimpl impl {821,822,824}"
-        }
+       "code": 800,
+       "code_expr": "0x320 selected at 0x1034f620",
+       "meaning": "The role implementation returned a code between 1000 and 9999 other than 1032 or 1035, which f_1034f5b0 collapses to the generic 800.",
+       "fault_sites": [
+        "0x10737ef8"
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "result minus 1000 is at most 0x2327 and the result is neither 1032 nor 1035",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103619c8",
-           "notes": "dp_zpimpl impl {821,822,824}"
+           "address": "0x1034f610",
+           "notes": "addi r9,-0x3e8"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f618",
+           "notes": "cmplwi 0x2327"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f620",
+           "notes": "isel"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034f61c",
+         "notes": "0x320 literal"
+        }
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x103619c8 emits constant set {616, 800} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "todo": [
+        "Established: the banding that produces 800 is traced exactly.",
+        "Unknown: the full set of 1000..9999 results that the role implementations can return and what each one means.",
+        "Close it by enumerating the return literals of f_1034ec5c and f_1034cf38 with their conditions."
+       ]
+      },
+      {
+       "code": 1035,
+       "code_expr": "pass-through at 0x1034f608",
+       "meaning": "Result 1035 from the role implementation is returned to the caller unchanged rather than being collapsed to 800. Both f_1034ec5c and f_1034cf38 can produce it.",
+       "fault_sites": [
+        "0x10737ef8"
+       ],
+       "conditions": [
+        {
+         "description": "role implementation returns 1035",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034eeac",
+           "notes": "literal in the primary path"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034d1c4",
+           "notes": "literal in the satellite path"
+          }
+         ]
+        }
+       ],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034f608",
+         "notes": "cmplwi 0x40b"
+        }
+       ],
+       "todo": [
+        "Established: 1035 is passed through instead of being collapsed to 800, and both role bodies contain the literal.",
+        "Unknown: the precise condition each body applies before returning 1035.",
+        "Close it by binding the 0x40b literal sites at 0x1034eeac and 0x1034d1c4 to their guarding branches."
        ]
       }
      ],
@@ -12011,9 +12167,7 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: handler 0x10737e14 reads arg HTSatChanMapSet (cap 0x280), calls impl->v[+0x48](buf), guards return <0x408 (else 0x192 fault), then invokes impl->v[+0x74] when the slot differs from stub f_1012b9a8. Residual: the v[+0x48] impl internals (delegate member)."
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x48 is the same function in both vtables. The wrapper treats 1032 as success: at 0x10737ea8 it compares the worker result against 0x408 and takes the commit path, then runs the slot +0x74 follow-up, which is how a satellite that has just been reconfigured reports itself."
     },
     "CreateStereoPair": {
      "description": "Creates a stereo pair from the players named in ChannelMapSet. The wrapper parses ChannelMapSet (cap 640) and calls slot +0x20 of runtime vtable 0x10ebc630, which the most-derived class overrides with 0x10350210: a five-instruction thunk that loads the same object's slot +0x18 and tail-calls it. The action therefore runs exactly the AddBondedZones implementation (f_1035560c then the bonding worker f_103548f4) with the same argument, and has the same validation, side effects and error codes; the only difference is the SOAP action name.",
@@ -18364,7 +18518,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. f_105b5030 exists to make the action fail cleanly on builds where slot +0x78 is the base stub f_105b43d4: it returns 800 in that case. On this firmware slot +0x78 is f_10352dd4, so the 800 path is not reachable for the DeviceProperties object, and the previous attribution of this action to a shared_ptr accessor was wrong."
     },
     "RemoveHTSatellite": {
-     "description": "Removes HT satellite SatRoomUUID via impl->v[+0x4c].",
+     "description": "Detaches a home-theater satellite named by its room UUID. The wrapper parses SatRoomUUID (cap 25) and calls slot +0x4c of runtime vtable 0x10ebc630, f_1034e5c8, which starts with its result preset to 402, removes the satellite from the home-theater set, sends the removal to the satellite ('RemoveHTSat: error %d sending to Sat %s') and clears its room calibration ('failed to clear RoomCalibration on satellite %s - not found in topology', 'failed to clear RoomCalibration on satellites'), logging 'HT Sat %s removal (%u) via %s took %ld ms on %s'. As with AddHTSatellite the wrapper treats 1032 as success: it commits, sleeps one second and then calls slot +0x74 unless that slot is the empty stub f_1012b9a8.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737f3c",
@@ -18376,42 +18530,62 @@
       "voff": null
      },
      "implementation": {
+      "concrete_impl_class": "most-derived DeviceProperties implementation (constructor f_10351904)",
+      "impl_vtable": "0x10ebc630",
+      "worker": "0x1034e5c8",
+      "worker_slot": "0x4c",
+      "post_commit_slot": "0x74 -> 0x80 (f_1034c82c -> f_1034cabc)",
       "calls": [
        {
-        "site": "0x10737fbc",
-        "obj": "r5-in",
-        "slot": 76,
-        "arg4": "sp-0x30"
+        "site": "0x10737f7c",
+        "obj": "TRequest (r4-in)",
+        "slot": 28,
+        "purpose": "allocate SatRoomUUID input record"
        },
        {
-        "site": "0x1073800c",
-        "obj": "r5-in",
-        "slot": 116,
-        "arg4": "?"
+        "site": "0x10737f88",
+        "purpose": "parse through f_1056157c, capacity 25"
        },
-       {
-        "site": "0x10738060",
-        "obj": "xor(*(r2+0xffff8ff8))",
-        "slot": 12,
-        "arg4": "?"
-       }
-      ],
-      "req_vcalls": [
        {
         "site": "0x10737f9c",
+        "obj": "TRequest (r4-in)",
         "slot": 8,
-        "purpose": "parse"
+        "purpose": "validate; 0 leads to 402 at 0x10738018"
+       },
+       {
+        "site": "0x10737fbc",
+        "obj": "DeviceProperties impl (r5-in)",
+        "slot": 76,
+        "target": "0x1034e5c8",
+        "purpose": "remove the satellite"
        },
        {
         "site": "0x10737fe0",
+        "obj": "TRequest (r4-in)",
         "slot": 12,
-        "purpose": "commit"
+        "purpose": "commit success (also taken for rc 1032)"
+       },
+       {
+        "site": "0x10737fe8",
+        "purpose": "sleep(1) before the follow-up"
+       },
+       {
+        "site": "0x1073800c",
+        "obj": "DeviceProperties impl (r5-in)",
+        "slot": 116,
+        "purpose": "post-commit follow-up, skipped when slot +0x74 is the stub f_1012b9a8"
+       },
+       {
+        "site": "0x10738028",
+        "obj": "TRequest (r4-in)",
+        "slot": 20,
+        "purpose": "fault with the worker rc or 402"
        }
       ]
      },
      "inputs": {
       "SatRoomUUID": {
-       "description": "Room UUID of the satellite to detach",
+       "description": "Room UUID of the satellite to detach, parsed into a 25-byte buffer, which is exactly the size of a 24-character player UUID plus its terminator. f_1034e5c8 looks it up in the topology; a UUID that is not found is reported through the 'failed to clear RoomCalibration on satellite %s - not found in topology' path.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -18423,12 +18597,12 @@
        "semantic_type": "string argument (type-tag-7 record)",
        "format": "utf-8 text, buffer cap 25 bytes (24 chars + NUL)",
        "unit": "n/a - text",
-       "accepted_values": "any string within the request parse cap; no lexical whitelist observed at the parse layer",
-       "range": "max 24 chars",
+       "accepted_values": "a 24-character player UUID",
+       "range": "25-byte parse buffer",
        "special_values": "none identified",
        "required": true,
        "default": "none; required input",
-       "validation": "consumed by the impl vfunc; impl-side validation as noted",
+       "validation": "TRequest parse, then topology lookup inside the worker",
        "evidence": [
         {
          "type": "firmware",
@@ -18450,14 +18624,24 @@
          "build": "86.10-80260",
          "function": "0x1068b998",
          "notes": "impl consumes the UUID"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10737f80",
+         "notes": "capacity 25"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1034e5c8",
+         "notes": "topology lookup and not-found log"
         }
        ],
        "notes": null,
        "buf_cap": 25,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `SatRoomUUID` is parsed then forwarded verbatim to r5-in vfunc +76 (site 0x10737fbc) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `SatRoomUUID` = verbatim forward to impl vfunc +76 (obj r5-in, call site 0x10737fbc); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
        ]
@@ -18477,101 +18661,155 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×2); member delegates: r30 v[+0x4c], r30 v[+?]",
+      "description": "SatRoomUUID must name a satellite of this player; the worker's result starts at 402 and is only replaced once the removal path succeeds. The follow-up through slot +0x74 runs only when that slot is bound (it is not the stub f_1012b9a8).",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737f3c",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}"
+        "address": "0x1034e614",
+        "notes": "402 preset"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10737ff8",
+        "notes": "stub comparison before the follow-up"
        }
       ],
       "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×1, validate×1, commit×2); member delegates: r30 v[+0x4c], r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the wrapper, the slot +0x4c worker, the 402 preset, the 1032 success-with-follow-up rule and the removal, satellite-notification and room-calibration steps named by the log strings are traced.",
+       "Unknown: the conditions that select the worker's 402 and 1024 results and whether any other code can leave the 421-instruction body, because the removal work runs through the topology and Muse paths it calls.",
+       "Close it by walking f_1034e5c8 from 0x1034e5c8 to its exits and binding the 0x192 preset at 0x1034e614 and the 0x400 literal at 0x1034ebe4 to their guarding branches."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+0x4c], r30 v[+?]",
+      "description": "Reads the zone-player context at impl+0x25c and the home-theater channel map at impl+0xe60, and works on the topology objects it looks the satellite up in.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737f3c",
-        "notes": "member vfunc calls: ['r30 v[+0x4c]', 'r30 v[+?]']"
+        "address": "0x1034e674",
+        "notes": "impl+0x25c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034e67c",
+        "notes": "impl+0xe60"
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+0x4c], r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
-       "description": "state mutation delegated to impl->v[+0x4c]; impl parses args then commits via req->v[+0x0c]",
+       "description": "Removes the satellite from the home-theater set, sends the removal to it and clears its room calibration; each step logs its own failure ('RemoveHTSat: error %d sending to Sat %s', 'failed to clear RoomCalibration on satellites').",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x10737f3c",
-         "notes": "impl vfunc delegate path: impl->v[+0x4c] (call-derived member-method semantics)"
+         "function": "0x1034e5c8",
+         "notes": "removal, notification and calibration literals"
         }
-       ],
-       "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state mutation delegated to impl->v[+0x4c]; impl parses args then commits via req->v[+0x0c].",
-        "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       ]
+      },
+      {
+       "description": "Publishes the internal bondedZoneChange topology event through f_1035c748 with eventType 'Removed'.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034e858",
+         "notes": "f_1035c748 call"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1035c968",
+         "notes": "eventType 'Removed'"
+        }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "No GENA event; the in-process bondedZoneChange topology event is published with eventType 'Removed'.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737f3c",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1035c968",
+        "notes": "literal"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1035ca08",
+        "notes": "publisher"
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x4c], r30 v[+?]",
+      "description": "On success the named satellite leaves the home-theater set and returns to standalone operation with its 'Unpaired*' settings; the primary's satellite map loses the entry.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737f3c",
-        "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+0x4c]', 'r30 v[+?]']"
+        "function": "0x1034e5c8",
+        "notes": "removal path"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1034cf38",
+        "notes": "the unpaired settings saved when the satellite was attached"
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x4c], r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "The wrapper commits on 0 and on 1032, after which it sleeps one second and runs the slot +0x74 follow-up. 402 is the TRequest validation failure or the worker's preset result when the removal does not complete, and 1024 is produced at 0x1034ebe4.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x10737f3c",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0xc': 2, '0x14': 1}"
+        "address": "0x10737fd0",
+        "notes": "1032 comparison"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10738018",
+        "notes": "wrapper 402"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034e614",
+        "notes": "worker 402 preset"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034ebe4",
+        "notes": "1024 literal"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: the wrapper, the slot +0x4c worker, the 402 preset, the 1032 success-with-follow-up rule and the removal, satellite-notification and room-calibration steps named by the log strings are traced.",
+       "Unknown: the conditions that select the worker's 402 and 1024 results and whether any other code can leave the 421-instruction body, because the removal work runs through the topology and Muse paths it calls.",
+       "Close it by walking f_1034e5c8 from 0x1034e5c8 to its exits and binding the 0x192 preset at 0x1034e614 and the 0x400 literal at 0x1034ebe4 to their guarding branches."
       ]
      },
      "fault_sites": [
@@ -18584,33 +18822,33 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "const; parse/req-layer",
-       "meaning": "request-validate failure (req->v[+0x08] returned 0) | impl is a real fn -> real worker worker | Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "0x192 preset at 0x1034e614 and literal at 0x10738018",
+       "meaning": "TRequest validation failed, or the removal did not complete, for example because SatRoomUUID does not name a satellite of this player.",
        "fault_sites": [
         "0x10738028"
        ],
        "conditions": [
         {
-         "description": "request-layer validation failed; handler loads literal 0x192 and calls fault emitter svc/req->v[+0x14]",
+         "description": "worker returns its preset result",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737f3c",
-           "notes": "addi r4,0x192 -> v[+0x14] in handler"
+           "address": "0x1034e614",
+           "notes": "preset"
           }
          ]
         },
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "req->v[+0x08] returned 0",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x10737f3c",
-           "notes": "parse vcalls then fault path"
+           "address": "0x10738018",
+           "notes": "addi r4,0x192"
           }
          ]
         }
@@ -18620,65 +18858,50 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10737f3c",
-         "notes": "0x192 fault constant in handler"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x1068b998",
-         "notes": "impl resolves to worker (real fn)"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10737f3c",
-         "notes": "wrapper parse + fault path"
+         "address": "0x10738028",
+         "notes": "fault emit"
         }
        ],
-       "notes": "impl rc passthrough also present: nonzero impl r3 is passed to ->v[+0x14] verbatim",
-       "domain_note": "domain fully bounded: impl 0x1068b998 exits=[20, 24]; impl result in r3 -> req v[+0x14] fault code; success branch tests CR0.eq (impl-side compare)",
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: const; parse/req-layer; sites: 0x10738028).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the wrapper, the slot +0x4c worker, the 402 preset, the 1032 success-with-follow-up rule and the removal, satellite-notification and room-calibration steps named by the log strings are traced.",
+        "Unknown: the conditions that select the worker's 402 and 1024 results and whether any other code can leave the 421-instruction body, because the removal work runs through the topology and Muse paths it calls.",
+        "Close it by walking f_1034e5c8 from 0x1034e5c8 to its exits and binding the 0x192 preset at 0x1034e614 and the 0x400 literal at 0x1034ebe4 to their guarding branches."
        ]
       },
       {
-       "code": null,
-       "code_expr": "store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])",
-       "meaning": "dp_zpimpl zone-attribute/bonding rc domain {821,822,824} (f_103619c8, dp_zpimpl.cxx) beside documented 402/640-band",
-       "fault_sites": [],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103619c8",
-         "notes": "dp_zpimpl impl {821,822,824}"
-        }
+       "code": 1024,
+       "code_expr": "0x400 at 0x1034ebe4",
+       "meaning": "Home-theater removal result 1024 produced near the end of the worker, after the satellite notification and room-calibration steps.",
+       "fault_sites": [
+        "0x10738028"
        ],
        "conditions": [
         {
-         "description": "the backing store-commit worker returned a nonzero code: propagated verbatim through the request-object commit vfunc; per-rung triggers decoded for the favorites ladder (count>=70->805, size>128KiB->806) and partly for savedqueues; other stores’ per-code triggers unresolved",
+         "description": "the branch that loads 0x400 into the result register is taken",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x103619c8",
-           "notes": "dp_zpimpl impl {821,822,824}"
+           "address": "0x1034ebe4",
+           "notes": "literal load"
           }
          ]
         }
        ],
-       "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034ebe4",
+         "notes": "literal load"
+        }
        ],
-       "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x103619c8 emits constant set {616, 800} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+       "todo": [
+        "Established: the wrapper, the slot +0x4c worker, the 402 preset, the 1032 success-with-follow-up rule and the removal, satellite-notification and room-calibration steps named by the log strings are traced.",
+        "Unknown: the conditions that select the worker's 402 and 1024 results and whether any other code can leave the 421-instruction body, because the removal work runs through the topology and Muse paths it calls.",
+        "Close it by walking f_1034e5c8 from 0x1034e5c8 to its exits and binding the 0x192 preset at 0x1034e614 and the 0x400 literal at 0x1034ebe4 to their guarding branches."
        ]
       }
      ],
@@ -18708,9 +18931,7 @@
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: handler 0x10737f3c reads arg SatRoomUUID (cap 0x19), calls impl->v[+0x4c](buf), guards return <0x408, sleeps 1s, then invokes impl->v[+0x74] (non-stub path). Residual: the v[+0x4c] impl internals (delegate member)."
-     ]
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x4c is the same function in both vtables. The one-second sleep at 0x10737fe8 runs on the SOAP worker thread after the response has been committed, so a client sees the reply before the follow-up happens."
     },
     "RoomDetectionStartChirping": {
      "description": "Plays a room-detection chirp through the speaker and returns the identifier of the resulting playback. The wrapper parses Channel (u16), DurationMilliseconds (u32) and ChirpIfPlayingSwappableAudio (boolean) and calls slot +0x50 of runtime vtable 0x10ebc630, f_1035b390. When ChirpIfPlayingSwappableAudio is false the worker first asks the audio-source layer through f_104ad918 whether current playback may be interrupted and returns 0 with PlayId 0xffffffff when it may not. It then requires the room-detection object at impl+0x1ac0 and calls f_104f669c with the channel and the duration converted to whole seconds (multiply-high by 0x10624dd3 then shift right 6, which is unsigned division by 1000) and multiplied back by 1000 inside f_104f669c, finally reading the assigned play id from the object through f_104f6634.",
