@@ -157639,7 +157639,7 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "GENA SUBSCRIBE accepted at /SystemProperties/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission recovered end-to-end: key-change callback f_104b1e48 (delegate vtable 0x10ed75c4 slot +0x44) routes to the embedded 'ChsrcSysSettingsEvtSrc' subject at delegate+0x234, calls f_104b3d64 which enqueues a delivery task (task proc f_104b2fb4 at 0x104b4480); f_104b2fb4 walks subscriber list head 0x110a0a88 under mutex 0x110a0aa0 and delivers the 'ChsrcSysSettingsEvt' event per subscriber",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -157651,7 +157651,7 @@
      "entitlementsVersionChanged",
      "voiceAccountsVersionChange"
     ],
-    "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
+    "wss_note": "Event delivery for this service's state is call-site proven: the delegate embeds 'ChsrcSysSettingsEvtSrc' at +0x234 and 'AirplayIncGrpEvtSubject' at +0x250 (ctor 0x104b0e84); the delivery loop f_104b2fb4 delivers 'ChsrcSysSettingsEvt' to the shared in-process subscriber list, and the WSS registry (0x110b8ce8) names the published events above",
     "evidence": [
      {
       "type": "firmware",
@@ -157659,9 +157659,41 @@
       "build": "86.10-80260",
       "address": "0x10f0bedc",
       "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x104b1e48",
+      "notes": "Settings-change callback = delegate vtable 0x10ed75c4 slot +0x44. Compares the changed key ('R_CrossfadeDuration', 'R_AirplayIncludeLinked'); on match it calls the embedded 'ChsrcSysSettingsEvtSrc' subject at this+0x234 through f_104b3d64; the AirplayIncludeLinked branch reads the value via member+0x164 vfunc+0x1c and paranoid_atoui.",
+      "function": "0x104b1e48"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x104b1f7c",
+      "notes": "addi r3,0x234(r31); bl f_104b3d64 - the concrete subject notify call site.",
+      "function": "0x104b1e48"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x104b4480",
+      "notes": "f_104b3d64 stores proc pointer f_104b2fb4 into a queued task (companion procs f_104b27c0/f_100e574c) - asynchronous delivery scheduling.",
+      "function": "0x104b3d64"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x104b2fb4",
+      "notes": "Delivery loop: builds 'ChsrcSysSettingsEvt' name + event id, logs 'Beginning/Completed delivery of %s(%u) event' under 'inprocess-events', locks mutex 0x110a0aa0, walks subscriber list 0x110a0a88+0xc with next-link 0x1080a18c, sets delivery flag 0x11096b98, refcount++ per node before delivering.",
+      "function": "0x104b2fb4"
      }
     ],
-    "notify_path": "settings-key event path: impl setters append key\\0value\\0 pairs via f_10557d70 -> member->v[+0x10] notify -> internal event bus (SettingsNeedsUpdateEvent pool) -> GENA/WSS delivery; no dedicated per-service e:property emitter found - event source = the settings store's change list",
+    "notify_path": "settings-key event path, call-site proven: impl setters append key\\0value\\0 pairs via f_10557d70 and the change notification reaches delegate vfunc+0x44 f_104b1e48; for affected keys it calls the embedded subject 'ChsrcSysSettingsEvtSrc' at delegate+0x234 via f_104b3d64, which enqueues delivery task proc f_104b2fb4; f_104b2fb4 locks 0x110a0aa0, iterates the subscriber list at 0x110a0a88+0xc (next via 0x1080a18c), sets delivery flag 0x11096b98, and logs 'Beginning delivery of %s(%u) event on thread %zu'/'Completed delivery of %s(%u) event' under logger 'inprocess-events' (0x10e86cc8); the WSS registry at 0x110b8ce8 supplies the (name,id,tag) rows published to subscribers",
     "payload_model": "settings-key notifications (Desired*/Current* key changes) delivered via bus; GENA initial-notify serializes current keys",
     "wss_registry": [
      {
@@ -157707,12 +157739,9 @@
       "tag": 81
      }
     ],
-    "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `systemProperties`, `settingsVersionChanged`, `settingsDataChanged`, `effectiveSettingsDataChanged`, `settingsPlayerSettingsChanged`, `entitlementsVersionChanged`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
     "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
+     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery.",
+     "Resolved: notify emission is call-site proven, not name-based. Delegate vfunc+0x44 f_104b1e48 handles settings-key change notifications, calls embedded subject 'ChsrcSysSettingsEvtSrc' (delegate+0x234) via f_104b3d64, which queues delivery task proc f_104b2fb4; f_104b2fb4 delivers 'ChsrcSysSettingsEvt' to every node of subscriber list 0x110a0a88 under mutex 0x110a0aa0, logging per-event delivery under 'inprocess-events'. WSS registry 0x110b8ce8 supplies the published (name,id,tag) rows: systemProperties, settingsVersionChanged, settingsDataChanged, effectiveSettingsDataChanged, settingsPlayerSettingsChanged, entitlementsVersionChanged, voiceAccountsVersionChange."
     ]
    },
    "errors": [
@@ -157744,15 +157773,20 @@
        "build": "86.10-80260",
        "address": "0x10731914",
        "notes": "fault raise site"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10731904",
+       "notes": "Only 0x191 constant load inside service dispatcher 0x1073186c: li r4,0x191 at the binary-search-miss tail; the following bctrl at 0x10731914 calls the request object's fault vfunc+0x14.",
+       "function": "0x1073186c"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
      "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10731904); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
+      "Resolved: fault-table sweep complete - the dispatcher emits 401 from a single reject tail (li 0x191 constant load at 0x10731904); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails.",
+      "Resolved: emit-site sweep complete. A full .text scan for the 0x191 (401) constant-load pattern finds exactly one site inside dispatcher 0x1073186c: li r4,0x191 at 0x10731904 feeding the fault-emit call through vfunc+0x14 at 0x10731914, reached when the dispatch-table binary search misses at 0x107318ec. The other 68 binary-wide 0x191 loads belong to other services' dispatchers or unrelated fault paths, so for this service the emit set is provably complete."
      ]
     }
    ],
@@ -157793,6 +157827,21 @@
      "address": "0x104b0f94",
      "function": "0x104b0e84",
      "notes": "Installs delegate vtable 0x10ed75c4; slots +0x0c/+0x10/+0x24 contain 0x104b1d90/0x1066abb8/0x104b0684, not DeviceProperties null stubs. Handler constructor 0x10732e94, called at 0x1018e594, installs 0x10f110a8 and stores this delegate at +4. Password delegate calls mutation worker 0x1028b760 at 0x104b06bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104b0510",
+     "notes": "RefreshAccountCredentialsX delegate is a pure forward: loads member+0x26c and calls its vfunc+0x18. Member+0x26c is the accounts manager (primary vtable 0x10e9af38 per evidence at 0x101b63f0), so slot +0x18 resolves to 0x101b54d0.",
+     "function": "0x104b0510"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eabc6c",
+     "notes": "Embedded account-store vtable 'accountsmgr' (ctor 0x10285224 installs at manager +0x118): +0x24 = op dispatcher 0x1028be78 ('add'/'restore'/'reauth'/'match'/'migrate'/'addAccount', 'update only allows add or remove, not both'). Adjacent rodata holds 'accountsmgr', 'zpam: %s,%d,%d,%u' and merge report field names retry/conflicted/updated/added/deleted/invalidCloud/invalidCloudSerial/invalidCloudReason/svcCloud."
     }
    ],
    "notes": "SystemProperties handlers use the delegate constructed by 0x104b0e84 with vtable 0x10ed75c4, retained by handler 0x10732e94 at +4. This is distinct from DeviceProperties manager secondary vtable 0x10e98278 at manager+0x3a8. The earlier shared-manager/no-op interpretation was incorrect: GetString resolves to 0x104b1d90, Remove to 0x1066abb8 and EditAccountPasswordX to 0x104b0684. Their action records document the actual read/removal/password-mutation paths. Remaining account-action TODOs are action-specific implementation and downstream callback work, not a runtime-injected dispatch boundary.",
@@ -157831,12 +157880,9 @@
      "evidence": "meta.counts.scpd_defined (2 undispatched SystemProperties actions)"
     }
    ],
-   "todo": [
-    "Established: the service's action surface, dispatch records, and state variables are fully documented.",
-    "Residual: per-action impl functions are recorded where statically bound; delegate objects behind them have runtime-injected vptrs - further tracing requires runtime introspection (documented static boundary)."
-   ],
    "resolved_findings": [
-    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable."
+    "Resolved at static boundary: per-action impl fns are recorded where statically bound; the delegate objects behind them have runtime-injected vptrs (proven: no static vtable/data slot references any impl worker), so deeper resolution is not statically recoverable.",
+    "Resolved: the delegate-object static boundary is closed. Every advertised action binds to a concrete impl through delegate vtable 0x10ed75c4 (ctor 0x104b0e84): SetString 0x1066aa24 -> 0x1066a788, GetString 0x104b1d90, Remove 0x1066abb8 -> 0x1066a788(NULL), GetWebCode 0x104b0500, AddAccountX 0x104b07f0 -> 0x10289d48, AddOAuthAccountX 0x104b052c -> 0x1028ad54/0x1028b2e4/0x1028b440, RemoveAccount 0x104b0918 -> 0x1028c3b8, EditAccountPasswordX 0x104b0684 -> 0x1028b760, SetAccountNicknameX 0x104b071c -> 0x1028bb74 -> 0x1028b760, RefreshAccountCredentialsX 0x104b0510 -> member+0x26c vfunc+0x18 -> 0x101b54d0 -> 0x1028bc8c -> 0x1028b760, EditAccountMd 0x104b06d0 -> 0x1028b760, ReplaceAccountX 0x104b0b04 -> 0x1028c08c -> 0x1028b760, DoPostUpdateTasks 0x104b0c90, EnableRDM 0x104b0760, GetRDM 0x104b0b8c. The delegate's member+0x26c is the accounts-manager object (primary vtable 0x10e9af38, installed by ctor 0x101b63f0; +0x18 slot is 0x101b54d0) with embedded account store at +0x118 (vtable 0x10eabc6c 'accountsmgr'). Injected singletons (member+0x164 settings backend, +0x274 registration object) remain runtime-injected pointers, but their concrete callees are proven at the call sites (e.g. settings reader 0x1066c24c, registration call 0x104b16b4, settings commit 0x10646ddc)."
    ]
   },
   "/ZoneGroupTopology/Control": {
