@@ -11884,7 +11884,7 @@
      },
      "side_effects": [
       {
-       "description": "Applies the home-theater satellite configuration: on the primary path f_1034ec5c updates the satellite map ('Add HT Sat.  New map: %s'), clears the local sonar configuration ('Clearing local sonar configuration in AddHTSatellite on SOURCE %s'), starts the topology monitor and notifies netstartd ('Failed to send IPC message to netstartd to notify about satellite addition' on failure); on the satellite path f_1034cf38 switches the player into satellite mode ('Change from ZP to Sat mode.  Map: %s (%s)') after saving its unpaired settings.",
+       "description": "Applies the home-theater satellite configuration: on the primary path f_1034ec5c updates the satellite map ('Add HT Sat.  New map: %s'), clears the local sonar configuration ('Clearing local sonar configuration in AddHTSatellite on SOURCE %s'), starts the topology monitor and notifies netstartd ('Failed to send IPC message to netstartd to notify about satellite addition' on failure); on the satellite path f_1034cf38 stages the new map. It saves the Unpaired settings only when impl+0xe60 is empty. A nonempty existing satellite map branches around the saves and still reaches the pending-map write.",
        "evidence": [
         {
          "type": "firmware",
@@ -11899,6 +11899,41 @@
          "build": "86.10-80260",
          "function": "0x1034cf38",
          "notes": "satellite-path literals"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034d360",
+         "notes": "Nonempty current map branches around the Unpaired saves"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034d56c",
+         "notes": "Unpaired settings backend write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034d5f4",
+         "notes": "Unpaired settings backend write"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034d838",
+         "notes": "Existing-satellite branch rejoins the pending-map path"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1034d650",
+         "notes": "Pending-map write"
         }
        ]
       },
@@ -11970,7 +12005,7 @@
       ]
      },
      "state_transitions": {
-      "description": "The satellite path saves Unpaired settings and writes a pending map at impl+0x10e0. For 1032, the wrapper commits first, then reaches f_1034c850 via +0x74 and +0x80; it reads the pending map, updates primary UUID/network settings and can take a restart path. The primary persists its map after the join path succeeds.",
+      "description": "The first satellite transition saves Unpaired settings; an existing satellite skips the save at 0x1034d360. Both paths write a pending map at impl+0x10e0. For 1032, the wrapper commits first, then reaches f_1034c850 via +0x74 and +0x80; it reads the pending map, updates primary UUID/network settings and can take a restart path. The primary persists its map after the join path succeeds.",
       "evidence": [
        {
         "type": "firmware",
@@ -12020,6 +12055,13 @@
         "build": "86.10-80260",
         "address": "0x1034ca00",
         "notes": "Alternate restart branch"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d360",
+        "notes": "Existing map bypasses Unpaired saves"
        }
       ]
      },
@@ -12101,8 +12143,8 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "0x192 at 0x1034f654 and at 0x10737ee8",
-       "meaning": "TRequest validation failed, or f_1065a6cc rejected the submitted HTSatChanMapSet for the satellite role.",
+       "code_expr": "0x192 at 0x10737ee8, 0x1034ed04, 0x1034f654 or 0x1034cfd0",
+       "meaning": "TRequest validation failed, the role-specific map parse failed or found at most one entry, or the satellite-role precheck rejected the map.",
        "fault_sites": [
         "0x10737ef8"
        ],
@@ -12135,6 +12177,72 @@
            "build": "86.10-80260",
            "address": "0x10737ee8",
            "notes": "addi r4,0x192"
+          }
+         ]
+        },
+        {
+         "description": "The primary worker cannot parse the submitted map against the local UUID or finds at most one entry",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f5fc",
+           "notes": "Primary dispatch"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ed04",
+           "notes": "Preset 402"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ed10",
+           "notes": "Parse failure exits with the preset"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034ed1c",
+           "notes": "Entry count at most one exits with the preset"
+          }
+         ]
+        },
+        {
+         "description": "After the satellite precheck, the satellite worker cannot parse the map against the local UUID or finds at most one entry",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034f668",
+           "notes": "Satellite dispatch after the precheck"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034cfd0",
+           "notes": "Preset 402"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034cfdc",
+           "notes": "Parse failure exits with the preset"
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1034cfe8",
+           "notes": "Entry count at most one exits with the preset"
           }
          ]
         }
