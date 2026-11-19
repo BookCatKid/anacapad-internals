@@ -147607,6 +147607,48 @@
      "build": "86.10-80260",
      "address": "0x10eb5400",
      "notes": "chsnk.cxx literal block: frame types, synchronizedPlay, seamless transition, denylist, frame pool"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10633a24",
+     "notes": "High wire nibble decodes to record+5; low to record+6. Prior swapped claim withdrawn."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10637ef4",
+     "notes": "Resync control flush explicitly chooses packet class one."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1044abc8",
+     "notes": "NACK request constructor selects high class two, low discriminator zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106365cc",
+     "notes": "Late-joiner replay override preserves class and sets low discriminator two; vtable +0x1c binding traced."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1044d084",
+     "notes": "Receiver names low-discriminator-one path as NACK resend."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1032d6d4",
+     "notes": "AFC dump is hexadecimal snprintf text, not proof of a fifty-byte binary transport record."
     }
    ],
    "itbt": "seamless handoff rides ITBTT_CHSRC/LINEIN/VLI InterthreadBlockTransport channels; failures \"itdbt receive packet failed\",\"incompatible protocol version\",\"END_TX\"",
@@ -147623,14 +147665,16 @@
     "skip_ahead": "'skipAheadAddEntry: immed at:%u pid:%u','shifted %u entries','[%u] at:%u pid:%u','released %u blocks','too many skip entries'.",
     "rx_histogram": "'Histogram of received packet info' bucket labels: 'Number of times there was a DataBlock to put data into','Number of times there was no DataBlock available','Number of times an expired packet was received','Number of times a duplicate packet ID was received','Number of times a packet too far into the future was received','Number of times a NACK request was transmitted','Number of times a packet was ignored on startup','Oldest buffered packet ID number','Last read packet ID number','Last good consecutive packet ID number','Last received packet ID number' (key lastReceivedPkt); guards 'histogram callback not defined','histogram labels not defined','index is out of bounds','number of labels not equal to number of buckets','invalid file size'."
    },
-   "todo": "Residual: AFC frame header and noderx wire header {u32be id, u8 ver, u8 nibbles, u16be, 1024B} are proven; the semantic names of the two wire5 nibble fields beyond the NACK=2 gate are unbound. Next: walk the nibble consumers/producers in the frame codec for per-value log strings or predicates.",
    "resolved_findings": [
     "Resolved: chsrc.cxx major routines are documented in the sub-blocks - frame production runs {chsrc state machine (TRAN_* states, ChsrcEvent), the itbt frame pump, op_enum dispatcher, chsnk_control_frame_dispatch}; chsnk side: noderx I/O + SNTP-gated sync + seamless handoff worker f_10308e48; nodetx carries the transport; each block names its routine set and role.",
     "Bus message format decoded at dispatch level: the CHSNK request-frame dispatcher (f_1030c8xx-0x1030cd00, chsnk domain) cmpwi-chains frame types {0->payload {u16@+0x2a, u8@+0x39}, 1/2/8->generic control frame, 5->audio type changed, 0xc->{u16@+0x2a,ptr@+0x40}, 0x80000040->f_1030c338; r3==0->stop detected; flag byte @+0x38->underflow detected + LSE recovery; request frame pbe %X playback-boundary event; logical track boundary at %u; default->group coordinator uuid: %s, network I/O error 0x%x}. nodetx is NACK-based retransmit (nack from %s count=%u, min=%u, max=%u packet-id ranges, requestResync(%u), protocol-version reject) with rx bookkeeping {pid, ob, lr, lcg, lrx, slrx} + resendToLateJoiner. HT satellite control frame carries {ctrl 0x%x, unscV %d, curV %d, extV %d, extVM %d, B %d, T %d, led %d, SPL %d, SC %d} beside the pkt: %zu channels, %zu samples, payload:%zu audio frame.",
-    "Resolved: the AFC wire record is 50 bytes serialized by the literal dump format \"%04hX%08X%08X%08X%04hX%02hhX%08X%08X%08X%08X%08X%08X%08X%08X%02X\" (0x10eb83d0, followed by \"AFC truncated!\") - field widths {u16, u32 x3, u16, u8, u32 x8, u8}; the {pid,class,offset,timestamp} identity triple lives inside the u32 run. The rchsrcreq command vocabulary is a 23-verb enum @0x10eb84b0+: {CHANGE_TRANSPORT_URI, BEGIN_ADD_URI_TO_QUEUE, COMMIT_ADD_URI_TO_QUEUE, REMOVE_TRACK_FROM_QUEUE, REMOVE_ALL_TRACKS_FROM_QUEUE, INVALIDATE_RADIO_TRACK_QUEUE, SEEK_TO_TRACK, SEEK_TO_TIME, SEEK_TO_TIME_WITH_ITEM_ID, SET_PLAY_MODE, SET_CROSSFADE_MODE, REORDER_TRACKS_IN_QUEUE, REMOVE_TRACK_RANGE_FROM_QUEUE, RESET_PRIVATE_QUEUE, COMMIT_REPLACE_QUEUE, SKIP_TO_ITEM, REFRESH_CLOUD_QUEUE, CANCEL_ADD_URI, SUSPEND, PREPARE_FOR_DELEGATION, RATE_ITEM, GET_RESUME_STATE, SET_FIRST_TRACK_MIME_TYPE}. A scheme:mime map table begins at 0x10eb8750 (\"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,...\").",
-    "Resolved: AFC dump-order vs object-offset map proven at the snprintf emit site 0x1032d660-0x1032d6d4 (dest = record+0x155 name buf, maxlen 0xa5). Wire order -> object field: %04hX<-u16@+0xea; %08X<-u32@+0xf0; %08X<-u32@+0x138; %08X<-u32@+0x13c; %04hX<-u16@+0x140; %02hhX<-u8@+0x154; %08X<-u32@+0x144; %08X<-u32@+0x148; %08X%08X<-u64 pair via *@(r31+0x124); %08X<-u32@+0x14c; %08X<-u32@+0x150; %08X<-u32@+0x12c; %08X<-u32@+0x130; %02X<-u32@+0x120. The +0xf0..+0x130 block is a member sub-struct accessed via getter thunks f_1045fcd4/+0x00, fce4/+0x08, fcf4/+0x30, fd04/+0x34(ptr to u64), fd14/+0x3c, fd24/+0x40. A 0x40-byte tag string is memcpy-capped into +0x1b9 with \"AFC truncated!\" diagnostic and +0x1f9 terminator.",
-    "Resolved: the noderx/nodetx wire format is decoded from the serializer/deserializer pair f_1063391c/f_106339d0 - every packet is an 8-byte header + fixed 0x400=1024-byte payload (total 0x408=1032, the receive cap): wire bytes {0-3 u32be packet-id, 4 u8 protocol-version, 5 two packed nibbles (hi->rec+6, lo->rec+5), 6-7 u16be} then payload verbatim. f_106339c0 reads the version byte at wire+4 and the receive loop (0x10638508+) drops packets whose version != local byte this->+0x538 with 'ignore NACK packet with incompatible protocol version: %d'; NACK class = record nibble field ==2 (checked at 0x106386a0-0x106386a8); record+0/+0x438 init -1 before deserialize",
-    "Resolved: AFC frame header decode stands; the noderx wire header is now proven ({u32be id, u8 ver, u8 nibbles, u16be, 1024B}). Residual: semantic names of the two wire5 nibbles beyond the NACK=2 gate"
+    "Correction: the AFC diagnostic identifier is formatted as hexadecimal text by __snprintf_chk at 0x1032d6d4 using the literal format \"%04hX%08X%08X%08X%04hX%02hhX%08X%08X%08X%08X%08X%08X%08X%08X%02X\" (0x10eb83d0, followed by \"AFC truncated!\"). Numeric formatting widths do not prove a fifty-byte binary wire header. The dump-order/object-offset map below describes this text identifier, not a separate transport serializer. The rchsrcreq command vocabulary is a 23-verb enum @0x10eb84b0+: {CHANGE_TRANSPORT_URI, BEGIN_ADD_URI_TO_QUEUE, COMMIT_ADD_URI_TO_QUEUE, REMOVE_TRACK_FROM_QUEUE, REMOVE_ALL_TRACKS_FROM_QUEUE, INVALIDATE_RADIO_TRACK_QUEUE, SEEK_TO_TRACK, SEEK_TO_TIME, SEEK_TO_TIME_WITH_ITEM_ID, SET_PLAY_MODE, SET_CROSSFADE_MODE, REORDER_TRACKS_IN_QUEUE, REMOVE_TRACK_RANGE_FROM_QUEUE, RESET_PRIVATE_QUEUE, COMMIT_REPLACE_QUEUE, SKIP_TO_ITEM, REFRESH_CLOUD_QUEUE, CANCEL_ADD_URI, SUSPEND, PREPARE_FOR_DELEGATION, RATE_ITEM, GET_RESUME_STATE, SET_FIRST_TRACK_MIME_TYPE}. A scheme:mime map table begins at 0x10eb8750 (\"file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,...\").",
+    "Resolved: AFC dump-order vs object-offset map proven at the snprintf emit site 0x1032d660-0x1032d6d4 (dest = record+0x155 name buf, maxlen 0xa5). Diagnostic format order -> object field: %04hX<-u16@+0xea; %08X<-u32@+0xf0; %08X<-u32@+0x138; %08X<-u32@+0x13c; %04hX<-u16@+0x140; %02hhX<-u8@+0x154; %08X<-u32@+0x144; %08X<-u32@+0x148; %08X%08X<-u64 pair via *@(r31+0x124); %08X<-u32@+0x14c; %08X<-u32@+0x150; %08X<-u32@+0x12c; %08X<-u32@+0x130; %02X<-u32@+0x120. The +0xf0..+0x130 block is a member sub-struct accessed via getter thunks f_1045fcd4/+0x00, fce4/+0x08, fcf4/+0x30, fd04/+0x34(ptr to u64), fd14/+0x3c, fd24/+0x40. A 0x40-byte tag string is memcpy-capped into +0x1b9 with \"AFC truncated!\" diagnostic and +0x1f9 terminator.",
+    "Shared noderx/nodetx header corrected consistently with chsnk and chsrc_chsnk. The ordinary serializer f_10633870 and override serializer f_1063391c emit wire {u32be packetId at 0, u8 version at 4, packed byte at 5, u16be first-frame offset at 6, 1024 payload bytes at 8}, total 0x408 bytes. The packed HIGH nibble becomes record+5, and LOW nibble becomes record+6, not the reverse: f_106339d0 shifts wire[5] right by four at 0x10633a24, stores that at record+5 at 0x10633a2c, masks the low four bits and stores record+6 at 0x10633a30. The override serializer takes high from r5 and low from r6 (0x10633928-0x10633934); ordinary serialization takes record+5/+6 at 0x106338b4-0x106338c8. f_106339d0 skips the payload copy when incoming r6 is nonzero and returns wire+8, so it also supports zero-copy receive. The caller-supplied r5 stored at record+0x40c is not a wire field.",
+    "HIGH nibble is the packet class, with operational producer meanings now bound rather than invented enum labels. Ordinary assembly f_1063777c calls packet producer f_106374cc with class=0 at 0x10637868-0x1063787c. Class=1 is explicitly used to flush a resynchronization-control packet: requestResync f_10637d2c appends a marker chosen from 0xfd/0xfb/0xfe, then calls f_10637ca8 with r4=1 at 0x10637eec-0x10637ef4; that routine pads the current packet and forwards the class to f_106374cc at 0x10637cec-0x10637d00. The producer places class in constructor r7 at 0x1063753c, and f_106337e4 stores it at record+5 at 0x10633838. Class=2 is a NACK request: f_1044ab7c builds it with r7=2 at 0x1044abc8 and emits via f_10633870 at 0x1044abe8. The nodetx NACK listener deserializes at 0x1063869c and accepts exactly record+5==2 at 0x106386a0-0x106386a8; the ordinary noderx path excludes that class at 0x1044ca68-0x1044ca74. Class mismatch is explicitly named by the logger at 0x1044d11c. These descriptions identify behavior, not canonical source enum spellings.",
+    "LOW nibble is the transmission/replay discriminator, independently of packet class. Initial packet production passes zero in constructor r8 at 0x10637554. NACK servicing f_10638090 reserializes cached packets with low=1 at 0x106381d8-0x106381e4, 0x1063826c-0x10638274 and 0x106383f8-0x10638400, preserving their high class. Receiver low==1 reaches the startup continuity gate at 0x1044ca94-0x1044cab0, whose logs explicitly say NACK resend at 0x1044d084 and 0x1044d378. Low=2 is cached replay to a late joiner: f_10636574 passes r6=2 at 0x106365c4-0x106365cc. The resendToLateJoiner loop calls sender virtual +0x1c at 0x106cb188-0x106cb1a0; sender vtable 0x10efb75c contains f_10636574 in that slot at 0x10efb778. Thus value two in the low nibble is not a NACK class. No additional meaning is assigned to unused nibble values 3..15.",
+    "Header u16 is a payload-relative first-full-frame offset, not a type code. The seamless sink reads it at 0x10309608, checks offset<=1023 and offset+16<=1024, then parses a subframe header at record+0xa+offset (0x10309614-0x103096c4). The normal receive path likewise tests <=0x3ef before reading sixteen bytes at 0x1044cba8-0x1044ce90. Offset above the payload range denotes no complete frame start in that packet. Both paths demonstrate the offset semantics independently of the diagnostic strings.",
+    "The prior nibble residual is closed by the complete observed operational split: high class {0 ordinary packet,1 resync-control flush,2 NACK request}, low discriminator {0 initial transmission,1 NACK resend,2 late-joiner replay}. Source-code enum spellings are not asserted. The four-bit fields still admit other numeric bit patterns; this is not evidence that values 3..15 are assigned a protocol meaning or must be rejected. Do not confuse these packet-level fields with the separate codec/control type in each sixteen-byte subframe header. The full per-subframe body grammar remains tracked in chsnk rather than being misrepresented as a nibble-name gap here."
    ]
   },
   "registration_machine": {
