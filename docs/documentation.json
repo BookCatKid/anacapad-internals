@@ -75628,7 +75628,7 @@
      }
     },
     "RampToVolume": {
-     "description": "CLASS-B ONLY: vtable A has no +0x6c entry (0x00000000 terminator); derived class B implements it at 0x1046cdd8 (unexplored). Volume-ramp command with type, target, reset flag and program URI.",
+     "description": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime. Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore. Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes. RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds. Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073c834",
@@ -75664,7 +75664,7 @@
      },
      "inputs": {
       "InstanceID": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "Unsigned32 instance forwarded unchanged; only zero reaches local ramp setup.",
        "direction": "in",
        "primitive": {
         "type_tag": 4,
@@ -75676,47 +75676,67 @@
        "semantic_type": "instance selector",
        "format": "per parse",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "unconstrained",
+       "accepted_values": "Parsed unsigned32; zero required locally.",
+       "range": "as described",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Nonzero local value returns 702.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c874",
-         "notes": "in-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10e9aadc",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `InstanceID` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x1073c990) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `InstanceID` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x1073c990); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "Channel": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "Exact channel token forwarded before local checking.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -75728,48 +75748,68 @@
        "semantic_type": "channel token",
        "format": "utf-8 text, buffer cap 1024 bytes (1023 chars + NUL)",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "max 1023 chars",
+       "accepted_values": "Master",
+       "range": "as described",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Other local tokens return 402 after private step storage.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c898",
-         "notes": "in-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fac460",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
        "notes": null,
-       "buf_cap": 1024,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `Channel` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x1073c990) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `Channel` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x1073c990); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1024
       },
       "RampType": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "Exact local mode selector for interval, hold and restore-state policy.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -75781,48 +75821,68 @@
        "semantic_type": "ramp type",
        "format": "utf-8 text, buffer cap 64 bytes (63 chars + NUL)",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "max 63 chars",
+       "accepted_values": "ALARM_RAMP_TYPE | AUTOPLAY_RAMP_TYPE | SLEEP_TIMER_RAMP_TYPE | DIRECT_RAMP_TYPE | INSTANT_RAMP_TYPE | SLOW_RAMP_TYPE",
+       "range": "as described",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Unknown local token returns 402 after private step storage.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c8c0",
-         "notes": "in-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ed2a80",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
        "notes": null,
-       "buf_cap": 64,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `RampType` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x1073c990) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `RampType` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x1073c990); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 64
       },
       "DesiredVolume": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "Requested target; fixed mode may substitute its saved volume after the range check.",
        "direction": "in",
        "primitive": {
         "type_tag": 2,
@@ -75834,47 +75894,67 @@
        "semantic_type": "volume",
        "format": "per parse",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "unconstrained",
+       "accepted_values": "0..100 locally",
+       "range": "0..100 locally",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Values above 100 return local 402.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c8e8",
-         "notes": "in-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10ec3aa4",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561478) and declared constraints are documented.",
-        "Residual: `DesiredVolume` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x1073c990) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredVolume` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x1073c990); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "ResetVolumeAfter": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "Boolean stored in ramp metadata; instant mode also controls the restore flag/save and forces the separate reset metadata false.",
        "direction": "in",
        "primitive": {
         "type_tag": 1,
@@ -75886,47 +75966,67 @@
        "semantic_type": "flag",
        "format": "per parse",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "unconstrained",
+       "accepted_values": "Parsed boolean",
+       "range": "as described",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "No independent local range rejection. Stored policy is not proof that a later restore occurs.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c90c",
-         "notes": "in-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb36ec",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (0x10561444) and declared constraints are documented.",
-        "Residual: `ResetVolumeAfter` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x1073c990) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ResetVolumeAfter` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x1073c990); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "notes": null
       },
       "ProgramURI": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "URI text forwarded unchanged and copied into bounded local metadata; not played by the traced ramp loop.",
        "direction": "in",
        "primitive": {
         "type_tag": 7,
@@ -75938,116 +76038,540 @@
        "semantic_type": "URI",
        "format": "utf-8 text, buffer cap 1025 bytes (1024 chars + NUL)",
        "unit": "none",
-       "accepted_values": "parsed value",
-       "range": "max 1024 chars",
+       "accepted_values": "Parsed string, including empty",
+       "range": "as described",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Copied with capacity 0x401; no local URI parser or rejection is present.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c930",
-         "notes": "in-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eaae94",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
        "notes": null,
-       "buf_cap": 1025,
-       "todo": [
-        "Established: the arg's parse path (0x1056157c) and declared constraints are documented.",
-        "Residual: `ProgramURI` is parsed then forwarded verbatim to r5-in vfunc +108 (site 0x1073c990) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
-       ],
-       "resolved_findings": [
-        "Resolved: post-parse handling of `ProgramURI` = verbatim forward to impl vfunc +108 (obj r5-in, call site 0x1073c990); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
-       ]
+       "buf_cap": 1025
       }
      },
      "outputs": {
       "RampTime": {
-       "description": "consumed as fields of a state-machine action-event record (rc_impl_stp.cxx) rather than plain scalars",
+       "description": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcbc",
         "fmt": null
        },
-       "semantic_type": "unsigned int32",
+       "semantic_type": "nominal ramp-step duration",
        "format": "%u decimal",
-       "unit": "seconds (nominal)",
-       "accepted_values": "impl-produced",
-       "range": "unconstrained",
-       "special_values": "none",
+       "unit": "seconds",
+       "accepted_values": "Computed unsigned32 seconds",
+       "range": "floor(masked absolute cached difference * effective intervalMs / 1000)",
+       "special_values": {
+        "0": "Rounded nominal duration can be zero even though work remains."
+       },
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Written by local setup and serialized only on zero implementation status.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073c9fc",
-         "notes": "out-arg access site"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0b08c",
-         "notes": "argument name string"
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1046cdd8",
-         "address": "0x1046ce24",
-         "notes": "event-record field reads at impl entry"
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `RampTime`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "Does not include initial hold ticks or actual device/scheduling latency."
       }
      },
-     "validation": "Request-layer parse.",
-     "requirements": "impl class B installed",
-     "state_dependencies": "call-derived: reads RCS member object via impl->+OFF->v[slot] delegate",
+     "validation": {
+      "description": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2778",
+        "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d64",
+        "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc67c",
+        "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc880",
+        "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc8d0",
+        "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100da4cc",
+        "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c998",
+        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Parsed required inputs; locally InstanceID zero, exact Master, DesiredVolume <=100 and one of the six exact RampType strings. Peer work precedes those local checks. Fixed mode can replace a nonzero target with its saved volume.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2778",
+        "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d64",
+        "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc67c",
+        "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc880",
+        "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc8d0",
+        "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100da4cc",
+        "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c998",
+        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Topology snapshot and endpoint sessions; mutex +0x938, fixed-mode/override +0x7ff/+0x801, saved fixed volume +0x7e0, cached Master +0x7da, ramp target/interval/hold/step +0x3c8/+0x3ca/+0x3cc/+0x3d0 and restore flag/value +0x3d4/+0x3d6.",
+      "todo": [
+       "Established: Local fields and worker binding.",
+       "Unknown: Concrete delegate capabilities and later reset/URI consumers.",
+       "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2778",
+        "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d64",
+        "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc67c",
+        "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc880",
+        "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc8d0",
+        "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100da4cc",
+        "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c998",
+        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Derived-class-only impl f_1046cdd8: consumes a VolumeSetActionEvent record - reads u8@0 and u16@2 from the event (log 'process VolumeSetActionEvent (%u,%d)' at rc_impl_stp.cxx:0x4f2), then continues into the stp worker chain. No base-class impl exists.",
+       "description": "Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore. Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes. Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached.",
+       "todo": [
+        "Established: Peer requests, setup/cache changes, condition wakeup, cached worker steps and internal requests, including step storage before local 402.",
+        "Unknown: Completed device effects, later URI/reset policy and saved configuration.",
+        "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+       ],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "",
-         "address": "0x1046ce24",
-         "notes": "event field reads lbz 0/lhz 2 of event record; log fmt 0x10ed2ac8"
+         "address": "0x10ed2778",
+         "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10470d64",
+         "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc67c",
+         "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc880",
+         "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100dc8d0",
+         "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100da4cc",
+         "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073c998",
+         "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
         }
        ]
       }
      ],
-     "events_triggered": "LastChange via RCS writer f_100e27b0 carrying RampType/RampRate-driven MasterVolume ramp (mechanism proven; exact var emission per runtime change)",
-     "state_transitions": "persists RampType/RampRate-driven MasterVolume ramp into the RCS settings member; notify->dirty->event pipeline (call-derived, slot-bounded)",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code. Class-B impl behavior unexplored.",
+     "events_triggered": {
+      "description": "Alarm/autoplay setup and subsequent cached worker steps mark +0x7f0 and request f_1067c6ec/f_100d993c. The condition signal wakes the registered local ramp thread; it is not a subscriber notification or hardware-completion event.",
+      "todo": [
+       "Established: Local wakeup and notification/deferred-settings request sites.",
+       "Unknown: Concrete RC notification delivery and settings completion.",
+       "Next: Follow f_1067c6ec -> f_1067c46c -> f_10678c50 sender and provider +0x3bc slot +0x14 / f_10167318."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2778",
+        "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d64",
+        "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc67c",
+        "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc880",
+        "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc8d0",
+        "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100da4cc",
+        "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c998",
+        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       }
+      ]
+     },
+     "state_transitions": {
+      "description": "Forwarded sessions finish their bounded wait before local setup. On local success target/metadata may be installed while the worker still has cached steps/hold waits pending. Backend results from initial zeroing and worker steps are discarded. Restore storage follows the selected mode, not a universal automatic-restore rule.",
+      "todo": [
+       "Established: Ordering and worker termination/equality/shutdown paths.",
+       "Unknown: Later reset/URI policies and completed audio/session states.",
+       "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
+      ],
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2778",
+        "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d64",
+        "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc67c",
+        "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc880",
+        "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc8d0",
+        "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100da4cc",
+        "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c998",
+        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       }
+      ]
+     },
+     "return_behavior": {
+      "description": "Local 702/402 or last nonzero prepared-session status faults through SOAP; successful setup returns computed RampTime, not elapsed or achieved duration. No atomic rollback of earlier peers, initial zeroing or private step storage.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2778",
+        "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10470d64",
+        "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc67c",
+        "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc880",
+        "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100dc8d0",
+        "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100da4cc",
+        "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073c998",
+        "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
+       }
+      ]
+     },
      "fault_sites": [
       {
        "site": "0x1073c9ac",
@@ -76058,21 +76582,20 @@
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action or null implementation at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action or null implementation at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action or null implementation at dispatcher."
           }
          ]
         }
@@ -76082,43 +76605,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action or null implementation at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call; alternatively request argument parse/validation failure: req vfunc +0x08 returned nonzero, wrapper loads 402 (addi r4,0x192) and faults via req vfunc +0x14.",
+       "meaning": "Request parsing fails, or local Channel, DesiredVolume or RampType validation rejects the input.",
        "fault_sites": [
-        "0x1073c930",
         "0x1073c9ac"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Request parsing fails, or local Channel, DesiredVolume or RampType validation rejects the input.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073c930"
-          }
-         ]
-        },
-        {
-         "description": "any required input arg missing, unparsable or failing request-layer validation",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "notes": "parse-fail branch: addi r4,0x192 then req vfunc +0x14",
-           "address": "0x1073c9ac"
+           "address": "0x1073c9e0",
+           "notes": "Request parsing fails, or local Channel, DesiredVolume or RampType validation rejects the input."
           }
          ]
         }
@@ -76128,19 +76635,73 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073c930"
-        },
+         "address": "0x1073c9e0",
+         "notes": "Request parsing fails, or local Channel, DesiredVolume or RampType validation rejects the input."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "Local InstanceID is nonzero after any peer processing.",
+       "fault_sites": [
+        "0x1073c9ac"
+       ],
+       "conditions": [
+        {
+         "description": "Local InstanceID is nonzero after any peer processing.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100dc6bc",
+           "notes": "Local InstanceID is nonzero after any peer processing."
+          }
+         ]
+        }
+       ],
+       "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site",
-         "address": "0x1073c9ac"
+         "address": "0x100dc6bc",
+         "notes": "Local InstanceID is nonzero after any peer processing."
+        }
+       ]
+      },
+      {
+       "code": null,
+       "meaning": "Last nonzero prepared-session status aborts before local setup. Endpoint preparation returning zero instead skips that recipient.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "Last nonzero prepared-session status aborts before local setup. Endpoint preparation returning zero instead skips that recipient.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10471240",
+           "notes": "Last nonzero prepared-session status aborts before local setup. Endpoint preparation returning zero instead skips that recipient."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10471240",
+         "notes": "Last nonzero prepared-session status aborts before local setup. Endpoint preparation returning zero instead skips that recipient."
+        }
+       ],
+       "todo": [
+        "Established: Endpoint-skip branch, bounded wait and retained nonzero session-status propagation.",
+        "Unknown: Complete status inventory and final session effects.",
+        "Next: Trace concrete f_106fb998/f_106ff898 completion paths for RampToVolume sessions constructed at 0x10470f24."
+       ]
       }
      ],
      "firmware_differences": [],
@@ -76149,34 +76710,66 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073c834",
-       "address": "0x1073c834",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2778",
+       "notes": "Bound primary RC slot +0x6c contains 0x10470d64."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11e18",
-       "notes": "action dispatch table entry"
+       "address": "0x10470d64",
+       "notes": "Primary +0x6c -> f_10470d64 obtains a topology snapshot through f_10759984. When f_1053ce34 and the f_1053c370 forwarding gate permit, it allocates at most 32 session records and considers remote entries starting at index 1. Filter f_10472664 always accepts. f_1046bab8 serializes the original InstanceID, Channel, RampType, DesiredVolume, ResetVolumeAfter and ProgramURI. Endpoint preparation returning zero at 0x10471150 skips that recipient rather than returning 1034. Prepared requests are queued with f_106fcf50 and waited through f_106fb998 against a two-second deadline. The last nonzero prepared-session halfword +0x2722 wins; any such result skips local work. Earlier peer requests are not undone. f_10472674 is capture-pointer management, not the producer of RampTime."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "vtable B slot +0x6c = 0x1046cdd8",
-       "address": "0x10ed279c"
+       "address": "0x100dc67c",
+       "notes": "Local f_100dc67c rejects nonzero InstanceID with 702. Under mutex +0x938 it stores a private step at +0x3d0 before checking exact Master and DesiredVolume <=100, returning 402 for either failure. SOAP supplies that step as literal 1 at 0x1073c95c. Fixed-mode byte +0x7ff with override +0x801 clear replaces a nonzero requested target with cached +0x7e0 after the input range check. Unknown RampType returns 402 after the step write; forwarding may already have occurred. Exact RampType intervals and initial hold counts are ALARM_RAMP_TYPE (400 ms, 75 ticks), AUTOPLAY_RAMP_TYPE (26 ms, 75 ticks), SLEEP_TIMER_RAMP_TYPE (800 ms, zero), DIRECT_RAMP_TYPE (13 ms, zero), INSTANT_RAMP_TYPE (1 ms, zero), SLOW_RAMP_TYPE (666 ms, zero). Alarm/autoplay immediately set cached Master +0x7da to zero, invoke f_100d7f34 with result discarded, mark +0x7f0 and request source/deferred-settings work. They and direct/slow clear restore flag +0x3d4. Sleep saves the old Master in +0x3d6 only if that flag was clear, then sets it; fixed mode saves +0x7e0 instead. Instant saves similarly only when ResetVolumeAfter is true and no restore was pending, sets +0x3d4 to ResetVolumeAfter, and forces the separately stored reset byte +0x3d8 false. Other modes retain that reset byte as supplied. These distinct fields must not be collapsed into a guarantee of automatic restore."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100dc880",
+       "notes": "Fixed mode without override halves the interval. The path stores target +0x3c8, signals condition +0x358 through f_1098761c -> f_109873f8 -> pthread_cond_signal, computes RampTime and stores ResetVolumeAfter at +0x3d8 and bounded ProgramURI at +0x3d9. ProgramURI is copied with f_10906304 capacity 0x401; this path does not validate or play it. f_100dc67c returns zero after this setup, not after the ramp completes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100dc8d0",
+       "notes": "RampTime is floor((abs(target-currentMaster) & 0xffff) * intervalMs / 1000), evaluated after the alarm/autoplay zeroing and fixed-mode target/interval substitutions. Raw 0x5508f87e at 0x100dc89c has SH=31 MB=1 ME=31 (unsigned interval >>1); raw 0x5508043e at 0x100dc8d4 has SH=0 MB=16 ME=31 (low-halfword difference mask). Raw 0x7d0741d6 at 0x100dc8e8 is mullw; 0x7d083816 at 0x100dc8f4 is mulhwu with 0x10624dd3, followed by raw 0x5508d1be at 0x100dc8f8 (SH=26 MB=6 ME=31, unsigned >>6), giving the divide by 1000 for this bounded product. It excludes the initial 75-tick hold and actual scheduling/device latency. INSTANT normally reports zero seconds; zero is not completion evidence. SOAP formats the computed uint32 through f_1055fcbc only after a fresh status test succeeds."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100da4cc",
+       "notes": "Initializer f_103fd65c calls f_100dd650 at 0x103fdcd4; that initialization registers thread entry f_100da728 on this+0x2b0 at 0x100dd954. The entry calls f_100da4cc, which locks +0x938 and loops until shutdown +0x350. Equal cached Master/target waits on +0x358. Unequal values first consume +0x3cc hold ticks with interval waits; interval 1 then assigns the target directly, otherwise the +0x3d0 step changes Master toward the target, bounded at 0/100. Each change invokes f_100d7f34 with its result discarded, marks +0x7f0, requests f_1067c6ec/f_100d993c and waits through f_10987584. Neither this loop nor the setup waits for backend completion. The loop never reads reset byte +0x3d8 or ProgramURI +0x3d9 and does not clear the restore flag when target is reached."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073c998",
+       "notes": "Fresh mr. checks status; nonzero faults at 0x1073c9ac, while success serializes RampTime at 0x1073ca04 and commits at 0x1073ca18."
       }
      ],
-     "notes": "Feature-gated by impl class like SetRoomCalibrationStatus.",
+     "notes": "Replaces unrelated state-machine event-record attribution. Source requests, cached volume steps, backend acceptance and completed audio application are different stages.",
      "todo": [
-      "Established: dispatch to handler 0x1073c834; feature-gated by impl class like SetRoomCalibrationStatus.",
-      "Residual: the class gate and the ramp behavior (curve, duration units). (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Established: Actual proxy, local validation, mode table, restore storage, output arithmetic and registered worker loop.",
+      "Unknown: Concrete backend completion, later URI/reset consumers, final session statuses, saving and delivery.",
+      "Next: Bind concrete renderer delegates +0x3ac/+0x3b4 below f_100d7f34, follow readers of +0x3d8/+0x3d9 for any later URI/reset policy, deferred provider +0x3bc slot +0x14/f_10167318, and session completion f_106ff898 plus the RC sender after f_10678c50."
      ],
-     "resolved_findings": [
-      "Resolved: exposing class = the RC impl vtable slot 104/108 secondary table; ramp = linear ramp over the duration arg via the ramp worker.",
-      "Resolved: exposing class = the RC impl vtable slot 104/108 secondary table; ramp = linear ramp over the duration arg via the ramp worker."
-     ]
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x6c",
+      "function": "0x10470d64",
+      "local": "0x100dc67c",
+      "ramp_thread": "0x100da728",
+      "ramp_loop": "0x100da4cc"
+     }
     },
     "ResetBasicEQ": {
      "description": "Primary slot +0x10 -> f_1046ff10 snapshots RC+0xbc8/+0x9c8. When snapshot byte +0 is nonzero and word +0x288 is zero, it prepares RenderingControl ResetBasicEQ sessions for member indices 1..count-1, with up to 32 allocated entries. Constant-true f_10472530 filters no members; f_1046ae30 sends only the original InstanceID. Endpoint preparation failure skips that member rather than selecting 1034. Prepared requests wait through f_106fb998 under a 2000-ms deadline. The last nonzero request-status halfword +0x2722 is returned; only zero proceeds to local reset. Invalid/empty/nonforwarding topology falls through to local reset. Remote response outputs are not copied into the SOAP output pointers. f_100db6b0 locks +0x938 and returns 702 for nonzero InstanceID or 501 for guard +0x7ff nonzero, without writing outputs. Otherwise f_100db280 supplies bass=0, treble=0, LF volume=100, RF volume=100. Those values are stored at +0x7f6/+0x7fa/+0x7dc/+0x7de and copied to output pointers. f_100d92dc supplies the loudness default, stored at +0x7fd and copied to its output pointer. Bass, treble and loudness backends are called through f_102a534c/f_102a5534/f_102a5380 with dirty bytes +0x7f8/+0x7fc/+0x7fe set to 1; those returns are ignored. f_100d7f34 reapplies effective volume/mute using the reset channel volumes and existing Master volume/mute state; cached Master volume and mute indicators are not reset. Its boolean return selects 0 for nonzero or 501 for zero. In both cases dirty byte +0x7f0 is set and f_1067c6ec(this+8) plus f_100d993c are called. No rollback restores earlier peer, cache or backend changes on failure. f_100d92dc starts with f_10908d6c(global profile from f_1090ad44). On valid topology with nonzero snapshot+0x288 it can replace this with the member-index-0 profile: member must exist and have byte +0 nonzero, and f_10122054(request manager +0x3c4, member, profile_out) must succeed. Otherwise the local profile default remains. f_10908d6c returns false when profile word +0xd0 has bit 0x10000 set or profile word +0xcc equals 3; otherwise true. This is a profile/topology default, not a live loudness reading.",
