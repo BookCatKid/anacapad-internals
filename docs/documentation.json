@@ -97344,7 +97344,7 @@
         "build": "86.10-80260",
         "address": "0x102891ec",
         "function": "0x102890b0",
-        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and false advertisement flag. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
        },
        {
         "type": "firmware",
@@ -97361,12 +97361,36 @@
         "address": "0x101b82b8",
         "function": "0x101b8048",
         "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6744",
+        "function": "0x101b66f4",
+        "notes": "Main initialization 0x10199458 passes the ReplicatedSettings shared pointer at Z+0x2900c, formed at 0x10198ef8 and cloned by 0x101a22c4. Account-manager setup registers embedded store manager+0x118 as selector 11 through 0x10651bd4, which writes receiver+0xb0. It moves that same shared pointer into store setup 0x1028ddf4 at 0x101b6784; 0x1028de40 stores receiver at store+0xc and its control block at +0x10. Constructor 0x10650660 installs receiver vtable 0x10efcf88 at 0x106507d8; slot +0x14 is 0x10652074, not an unknown runtime delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10289230",
+        "function": "0x102890b0",
+        "notes": "Successful save invokes concrete receiver 0x10652074 with selector 11, cached local LUD and incremented Version. Worker sets input r8=0 at 0x1028bb04. Wrapper 0x10289258 moves this zero to writer r7 at 0x102892b0, so receiver r7 is false, NOT the previous LUD pointer. The 54-byte snapshot buffer at worker sp+0x9ff4 instead travels through wrapper r9 into the saved root MuseHouseholdID field. Callback-enable is independently writer r8=1, set at 0x102892d0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
       "todo": [
-       "Established: password mutation, persistence fields, live-record selection and account-cache comparison are statically recovered.",
-       "Residual: complete downstream selected-account/manifest cache dependencies and account-sync feature predicate are not yet traced.",
-       "Next step: finish 0x101b6fdc through 0x100c6e20/0x101b6efc and 0x10285878/0x10290df4, starting from the gates recorded at 0x101b8294 and 0x1028923c."
+       "Established: concrete selector-11 receiver construction, store binding, version/LUD acceptance and ReplicatedSettingsChangedEvent table payload are recovered alongside the synchronous edit path.",
+       "Residual: selected-account maintenance and delayed account-cloud synchronization still have transitive paths to finish; actual subscriber/remote delivery is not assumed.",
+       "Next step: finish 0x101b6fdc and queued maintenance 0x100bbc80 -> 0x101b869c, then 0x100ba320 -> 0x101b6eac -> 0x10290df4 -> cloud request 0x10506e3c."
       ]
      },
      "side_effects": [
@@ -97417,9 +97441,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1028bb14",
+         "address": "0x1028bb18",
          "function": "0x1028b760",
-         "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+         "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
         },
         {
          "type": "firmware",
@@ -97443,7 +97467,7 @@
          "build": "86.10-80260",
          "address": "0x102891ec",
          "function": "0x102890b0",
-         "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+         "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and false advertisement flag. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
         },
         {
          "type": "firmware",
@@ -97460,6 +97484,30 @@
          "address": "0x101b82b8",
          "function": "0x101b8048",
          "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b6744",
+         "function": "0x101b66f4",
+         "notes": "Main initialization 0x10199458 passes the ReplicatedSettings shared pointer at Z+0x2900c, formed at 0x10198ef8 and cloned by 0x101a22c4. Account-manager setup registers embedded store manager+0x118 as selector 11 through 0x10651bd4, which writes receiver+0xb0. It moves that same shared pointer into store setup 0x1028ddf4 at 0x101b6784; 0x1028de40 stores receiver at store+0xc and its control block at +0x10. Constructor 0x10650660 installs receiver vtable 0x10efcf88 at 0x106507d8; slot +0x14 is 0x10652074, not an unknown runtime delegate."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10289230",
+         "function": "0x102890b0",
+         "notes": "Successful save invokes concrete receiver 0x10652074 with selector 11, cached local LUD and incremented Version. Worker sets input r8=0 at 0x1028bb04. Wrapper 0x10289258 moves this zero to writer r7 at 0x102892b0, so receiver r7 is false, NOT the previous LUD pointer. The 54-byte snapshot buffer at worker sp+0x9ff4 instead travels through wrapper r9 into the saved root MuseHouseholdID field. Callback-enable is independently writer r8=1, set at 0x102892d0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1065215c",
+         "function": "0x10652074",
+         "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
         }
        ],
        "todo": [
@@ -97470,15 +97518,15 @@
       }
      ],
      "events_triggered": {
-      "description": "After a true record update and successful XML save, store +0x34 -> 0x102850c4 -> 0x101b8048 reloads accounts. A difference from cached array manager+0x290 invokes 0x101bb1d0, which queues the empty-payload in-process MusicAccountChangedEvent, with emitter source metadata but no password/account payload. An unconfigured event loop follows its diagnostic path rather than queueing the callable. Successful save also advertises replication selector 11 through receiver +0x14 with LUD/new version/prior LUD. No direct 0x1067c6ec SystemProperties propertyset call occurs. These facts do not establish a MusicServicesChangedEvent or WSS settingsVersionChanged event.",
+      "description": "After a true record update and successful XML save, store +0x34 -> 0x102850c4 -> 0x101b8048 reloads accounts. A difference from cached array manager+0x290 invokes 0x101bb1d0, which queues the empty-payload in-process MusicAccountChangedEvent, with emitter source metadata but no password/account payload. An unconfigured event loop follows its diagnostic path rather than queueing the callable. Successful save also advertises replication selector 11 through receiver +0x14 with LUD/new version/false advertisement flag. No direct 0x1067c6ec SystemProperties propertyset call occurs. These facts do not establish a MusicServicesChangedEvent or WSS settingsVersionChanged event. The concrete registered receiver is 0x10652074: accepted version/LUD changes additionally queue ReplicatedSettingsChangedEvent containing the replication table and false flag, not the password. Registration or queue delivery does not certify remote replication.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1028bb14",
+        "address": "0x1028bb18",
         "function": "0x1028b760",
-        "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+        "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
        },
        {
         "type": "firmware",
@@ -97486,7 +97534,7 @@
         "build": "86.10-80260",
         "address": "0x102891ec",
         "function": "0x102890b0",
-        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and false advertisement flag. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
        },
        {
         "type": "firmware",
@@ -97511,12 +97559,36 @@
         "address": "0x101b82b8",
         "function": "0x101b8048",
         "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6744",
+        "function": "0x101b66f4",
+        "notes": "Main initialization 0x10199458 passes the ReplicatedSettings shared pointer at Z+0x2900c, formed at 0x10198ef8 and cloned by 0x101a22c4. Account-manager setup registers embedded store manager+0x118 as selector 11 through 0x10651bd4, which writes receiver+0xb0. It moves that same shared pointer into store setup 0x1028ddf4 at 0x101b6784; 0x1028de40 stores receiver at store+0xc and its control block at +0x10. Constructor 0x10650660 installs receiver vtable 0x10efcf88 at 0x106507d8; slot +0x14 is 0x10652074, not an unknown runtime delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10289230",
+        "function": "0x102890b0",
+        "notes": "Successful save invokes concrete receiver 0x10652074 with selector 11, cached local LUD and incremented Version. Worker sets input r8=0 at 0x1028bb04. Wrapper 0x10289258 moves this zero to writer r7 at 0x102892b0, so receiver r7 is false, NOT the previous LUD pointer. The 54-byte snapshot buffer at worker sp+0x9ff4 instead travels through wrapper r9 into the saved root MuseHouseholdID field. Callback-enable is independently writer r8=1, set at 0x102892d0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
       "todo": [
-       "Established: exact local event name, empty payload, cache-difference gate and replication call arguments are known.",
-       "Residual: concrete account-store replication receiver installation and additional notifications from downstream selected-account rebuilding/delayed synchronization remain untraced.",
-       "Next step: recover the store +0x0c receiver setup and selector-11 registration, then finish 0x101b6fdc/0x100bbc80 and 0x10290df4 notification leaves."
+       "Established: concrete selector-11 receiver construction, store binding, version/LUD acceptance and ReplicatedSettingsChangedEvent table payload are recovered alongside the synchronous edit path.",
+       "Residual: selected-account maintenance and delayed account-cloud synchronization still have transitive paths to finish; actual subscriber/remote delivery is not assumed.",
+       "Next step: finish 0x101b6fdc and queued maintenance 0x100bbc80 -> 0x101b869c, then 0x100ba320 -> 0x101b6eac -> 0x10290df4 -> cloud request 0x10506e3c."
       ]
      },
      "state_transitions": {
@@ -97574,9 +97646,9 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1028bb14",
+        "address": "0x1028bb18",
         "function": "0x1028b760",
-        "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+        "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
        },
        {
         "type": "firmware",
@@ -97592,7 +97664,7 @@
         "build": "86.10-80260",
         "address": "0x102891ec",
         "function": "0x102890b0",
-        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+        "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and false advertisement flag. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
        },
        {
         "type": "firmware",
@@ -97609,12 +97681,36 @@
         "address": "0x101b82b8",
         "function": "0x101b8048",
         "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x101b6744",
+        "function": "0x101b66f4",
+        "notes": "Main initialization 0x10199458 passes the ReplicatedSettings shared pointer at Z+0x2900c, formed at 0x10198ef8 and cloned by 0x101a22c4. Account-manager setup registers embedded store manager+0x118 as selector 11 through 0x10651bd4, which writes receiver+0xb0. It moves that same shared pointer into store setup 0x1028ddf4 at 0x101b6784; 0x1028de40 stores receiver at store+0xc and its control block at +0x10. Constructor 0x10650660 installs receiver vtable 0x10efcf88 at 0x106507d8; slot +0x14 is 0x10652074, not an unknown runtime delegate."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10289230",
+        "function": "0x102890b0",
+        "notes": "Successful save invokes concrete receiver 0x10652074 with selector 11, cached local LUD and incremented Version. Worker sets input r8=0 at 0x1028bb04. Wrapper 0x10289258 moves this zero to writer r7 at 0x102892b0, so receiver r7 is false, NOT the previous LUD pointer. The 54-byte snapshot buffer at worker sp+0x9ff4 instead travels through wrapper r9 into the saved root MuseHouseholdID field. Callback-enable is independently writer r8=1, set at 0x102892d0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1065215c",
+        "function": "0x10652074",
+        "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
        }
       ],
       "todo": [
-       "Established: record mutation, version/LUD transitions, serial preservation and failure behavior are recovered.",
-       "Residual: later selected-account and asynchronous synchronization state transitions are incomplete.",
-       "Next step: finish the gated 0x101b7620 -> 0x101b6fdc and delayed 0x10290df4 branches without treating their outcomes as SOAP faults."
+       "Established: concrete selector-11 receiver construction, store binding, version/LUD acceptance and ReplicatedSettingsChangedEvent table payload are recovered alongside the synchronous edit path.",
+       "Residual: selected-account maintenance and delayed account-cloud synchronization still have transitive paths to finish; actual subscriber/remote delivery is not assumed.",
+       "Next step: finish 0x101b6fdc and queued maintenance 0x100bbc80 -> 0x101b869c, then 0x100ba320 -> 0x101b6eac -> 0x10290df4 -> cloud request 0x10506e3c."
       ]
      },
      "return_behavior": {
@@ -97680,9 +97776,9 @@
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1028bb14",
+        "address": "0x1028bb18",
         "function": "0x1028b760",
-        "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+        "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
        }
       ]
      },
@@ -97809,9 +97905,9 @@
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x1028bb14",
+           "address": "0x1028bb18",
            "function": "0x1028b760",
-           "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+           "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
           },
           {
            "type": "firmware",
@@ -97832,9 +97928,9 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1028bb14",
+         "address": "0x1028bb18",
          "function": "0x1028b760",
-         "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+         "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
         },
         {
          "type": "firmware",
@@ -97965,9 +98061,9 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x1028bb14",
+       "address": "0x1028bb18",
        "function": "0x1028b760",
-       "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb50. Success invokes store vtable +0x34 at 0x1028bb34, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
+       "notes": "0x10289258 forwards to 0x102890b0 with callback enable=1. Writer resolves accounts.xml, serializes via 0x10508988 and returns boolean. False maps to 809 at 0x1028bb24. Success invokes store vtable +0x34 at 0x1028bb44, concretely 0x102850c4, then returns zero. No service-manifest acquisition or TuneIn R_HideTuneIn setter occurs in this delegate."
       },
       {
        "type": "firmware",
@@ -97991,7 +98087,7 @@
        "build": "86.10-80260",
        "address": "0x102891ec",
        "function": "0x102890b0",
-       "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and prior read LUD. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
+       "notes": "Only successful main save copies local LUD +0xb0 to cached LUD +0xb8, stores the supplied unchanged NextSerialNum at +0xd8, increments Version +0xd4, and calls receiver +0x14 with selector 11, LUD, version and false advertisement flag. PreferredSerialNum +0xdc and record serial are not allocated or changed. Callback-enabled save also tests 0x10285878 and can schedule 0x10285338 even on failure."
       },
       {
        "type": "firmware",
@@ -98016,13 +98112,37 @@
        "address": "0x101b82b8",
        "function": "0x101b8048",
        "notes": "After cache/event processing, when manager+0x5134 count and +0x1a864 halfword are both zero, 0x101b7620 can rebuild the selected service-account collection through 0x101b6fdc; true schedules 0x100bbc80. Writer job 0x10285338 separately schedules 0x100ba320 at clock+3 seconds, reaching 0x101b6eac -> 0x10290df4 after its feature predicate. These downstream branches remain distinguished from the SOAP status."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b6744",
+       "function": "0x101b66f4",
+       "notes": "Main initialization 0x10199458 passes the ReplicatedSettings shared pointer at Z+0x2900c, formed at 0x10198ef8 and cloned by 0x101a22c4. Account-manager setup registers embedded store manager+0x118 as selector 11 through 0x10651bd4, which writes receiver+0xb0. It moves that same shared pointer into store setup 0x1028ddf4 at 0x101b6784; 0x1028de40 stores receiver at store+0xc and its control block at +0x10. Constructor 0x10650660 installs receiver vtable 0x10efcf88 at 0x106507d8; slot +0x14 is 0x10652074, not an unknown runtime delegate."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10289230",
+       "function": "0x102890b0",
+       "notes": "Successful save invokes concrete receiver 0x10652074 with selector 11, cached local LUD and incremented Version. Worker sets input r8=0 at 0x1028bb04. Wrapper 0x10289258 moves this zero to writer r7 at 0x102892b0, so receiver r7 is false, NOT the previous LUD pointer. The 54-byte snapshot buffer at worker sp+0x9ff4 instead travels through wrapper r9 into the saved root MuseHouseholdID field. Callback-enable is independently writer r8=1, set at 0x102892d0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1065215c",
+       "function": "0x10652074",
+       "notes": "Requires initialized receiver+0x3b0 and registered selector 11. Under receiver mutex +0x320, reads prior table entry with 0x10660af0 and compares using 0x10660e58: incoming version other than UINT_MAX wins if unsigned-greater, or if equal and incoming LUD sorts lexicographically smaller. Only acceptance updates table via 0x10660a7c, copies 0x254-byte LUD/version table with 0x106608d0/memcpy and appends caller flag false, then 0x10654800 queues in-process ReplicatedSettingsChangedEvent. Unchanged/rejected advertisement does not enqueue. Queue failure is logged and not returned as SOAP fault. The payload is replication-version metadata, not PW, MD, Token or Key; remote transfer/delivery is not a synchronous save result."
       }
      ],
      "notes": "Static firmware trace for build 86.10-80260. The earlier no-op identification used the wrong secondary manager vtable. File replacement and callback attempts are proven control flow, not observations of device persistence, network delivery or subscriber execution.",
      "todo": [
-      "Established: concrete construction/dispatch, required inputs, exact password mutation, normalized lookup, serial preservation, XML persistence/fallback and complete synchronous fault domain are documented; the former no-op claim is disproven.",
-      "Residual: transitive shared selected-account/manifest rebuilding, concrete selector-11 replication setup and delayed account synchronization remain unfinished; this action is not fully reversed yet.",
-      "Next step: continue from 0x101b8048 gates through 0x101b7620/0x101b6fdc/0x100bbc80, resolve store +0x0c receiver/selector 11, and follow 0x10285338 -> 0x100ba320 -> 0x10290df4."
+      "Established: concrete delegate, all required parsing, strict live-account lookup, exact edited field and preserved fields, synchronous status/fault domain, XML persistence and selector-11 replication notification are documented.",
+      "Residual: selected-account/manifest rebuilding, queued service-account maintenance and delayed account-cloud synchronization are not fully reversed.",
+      "Next step: complete 0x101b6fdc and 0x100bbc80 -> 0x101b869c; finish feature gates and 0x10290df4 -> 0x10506e3c at /music-account/v0/accounts, including response merge and retries."
      ]
     },
     "EnableRDM": {
