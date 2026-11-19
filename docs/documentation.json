@@ -55120,7 +55120,7 @@
      "implementation_notes": "Dispatcher record 0x10f118d4 uses service slot +0x10. f_107359e0 gates on the request object and tailcalls f_10735918 on success. The helper calls the bound core's +0x0c slot, then emits and commits the empty list."
     },
     "GetCurrentConnectionInfo": {
-     "description": "Returns the seven connection-info fields for a given ConnectionID. Wrapper parses ConnectionID (f_10561514 int), validates via req->v[+0x8], then calls the impl member at svc+4 ->v[+0x1c] with seven 0x400-byte output buffers (RcsID, AVTransportID, ProtocolInfo, PeerConnectionManager, PeerConnectionID, Direction, Status). rc==0 emits.",
+     "description": "This action never returns connection details on this build. It faults with 402 on rejection by the request validator or a negative parsed ConnectionID, and 706 for a nonnegative parsed ID, including zero.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x107356bc",
@@ -55193,40 +55193,58 @@
      "inputs": {
       "ConnectionID": {
        "direction": "in",
-       "format": "decimal text",
-       "type": "",
-       "accepted": "impl-side grammar applies",
+       "description": "The connection identifier. This implementation uses only its parsed sign to select a fault.",
+       "primitive": {
+        "type_tag": 5,
+        "parse_helper": "0x10561514",
+        "buf_cap": 24,
+        "fmt": null,
+        "via_slot": 28
+       },
+       "semantic_type": "signed int32",
+       "format": "Text converted by strtol(text, NULL, 10) after NUL termination.",
+       "unit": "none",
+       "accepted_values": "A present value is converted without an end-pointer or errno check in the tag-5 path.",
+       "range": "Signed 32-bit result. The record reserves 24 bytes including the terminating NUL.",
+       "special_values": "A negative result selects 402; a zero or positive result selects 706. With no convertible prefix strtol yields zero.",
        "required": true,
-       "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "connection identifier to query",
-       "unit": "n/a",
+       "default": "none; an absent argument fails the request gate",
+       "validation": "Request slot +0x08 must accept the required record. Trailing nonnumeric text is not checked by the tag-5 conversion.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107356f4",
-         "notes": "in-arg name load + req->v[+0x1c] parse call"
+         "address": "0x10735708",
+         "notes": "f_10561514 binds ConnectionID as type tag 5 with a 24-byte scratch buffer and a signed word destination at sp+0x2c."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10560b34",
+         "notes": "Type tag 5 selects f_10560b24 via the table entry at 0x10eebbf0. It calls strtol(text, NULL, 10) and stores the word result without validating the end pointer or errno."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x107304c0",
+         "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
-       ],
-       "primitive": {
-        "type_tag": 4,
-        "parse_helper": "0x105614e0",
-        "buf_cap": 24,
-        "fmt": null,
-        "via_slot": 28
-       },
-       "semantic_type": "SonosUintArg",
-       "range": "parser cap",
-       "special_values": "none identified",
-       "default": "none - required argument",
-       "validation": "consumed by the impl vfunc",
-       "accepted_values": "impl-side grammar applies"
+       ]
       }
      },
      "outputs": {
       "RcsID": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write RcsID as signed decimal text. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -55236,8 +55254,8 @@
        "format": "%d decimal",
        "unit": "n/a - text",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55246,29 +55264,22 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107357e8",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10a64",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
        "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
       },
       "AVTransportID": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write AVTransportID as signed decimal text. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -55278,8 +55289,8 @@
        "format": "%d decimal",
        "unit": "n/a - text",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55288,40 +55299,33 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073580c",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10a6c",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
        "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
       },
       "ProtocolInfo": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write ProtocolInfo as a string. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
        "unit": "n/a - text",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55330,40 +55334,33 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735830",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eb8f3c",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
        "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
       },
       "PeerConnectionManager": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write PeerConnectionManager as a string. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
        "unit": "n/a - text",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55372,29 +55369,22 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735860",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10a7c",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
        "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
       },
       "PeerConnectionID": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write PeerConnectionID as signed decimal text. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fcf4",
@@ -55404,8 +55394,8 @@
        "format": "%d decimal",
        "unit": "n/a - text",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55414,40 +55404,33 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10735890",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f10a94",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
        "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
       },
       "Direction": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write Direction as a string. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosStringArg",
-       "format": "utf-8 text (lexical bounds set by request parse helper)",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
        "unit": "n/a - text",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "length-bounded by parse-helper buffer cap",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55456,40 +55439,33 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107358b4",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10fa4038",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
        "meaning": "Emit path is unreachable: core vfunc f_1032e730 always returns 402 (ConnectionID==0) or 706 (!=0) via the CR-flag convention, so the handler faults before writing this argument."
       },
       "Status": {
-       "description": "Filled by the impl vfunc into 0x400-byte buffers; empty strings when the field is unset.",
+       "description": "The unreachable success branch would write Status as a string. This firmware never emits this output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
         "fmt": null
        },
-       "semantic_type": "SonosBoolArg",
-       "format": "\"0\" or \"1\" text (lexical bounds set by request parse helper)",
+       "semantic_type": "string",
+       "format": "NUL-terminated text",
        "unit": "none - boolean flag",
        "accepted_values": "n/a (unreachable emit path in this build)",
-       "range": "{0,1}",
-       "special_values": "n/a (unreachable emit path in this build)",
+       "range": "n/a (unreachable in this build)",
+       "special_values": "none emitted",
        "required": false,
        "default": "n/a (unreachable emit path in this build)",
        "validation": "n/a (unreachable emit path in this build)",
@@ -55498,22 +55474,15 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107358e4",
-         "notes": "out-arg access site"
+         "address": "0x10735784",
+         "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10eae664",
-         "notes": "argument name string"
-        },
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         }
        ],
        "notes": null,
@@ -55521,131 +55490,206 @@
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "The wrapper binds the required ConnectionID and calls request slot +0x08 before invoking the bound core. The type-5 converter is not a strict decimal text validator.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x107356bc",
-        "notes": "wrapper decode"
+        "address": "0x10735708",
+        "notes": "f_10561514 binds ConnectionID as type tag 5 with a 24-byte scratch buffer and a signed word destination at sp+0x2c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10560b34",
+        "notes": "Type tag 5 selects f_10560b24 via the table entry at 0x10eebbf0. It calls strtol(text, NULL, 10) and stores the word result without validating the end pointer or errno."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107304c0",
+        "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
        }
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×1, out-arg write×7, validate×1, commit×1); member delegates: *(r30+4) v[+?]",
+      "description": "Requires the ConnectionID argument to pass the request record gate. There is no playback or session precondition.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107356bc",
-        "notes": "req-vfunc call map: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}"
+        "address": "0x10735708",
+        "notes": "f_10561514 binds ConnectionID as type tag 5 with a 24-byte scratch buffer and a signed word destination at sp+0x2c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x107304c0",
+        "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e740",
+        "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
        }
-      ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (out-arg store×4, raise-fault×1, required-arg fetch×1, out-arg write×7, validate×1, commit×1); member delegates: *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): *(r30+4) v[+?]",
+      "description": "The bound core's +0x10 slot checks only the sign of the parsed ConnectionID. It does not consult a connection registry.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107356bc",
-        "notes": "member vfunc calls: ['*(r30+4) v[+?]']"
+        "address": "0x10eb8720",
+        "notes": "MediaRenderer core slot +0x10 resolves to f_1032e730. Its core is passed to f_10735be8 at 0x1018f570 and stored at service+4."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e740",
+        "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
        }
-      ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "side_effects": [
       {
        "kind": "none",
-       "description": "Always faults before emitting -- no observable effect beyond the SOAP fault.",
+       "description": "Does not modify a connection or playback state; it only reports a SOAP fault.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "no success path"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10735794",
+         "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
         }
        ]
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "None. The core returns a literal fault without notifying any service; the wrapper uses the SOAP fault writer only.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107356bc",
-        "notes": "bl call scan: notify-family sites = []"
+        "address": "0x1032e740",
+        "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735794",
+        "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
        }
-      ],
-      "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?]",
+      "description": "None. The worker rejects the query without changing state.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107356bc",
-        "notes": "no transition-literal/store pattern; member delegates: ['*(r30+4) v[+?]']"
+        "address": "0x1032e740",
+        "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
        }
-      ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): *(r30+4) v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Fault 402 if the request gate fails or the parsed ID is negative; otherwise fault 706. No successful output fields are reachable.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x107356bc",
-        "notes": "commit/fault slot usage: {'0x1c': 1, '0x8': 1, '0x14': 1, '0x24': 7, '0x10': 4, '0xc': 1}"
+        "address": "0x107304c0",
+        "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1032e740",
+        "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735794",
+        "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10735784",
+        "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
        }
-      ],
-      "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
       ]
      },
-     "fault_sites": [],
+     "fault_sites": [
+      {
+       "site": "0x10735794",
+       "code": 402,
+       "code_expr": "const or vret"
+      },
+      {
+       "site": "0x10735794",
+       "code": 706,
+       "code_expr": "vret"
+      }
+     ],
      "errors": [
       {
        "code": 706,
        "code_expr": "vret",
-       "meaning": "impl->v[+0x1c] rc surfaced",
+       "meaning": "The core cannot return details for the parsed nonnegative connection identifier.",
        "fault_sites": [
-        "0x107356bc"
+        "0x10735794"
        ],
        "conditions": [
         {
-         "description": "the impl vfunc produced a nonzero code",
+         "description": "Request gate passes and the parsed signed ConnectionID is zero or positive.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107356bc",
-           "notes": "impl rc passthrough"
+           "address": "0x107304c0",
+           "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1032e740",
+           "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10735794",
+           "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
           }
          ]
         }
@@ -55655,99 +55699,61 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107356bc",
-         "notes": "impl rc passthrough site"
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1032e730",
-         "notes": "cmpwi cr7,r4,0; isel r3=402(eq)/706(ne); CR0 return flag forces fault"
+         "address": "0x10735794",
+         "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
         }
-       ],
-       "unresolved": {
-        "proven": "impl->v[+0x1c] rc surfaced",
-        "unknown": "the specific code for an unknown/inactive ConnectionID",
-        "impl_exit_literals": {
-         "function": "0x10735704",
-         "lits": [],
-         "passthrough_exits": 3
-        },
-        "delegated_sources": {
-         "f_10561514": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 19
-         },
-         "f_1056157c": {
-          "lits": [
-           0,
-           8,
-           11,
-           12,
-           32,
-           48,
-           140,
-           208,
-           220,
-           232,
-           244,
-           268,
-           288,
-           300,
-           312,
-           21584
-          ],
-          "pt": 18
-         }
-        },
-        "source_note": "passthrough exits trace to these callees (last bl before blr); their literal-return sets bound the residual domain"
-       },
-       "condition": "ConnectionID != 0 (core vfunc isel selects 0x2c2); no connection can ever be found",
-       "literal_bound": [
-        0,
-        402
-       ],
-       "resolved_note": "CM impls void commit-handlers; 402/1024 fault seeds via req path.",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret; sites: 0x107356bc).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
        ]
       },
       {
        "code": 402,
-       "code_expr": "parse/req-layer",
-       "meaning": "Wrapper parse layer rejected an argument before the impl call.",
+       "code_expr": "const or vret",
+       "meaning": "The request validator rejected the argument record, or the core received a negative connection identifier.",
        "fault_sites": [
-        "0x107356bc"
+        "0x10735794"
        ],
        "conditions": [
         {
-         "description": "Missing or unparseable input at the req->v[+0x1c]/helper parse stage",
+         "description": "Request slot +0x08 returns zero, including for a missing ConnectionID.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x107356bc",
-           "notes": "parse vcalls then fault path"
+           "address": "0x107304c0",
+           "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10735794",
+           "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
+          }
+         ]
+        },
+        {
+         "description": "Request slot +0x08 accepts the record, but signed ConnectionID is less than zero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x1032e740",
+           "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+          },
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x10735794",
+           "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
           }
          ]
         }
@@ -55757,8 +55763,22 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x107356bc",
-         "notes": "wrapper parse + fault path"
+         "address": "0x107304c0",
+         "notes": "TRequest validates the declared record at 0x1073571c; the argument found path invokes f_10560708 and f_10560a58, which marks the record populated. If the argument was not found, the required record fails."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1032e740",
+         "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10735794",
+         "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
         }
        ]
       }
@@ -55784,23 +55804,47 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "f_107356bc",
-       "notes": "handler body traced; core vfuncs resolved on ConnectionManagerServer vtable 0x10eb86c8"
+       "address": "0x10eb8720",
+       "notes": "MediaRenderer core slot +0x10 resolves to f_1032e730. Its core is passed to f_10735be8 at 0x1018f570 and stored at service+4."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1032e730",
-       "notes": "Sink/conn-info vfunc: only 402/706 returns, no success path"
+       "address": "0x10735708",
+       "notes": "f_10561514 binds ConnectionID as type tag 5 with a 24-byte scratch buffer and a signed word destination at sp+0x2c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560b34",
+       "notes": "Type tag 5 selects f_10560b24 via the table entry at 0x10eebbf0. It calls strtol(text, NULL, 10) and stores the word result without validating the end pointer or errno."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1032e740",
+       "notes": "After cmpwi cr7,r4,0, instruction 0x7c691f1e is isel r3,r9,r3,28, selecting 402 if CR7.LT is set, otherwise 706. The worker writes no out parameters and never returns zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10735794",
+       "notes": "Shared request slot +0x14 fault call: the wrapper loads 402 at 0x107357cc if the request gate fails, or forwards the core's nonzero return from 0x10735778."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10735784",
+       "notes": "Only a zero worker return enters the serialization block at 0x107357d4. The block uses signed word formatters for RcsID, AVTransportID and PeerConnectionID and string writes for ProtocolInfo, PeerConnectionManager, Direction and Status."
       }
      ],
      "notes": null,
-     "implementation_notes": "Parses required ConnectionID via req->v[+0x1c]+f_10561514, then req->v[+0x08] gate (else 402). Calls core->v[+0x10] = f_1032e730 which contains NO success path: cmpwi ConnectionID,0 / isel returns 402 when ConnectionID==0 and 706 otherwise. Nonzero rc raises a SOAP fault via req->v[+0x14]; the emit path (RcsID/AVTransportID/ProtocolInfo/PeerConnectionManager/PeerConnectionID/Direction/Status out-args written from a filled record) is dead code in this build -- no connection ever exists.",
-     "todo": [
-      "Established: virtual dispatch to handler 0x107356bc; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "The action-table token at 0x10f118e0 selects service vtable +0x14. The wrapper's request gate precedes the call to svc+4 core slot +0x10. Both cores use the same sign test. A zero worker return would serialize three signed integer values and four strings, but neither implementation can return zero."
     },
     "GetProtocolInfo": {
      "description": "Reports the fixed Sink protocol-info list for the MediaRenderer endpoint. Source is always empty.",
