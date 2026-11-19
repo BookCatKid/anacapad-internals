@@ -156717,18 +156717,87 @@
      "type": "firmware",
      "address": "0x10fba544",
      "notes": "leds_zp"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10c8e7e0",
+     "address": "0x10c8e7e4",
+     "notes": "Vtable at 0x10fba500 has +0x30=0x10c8e7e0. xori r7,r4,1; mask high r5=0, low r6=0x100; virtual+0xc reaches f_10c8ea78, which chooses set versus clear mask and dispatches virtual+0x10=f_10c8e934. Updater reads owner+0xa0/+0xa4 at 0x10c8e980/0x10c8e984 and stores at 0x10c8e99c/0x10c8e9a0. Equal-word guard 0x10c8e9a4/0x10c8ea00 avoids reapply; changed flags call f_10c8f06c at 0x10c8e9ac."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10c8f06c",
+     "address": "0x10c8f254",
+     "notes": "Gate f_10c8ee44 called at 0x10c8f178 checks ready/bypass; build uses flags +0xa0/+0xa4 -> request+0x10/+0x14 at 0x10c8f1e4/0x10c8f1ec/0x10c8f230/0x10c8f234. Status/mute capabilities owner+0xba/+0xb9 -> request+0x18/+0x19, Bluetooth owner+0xaa/+0xab -> request+0x1a/+0x1b. f_10c8eca8 computes useOnlyStatusLED from +0xbb/+0xbc. Call f_10c8ff2c at 0x10c8f254 -> f_10c918a0 at 0x10c8ffcc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10c918a0",
+     "address": "0x10c91904",
+     "notes": "Complete selector 0x10c918a0-0x10c926dc: low loaded +0x14, high +0x10; low&0x100 and signed high>=0 branch to suppression setup 0x10c91b08. All named predicate masks 0x10c919a0-0x10c91a58 exclude 0x200. !HHID precedes TRANSFER_REGISTRATION; final HHID fallback 0x10c925a4. Resume f_10c92acc through 0x10c92fbc uses low at +0xc/high +8 and likewise has no 0x200 predicate. No raw-word srwi pseudo-decode was used for these masks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10c8eac4",
+     "address": "0x10c8eb24",
+     "notes": "Hardware feature setter stores microphone/mute/status/only-status/swap/white-brightness booleans at owner+0xb8..+0xbd. Diagnostic 0x10fba55c supplies ordering; selector uses separate capability bytes, not a microphone bit inferred from numeric gap 0x100."
+    },
+    {
+     "type": "firmware",
+     "binary": "sonosledmgrd",
+     "build": "86.10-80260",
+     "function": "f_100036a4",
+     "address": "0x10003708",
+     "notes": "Sibling selector 0x100036a4-0x10004524 has the same word loads, 0x100/signed-high predicate, and named mask sequence at 0x100037a4-0x1000385c. No 0x200 test. This independently checks the main-image map rather than transferring mismatched word offsets. .gnu_debuglink is present but no .symtab or DWARF enum definitions in the shipped ELF."
     }
    ],
-   "todo": [
-    "Residual: only lo bit 0x200 remains unobserved in either binary's applyLEDMode ladder (dead or a third-word/internal flag); the 0x100 mic/aux precondition semantic is confirmed as a flag bit but its physical source (mic-mute vs aux-insert) is not printed."
-   ],
    "resolved_findings": [
-    "Resolved: LED modes = setHwFeatures {bHasMicrophone,bHasMuteLED,bHasStatusLED,bHasOnlyStatusLED,bHasHardwareLedSwap,bCanSetWhiteBrightness} + mode flags {R_LED_UPGRADE,R_LED_BROKEN_DEVICE,audiodev_flag,...}; composition = priority table.",
-    "Complete R_LED_* mode table (22 modes): {R_LED_UPGRADE, R_LED_BROKEN_DEVICE, R_LED_JOIN_HH_OPEN, R_LED_JOIN_HH, R_LED_BEGIN_SETUP_MODE, R_LED_IN_SETUP_MODE, R_LED_WAC, R_LED_WAC_TIMEOUT, R_LED_BREAK_POP, R_LED_SHUTDOWN, R_LED_HHID, R_LED_TRANSFER_REGISTRATION, R_LED_CONTROL_FEEDBACK, R_LED_IDENTIFY_PLAYER, R_LED_AUDIO_OFF, R_LED_MUTED, R_LED_FAULT, R_LED_WAITING_TO_PLAY, R_LED_WAITING_TO_PAUSE, R_LED_PLAYING, R_LED_WARN, R_LED_DEMO_MODE, R_LED_DEMO_CONFIGURE_IR}. applyLEDMode/resumeDefaultLEDPattern log the mode as 0x%llx - modes are bitmask values applied through the priority stack.",
-    "Resolved (from sibling sonosledmgrd, same leds_zp engine): the R_LED_* mode bits are the literal r7:r8 constants passed to each 'applyLEDMode R_LED_X(0x%llx) 0x%llx' arm - MUTED=0x1, HHID=0x2, JOIN_HH=0x4, SHUTDOWN=0x10, UPGRADE=0x20, WARN=0x40, FAULT=0x80, WAITING_TO_PLAY=0x400, AUDIO_OFF=0x800, DEMO_CONFIGURE_IR=0x1000, DEMO_MODE=0x2000, JOIN_HH_OPEN=0x4000, PLAYING=0x8000, WAITING_TO_PAUSE=0x10000, WAC=0x20000, WAC_TIMEOUT=0x40000, TRANSFER_REGISTRATION=0x80000, BROKEN_DEVICE=0x100000, BEGIN_SETUP_MODE=0x8000000, IN_SETUP_MODE=0x10000000, CONTROL_FEEDBACK=1<<32, BREAK_POP=0x8<<32, IDENTIFY_PLAYER=0x40<<32. Evaluation order in applyLEDMode is the site order {UPGRADE,BROKEN_DEVICE,BEGIN_SETUP_MODE,JOIN_HH_OPEN,JOIN_HH,IN_SETUP_MODE,BREAK_POP,WAC,WAC_TIMEOUT,SHUTDOWN,!HHID,TRANSFER_REGISTRATION,CONTROL_FEEDBACK,IDENTIFY_PLAYER,AUDIO_OFF,MUTED,FAULT,WAITING_TO_PLAY,WAITING_TO_PAUSE,PLAYING,HHID,WARN,DEMO_MODE,DEMO_CONFIGURE_IR} - each arm logs its flag when the bit test wins, so earlier arms preempt. resumeDefaultLEDPattern restores in subset order {BROKEN_DEVICE,JOIN_HH,BEGIN_SETUP_MODE,IN_SETUP_MODE,MUTED,AUDIO_OFF,PLAYING,HHID}. Boot LED: /var/run/sonosledmgrd.flash_booting_led sentinel + 'Setting BOOTING Led'.",
-    "R_LED flag bit values proven from the applyLEDMode priority ladder (f_10c918a0) - each arm logs its own mask as the (0x%llx) arg. lo word (flags+4): {0x1=MUTED, 0x2=HHID (also inverted-tested as '!R_LED_HHID'), 0x4=JOIN_HH, 0x10=SHUTDOWN, 0x20=UPGRADE, 0x40=WARN, 0x80=FAULT, 0x400=WAITING_TO_PLAY, 0x800=AUDIO_OFF, 0x1000=DEMO_CONFIGURE_IR, 0x2000=DEMO_MODE, 0x4000=JOIN_HH_OPEN, 0x8000=PLAYING, 0x10000=WAITING_TO_PAUSE, 0x20000=WAC, 0x40000=WAC_TIMEOUT, 0x80000=TRANSFER_REGISTRATION, 0x100000=BROKEN_DEVICE, 0x8000000=BEGIN_SETUP_MODE, 0x10000000=IN_SETUP_MODE}. hi word (flags+0): {0x1=CONTROL_FEEDBACK, 0x8=BREAK_POP, 0x40=IDENTIFY_PLAYER}. Ladder order is the LED priority order: UPGRADE/BROKEN_DEVICE first ... PLAYING/WARN/DEMO near the end, HHID arm is the final fallback. lo bit 0x100 is a compound precondition (gates the UPGRADE/JOIN_HH entry together with hi!=0), not a display flag.",
-    "Complete mode->flag-bit map recovered from sonosledmgrd applyLEDMode priority ladder (same leds_zp engine, f_100036a4). The 64-bit flag is tested as two 32-bit words (+0x14 hi = flag bits 32-63, +0x10 lo = bits 0-31). Priority-ordered bindings: {hi word: 0x100=mic/aux precondition, 0x100000=BROKEN_DEVICE, 0x8000000=BEGIN_SETUP_MODE, 0x10000000=IN_SETUP_MODE, 0x20000=WAC, 0x40000=WAC_TIMEOUT, 0x80000=TRANSFER_REGISTRATION, 0x10000=WAITING_TO_PAUSE, 0x2000=DEMO_MODE, 0x1000=HHID, 0x1=CONTROL_FEEDBACK, 0x40=IDENTIFY_PLAYER} and {lo word: 0x20=UPGRADE, 0x4000=JOIN_HH_OPEN, 0x4=JOIN_HH, 0x8=BREAK_POP, 0x2=!HHID(inhibit), 0x800=AUDIO_OFF, 0x1=MUTED, 0x80=FAULT, 0x400=WAITING_TO_PLAY, 0x8000=PLAYING, 0x40=WARN}. This resolves the previously-open 0x8(BREAK_POP) and binds the hi-word bits."
-   ]
+    "The named mode map has 24 entries: 21 low-word modes and three high-word modes. It is recovered from each selector predicate and its logged r7:r8 mask, not inferred from adjacent literal names. Hardware capabilities, mode bits and the software suppression/control bit are separate inputs.",
+    "Main-image selector f_10c918a0 is reached from applyLEDModeLocked f_10c8f06c through f_10c8ff2c. The priority sequence is UPGRADE, BROKEN_DEVICE, JOIN_HH_OPEN, JOIN_HH, BEGIN_SETUP_MODE, IN_SETUP_MODE, WAC, WAC_TIMEOUT, BREAK_POP, SHUTDOWN, !HHID, TRANSFER_REGISTRATION, CONTROL_FEEDBACK, IDENTIFY_PLAYER, AUDIO_OFF, MUTED, FAULT, WAITING_TO_PLAY, WAITING_TO_PAUSE, PLAYING, WARN, DEMO_MODE, DEMO_CONFIGURE_IR, with HHID as fallback. Suppression and available-light inputs also affect colors and auxiliary output; the mode name alone is not a complete hardware pattern description. Resume uses the subset BROKEN_DEVICE, JOIN_HH, BEGIN_SETUP_MODE, IN_SETUP_MODE, then when HHID is set MUTED, AUDIO_OFF, PLAYING and HHID fallback.",
+    "The former 0x100 mic/aux premise is withdrawn. The concrete software setter f_10c8e7e0 transforms a boolean into the inverse 0x100 flag, while hardware capability bytes are installed independently by f_10c8eac4. In the selector request +0x18/+0x19 are status/mute light capabilities and +0x1c is useOnlyStatusLED; +0x1a/+0x1b carry exclusive-Bluetooth/connected state. The initial 0x100 predicate also checks signed(high)>=0, not high!=0. Its CR7 branch polarity was checked against raw word 0x409c01f8 at 0x10c91910.",
+    "The 0x200 numeric gap does not leave a missing mode branch: complete apply and resume selector audits in anacapad and sonosledmgrd find no predicate or logged arm for it. The generic RLEDsZP updater is (old & ~clearMask) | setMask and re-applies only on a changed word, including unrecognized bits. Thus an unknown bit can cause a redundant reapply without selecting a new pattern. The map deliberately makes no claim about an original source-only enum name for an unused position. Both ELF images lack .symtab/debug enum definitions; a source-level name would require matching source/debug material rather than inventing a physical sensor meaning.",
+    "Readiness/suspend-bypass gates f_10c8ee44 precede selector invocation. Hardware requests are built only after those gates, so a requested flag update is not proof of a HAL write or visible light change. Empty/unchanged updates return current flags without reapplying. Hardware capabilities set separately include microphone, mute/status LEDs, only-status policy, hardware LED swap and adjustable white brightness."
+   ],
+   "flag_words": {
+    "storage": "Big-endian 64-bit flags: RLEDsZP owner+0xa0 high word and +0xa4 low word. applyLEDMode request+0x10 is high and +0x14 low. resumeDefaultLEDPattern uses a different request layout: +8 high and +0xc low. These are two words, not a third-word flag namespace.",
+    "low_word_named_modes": {
+     "0x1": "MUTED",
+     "0x2": "HHID",
+     "0x4": "JOIN_HH",
+     "0x10": "SHUTDOWN",
+     "0x20": "UPGRADE",
+     "0x40": "WARN",
+     "0x80": "FAULT",
+     "0x400": "WAITING_TO_PLAY",
+     "0x800": "AUDIO_OFF",
+     "0x1000": "DEMO_CONFIGURE_IR",
+     "0x2000": "DEMO_MODE",
+     "0x4000": "JOIN_HH_OPEN",
+     "0x8000": "PLAYING",
+     "0x10000": "WAITING_TO_PAUSE",
+     "0x20000": "WAC",
+     "0x40000": "WAC_TIMEOUT",
+     "0x80000": "TRANSFER_REGISTRATION",
+     "0x100000": "BROKEN_DEVICE",
+     "0x8000000": "BEGIN_SETUP_MODE",
+     "0x10000000": "IN_SETUP_MODE"
+    },
+    "high_word_named_modes": {
+     "0x1": "CONTROL_FEEDBACK",
+     "0x8": "BREAK_POP",
+     "0x40": "IDENTIFY_PLAYER"
+    },
+    "low_0x100": "Software suppression/control bit. Vtable+0x30 entry f_10c8e7e0 inverts its boolean argument and updates mask 0x100 through virtual+0xc: input 0 sets the bit, input 1 clears it. The selector computes suppression = (low & 0x100)!=0 AND signed(high)>=0. This is not a decoded microphone-mute or aux-insertion signal. The high sign bit bypasses that suppression test; no original enum name is asserted.",
+    "low_0x200": "No selector binding: full apply/resume predicates in both shipped implementations do not test this bit. Generic update can preserve it and notice that the entire flag word changed, causing mode reapplication, but it has no separate pattern arm in these selectors. Neither dead-code provenance nor a third flag word follows from the numeric gap. An original unused/reserved enum identifier is not encoded in these stripped images."
+   }
   },
   "libflac": {
    "name": "libFLAC 1.3.4 decoder",
