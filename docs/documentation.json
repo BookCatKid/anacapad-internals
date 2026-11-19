@@ -152153,14 +152153,40 @@
      "type": "firmware",
      "address": "0x10e74f10",
      "notes": "exec table"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cac70",
+     "notes": "Services XML emitter beside the misidentified predicate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e76860",
+     "notes": "Service-XML vtable slot, not a demonstrated HTTP gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10769fa0",
+     "notes": "Fixed command-name lookup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076a044",
+     "notes": "Matched numeric command index is written to diagnostic stdin."
     }
    ],
-   "todo": [
-    "Residual: the semantic name of bit7 and the remaining flag bits (the predicate exposes only the bit pattern, not the auth level name); per-route assignment is already enumerable from the 60-row route table."
-   ],
    "resolved_findings": [
-    "Resolved: per-route auth = the route-table flag word checked in the fixed gate pipeline.",
-    "Route-flag bit7 path decoded: the flag word is tested by vfunc f_100cacd8 at slot +0x40 of the route-gate class vtable 0x10e76820 - the predicate is exactly (flags & 0x81) == 0x80, i.e. bit7 must be set AND bit0 must be clear for the gate to pass. Bit7 therefore marks the internal/gated class of routes while bit0 (when set alongside) disqualifies - consistent with 0x2-only status routes being the plain/unauthenticated class and 0x82-marked rows (/api, /cloudqueue, anacapa.dc.log in the diagnostics manifest) being the bit7-gated class."
+    "The route-bit authorization residual was based on a false cross-subsystem binding. f_100cacd8 belongs to vtable 0x10e76820, whose neighboring methods emit AvailableSvc-style Services XML: f_100cac70 emits <Services SchemaVersion= and f_100cac38/f_100cac00 emit <Presentation>/</Presentation>. Its slot +0x40 pointer at 0x10e76860 is not evidence for an HTTP route gate. The arithmetic predicate (value & 0x81)==0x80 is real, but naming its bit 7 an internal/gated route class and treating bit 0 as route authorization were unsupported. Those meanings and the claimed fixed route-gate pipeline are withdrawn, not retained as unresolved exec-page flags.",
+    "The supposed route-table evidence address 0x10e74f10 is the RefreshSSLCache string, followed by SaveSSLCache and command literals beginning /bin/date at 0x10e74f50. It is not the start of a demonstrated sixty-row route/flags structure. Neither the neighboring strings nor unrelated diagnostics-manifest row flags establish authorization assignments for these pages. This record makes no claim that command pages are unauthenticated or bypass any gate.",
+    "A concrete command-consumer path is f_10769f50, reached by the tail branch at 0x1076b144. It compares a supplied command string against a compiled list beginning /bin/date and pointer array 0x10f14870 (0x10769fa0-0x10769fd4). A match writes the decimal list index followed by newline to /tmp/diagstdin at 0x1076a044-0x1076a0a8, then opens /tmp/diagstdout and polls/reads up to 0x400-byte chunks at 0x1076a0b4-0x1076a124. Unknown commands, failed opens, failed index writes and failed poll/read take failure paths. This is a fixed command-index interface, not a call to a shell with arbitrary URL text. Command and file-page vocabulary remains an inventory, not a proven permission matrix."
    ]
   },
   "authz": {
