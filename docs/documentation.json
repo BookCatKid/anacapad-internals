@@ -154194,22 +154194,40 @@
   },
   "sentry_upload": {
    "name": "crash-dump/sentry pipeline",
-   "summary": "routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; dumps {anacapad.core,anacapad.dmp,sonospowercoordinator.dmp,btmanager.dmp,netstartd.dmp,/jffs/app/debug/sonosledmgrd.dmp}; sidecars {.properties per daemon,sonospowercoordinatorCrashCount,netstartd.count}; attachments {watchdog.log,watchdog.dmesg,/opt/log/anacapa.hdmi.log,/opt/log/anacapa.tv.log,/tmp/AirPlay.log,/opt/log/btmanager.log,/opt/log/btservice.log,/tmp/backtrace}; opt-out flag prevent_crashdump_upload + /tmp/anacapa_prevent_crashdump_upload; sentry schema {sentry[release]=build.version,sentry[tags][%s],sentry[user][id],%s[sonosID],%s[hhid],%s[serial],%s[upload_sw_version],%s[hardware_version],%s[model],%s[upload_spotifyesdk_version],%s[play_state],%s[watchdog_crash]}; form-data + text/plain; charset=UTF-8/us-ascii + application/octet-stream; gzip stream \"writeStream failed - Bytes compressed: %d/%d\"; play-state file /tmp/crashed_play_state + htsnk; results {\"Minidump [%s] uploaded to sentry.io. UUID: %s\",\"Coredump [%s] successfully uploaded\",\"didn't finish upload; http resp: [%d]; last error: [%s]\",\"did not return a UUID\",\"No URL found\"}; dump file %s-anacapa_dump.gz + originator + Version:",
+   "summary": "Crash uploads use outbound multipart requests, with configurable overrides and a compiled HTTPS crash-upload service fallback. The *-external strings are destination suffixes, not local inbound routes. O_MINIDUMP_SUBMIT_URL is a separate option from the O_CRASH_UPLOAD_SUBMIT_URL used by the checked daemon-dump selector. A concrete direct sentry.io project/DSN is not established by those suffixes or Sentry-compatible form fields.",
    "evidence": [
     {
      "type": "firmware",
      "address": "0x10ea7c14",
      "notes": "sentry block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102537b0 / f_105403a8 / f_1053fa2c / f_1053faf8",
+     "address": "0x10253830",
+     "callsite": "0x10253d64 / 0x10253db0 / 0x10540450 / 0x1054045c",
+     "notes": "Selector passes option3c; override helper returns bounded nonempty override without suffix (append flag0), else service7 https fallback. Service row10ee6fd4 is crash-upload/ws.sonos.com/flags0. Null suffix uses empty string. Unknown identity logs missing URL. These are outbound construction and multipart submission edges."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "option names / f_10556e10",
+     "address": "0x10087564 / 0x100875dc",
+     "callsite": "0x10087578 / 0x100875f0 / 0x10556e68 / 0x10556e74",
+     "notes": "Option descriptor rows pair39 MINIDUMP and3c CRASH_UPLOAD. Getter uses index*20 and present byte+10, returns value+8 or caller default. Literal row addresses were checked, not inferred from the following row index."
     }
    ],
    "todo": [
-    "Residual: the concrete sentry.io project id/DSN - lives in the deployed O_MINIDUMP_SUBMIT_URL option value, not in the binary"
+    "Established: concrete daemon-dump URL selection, distinct override IDs0x39/0x3c, option-presence semantics and compiled HTTPS crash-upload fallback, with actual multipart dispatch. Remaining: trace every minidump/legacy selector arm and option0x39 consumer, option-source writers and service-base overrides, then bind per-path attachment predicates and response UUID parsing. Start at f_102537b0, f_105403a8/f_1053faf8, f_10556e10 and f_10253ab4. Only after exhausting those joins classify any final upstream Sentry project mapping as deployment-only. The old no-compiled-URL and universally O_MINIDUMP-only limitation is withdrawn. This is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: upload payload = per-route dumps {anacapad.core, anacapad.dmp, sonospowercoordinator.dmp} over routes {/upload,/watchdog,/anacapad-external,/sonospowercoordinator-external,/watchdog-legacy,/legacy-to-sentry,/btmanager-external,/sonosledmgrd-external,/netstartd-external}; destination = the sentry ingest host.",
-    "Upload payload and destination proven (reporting record decode): each daemon dump ({anacapad.core, anacapad.dmp, sonospowercoordinator.dmp, btmanager.dmp, netstartd.dmp, sonosledmgrd.dmp}) uploads as a Sentry multipart/form-data POST to the crash-upload cloud service (cloud_services registry); parts = the dump file, its .properties sidecar (daemon key=value state), counter sidecars (sonospowercoordinatorCrashCount, netstartd.count), and text/plain log attachments (/opt/log/anacapa.hdmi.log, anacapa.tv.log, btmanager.log, /tmp/backtrace, /tmp/watchdog). Sentry event tags and the envelope metadata ride the same POST. Routes {/upload, /watchdog, *-external, /watchdog-legacy, /legacy-to-sentry} are the local submission endpoints that feed the uploader - external daemons POST their dump descriptors through them.",
-    "Resolved: the upload transport is multipart/form-data with boundary literal 'SONOSMULTIPARTBOUNDARY.BLAHBLAHBLAH' (Content-Disposition: %s emission). The submit URL is NOT compiled in - it is read from option key O_MINIDUMP_SUBMIT_URL, so the DSN/endpoint is deployment config. 'No URL found to upload dump file' is the missing-option failure. Field vocabulary {sentry[release],sentry[tags][%s],sentry[user][id],%s[sonosID],%s[hhid],%s[serial],%s[upload_sw_version],%s[hardware_version],%s[model],%s[upload_spotifyesdk_version],%s[play_state],%s[watchdog_crash]} is literal.",
-    "Established: multipart boundary + full field grammar literal; submit URL = O_MINIDUMP_SUBMIT_URL option (deployment config, absent from image)."
+    "f_102537b0 selects outgoing suffixes by dump identity. The checked anacapad/netstartd/btmanager/LED paths call f_105403a8 with option0x3c and a suffix;0x10253d64 obtains the resulting URL and0x10253db0 passes it to multipart setup f_10545274. These are executable upload calls, not evidence that daemons POST descriptors to local /X-external handlers. The old local-route and direct-sentry-ingest-host assertions are withdrawn.",
+    "Option-name construction at0x10087564-0x10087578 pairs id0x39 with O_MINIDUMP_SUBMIT_URL;0x100875dc-0x100875f0 pairs0x3c with O_CRASH_UPLOAD_SUBMIT_URL. The checked selector uses the latter. f_10556e10 locks the option table, uses a20-byte row, returns row+8 when row+10 is marked present and otherwise returns the supplied default pointer. A missing override is not proof of a missing destination.",
+    "f_105403a8 first calls override helper f_1053fa2c. A successful nonempty bounded option string is returned without appending the supplied suffix (append flag0). Otherwise it falls back through f_1053faf8 with service index7 and scheme https. Raw service row0x10ee6fd4 contains crash-upload, ws.sonos.com and flags0; default formatting is %s://%s.%s%s. Thus the ordinary absent-override fallback is the compiled crash-upload service URL plus selected suffix, not a required deployment-only sentry.io DSN. Resolver/format failures remain possible; unknown dump identities follow the No URL found diagnostic.",
+    "Multipart form/attachment construction remains distinct from URL provenance. Boundary and sentry[release]/sentry[tags]/user/extra-field literals demonstrate a Sentry-compatible field vocabulary, not a certified exhaustive optional-field grammar or a direct upstream project mapping. f_10253ab4 opens/adds crashdump attachments and reports failures; do not infer the full per-daemon attachment set merely from nearby filename literals."
    ]
   },
   "tv_processor": {
