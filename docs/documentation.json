@@ -150523,17 +150523,47 @@
      "type": "firmware",
      "address": "0x10e99764",
      "notes": "capability guards"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1006a690",
+     "address": "0x1006a7bc",
+     "notes": "-C argument routed with username to sonos_auth_become_capable; unrelated to product-feature words."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1008e7c4",
+     "address": "0x1008e854",
+     "notes": "Dictionary initialization materializes masks explicitly, including grouped 0xff and 0xff00."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106214f4",
+     "address": "0x10621590",
+     "notes": "Model feature word intersected with dictionary node mask, then names collected for output."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10908ce8",
+     "notes": "Feature-word accessors read model members +0xd0/+0xd4/+0xd8/+0xdc; producer not yet traced."
     }
    ],
    "todo": [
-    "Residual: which concrete product bitmasks (per-model feature words) populate the array at runtime - model data, not literal per-model values in this record"
+    "Residual: identify the model-object population/writers for feature words +0xd0/+0xd4/+0xd8/+0xdc and trace each settings checker to the corresponding feature predicate. The recovered literal name/mask dictionaries describe separate feature-word domains, not a universal 77-bit array. Concrete per-model values and each guard-to-predicate binding remain unresolved; main -C supplies process privileges, not device features."
    ],
    "resolved_findings": [
-    "Resolved: the capability word is the device capability mask supplied at launch (main() -C <caps>); each guard message is emitted by a per-capability checker testing the matching named bit from the 83-pair {name,mask} table - PoE/water-sensor/mic-switch/subwoofer/battery/bluetooth/HT-source each have their own bit test + reject string.",
-    "Guard-to-bit mapping via the model-9 capability rows (capabilities section): each guard tests a capability word bit and fails with its specific string. Model-9 answers: audio input connections - LIVE (zp+0x5704 gates /AudioIn/Control registration); ethernet ports - LIVE (EnetPorts XML exists, with the no-ports and max-report-size %zu/%d guards); PoE - dead (S9 has no PoE); water sensor - dead (leak-sensor hardware); microphone switch - dead (no mic); not-a-subwoofer - LIVE (S9 is a soundbar); suspendable - dead (semisleep gate, non-suspendable); battery {requiredMinimumBatteryPercentage,requiredMaximumBatteryPercentage,durationSeconds} - dead (no battery); bluetooth - dead (Unable to set bluetooth pairing, unsupported); HT source - LIVE (Playbar is an HT source); HDMI CEC - dead (S9 is TOSLink, no HDMI, so target does not support HDMI CEC fires). Adjacent decoded strings: FD/HD ethernet duplex labels, nightMode/enhanceDialog audio-setting keys, x-rincon-buzzer:1 custom-alarm URI, x-sonos-htastream scheme, demo-mode line-in + IR-learn paths, skipBack/skipToNextTrack local playback# verb RPCs, healthchecker/scopeZP/scopeDefault/warn_fault/zp_pre_setup report scopes.",
     "Resolved: guard emit plumbing decoded - each reject string is wrapped by an emitter fn (0x10185cd8 PoE+eth, 0x10185d58 water-sensor, 0x10185ddc mic-switch, 0x10185e60 not-subwoofer, 0x10185f6c suspendable, 0x10186068 battery) that stamps {code 0x48/0x5a, message} via f_101a2ba8 then calls the reply thunk f_109db780. Each emitter is reached through a tiny vtable thunk (0x10185d50-family: 'addi r4,-0x56dc; b emitter') stored in the settings-object vtable block 0x10e97ef8-0x10e97f38 - no direct bl callers exist; the capability-bit test itself runs in the checker vfunc that selects the thunk.",
-    "Resolved: the complete RMuseFeature name array is a contiguous literal run @0x10efa2a8-0x10efa788 = 77 entries in feature-bit order: AUDIO_IN_MASK, RCA_LINE_IN, 35MM_LINE_IN, DOCK_ANALOG_IN, USB_LINEIN, HTAUDIO_IN_MASK, TOSLINK_HT_IN, HDMI_ARC, HDMI_EARC, AUDIO_OUT_MASK, RCA_LINE_OUT, 35MM_LINE_OUT, COAX_DIGITAL_OUT, TOSLINK_DIGITAL_OUT, SPEAKER_OUT, HEADPHONE_OUT, SUB_OUT, DEV_CLASS_MASK, 2PORT_SWITCH, 4PORT_SWITCH, WIFI_2GHZ, WIFI_5GHZ, CONCURRENT_2GHZ_5GHZ, USB_ETHERNET, BUTTON_PLAY_PAUSE, BUTTON_VOL_ROCKER, BUTTON_MUTE, CAPTOUCH_ABC, BUTTON_WIFIBT_MODE, CAPTOUCH_JOIN, MICROPHONE_SWITCH, HT_SOURCE, MONO_SPEAKER, VOICE, BTCLASSIC, MICROPHONE, IR_SENSOR, IR_TRANSMITTER, NFC_SENSOR, 12V_TRIGGER, EXTENDER, STEREO_PAIR, CONTROLLER_CFG_SATELLITE, EQ_COLLECTION, TUNABLE_CROSSOVER, EQ_BALANCE, CUSTOM_SATELLITE, PORTABLE, THIRDPARTY, DETECT_SPEAKERS, SELF_TRUEPLAY, DUALBAND_STATION, WIRELESS_SONOSNET, MUST_PAUSE_FOR_AUDIOCLIP, ROOM_DETECTION_CHIRP, SWAP_INITIATOR, LED_STATUS, LED_MUTE, BLE_DISCONNECT_SCAN, LACKS_HI_RES_MUSIC, HEIGHT_CHANNEL_TUNING, DUAL_MONO, WIDEVINE, DOLBY_ATMOS, WAKEABLE, HLS_V7, MUSE_OVER_BLE, VIDEO_PLAYBACK, SUPPORTS_FLEXIBLE_SURROUNDS, HP_SWAP_TARGET, EPHEMERAL_PLAYER, RECONFIGURABLE_OUTPUTS, AUTOMATIC_WIRED_SOFTAP, EPHEMERAL_BONDING, IS_HEADPHONE_MEDIAPLAYER, DEFAULT_STATUS_LED_OFF, DEFAULT_. The guard \"Number of device features exceeds size of RMuseFeature array\" (0x10efa268) proves this is a fixed name array indexed by the feature bit index - so array position IS the bit index for each guard name.",
-    "Established: complete 77-entry RMuseFeature name vocabulary in bit order; array-bound guard."
+    "Launch-capability premise disproven in the executable: main f_1006a690 dispatches option character C through relative jump-table 0x10e706a4 to 0x1006a8f4, where the next argv pointer is selected into r22. The u case at 0x1006a858 selects username into r25. At 0x1006a7b4-0x1006a7bc those values are passed as (r25,r22) to sonos_auth_become_capable@plt. Shipped opt/bin/anacapactl line 5 supplies -u anacapa -C all=eip. This is the process-user/privilege path, not a device-model feature mask source. The usage text calling the argument caps was insufficient to identify it as product capabilities.",
+    "Literal feature masks are encoded in startup instructions, not inferred from string ordinal: f_1008e7c4 constructs a name/mask dictionary. Stores at 0x1008e848/0x1008e854 bind AUDIO_IN_MASK=0xff; 0x1008e860/0x1008e86c bind RCA_LINE_IN=1; 0x1008e878/0x1008e884 bind 35MM_LINE_IN=2; 0x1008e890/0x1008e89c bind DOCK_ANALOG_IN=4; 0x1008e8a8/0x1008e8b4 bind USB_LINEIN=8; 0x1008e8c0-0x1008e8d0 bind HTAUDIO_IN_MASK=0xff00; 0x1008e8dc-0x1008e8ec bind TOSLINK_HT_IN=0x8000; 0x1008e8f8 binds HDMI_ARC=0x4000. Independent initializer f_10095d04 constructs the same initial pairs at 0x10095da8 onward. AUDIO_IN_MASK is therefore a grouped mask and array index one is not bit one. This directly refutes the universal feature-bit-order interpretation of the contiguous strings.",
+    "Actual name-selection path: f_1062192c calls f_106214f4 at 0x10621970 to create a vector of feature names. f_106214f4 first obtains object+0xd0 via f_10908ce8 at 0x10621568, walks dictionary nodes from global 0x110a89c4+8, intersects the feature word with node+4 at 0x1062158c-0x10621594, filters names containing MASK via f_108327fc, and copies selected names into a vector. It next obtains object+0xd4 via f_10908cf8 at 0x10621608. Accessors f_10908d08/f_10908d18 similarly read +0xd8/+0xdc. The RMuseFeature-array size warning at 0x10621b50 compares resulting vector count to caller capacity; this path does not index a literal 77-entry bit-name array. These verified reads locate the required model-word writer investigation, but do not establish its result or justify the previous S9 live/dead guard claims, which are withdrawn."
    ]
   },
   "ext_audio_src": {
