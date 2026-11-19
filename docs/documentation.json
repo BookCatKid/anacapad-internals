@@ -73075,7 +73075,7 @@
      }
     },
     "GetRoomCalibrationStatus": {
-     "description": "Builds a 0x34-byte calibration-record (size tag + zeroed fields + caller regs stashed), locks impl+0x938, calls f_100dbb74(rec, arg & 0xffff, ...) - a sonar-calibration query helper - and fills the two outputs from the result.",
+     "description": "Reads cached RoomCalibrationEnabled and RoomCalibrationAvailable from RC bytes +0x847 and +0x849 under mutex +0x938 through the proven primary slot +0x64, f_100d7160. InstanceID must be zero; nonzero returns 702 without touching either output. On success the SOAP wrapper formats both bytes as booleans. This method does not construct a calibration record, call f_100dbb74, start calibration, refresh sonar state or query hardware.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073b1ec",
@@ -73125,19 +73125,26 @@
       "InstanceID": {
        "direction": "in",
        "format": "decimal text",
-       "type": "",
-       "accepted": "impl-side grammar applies",
+       "type": "ui4",
+       "accepted": "0",
        "required": true,
        "parse_helper": "req->v[+0x1c] (required-arg parser)",
-       "description": "engine instance index; impl returns 718 when nonzero",
+       "description": "Required rendering-instance selector; only numeric zero is supported.",
        "unit": "none - dimensionless",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b220",
-         "notes": "in-arg name load + req->v[+0x1c] parse call"
+         "address": "0x10ed2770",
+         "notes": "Primary RC vptr 0x10ed270c slot +0x64 contains f_100d7160; bound through services-block store at 0x104d4dc0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7160",
+         "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
         }
        ],
        "primitive": {
@@ -73147,148 +73154,236 @@
         "fmt": null,
         "via_slot": 28
        },
-       "semantic_type": "SonosUintArg",
-       "range": "0 only; nonzero InstanceID rejected by impl guard with 718",
-       "special_values": "none identified",
-       "default": "none - required argument",
-       "validation": "impl guard cmpwi r4,0: nonzero parsed value -> 718",
+       "semantic_type": "ui4",
+       "range": "0",
+       "special_values": "none",
+       "default": "none: required argument",
+       "validation": "Nonzero InstanceID returns 702 before locking or writing outputs.",
        "accepted_values": "0"
       }
      },
      "outputs": {
       "RoomCalibrationEnabled": {
-       "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after masking an argument to its low 16 bits, and fills the record fields that become these outputs.",
+       "description": "Cached byte at RC+0x847, copied to its caller-owned output under mutex +0x938 and formatted as boolean text 0 or 1. It is not obtained from a record-builder or masked numeric argument.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "0 or 1",
        "unit": "none",
-       "accepted_values": "record-derived",
-       "range": "unconstrained",
+       "accepted_values": "0 or 1",
+       "range": "0..1",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Emitted only when the implementation returns 0; f_1055fc08 normalizes the stored byte by zero/nonzero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b2e8",
-         "notes": "out-arg access site"
+         "address": "0x100d71a4",
+         "notes": "Load cached byte +0x847."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0af5c",
-         "notes": "argument name string"
+         "address": "0x1073b284",
+         "notes": "Fresh mr. r4,r3 selects numeric nonzero-status fault; success loads enabled at 0x1073b2ec and available at 0x1073b310, formatting each with f_1055fc08."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dbcd4",
-         "address": "0x100dbcd4",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x1055fc08",
+         "notes": "Boolean formatter emits text 0 for zero and 1 for any nonzero byte. No mask or right shift is involved in this getter."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `RoomCalibrationEnabled`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "This read does not run a calibration or verify live hardware availability."
       },
       "RoomCalibrationAvailable": {
-       "description": "Produced by impl f_100dbcd4: it initializes a 0x34-byte record at the caller, locks impl+0x938, runs f_100dbb74 after masking an argument to its low 16 bits, and fills the record fields that become these outputs.",
+       "description": "Cached byte at RC+0x849, copied to its caller-owned output under mutex +0x938 and formatted as boolean text 0 or 1. It is not obtained from a record-builder or masked numeric argument.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
         "fmt": null
        },
-       "semantic_type": "boolean ('0'/'1')",
-       "format": "'0'/'1' literal",
+       "semantic_type": "boolean",
+       "format": "0 or 1",
        "unit": "none",
-       "accepted_values": "record-derived",
-       "range": "unconstrained",
+       "accepted_values": "0 or 1",
+       "range": "0..1",
        "special_values": "none",
        "required": true,
        "default": "none",
-       "validation": "request-layer parse (req vfunc +0x08); no impl-side checks",
+       "validation": "Emitted only when the implementation returns 0; f_1055fc08 normalizes the stored byte by zero/nonzero.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x1073b30c",
-         "notes": "out-arg access site"
+         "address": "0x100d71b0",
+         "notes": "Load cached byte +0x849."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10f0afa0",
-         "notes": "argument name string"
+         "address": "0x1073b284",
+         "notes": "Fresh mr. r4,r3 selects numeric nonzero-status fault; success loads enabled at 0x1073b2ec and available at 0x1073b310, formatting each with f_1055fc08."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dbcd4",
-         "address": "0x100dbcd4",
-         "notes": "impl body disasm - arg role per action docs"
+         "address": "0x1055fc08",
+         "notes": "Boolean formatter emits text 0 for zero and 1 for any nonzero byte. No mask or right shift is involved in this getter."
         }
        ],
-       "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `RoomCalibrationAvailable`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "notes": "This read does not run a calibration or verify live hardware availability."
       }
      },
-     "validation": "Request-layer parse.",
-     "requirements": "impl mutex",
-     "state_dependencies": "none",
+     "validation": {
+      "description": "Wrapper configures required InstanceID through f_105614e0 and request virtual +8. The concrete getter rejects nonzero with 702, not 718; no further flag or capability check.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2770",
+        "notes": "Primary RC vptr 0x10ed270c slot +0x64 contains f_100d7160; bound through services-block store at 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7160",
+        "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
+       }
+      ]
+     },
+     "requirements": {
+      "description": "Required InstanceID must pass request validation and be zero. A nonzero value returns 702 before mutex acquisition; there is no additional calibration-availability or enabled-state gate.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2770",
+        "notes": "Primary RC vptr 0x10ed270c slot +0x64 contains f_100d7160; bound through services-block store at 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7160",
+        "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
+       }
+      ]
+     },
+     "state_dependencies": {
+      "description": "Reads only cached enabled byte +0x847 and available byte +0x849, protected together by mutex +0x938. Neither flag is recomputed or changed.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7160",
+        "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b264",
+        "notes": "stbu r9,-9(r6), raw 0x9d26fff7, forms r6=&sp+0x17. r5=&sp+0x16; slot +0x64 receives InstanceID, enabled pointer and available pointer."
+       }
+      ]
+     },
      "side_effects": [
       {
-       "description": "Locks +0x938 (guard at r1+0x14) then calls worker f_100dbb74 to compute the two out flags.",
+       "description": "Acquires/releases mutex +0x938 and writes the two caller-owned output bytes. No renderer setting, sonar cache, dirty bit, event source, calibration worker or network operation is changed or invoked.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x100dbcd4",
-         "address": "0x100dbd70",
-         "notes": "bl f_100dbb74 at 0x100dbd70 inside the +0x938 guard"
+         "address": "0x100d7160",
+         "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1073b264",
+         "notes": "stbu r9,-9(r6), raw 0x9d26fff7, forms r6=&sp+0x17. r5=&sp+0x16; slot +0x64 receives InstanceID, enabled pointer and available pointer."
         }
        ]
       }
      ],
-     "events_triggered": "none",
-     "state_transitions": "none",
-     "return_behavior": "Success = impl leaves cr0.eq set at return -> wrapper emits outputs (req vfunc +0x24) and commits (+0x14); otherwise req vfunc +0x14 is invoked with r4 = impl rc producing a SOAP fault with that code.",
+     "events_triggered": "none: the complete concrete getter performs only locking and cached-byte copies.",
+     "state_transitions": "none: enabled, available and calibration operation state are unchanged.",
+     "return_behavior": {
+      "description": "Returns 0 and emits both booleans for InstanceID zero; returns 702 without outputs otherwise. Wrapper request validation failure selects 402. Dispatcher unknown action or null implementation selects 401. Status is explicitly retested by mr. before output emission.",
+      "evidence": [
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed2770",
+        "notes": "Primary RC vptr 0x10ed270c slot +0x64 contains f_100d7160; bound through services-block store at 0x104d4dc0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x100d7160",
+        "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b264",
+        "notes": "stbu r9,-9(r6), raw 0x9d26fff7, forms r6=&sp+0x17. r5=&sp+0x16; slot +0x64 receives InstanceID, enabled pointer and available pointer."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1073b284",
+        "notes": "Fresh mr. r4,r3 selects numeric nonzero-status fault; success loads enabled at 0x1073b2ec and available at 0x1073b310, formatting each with f_1055fc08."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1055fc08",
+        "notes": "Boolean formatter emits text 0 for zero and 1 for any nonzero byte. No mask or right shift is involved in this getter."
+       }
+      ]
+     },
      "fault_sites": [],
      "errors": [
       {
        "code": 401,
-       "code_expr": null,
-       "meaning": "Service/implementation unavailable at dispatch: *(svc+4) impl pointer null when the dispatcher selected this action.",
+       "meaning": "Unknown action name or null service+4 at dispatcher.",
        "fault_sites": [
         "0x1073a83c"
        ],
        "conditions": [
         {
-         "description": "implementation object pointer null at dispatch",
+         "description": "Unknown action name or null service+4 at dispatcher.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073a83c"
+           "address": "0x1073a83c",
+           "notes": "Unknown action name or null service+4 at dispatcher."
           }
          ]
         }
@@ -73298,30 +73393,27 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073a83c"
+         "address": "0x1073a83c",
+         "notes": "Unknown action name or null service+4 at dispatcher."
         }
-       ],
-       "unresolved": null,
-       "notes": null
+       ]
       },
       {
        "code": 402,
-       "code_expr": null,
-       "meaning": "Request argument parse/validation failure at the wrapper before the impl call.",
+       "meaning": "Required request argument validation failed before implementation call.",
        "fault_sites": [
-        "0x1073b2ac"
+        "0x1073b298"
        ],
        "conditions": [
         {
-         "description": "req vfunc +0x08 parse failed",
+         "description": "Required request argument validation failed before implementation call.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "notes": "branch reaches this fault site under the stated condition",
-           "address": "0x1073b2ac"
+           "address": "0x1073b2cc",
+           "notes": "Required request argument validation failed before implementation call."
           }
          ]
         }
@@ -73331,12 +73423,38 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "notes": "fault raise site (req vfunc +0x14)",
-         "address": "0x1073b2ac"
+         "address": "0x1073b2cc",
+         "notes": "Required request argument validation failed before implementation call."
+        }
+       ]
+      },
+      {
+       "code": 702,
+       "meaning": "InstanceID is nonzero.",
+       "fault_sites": [],
+       "conditions": [
+        {
+         "description": "InstanceID is nonzero.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "address": "0x100d7168",
+           "notes": "InstanceID is nonzero."
+          }
+         ]
         }
        ],
-       "unresolved": null,
-       "notes": null
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100d7168",
+         "notes": "InstanceID is nonzero."
+        }
+       ]
       }
      ],
      "firmware_differences": [],
@@ -73345,34 +73463,45 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1073b1ec",
-       "address": "0x1073b1ec",
-       "notes": "action wrapper handler"
+       "address": "0x10ed2770",
+       "notes": "Primary RC vptr 0x10ed270c slot +0x64 contains f_100d7160; bound through services-block store at 0x104d4dc0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10f11dd0",
-       "notes": "action dispatch table entry"
+       "address": "0x100d7160",
+       "notes": "Nonzero InstanceID returns 702 before locking or writing outputs. InstanceID zero acquires mutex +0x938, copies bytes +0x847 and +0x849 to the two caller pointers at 0x100d71ac/0x100d71b4, releases the mutex and returns 0."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "notes": "f_100dbcd4 initializes the 0x34-byte record and locks +0x938. Raw word 0x5484043e at 0x100dbd6c is rlwinm r4,r4,0,16,31 (clrlwi r4,r4,16): r4 &= 0xffff, not r4 >>= 16. SH=0, MB=16, ME=31, Rc=0. f_100dbb74 is called at 0x100dbd70.",
-       "function": "0x100dbcd4"
+       "address": "0x1073b264",
+       "notes": "stbu r9,-9(r6), raw 0x9d26fff7, forms r6=&sp+0x17. r5=&sp+0x16; slot +0x64 receives InstanceID, enabled pointer and available pointer."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1073b284",
+       "notes": "Fresh mr. r4,r3 selects numeric nonzero-status fault; success loads enabled at 0x1073b2ec and available at 0x1073b310, formatting each with f_1055fc08."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055fc08",
+       "notes": "Boolean formatter emits text 0 for zero and 1 for any nonzero byte. No mask or right shift is involved in this getter."
       }
      ],
-     "notes": "Same record-builder pattern as SetOutputFixed impl f_100dcfc0 - the 0x34 record is a shared config/status query structure.",
-     "todo": [
-      "Established: dispatch to handler 0x1073b1ec; uses the shared 0x34 record-builder pattern of SetOutputFixed's impl f_100dcfc0.",
-      "Residual: the shared config/status record's field layout. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: the 0x34 record = the shared calibration status {sonar flags, calibration state} record.",
-      "Resolved: the 0x34 record = the shared calibration status {sonar flags, calibration state} record."
-     ]
+     "notes": "The former f_100dbcd4 record-builder attribution was incorrect. The low-16-bit mask at 0x100dbd6c remains a fact about that different function, not the provenance of these SOAP outputs.",
+     "implementation_notes": {
+      "primary_vptr": "0x10ed270c",
+      "soap_slot": "0x64",
+      "function": "0x100d7160",
+      "binding_store": "0x104d4dc0"
+     }
     },
     "GetSupportsOutputFixed": {
      "description": "For InstanceID zero, locks +0x938, calls f_102a56b4 on pointer +0x3ac, writes its low byte to the out argument, unlocks and returns 0. f_102a56b4 loads its argument+0x34, adds 0xe0 and tail-calls f_107f6000; that terminal function always returns 0 and has no further call or read. Thus CurrentSupportsFixed is false in this firmware path. Nonzero InstanceID returns 702. The unrelated +0xe4 record-query function f_100d6764 and its 52/63 statuses are not this SOAP implementation.",
