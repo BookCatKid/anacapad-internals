@@ -215457,7 +215457,7 @@
    ],
    "details": {
     "manifest_refresh_precondition": {
-     "description": "Account helper f_10287238 derives SID as unsigned accountType>>8 and obtains the catalog through zone slot+0x130, with a direct zone+0x11a4 getter fast path when the slot equals f_1012ba78. It calls conditional refresh f_100c7404. Zero returns zero; any nonzero result is logged when enabled and becomes account error802 (0x322), independent of logging. This collapses busy800 and download failure801 into802 rather than propagating them. A zero result also includes the conditional refresh no-op, so it does not prove an HTTP download occurred. The five direct call sites are user-credentials0x10289df0, preinstalled-service0x1028aec8, OAuth-token0x1028b36c, OAuth-code0x1028b4d0 and OAuth-direct-control0x1028b644. Each supplies a corresponding operation-name string for logging. User credentials performs refresh before taking its account mutex and loading tables; nonzero returns immediately. Token addition returns nonzero before tail-calling f_1028a224. Code and direct-control additions return nonzero before f_10286e44 credential acquisition and their later f_1028a224 calls. Preinstalled-service addition has earlier descriptor/authentication gates; refresh nonzero goes directly to cleanup. These observations establish the manifest precondition in these paths, not success of the remaining account operation.",
+     "description": "Account helper f_10287238 derives SID as unsigned accountType>>8 and obtains the catalog through zone slot+0x130, with a direct zone+0x11a4 getter fast path when the slot equals f_1012ba78. It calls conditional refresh f_100c7404. Zero returns zero; any nonzero result is logged when enabled and becomes account error802 (0x322), independent of logging. This collapses busy800 and download failure801 into802 rather than propagating them. A zero result also includes the conditional refresh no-op, so it does not prove an HTTP download occurred. The five direct call sites are user-credentials0x10289df0, preinstalled-service0x1028aec8, OAuth-token0x1028b36c, OAuth-code0x1028b4d0 and OAuth-direct-control0x1028b644. Each supplies a corresponding operation-name string for logging. User credentials performs refresh before taking its account mutex and loading tables; nonzero returns immediately. Token addition returns nonzero before tail-calling f_1028a224. Code and direct-control additions return nonzero before f_10286e44 credential acquisition and their later f_1028a224 calls. Preinstalled-service addition has earlier descriptor/authentication gates; refresh nonzero goes directly to cleanup. These observations establish the manifest precondition in these paths, not success of the remaining account operation. Dispatch binding is now complete: the five gated workers sit behind these routes. AddAccountX installs adapter f_104b07f0 (settings-delegate vtable0x10ed75c4+0x18), which skips the worker entirely for AccountType0xFE07 and otherwise calls f_10289d48; the TuneIn branch reads R_HideTuneIn instead of touching account tables. AddOAuthAccountX installs f_104b052c (+0x1c): nonempty AccountToken selects f_1028b2e4, else nonempty AuthorizationCode selects f_1028b440, else f_1028ad54; OAuthDeviceID forwards in all three branches and AccountTier clamps to unsigned65535 on the token branch. f_1028b5bc (OAuth direct control) is not part of that adapter; its only callers are direct-control path f_1020eb2c and replication driver f_1028fa98 at0x102902ac. Preinstalled-service worker f_1028ad54 additionally runs from zone-internal seeding through f_101877c0 (two sites, descriptor service0x12f via f_101b6a74), f_101b5498 and f_101b6c20. A direct-branch census of .text confirms f_10287238 has no other callers. Downstream of the gate each worker performs its own load, duplicate check and persist through f_102887e0, f_10570e34 and f_1028a224 with the shared commit chain, so the gate proves only that the manifest check ran first; subsequent steps still fail with their own statuses (810 load,806 selection,809 commit, provider result), and rollback is limited to the no-commit cases of the update helper.",
      "evidence": [
       {
        "type": "firmware",
@@ -215500,9 +215500,46 @@
        "build": "86.10-80260",
        "address": "0x1028b644",
        "notes": "addAccountForOAuthDirectControl precondition before credential call0x1028b6dc and account call0x1028b754."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b07f0",
+       "notes": "Installed AddAccountX adapter (vtable0x10ed75c4+0x18): full AccountType compare0xFE07 selects a TuneIn-specific branch reading R_HideTuneIn at0x104b088c; other types call f_10289d48 on ctx+0x26c+0x118."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b052c",
+       "notes": "Installed AddOAuthAccountX adapter (vtable+0x1c): nonempty token->f_1028b2e4 with Tier clamp to0xffff, else nonempty code->f_1028b440, else f_1028ad54; OAuthDeviceID forwarded on all branches."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1020f02c",
+       "notes": "Direct-control caller of f_1028b5bc inside f_1020eb2c; replication driver calls the same worker at0x102902ac."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101878ac",
+       "notes": "Internal preinstalled seeding: f_101877c0 calls f_1028ad54 twice after descriptor service0x12f lookup via f_101b6a74; f_101b5498 tail-calls it and f_101b6c20 calls it at0x101b6c9c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10287238",
+       "notes": "Direct-branch census of .text: exactly five call sites0x10289df0/0x1028aec8/0x1028b36c/0x1028b4d0/0x1028b644; no indirect callers exist."
       }
      ],
-     "todo": "Established: refresh helper, five direct callers, error802 translation and ordering before the identified account steps are instruction-traced. Remaining: bind each caller to public command dispatch and all indirect callers, trace descriptor/authentication gates and credential acquisition, and audit persistence, side effects, rollback and externally delivered errors after each continuation."
+     "resolved_findings": [
+      "Resolved: the five refresh-gated workers are bound to AddAccountX (f_104b07f0), the AddOAuthAccountX token/code/neither branches (f_104b052c), OAuth direct control (f_1020eb2c and replication driver f_1028fa98) and internal preinstalled seeding (f_101877c0/f_101b5498/f_101b6c20); f_10287238 has no other callers, the802 translation happens before mutex/account-table work in every path, and externally delivered errors reduce to that802 plus the downstream statuses of each worker's own steps."
+     ]
     },
     "account_family_lookup": {
      "description": "f_10570e34 searches a table with count at+0 and records starting+4 with stride0x250. Record serial is+0, type+4, username+8 and flags+0x1f4. It compares normalized types N(t)=((t & 0xffffff7f) - (1 - (t & 1))) modulo2^32: bit0x80 is cleared and even values move to the preceding odd value. For example types7,8,0x87,0x88 match the same family; the mask retains upper bits, but subtraction can borrow into them when all low bits are zero. This is the implemented arithmetic even at that boundary. A non-null username requires an exact strcmp match (or an empty record username for an empty argument) and returns that record immediately, before the flags test. With a null username, records with flags&1 are skipped. Among remaining family matches it tracks the smallest unsigned serial, keeping the first on equal serial. The initial minimum is0xffffffff and replacement requires strict unsigned less-than, so serial0xffffffff never becomes this smallest-serial candidate. Separately it remembers the last matching record for which f_1056fd48 returns true and f_1056fe5c(username) returns zero. With selector argument6 zero, that special candidate is preferred, otherwise the smallest-serial candidate is returned; absence of either returns null. With nonzero selector, the explicit username-match fast return still works, but the null-username fallback returns null. f_1056fd48 is true for record+0x1ec nonzero or a username longer than3 beginning X_#. f_1056fe5c searches the first hyphen and parses its following bytes with strtoul(base16), returning zero if there is no hyphen. The selection is a type-family and flag policy, not a credential-validity check.",
