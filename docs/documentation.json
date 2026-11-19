@@ -148640,16 +148640,34 @@
   "reporting": {
    "crashdump": "sentry uploader: dump-proc-anacapa w/ build.version, sentry[release], sentry[tags][%s], %s[sonosID]; dumps anacapad.{core,dmp}+sonospowercoordinator.dmp+btmanager.dmp+netstartd.dmp + *.properties; counters sonospowercoordinatorCrashCount/netstartd.count; logs /opt/log/anacapa.{hdmi,tv}.log,/tmp/AirPlay.log,/opt/log/{btmanager,btservice}.log,/tmp/backtrace,/tmp/crashed_play_state; killfiles /tmp/anacapa_prevent_crashdump_upload+prevent_crashdump_upload; \"Failed to write attachment %s to sentry upload\"; htsnk dump",
    "play_report": "RPlayReportSubmitter: submitPlayReport/playReport/nowplaying endpoints; fields {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId,codec,originDelay,outputDelay,endReason,skippedTrack}; \"final report\" notify; \"periodic report interval set to %lld seconds\"; spotify-connect serviceType",
-   "todo": [
-    "Residual: the exact message member name supplying the interval (field is identified positionally in the parse record, not by name literal)"
-   ],
    "resolved_findings": [
     "Resolved: submission paths per type - crashdump rides the sentry uploader (dump-proc-anacapa w/ build.version + sonosID tags, dumps anacapad.{core,dmp}+sonospowercoordinator.dmp); play_report rides RPlayReportSubmitter to submitPlayReport/playReport/nowplaying endpoints carrying {serviceType,activatedAccountCode,errorStatus,errorType,multiAccountId} fields.",
-    "Crashdump destination decoded: multipart Sentry upload (sentry[tags] form part, text/plain; charset=\"us-ascii\" attachments, Failed to write attachment %s to sentry upload) to per-source paths - /upload/{watchdog, watchdog-legacy, legacy-to-sentry, anacapad-external, sonospowercoordinator-external, btmanager-external, netstartd-external, sonosledmgrd-external}; crash files land at /jffs/app/debug/sonosledmgrd.dmp and /tmp/backtrace. Per-daemon state lives in {sonospowercoordinator,btmanager,netstartd}.properties plus crash counters sonospowercoordinatorCrashCount/netstartd.count; watchdog artifacts watchdog.log/watchdog.dmesg/watchdogcrash/watchdog_log/watchdog_dmesg. Attachments bundle the domain logs {anacapa.hdmi.log, anacapa.tv.log, AirPlay.log, btmanager.log, btservice.log}. Upload is gated by the /tmp/anacapa_prevent_crashdump_upload flag and fails closed with No URL found to upload dump file. The crash-upload servicename sits in the ws service-catalog table alongside {thor, iap, clientdata, feature-config, music-history, lechmere-v1, music-accounts, myaccount, oauth, sve, product-settings, recommendation, registration, service-catalog, smart-play, system-api, system-api-diagnostics, transfer, translate} resolved to https://%s.%s endpoints.",
+    "Crash URL selection f_102537b0 supplies suffixes such as /anacapad-external and /watchdog to f_105403a8; this is outgoing destination construction, not an inbound route registry. The multipart attachment construction is a separate path. The earlier description of /upload/{...} local submission endpoints is withdrawn; suffix adjacency does not establish local IPC.",
     "Resolved: PlayReportSubmitter submits on 'playEntry is a final report' notify (f_104caf08) and on a periodic interval logged 'periodic report interval set to %lld seconds' - the interval is a runtime-set field (r29 from object state, gated by flag bit 0x4), not a literal. Report field set: {serviceType, activatedAccountCode, errorStatus, errorType, multiAccountId, codec, originDelay, outputDelay, endReason, skippedTrack}; playhead is omitted 'due to LSE'.",
-    "Resolved: periodic-interval seeding decoded at the setter 0x104cba10-0x104cbaa8. The interval arrives as a parsed message field (flag byte + value u32 pair in the inbound record at stack +0xd54/+0xd58, emitted under the cloudqueue log domain); when the flag is set the value is divided by 1000 (ms->s) via f_10982360 and stored as s64 at submitter+0x40/+0x44 with enable byte +0x50. When the field is absent or value==0 the code writes the literal default 10 (s64) to +0x40/+0x44 - the default periodic report interval is 10 seconds.",
-    "Adjacent evidence: a distinct named config surface exists - setter f_107740e8 maps key 'reportIntervalSec' -> strtoul -> obj+0x508 and key 'url' -> strlcpy -> obj+0x106 (0x401 cap). This is seconds-scale, not the ms field of the cloudqueue parse record, so the residual stands; the name documents the reporting config vocabulary.",
-    "Established: interval is a message-supplied ms field converted to s64 seconds; default 10s; stored at submitter+0x40/+0x44 with enable byte +0x50."
+    "Periodic-interval field binding is recovered. f_1033dcf0 constructs the response at outer+8 through f_1051a450; that installs the generated configuration model at response+0x8c4 via f_10a9a3b8 and parser binding f_10a9abbc. In caller f_104cb240 the response starts at sp+0x480, so model+0x10/+0x14 equal sp+0xd54/+0xd58. Serializer f_10a9a748 names those exact offsets periodicIntervalMillis at0x10a9a7ec-0x10a9a7fc. This is a named compiled model field, not an unavailable server member name.",
+    "At0x104cba10-0x104cba20, periodicIntervalMillis is sign-extended from32 bits (raw0x7c83fe70, srawi r3,r4,31) and divided as signed64-bit by1000, truncating toward zero. The result is stored at submitter+0x40/+0x44. The explicit beq at0x104cba90 returns without clamping when that result is zero, including absent fields and subsecond magnitudes. Only nonzero values below10 seconds become10, including negative whole-second results; values>=10 remain unchanged. The former unconditional/default10 and zero-fallback claims are withdrawn. Nearby reportIntervalSec belongs to a different configuration surface.",
+    "sp+0xd5c/+0xd5d map instead to model+0x18/+0x19, named sendPlaybackActions at0x10a9a7d8. The presence test and isel at0x104cba2c-0x104cba38 choose false when absent and the supplied boolean when present, then store it at submitter+0x50. This byte is not proof that periodic reporting is enabled. The same model has sendUpdateAfterMillis at+8/+c; its distinct semantics must not be conflated with periodicIntervalMillis."
+   ],
+   "summary": "Reporting combines separate crash-upload and play-report paths. The optional periodicIntervalMillis field in the compiled timePlayed response model is signed milliseconds converted to whole seconds. A zero-second result remains zero; nonzero results below10 seconds are clamped to10. sendPlaybackActions is a separate optional boolean, not the interval-enable flag. Crash suffixes are outbound URL components rather than local upload routes.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1051a450 / f_10a9a748 / f_10a9abbc",
+     "address": "0x10a9a7ec",
+     "callsite": "0x1051a4c8 / 0x1051a570 / 0x10a9ac34",
+     "notes": "Response+8c4 contains generated config; +10 presence/+14 value are periodicIntervalMillis, +18/+19 are sendPlaybackActions. Caller responsebase sp480 yields d54/d58 and d5c/d5d exactly. Model serializer names fields; parser binder supplies matching ordinal/offset slots. f_104ca444 constructs timePlayed request through f_1038e10c, whose JSON includes items/durationPlayedMillis/timeSincePlaybackMillis."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104cb240 interval installation",
+     "address": "0x104cba10",
+     "callsite": "0x104cba20 / 0x104cba38 / 0x104cbab4",
+     "notes": "Raw0x7c83fe70 sign-extends the input; raw0x7f404f9e chooses absent sendPlaybackActions=false. The result-zero branch0x104cba90 exits before minimum logic: absent/zero/subsecond results stay0, negative nonzero and1..9 seconds become10, >=10 remain unchanged. No upper cap claimed. Model field offsets and names are independently bound by constructor/parser/serializer."
+    }
    ]
   },
   "ir_learn": {
