@@ -67012,7 +67012,7 @@
        "buf_cap": 1025
       },
       "NextURIMetaData": {
-       "description": "DIDL metadata for the next track, stored alongside NextURI in the same record write.",
+       "description": "Metadata for the next track. The worker replaces line feeds with spaces before preparing and storing it.",
        "direction": "in",
        "primitive": {
         "type_tag": 8,
@@ -67025,7 +67025,7 @@
        "format": "DIDL-Lite XML fragment (utf-8 text) (lexical bounds set by request parse helper)",
        "unit": "n/a - text",
        "accepted_values": "Any metadata string accepted by the record writer",
-       "range": "length-bounded by parse-helper buffer cap",
+       "range": "At most 4096 bytes, excluding the terminating NUL, for a nonempty HTTP(S) URI.",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
@@ -67051,6 +67051,14 @@
          "build": "86.10-80260",
          "address": "0x102adf58",
          "notes": "Nonempty NextURI must have a case-insensitive http:// or https:// prefix. Other nonempty schemes or an empty URI with nonempty metadata return 714. HTTP(S) URI length >1024 or metadata length >4096 (strlen, excluding NUL) returns 402.",
+         "function": "0x102adf20"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102ae09c",
+         "notes": "Calls f_10564cb0 with a 0x1001-byte limit and replacement byte 0x20. Its loop at 0x10564cd0 copies through NUL and replaces each LF (0x0a) with a space (isel word 0x7d264f9e at 0x10564cd8). The resulting pointer is passed to preparation and stored with the next URI.",
          "function": "0x102adf20"
         }
        ],
@@ -67164,7 +67172,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The indexed worker marks the next URI fields dirty when it changes the stored descriptor. The next LastChange delta that consumes that flag includes NextAVTransportURI and NextAVTransportURIMetaData.",
+      "description": "A successful insert or clear of an existing next URI marks both next-URI fields dirty. The next LastChange delta that consumes the flag includes both fields; the SOAP wrapper does not call the sender directly.",
       "evidence": [
        {
         "type": "firmware",
@@ -67205,15 +67213,23 @@
         "address": "0x102e4d7c",
         "notes": "The delta branch checks +0xa095, then writes NextAVTransportURI from +0x1a03 and NextAVTransportURIMetaData from +0x1e04; full serialization can write the pair without this test.",
         "function": "0x102e43a0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102af320",
+        "notes": "The engine wrapper unlocks and returns without calling the sender. The indexed workers complete op 2 and op 14 before their notification checks; the running path tests its change flag and sender before 0x10265a08, and the stopped path calls f_102642d4 only when its change flag is set at 0x10267e04.",
+        "function": "0x102af288"
        }
       ],
       "todo": [
-       "Established: The indexed worker marks the next URI fields dirty when it changes the stored descriptor.",
-       "Identify what schedules the first notification, if any, after the next-URI insert or clear request; the dirty-byte-to-field serialization is verified."
+       "Established: the dirty byte feeds both NextAVTransportURI and NextAVTransportURIMetaData. The wrapper does not trigger a sender directly; indexed workers have separate change-gated scheduling paths.",
+       "Trace op-2 commit and op-14 removal scheduling in each indexed state, including the case where clear discards a rejected removal, to determine whether the dirty descriptor alone wakes a sender."
       ]
      },
      "state_transitions": {
-      "description": "Successful insertion updates the engine's stored next URI descriptor and sets its dirty byte. Clearing an existing next URI first asks the indexed worker to remove the next range, then clears the descriptor and sets the same byte; it does not require the range request to succeed.",
+      "description": "Inserts prepared entries at the saved next position, then removes any following old entries. An empty pair with a stored next URI requests removal from the saved next position to the end and clears the descriptor. The worker ignores either removal result.",
       "evidence": [
        {
         "type": "firmware",
@@ -67237,6 +67253,38 @@
         "build": "86.10-80260",
         "address": "0x102ae180",
         "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
+        "function": "0x102adf20"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102669fc",
+        "notes": "Op 2 for the indexed list embedded at session+0x2b188 uses its saved one-based insertion position at session+0x326ce, or sets it to list length plus one if zero or out of bounds. The stopped consumer uses the same rule at 0x10268cb0. The op forwards the append transaction, prepared count, insertion-position output, and total-length output to the commit worker.",
+        "function": "0x1026571c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1014de50",
+        "notes": "The commitAppend worker checks the transaction ID at 0x1014ddc0, grows the queue by the prepared count, can move the appended block to the chosen insertion position, and writes the post-commit total from list+0x26c8 at 0x1014df9c. The action checks that total for nonzero at 0x102ae148.",
+        "function": "0x1014dc98"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1014e9c0",
+        "notes": "Op 14 selects its list and passes one-based first and last positions into f_1014e9a8 (direct calls 0x10266458 and 0x10268534, or current-list variants). The removal worker subtracts one from both positions, bounds-checks both against the list size, and removes the inclusive range.",
+        "function": "0x1014e9a8"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x102ae190",
+        "notes": "After commit, requests the inclusive range from insertion position plus prepared count through post-commit total when that range is nonempty. Clear uses the saved insertion position through the current total instead: f_1025b35c returns position minus one, and f_1025b3e8 returns total minus position plus one. If the position is unset, they return total and zero, so clear submits an empty range. The action ignores trim and clear removal results.",
         "function": "0x102adf20"
        }
       ]
@@ -67307,11 +67355,19 @@
         "address": "0x102ae0f8",
         "notes": "Saves the unmodified preparation return and skips insertion if it is nonzero. The cleanup path submits a request but does not substitute its result.",
         "function": "0x102adf20"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1014f7b4",
+        "notes": "The compared stack halfwords are descriptor +0x08 and +0x14 (base stack +0x2c). Preparation hands +0x08 to the caller as the count for commitAppend, whose worker adds it to the queue length at 0x1014de50. Equality with +0x14 selects 804; both fields start at zero in f_1014b270.",
+        "function": "0x1014f6dc"
        }
       ],
       "todo": [
        "Established: The wrapper commits an empty response on zero, returns 402 on materialization failure and propagates other engine failures.",
-       "Identify the two descriptor halfwords compared for 804 and complete the HTTP(S)-reachable scheme-loader fault mapping in f_1014f48c."
+       "The first 804 operand is the count passed to commitAppend. Trace the writers of descriptor +0x14 and complete the HTTP(S)-reachable loader fault mapping, particularly f_1014b700 and f_10153fe0."
       ]
      },
      "fault_sites": [
@@ -67523,6 +67579,14 @@
          "address": "0x102ae0f8",
          "notes": "Saves the unmodified preparation return and skips insertion if it is nonzero. The cleanup path submits a request but does not substitute its result.",
          "function": "0x102adf20"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1014f7b4",
+         "notes": "The compared stack halfwords are descriptor +0x08 and +0x14 (base stack +0x2c). Preparation hands +0x08 to the caller as the count for commitAppend, whose worker adds it to the queue length at 0x1014de50. Equality with +0x14 selects 804; both fields start at zero in f_1014b270.",
+         "function": "0x1014f6dc"
         }
        ],
        "unresolved": {
@@ -67579,7 +67643,7 @@
        ],
        "todo": [
         "Established: The URI worker can emit 701, 714 or 402 locally or propagate the descriptor preparation result, including verified 800, 803 and 804 paths.",
-        "Identify the two descriptor halfwords compared for 804 and complete the HTTP(S)-reachable scheme-loader fault mapping in f_1014f48c."
+        "The first 804 operand is the count passed to commitAppend. Trace the writers of descriptor +0x14 and complete the HTTP(S)-reachable loader fault mapping, particularly f_1014b700 and f_10153fe0."
        ]
       },
       {
@@ -67785,12 +67849,60 @@
        "address": "0x102ae180",
        "notes": "Successful insert stores the next URI descriptor at impl+0x1a03 using f_102ed638 and sets +0x4252=1. It may send a further range request at 0x102ae1d4; that result is ignored.",
        "function": "0x102adf20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ae09c",
+       "notes": "Calls f_10564cb0 with a 0x1001-byte limit and replacement byte 0x20. Its loop at 0x10564cd0 copies through NUL and replaces each LF (0x0a) with a space (isel word 0x7d264f9e at 0x10564cd8). The resulting pointer is passed to preparation and stored with the next URI.",
+       "function": "0x102adf20"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10266340",
+       "notes": "The op-1 consumers at 0x10266328 and 0x10268298 use list selector 0 and call f_1014b084 with an output transaction ID at request+0xe8. On preparation failure, op 19 passes that transaction ID to cancelAppend f_1014b1a8 from 0x10266504 or 0x10268888.",
+       "function": "0x1026571c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102669fc",
+       "notes": "Op 2 for the indexed list embedded at session+0x2b188 uses its saved one-based insertion position at session+0x326ce, or sets it to list length plus one if zero or out of bounds. The stopped consumer uses the same rule at 0x10268cb0. The op forwards the append transaction, prepared count, insertion-position output, and total-length output to the commit worker.",
+       "function": "0x1026571c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014de50",
+       "notes": "The commitAppend worker checks the transaction ID at 0x1014ddc0, grows the queue by the prepared count, can move the appended block to the chosen insertion position, and writes the post-commit total from list+0x26c8 at 0x1014df9c. The action checks that total for nonzero at 0x102ae148.",
+       "function": "0x1014dc98"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1014e9c0",
+       "notes": "Op 14 selects its list and passes one-based first and last positions into f_1014e9a8 (direct calls 0x10266458 and 0x10268534, or current-list variants). The removal worker subtracts one from both positions, bounds-checks both against the list size, and removes the inclusive range.",
+       "function": "0x1014e9a8"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102ae190",
+       "notes": "After commit, requests the inclusive range from insertion position plus prepared count through post-commit total when that range is nonempty. Clear uses the saved insertion position through the current total instead: f_1025b35c returns position minus one, and f_1025b3e8 returns total minus position plus one. If the position is unset, they return total and zero, so clear submits an empty range. The action ignores trim and clear removal results.",
+       "function": "0x102adf20"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: indexed insertion is required before the next URI is stored; an empty URI takes a separate clear path.",
-      "Reverse-engineer f_1014f6dc descriptor preparation and the indexed insert (0x1032e368) and remove-range (0x1032e45c) record consumers, particularly metadata transformation and indexed contents after replacement."
+      "Established: metadata LF becomes a space; indexed op 2 commits the prepared entries at the saved next position, and op 14 removes the old tail after insertion or clear.",
+      "Follow the HTTP(S)-reachable loaders from f_1014f48c to identify how they produce the individual queued entries, including playlist expansion and the second count at descriptor +0x14."
      ]
     },
     "SetPlayMode": {
