@@ -97242,7 +97242,7 @@
      "notes": "Concrete delegate is installed by104b0e84 at10ed75c4; handler10732e94 receives it at1018e594, slot+3c targets104b0760 and SetString slot+8 targets1066aa24. Observers and replication are asynchronous backend endpoints, not proof of remote delivery or activation of diagnostic access."
     },
     "GetRDM": {
-     "description": "Returns RDMValue as 0 or 1 by reading SystemSettings key R_RDM and testing a successfully parsed unsigned integer for nonzero. Missing backend/key, failed lookup or failed numeric parse yields 0 without a SOAP error.",
+     "description": "Reads SystemSettings R_RDM through a15-byte bounded value buffer and returns0/1 according to a strict unsigned decimal parser. Missing backend/key, failed lookup or rejected numeric text yields0 without a SOAP fault.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10732d6c",
@@ -97279,7 +97279,7 @@
      "inputs": {},
      "outputs": {
       "RDMValue": {
-       "description": "Boolean interpretation of the stored R_RDM integer, serialized as 0 or 1.",
+       "description": "Boolean interpretation of the bounded, strictly parsed stored R_RDM unsigned integer, serialized as0 or1.",
        "direction": "out",
        "primitive": {
         "type_tag": 0,
@@ -97289,12 +97289,12 @@
        "semantic_type": "boolean flag",
        "format": "ASCII 0 or 1",
        "unit": "none",
-       "accepted_values": "0 for absent backend, unsuccessful key lookup, failed paranoid_atoui parse, or parsed zero; 1 for a successfully parsed nonzero unsigned integer.",
+       "accepted_values": "0 when backend/key unavailable, lookup fails, numeric parse fails or parsed integer is0;1 for a successful parse of1..4294967295. Lookup retains at most15 payload bytes before parsing.",
        "range": "0 or 1",
-       "special_values": "0 also masks missing/unreadable/malformed numeric data; it is not proof of a stored zero.",
+       "special_values": "0 conflates stored zero with unavailable/rejected data. Leading libc whitespace and optional+ are accepted; trailing whitespace, suffixes, any minus (even -0), hex notation, empty/sign-only text and overflow are rejected. Leading zeroes remain decimal.",
        "required": true,
        "default": "0; output byte initialized before backend lookup",
-       "validation": "Backend result and imported paranoid_atoui status must both be nonzero before the parsed integer is converted to a boolean. The lookup buffer holds at most 15 value bytes plus NUL.",
+       "validation": "paranoid_atoui requires complete nonempty base10 conversion, errno0 and a32-bit unsigned result. Rejects instead of clamping. Value is first truncated to15 bytes by strlcpy, so truncation can remove a suffix or leave a shorter valid decimal prefix. If a value was found before later XML parse failure, that saved lookup result can still be used.",
        "evidence": [
         {
          "type": "firmware",
@@ -97319,17 +97319,28 @@
          "address": "0x1055fc20",
          "function": "0x1055fc08",
          "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0c68",
+         "function": "0x104b0b8c",
+         "notes": "Calls imported paranoid_atoui; implementation recovered in reference/public/files/lib/libsonosminiutils.so.1: paranoid_atoui0x7430 sets base10 -> paranoid_atoui_ex0x73a0 -> paranoid_strtoull_ex0x72a8. Clears output; strchr rejects any minus sign. Resets thread-local errno, calls strtoull, requires errno0, nonempty input and end pointer at NUL. atoui_ex additionally requires high32 bits0. Thus accepts leading libc whitespace, optional+, decimal leading zeroes,0..4294967295; rejects empty, whitespace-only, sign-only, any minus, trailing whitespace/text,0x prefix, and unsigned overflow. No clamping success; failure output remains0. Decimal library parser is stricter than request tag4 strtoul. Lib branches0x736c/0x7378/0x7388 reject errno/empty/suffix;0x73ec rejects high32 bits."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1066c2a8",
+         "function": "0x1066c24c",
+         "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
         }
-       ],
-       "todo": [
-        "Established: bounded R_RDM lookup, zero-default/nonzero-integer conversion and exact 0/1 wire formatting are recovered.",
-        "Residual: exact lexical/overflow acceptance inside imported paranoid_atoui is not established by this binary trace.",
-        "Next step: locate the loaded library exporting paranoid_atoui and reverse its parser contract."
        ]
       }
      },
      "validation": {
-      "description": "No input arguments or request-validation call in this wrapper. The concrete delegate treats lookup or numeric-parser failure as output false, not a request fault.",
+      "description": "No input/request-validation call and no402 path. Bounded stored text, not SOAP input text, is checked by strict paranoid_atoui; lookup/parse failure maps to false output, never a SOAP fault.",
       "evidence": [
        {
         "type": "firmware",
@@ -97346,6 +97357,22 @@
         "address": "0x104b0bb0",
         "function": "0x104b0b8c",
         "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0c68",
+        "function": "0x104b0b8c",
+        "notes": "Calls imported paranoid_atoui; implementation recovered in reference/public/files/lib/libsonosminiutils.so.1: paranoid_atoui0x7430 sets base10 -> paranoid_atoui_ex0x73a0 -> paranoid_strtoull_ex0x72a8. Clears output; strchr rejects any minus sign. Resets thread-local errno, calls strtoull, requires errno0, nonempty input and end pointer at NUL. atoui_ex additionally requires high32 bits0. Thus accepts leading libc whitespace, optional+, decimal leading zeroes,0..4294967295; rejects empty, whitespace-only, sign-only, any minus, trailing whitespace/text,0x prefix, and unsigned overflow. No clamping success; failure output remains0. Decimal library parser is stricter than request tag4 strtoul. Lib branches0x736c/0x7378/0x7388 reject errno/empty/suffix;0x73ec rejects high32 bits."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2a8",
+        "function": "0x1066c24c",
+        "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
        }
       ]
      },
@@ -97379,23 +97406,15 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads delegate+0x164 SystemSettings, syssettings.xml via settings+0xa4, and R_RDM. Lookup uses settings+0x10 mutex. Invalid XML may inspect/set recovery flag +0xe4 and use replication member +0xec, format +0xbc and last-update device +0xe8.",
+      "description": "Reads delegate+164 SystemSettings, configured path+a4(default /opt/settings/syssettings.xml), key R_RDM and settings+10 mutex. Query found flag and XML validity are distinct. Invalid/read failure can set one-shot recovery-needed+e4 and use selector+bc=4, local-ID pointer+e8 and concrete ReplicatedSettings receiver+ec. Receiver compares its registered-selector version/LUD cache under+320 mutex; saved backend LUD is+c4, not+e8.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x104b0bb0",
-        "function": "0x104b0b8c",
-        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x1066b4f8",
-        "function": "0x1066b4bc",
-        "notes": "Initialization 0x10198298/0x101982e0 loads SystemSettings Z+0x29178 as r5 for 0x104b101c, which tail-calls this initializer. Stores backend at delegate+0x164. Constructor 0x1018f2d4 / 0x1066a514 installs vptr 0x10efe958; +0x24 = 0x1066c24c."
+        "address": "0x1068ab6c",
+        "function": "0x1068ab6c",
+        "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
        },
        {
         "type": "firmware",
@@ -97403,7 +97422,7 @@
         "build": "86.10-80260",
         "address": "0x1066c2a8",
         "function": "0x1066c24c",
-        "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+        "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
        },
        {
         "type": "firmware",
@@ -97411,18 +97430,21 @@
         "build": "86.10-80260",
         "address": "0x1066c2b8",
         "function": "0x1066c24c",
-        "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+        "notes": "If final query validityfalse and backend+e4 clear, sets+e4=1 then backend+ec slot+14 at1066c32c advertises selector4, LOCAL device ID from+e8, version0, flagfalse to concrete10652074. Preserves lookup return r30. This is not1066ba04 and does not directly repair/write syssettings.xml. Receiver may update cached version/LUD and queue ReplicatedSettingsChangedEvent only if setup/registered-selector and greater-version or equal-version/smaller-LUD tests accept. Version0 loses against an already positive cached version. Subsequent reads suppress advertisement while+e4=1; successful settings write clears it through1066a3c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        }
-      ],
-      "todo": [
-       "Established: concrete backend, file/key lookup, bounded output and recovery dispatch state are recovered.",
-       "Residual: complete state consumed by the settings+0xec recovery/replication receiver is not traced.",
-       "Next step: resolve initialization of settings+0xec and trace its slot +0x14 for the zero-length recovery request."
       ]
      },
      "side_effects": [
       {
-       "description": "Normal query performs file reads and response formatting, not an R_RDM write. It is not unconditionally side-effect free: invalid XML can set settings+0xe4 and schedule recovery through settings+0xec slot +0x14 while preserving the lookup result.",
+       "description": "Reads settings XML and formats response; no direct R_RDM write or XML repair. Missing/unreadable/parser-invalid source with recovery-needed clear sets+e4=1 and advertises local version0 to the replication receiver, preserving any lookup result. Eligible advertisement mutates replication cache and queues its ChangedEvent; a known positive version suppresses version0. It does not invoke writer-recovery1066ba04, success callback104b1e48, property refreshers or direct SystemProperties notifier. Library conversion resets thread-local errno on the non-minus parsing path.",
        "evidence": [
         {
          "type": "firmware",
@@ -97430,7 +97452,7 @@
          "build": "86.10-80260",
          "address": "0x1066c2a8",
          "function": "0x1066c24c",
-         "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+         "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
         },
         {
          "type": "firmware",
@@ -97438,42 +97460,37 @@
          "build": "86.10-80260",
          "address": "0x1066c2b8",
          "function": "0x1066c24c",
-         "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+         "notes": "If final query validityfalse and backend+e4 clear, sets+e4=1 then backend+ec slot+14 at1066c32c advertises selector4, LOCAL device ID from+e8, version0, flagfalse to concrete10652074. Preserves lookup return r30. This is not1066ba04 and does not directly repair/write syssettings.xml. Receiver may update cached version/LUD and queue ReplicatedSettingsChangedEvent only if setup/registered-selector and greater-version or equal-version/smaller-LUD tests accept. Version0 loses against an already positive cached version. Subsequent reads suppress advertisement while+e4=1; successful settings write clears it through1066a3c0."
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10732da0",
-         "function": "0x10732d6c",
-         "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
+         "address": "0x1019911c",
+         "function": "0x10198e54",
+         "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x104b0c68",
+         "function": "0x104b0b8c",
+         "notes": "Calls imported paranoid_atoui; implementation recovered in reference/public/files/lib/libsonosminiutils.so.1: paranoid_atoui0x7430 sets base10 -> paranoid_atoui_ex0x73a0 -> paranoid_strtoull_ex0x72a8. Clears output; strchr rejects any minus sign. Resets thread-local errno, calls strtoull, requires errno0, nonempty input and end pointer at NUL. atoui_ex additionally requires high32 bits0. Thus accepts leading libc whitespace, optional+, decimal leading zeroes,0..4294967295; rejects empty, whitespace-only, sign-only, any minus, trailing whitespace/text,0x prefix, and unsigned overflow. No clamping success; failure output remains0. Decimal library parser is stricter than request tag4 strtoul. Lib branches0x736c/0x7378/0x7388 reject errno/empty/suffix;0x73ec rejects high32 bits."
         }
-       ],
-       "todo": [
-        "Established: normal read path and invalid-XML recovery scheduling are recovered.",
-        "Residual: transitive recovery effects, including any repair writes or replication, remain untraced.",
-        "Next step: trace the concrete settings+0xec slot +0x14 receiver for the recovery call at 0x1066c32c."
        ]
       }
      ],
      "events_triggered": {
-      "description": "No settings-write notification on the ordinary read/parse/response path. The exceptional invalid-XML path schedules recovery; absence of downstream events from that work is not established.",
+      "description": "No direct SystemProperties UPnP UpdateID notification or SystemPropertiesChangeEvent on the read path. Invalid/read-failed source can advertise version0 once; concrete10652074 conditionally queues ReplicatedSettingsChangedEvent with the version-table snapshot and flagfalse. Missing setup/registration, an unchanged or rejected version/LUD, or a missing event loop can prevent that enqueue; no event delivery failure becomes a SOAP error. No direct WSS topic claim is made from this distinct backend event.",
       "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x104b0bb0",
-        "function": "0x104b0b8c",
-        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
-       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x1066c2a8",
         "function": "0x1066c24c",
-        "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+        "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
        },
        {
         "type": "firmware",
@@ -97481,41 +97498,28 @@
         "build": "86.10-80260",
         "address": "0x1066c2b8",
         "function": "0x1066c24c",
-        "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+        "notes": "If final query validityfalse and backend+e4 clear, sets+e4=1 then backend+ec slot+14 at1066c32c advertises selector4, LOCAL device ID from+e8, version0, flagfalse to concrete10652074. Preserves lookup return r30. This is not1066ba04 and does not directly repair/write syssettings.xml. Receiver may update cached version/LUD and queue ReplicatedSettingsChangedEvent only if setup/registered-selector and greater-version or equal-version/smaller-LUD tests accept. Version0 loses against an already positive cached version. Subsequent reads suppress advertisement while+e4=1; successful settings write clears it through1066a3c0."
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10732da0",
-        "function": "0x10732d6c",
-        "notes": "Calls delegate +0x40 with output byte sp+0x1b; no input lookup or request +8 validation. Nonzero would fault at 0x10732dbc, but concrete delegate always returns zero. Success obtains RDMValue writer at 0x10732dfc, formats byte via 0x1055fc08 at 0x10732e04, then commits at 0x10732e18."
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        }
-      ],
-      "todo": [
-       "Established: normal GetRDM path has no 0x1067c6ec call or write-success observer callback.",
-       "Residual: event behavior of the recovery work dispatched at 0x1066c32c is not traced.",
-       "Next step: resolve settings+0xec slot +0x14 and follow its recovery callbacks and notification calls."
       ]
      },
      "state_transitions": {
-      "description": "Does not change R_RDM during the direct query. Invalid XML with recovery flag clear transitions settings+0xe4 from 0 to 1 before recovery dispatch. Found/parsed values only update local output state, which defaults false.",
+      "description": "R_RDM is not directly changed. Local output starts0 and becomes1 only for a found value accepted as nonzero u32. Read/parser failure with+e4=0 sets+e4=1; concrete replication receiver may replace cached version/LUD with local version0 if its acceptance ordering allows it, then queues the snapshot. Further reads do not advertise again until a successful settings write clears+e4. No synchronous file repair, settings-version increment or SystemProperties dirty-bit/UpdateID transition is performed by this read.",
       "evidence": [
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x104b0bb0",
-        "function": "0x104b0b8c",
-        "notes": "Initializes output byte false. Getter slot +0x4c is compared with 0x100c9be8; concrete vtable selects inline *(this+0x164), null means false. Backend slot +0x24 receives R_RDM and a 16-byte stack buffer. Zero backend result leaves false; nonzero calls paranoid_atoui at 0x104b0c68 with an initialized unsigned out-word at sp+0x18. Zero parser status leaves false; nonzero uses parsed integer !=0. All normal exits load r3=0 at 0x104b0c14. Alternate virtual getter branch 0x104b0c34 is not selected by the constructed vtable."
-       },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x1066c2a8",
         "function": "0x1066c24c",
-        "notes": "Under settings+0x10 mutex, calls 0x106c580c with query object constructed by 0x106c57cc (vptr 0x10f0747c). Opens settings+0xa4 path, reads 4096-byte chunks through 0x1054ef38, parses XML via 0x10c3fc68 and callbacks 0x106c55c4/0x106c5668 into 0x106c5384. Setting Name/Value attributes dispatch query +0x10 -> 0x106c5294: strcmp key; matching R_RDM sets found byte +8 and strlcpy to caller buffer with cap 16. 0x106c580c returns the found byte, or zero when open fails."
+        "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
        },
        {
         "type": "firmware",
@@ -97523,17 +97527,28 @@
         "build": "86.10-80260",
         "address": "0x1066c2b8",
         "function": "0x1066c24c",
-        "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+        "notes": "If final query validityfalse and backend+e4 clear, sets+e4=1 then backend+ec slot+14 at1066c32c advertises selector4, LOCAL device ID from+e8, version0, flagfalse to concrete10652074. Preserves lookup return r30. This is not1066ba04 and does not directly repair/write syssettings.xml. Receiver may update cached version/LUD and queue ReplicatedSettingsChangedEvent only if setup/registered-selector and greater-version or equal-version/smaller-LUD tests accept. Version0 loses against an already positive cached version. Subsequent reads suppress advertisement while+e4=1; successful settings write clears it through1066a3c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0c68",
+        "function": "0x104b0b8c",
+        "notes": "Calls imported paranoid_atoui; implementation recovered in reference/public/files/lib/libsonosminiutils.so.1: paranoid_atoui0x7430 sets base10 -> paranoid_atoui_ex0x73a0 -> paranoid_strtoull_ex0x72a8. Clears output; strchr rejects any minus sign. Resets thread-local errno, calls strtoull, requires errno0, nonempty input and end pointer at NUL. atoui_ex additionally requires high32 bits0. Thus accepts leading libc whitespace, optional+, decimal leading zeroes,0..4294967295; rejects empty, whitespace-only, sign-only, any minus, trailing whitespace/text,0x prefix, and unsigned overflow. No clamping success; failure output remains0. Decimal library parser is stricter than request tag4 strtoul. Lib branches0x736c/0x7378/0x7388 reject errno/empty/suffix;0x73ec rejects high32 bits."
        }
-      ],
-      "todo": [
-       "Established: no direct R_RDM write and the one-shot recovery-flag transition are recovered.",
-       "Residual: state transitions performed by scheduled recovery are not traced.",
-       "Next step: trace the receiver of the settings+0xec slot +0x14 call at 0x1066c32c."
       ]
      },
      "return_behavior": {
-      "description": "The concrete delegate returns 0 on every normal exit, including null backend, failed lookup and failed numeric parse. Wrapper always emits RDMValue and commits success. Its generic nonzero fault arm at 0x10732dbc is unreachable with this delegate; there is no 402 validation path.",
+      "description": "Concrete delegate returns0 on every normal exit, including null backend, missing key, read failure and numeric rejection. Wrapper formats RDMValue0/1 then commits success. Generic nonzero fault arm10732dbc is unreachable for this delegate; no402 validation path. Recovery advertisement cannot change SOAP status.",
       "evidence": [
        {
         "type": "firmware",
@@ -97558,6 +97573,30 @@
         "address": "0x1055fc20",
         "function": "0x1055fc08",
         "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x104b0c68",
+        "function": "0x104b0b8c",
+        "notes": "Calls imported paranoid_atoui; implementation recovered in reference/public/files/lib/libsonosminiutils.so.1: paranoid_atoui0x7430 sets base10 -> paranoid_atoui_ex0x73a0 -> paranoid_strtoull_ex0x72a8. Clears output; strchr rejects any minus sign. Resets thread-local errno, calls strtoull, requires errno0, nonempty input and end pointer at NUL. atoui_ex additionally requires high32 bits0. Thus accepts leading libc whitespace, optional+, decimal leading zeroes,0..4294967295; rejects empty, whitespace-only, sign-only, any minus, trailing whitespace/text,0x prefix, and unsigned overflow. No clamping success; failure output remains0. Decimal library parser is stricter than request tag4 strtoul. Lib branches0x736c/0x7378/0x7388 reject errno/empty/suffix;0x73ec rejects high32 bits."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1066c2b8",
+        "function": "0x1066c24c",
+        "notes": "If final query validityfalse and backend+e4 clear, sets+e4=1 then backend+ec slot+14 at1066c32c advertises selector4, LOCAL device ID from+e8, version0, flagfalse to concrete10652074. Preserves lookup return r30. This is not1066ba04 and does not directly repair/write syssettings.xml. Receiver may update cached version/LUD and queue ReplicatedSettingsChangedEvent only if setup/registered-selector and greater-version or equal-version/smaller-LUD tests accept. Version0 loses against an already positive cached version. Subsequent reads suppress advertisement while+e4=1; successful settings write clears it through1066a3c0."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1019911c",
+        "function": "0x10198e54",
+        "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
        }
       ]
      },
@@ -97609,9 +97648,41 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "address": "0x1068ab6c",
+       "function": "0x1068ab6c",
+       "notes": "Builds settings+0xa4 from configured settings directory and filename. Initializer0x10092268 defaults installation root/relative directory to /opt and settings; relative directory resolves against root. SystemSettings constructor0x1066a514 supplies syssettings.xml and root SystemSettings, selector4. Default full path /opt/settings/syssettings.xml, configurable through0x1068a848/0x1068aa74; no claim about a live device mount."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1066c2a8",
+       "function": "0x1066c24c",
+       "notes": "Locks settings+10, constructs query106c57cc then106c580c. latter clears validity+18 BEFORE open and reads4096-byte chunks, storing each parser status at+18. Found-key byte+8 separate. XML Name/Value callback106c5294 matches R_RDM then strlcpy cap16 retains at most15 value bytes, NUL-terminated. Found flag can survive a later parse error; invalid XML is not guaranteed to erase an already copied R_RDM value. Missing key in otherwise valid XML does not trigger recovery advertisement."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
        "address": "0x1066c2b8",
        "function": "0x1066c24c",
-       "notes": "If query validity byte sp+0x48 is zero and settings+0xe4 is zero, sets settings+0xe4=1 and calls settings+0xec slot +0x14 with settings format id +0xbc, last-update device +0xe8, and zero remaining arguments. This does not replace saved lookup result r30. Subsequent reads do not schedule again while +0xe4 remains set. Query validity is initialized true by 0x106c57cc and overwritten with XML parser status at 0x106c5924."
+       "notes": "If final query validityfalse and backend+e4 clear, sets+e4=1 then backend+ec slot+14 at1066c32c advertises selector4, LOCAL device ID from+e8, version0, flagfalse to concrete10652074. Preserves lookup return r30. This is not1066ba04 and does not directly repair/write syssettings.xml. Receiver may update cached version/LUD and queue ReplicatedSettingsChangedEvent only if setup/registered-selector and greater-version or equal-version/smaller-LUD tests accept. Version0 loses against an already positive cached version. Subsequent reads suppress advertisement while+e4=1; successful settings write clears it through1066a3c0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019911c",
+       "function": "0x10198e54",
+       "notes": "Binding0x1066bbc8 stores receiver Z+2900c at backend+ec and local ID Z+4cc at+e8. Receiver constructor0x10650660 stores vptr10efcf88 at106507d8; table+14=10652074 informLocalReplicatedSettingVersion. Selector4 registered at101990fc with10651bd4.10652074 requires initialized receiver and registered selector, compares with10660e58: greater unsigned version except UINT_MAX wins; equal version accepts lexicographically smaller LUD. On change10660a7c updates cached table,106608d0/memcpy snapshot0x254 bytes and10654800 queues ReplicatedSettingsChangedEvent with caller flagfalse. Missing loop/unchanged versions do not enqueue; queue result not a SOAP error. Generic replication version/format gates are documented at shared_primitives/replication_elements; advertisement does not guarantee remote delivery."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104b0c68",
+       "function": "0x104b0b8c",
+       "notes": "Calls imported paranoid_atoui; implementation recovered in reference/public/files/lib/libsonosminiutils.so.1: paranoid_atoui0x7430 sets base10 -> paranoid_atoui_ex0x73a0 -> paranoid_strtoull_ex0x72a8. Clears output; strchr rejects any minus sign. Resets thread-local errno, calls strtoull, requires errno0, nonempty input and end pointer at NUL. atoui_ex additionally requires high32 bits0. Thus accepts leading libc whitespace, optional+, decimal leading zeroes,0..4294967295; rejects empty, whitespace-only, sign-only, any minus, trailing whitespace/text,0x prefix, and unsigned overflow. No clamping success; failure output remains0. Decimal library parser is stricter than request tag4 strtoul. Lib branches0x736c/0x7378/0x7388 reject errno/empty/suffix;0x73ec rejects high32 bits."
       },
       {
        "type": "firmware",
@@ -97622,13 +97693,8 @@
        "notes": "Formats a zero output byte as text 0 and a nonzero byte as text 1 via strlcpy into the response argument buffer. Literal addresses 0x10fd8f94 and 0x10fd3134. Stores boolean type tag 0 and the byte at argument+8."
       }
      ],
-     "notes": "The statically constructed delegate is known. Fault-site and 402 records derived from an unrelated manager accessor were removed: the actual handler has no request validation and the concrete delegate returns zero.",
-     "implementation_notes": "Only reachable calls are listed in implementation.calls. The wrapper retains an unreachable generic fault call at 0x10732dbc. Imported paranoid_atoui is a trace boundary, not an assertion about exact accepted text. Numeric parse uses an initialized 32-bit out-word, not the request-dispatch return register.",
-     "todo": [
-      "Established: concrete delegate, SystemSettings lookup, default-false semantics, zero return domain, 0/1 serialization and exceptional recovery dispatch are recovered.",
-      "Residual: imported paranoid_atoui lexical acceptance and full transitive recovery/replication behavior are not traced.",
-      "Next step: locate the paranoid_atoui library implementation and resolve settings+0xec slot +0x14 reached at 0x1066c32c."
-     ]
+     "notes": "No inputs, no normal SOAP error codes and no direct settings-file write. Receiver+ec slot+14 is statically resolved to10652074, not an unknown recovery implementation. Asynchronous replication/backend events do not imply remote delivery or immediate repair.",
+     "implementation_notes": "Concrete constructor/vtable/handler chain remains104b0e84 ->10ed75c4, handler10732e94 constructed at1018e594, slot+40 ->104b0b8c. Imported unsigned parser is now traced inside libsonosminiutils.so.1, not treated as an unknown boundary. Query XML validity is cleared before open; a missing file can trigger one-shot version0 advertisement even though constructor initially set validitytrue. Found value and parser validity remain separate."
     },
     "GetString": {
      "description": "Reads config VariableName -> StringValue via impl->v[+0xc].",
