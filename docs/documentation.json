@@ -177124,7 +177124,7 @@
    "todo": "Established: Cloud-queue version extractor f_10483cf0 lazily compiles the literal regex /v[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z]+)?(\\+[a-zA-Z.]+)?([?#/]|$) with flags 1, parses the URI into components using f_10c3a920 and runs regexec from the path pointer. It uses the first regex match, starts the selected version span two bytes after the match start (after /v), and normally ends at the URI path end. If the final byte of the match is slash, it ends the span at that slash instead. There is no independent check that this slash is the last path separator. Consequently a matching version segment followed by more path can supply the accepted version, despite the error text saying the path must end with a version. An earlier matching version segment is chosen before a later one. No match returns 1; regex compilation failure returns 2. Candidate suffix syntax is narrower than the shared parser because the regex permits only letters in pre-release and letters/dots in build metadata. Remaining: Trace malformed URI/null-component behavior and regex lifetime/thread/locale semantics."
   },
   "0x10338a34": {
-   "description": "Cloud-queue version checker f_10338a34 first calls that extractor, then f_10483e28. It returns 2 only when parsing succeeds and the major word equals 2; other outcomes return zero. It does not compare minor or patch against a supported maximum. The optional diagnostic object receives code 0x48 and distinct text for missing version, malformed version or unsupported major when the relevant failure is recognized. Callers including f_1011c864 pass null for that diagnostic object and only test the numeric return as nonzero/zero. Diagnostics are therefore not proof that the stricter grammar described in their text is enforced.",
+   "description": "Cloud-queue version checker f_10338a34 takes a NUL-terminated URI (r3), an optional diagnostic object (r4) and a caller-supplied version output structure (r5). It zero-initializes a two-word span on the stack, calls extractor f_10483cf0 and only invokes shared parser f_10483e28 when the extractor returns 0. It returns 2 only when parsing succeeds and the major word equals 2; every other outcome returns 0. It does not compare minor or patch against a supported maximum. When the extractor returns 1 (no match) the diagnostic object receives code 0x48 at +8 and 'queueBaseUrl path must end with a cloud queue version' text via string-slot setter f_1033a130 at diag+0xc; when the parser fails with code 1 it receives the Semantic Versioning 2.0.0 advisory; when parsing succeeds but major is not 2 it receives a 'v%u is unknown; use v%u' message formatted by __snprintf_chk with a shorter 'v%d' fallback when the result exceeds 0x100 bytes. Extractor result 2 (regex compile failure) and parser results other than 1 produce a silent return 0 with no diagnostic. The diagnostic object's +0xc field is a small-string slot {flag byte, ptr, len, inline[16]} written by f_1033a130. Caller audit (five direct call sites, no indirect references): f_1011c864 at 0x1011c9b4 passes diag=NULL, out=&sp+0x48 and uses the return only to gate an 'unsupported CQ REST version: %s' log, returning 1 either way; f_102d7768 at 0x102d782c constructs a diagnostic object on the stack via f_10a606b8, then on failure destroys it unread and propagates code 0x48 as its own return; f_10345c7c at 0x10345cc4 passes diag=NULL, out=r30+0x1f50 and discards the return entirely; f_1038cba0 calls it twice at 0x1038cc20/0x1038ccb4 with diag=NULL, out=&sp+0x1c - the first site uses the result to gate f_104840f8(version,2,3) which selects 'Bearer ' versus empty scheme in the 'AUTHORIZATION: %s%s\\r\\n' header, the second ignores the return; f_104cbf1c at 0x104cc29c passes diag=NULL, out=&sp+0x3a0, keeps the result in r8 as an argument to request constructor f_104cb228 and separately gates a branch on f_104840f8(version,2,2). Every caller zero-initializes the output structure (including the patch word and both suffix bytes) before the call, matching the parser's caller-initializes convention. The diagnostic text mechanism is therefore effectively dead: the single caller that supplies the object destroys it without reading the text.",
    "why_external": "Determines cloud-queue version compatibility and optional client-facing errors.",
    "required_for_behavior": true,
    "role": "music_service_version_and_cq",
@@ -177135,9 +177135,77 @@
      "build": "86.10-80260",
      "address": "0x10338a34",
      "notes": "Instruction-level selector/version/encoder trace; see music_service_version_string and svc_manifest details."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338ab8",
+     "function": "0x10338a34",
+     "notes": "Parser invoked only when extractor returned 0 (bc bo=12,bi=2 at 0x10338a74); span pair at sp+0x14/0x18 zeroed at 0x10338a64-0x10338a68 before the extractor call."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338acc",
+     "function": "0x10338a34",
+     "notes": "Return value 2 iff parser success and out+0==2 (cmplwi 0x2 at 0x10338ad4); minor and patch never inspected."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10338b10",
+     "function": "0x10338a34",
+     "notes": "Diagnostic writes 0x48 to diag+8 then f_1033a130 assigns text to string slot at diag+0xc {flag+0,ptr+4,len+8,inline+0xc}; extractor ret 2 and parser ret!=1 give silent 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011c9b4",
+     "function": "0x1011c864",
+     "notes": "Caller passes NULL diagnostic; return only selects 'unsupported CQ REST version: %s' log at 0x1011caa8-0x1011cae4, then returns 1 on both branches."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102d782c",
+     "function": "0x102d7768",
+     "notes": "Only caller supplying a diagnostic object (stack temp built by f_10a606b8 at 0x102d7814); on failure the object is destructed at 0x102d7838-0x102d7884 unread and 0x48 is propagated as return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10345cc4",
+     "function": "0x10345c7c",
+     "notes": "Caller passes NULL diagnostic, out=this+0x1f50; the return value is never tested, r3 is overwritten at 0x10345cd0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1038cc20",
+     "function": "0x1038cba0",
+     "notes": "First site: result gates f_104840f8(&version,2,3) at 0x104840f8 call 0x1038ccf0 selecting 'Bearer ' (0x10ec1efc) vs empty string scheme in 'AUTHORIZATION: %s%s\\r\\n'. Second site 0x1038ccb4 ignores the return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc29c",
+     "function": "0x104cbf1c",
+     "notes": "Caller passes NULL diagnostic, out=&sp+0x3a0; result saved to r8 and forwarded as an argument to request constructor f_104cb228 at 0x104cc2d8; a separate branch runs f_104840f8(&version,2,2) at 0x104cc5ac."
     }
    ],
-   "todo": "Established: Cloud-queue version checker f_10338a34 first calls that extractor, then f_10483e28. It returns 2 only when parsing succeeds and the major word equals 2; other outcomes return zero. It does not compare minor or patch against a supported maximum. The optional diagnostic object receives code 0x48 and distinct text for missing version, malformed version or unsupported major when the relevant failure is recognized. Callers including f_1011c864 pass null for that diagnostic object and only test the numeric return as nonzero/zero. Diagnostics are therefore not proof that the stricter grammar described in their text is enforced. Remaining: Verify all callers, URI/span assumptions and diagnostic object propagation."
+   "resolved_findings": [
+    "Resolved via complete caller audit: all five direct call sites verified; no address formation or indirect references to f_10338a34 exist.",
+    "The diagnostic object's text is never consumed by any caller: f_102d7768 is the only supplier and destroys it unread; every other caller passes NULL and uses only the numeric return.",
+    "Return semantics: 2 iff parse succeeds and major==2; all failure modes return 0; only three failure modes produce diagnostics (extractor no-match, parser code 1, unsupported major); regex compile failure and other parser codes are silent."
+   ]
   },
   "0x10c3a294": {
    "description": "Percent-encoder wrapper f_10c3a294 passes the literal allow-list $-_.!*'(), to f_10c3a0f4. That helper copies isalnum bytes or allow-listed bytes and encodes every other byte through format %%%02x, using lowercase hexadecimal. Slash, colon, percent, query and fragment punctuation are therefore encoded unless already removed by earlier item parsing. A raw copied byte needs room for itself plus a terminator; an escape needs room for three bytes plus a terminator. If capacity cannot fit the next unit it stops, null-terminates and returns the number of bytes written, without a separate truncation error. f_1011c864 ignores that returned count. This encoder does not normalize already encoded percent sequences; a percent byte is encoded again.",
