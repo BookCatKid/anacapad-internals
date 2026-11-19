@@ -45532,7 +45532,7 @@
      "notes": null
     },
     "GetCurrentTransportActions": {
-     "description": "Returns the comma-separated list of currently-allowed transport actions. Impl f_102b2a8c gate (718) then body: zero-terminates the out buffer (stb 0 -> *out) and builds the action list via f_102b29d0 + f_102fcbf4 from engine capability state - the legal-action set is computed live, not static.",
+     "description": "Reports currently offered transport actions. Engine slot +0x4c checks InstanceID, builds a live capability mask using the source and mode, and renders the mask in fixed firmware table order. A zero mask produces an empty string.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x102f884c",
@@ -45613,7 +45613,7 @@
      },
      "outputs": {
       "Actions": {
-       "description": "Comma-separated transport action names currently legal for the active source.",
+       "description": "The currently offered action tokens, joined by comma-space in firmware table order.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -45622,9 +45622,9 @@
        "semantic_type": "string",
        "format": "string",
        "unit": "none - dimensionless",
-       "accepted_values": "impl-defined engine state",
-       "range": "impl-defined engine state",
-       "special_values": "none observed in this build",
+       "accepted_values": "Any selected subset in this order: Set, Stop, Pause, Play, X_DLNA_SeekTime, Next, Previous, X_DLNA_SeekTrackNr",
+       "range": "Zero to eight tokens.",
+       "special_values": "Empty string when there are no set bits represented in the table.",
        "required": false,
        "default": "none - impl writes the value",
        "validation": "impl-written out arg",
@@ -45642,6 +45642,22 @@
          "build": "86.10-80260",
          "address": "0x10e77360",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x102b2a0c",
+         "notes": "Queries f_10741b4c with impl+0x448 and the source name at impl+0x3dc. A nonzero first byte suppresses capability lookup and returns mask zero; otherwise f_102b2914 computes the mask.",
+         "function": "0x102b29d0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10eb39d0",
+         "notes": "Table order (mask -> string): 0x00800000 Set; 0x00010000 Stop; 0x00008000 Pause; 0x01000000 Play; 0x00200000 X_DLNA_SeekTime; 0x00020000 Next; 0x00100000 Previous; 0x00400000 X_DLNA_SeekTrackNr. Formatter appends only set bits using the literal comma-space separator at 0x10e727bc.",
+         "function": "0x102fcbf4"
         }
        ],
        "notes": null
@@ -45677,60 +45693,60 @@
       ]
      },
      "requirements": {
-      "description": "InstanceID==0 only (where present).",
+      "description": "InstanceID is required and must parse to zero for the engine to return a list.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102b2a8c",
-        "notes": "impl decode",
-        "function": "f_102b2a8c"
+        "address": "0x102f88d0",
+        "notes": "Invokes impl slot +0x4c (0x102b2a8c in both classes), with a 1024-byte output. Failure is sent via request +0x14 at 0x102f88ec; failed request materialization uses literal 402 at 0x102f8920.",
+        "function": "0x102f884c"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b2b94",
-        "notes": "f_102b29d0 action-list builder",
-        "function": "f_102b2a8c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x102b2ba0",
-        "notes": "f_102fcbf4",
-        "function": "f_102b2a8c"
+        "address": "0x102b2a94",
+        "notes": "Checks InstanceID; nonzero returns 718 at 0x102b2ac4 before reading capabilities. The ID-zero path takes the engine +0x458 scope, calls both helpers, ignores the formatter's return, and returns zero at 0x102b2bb0.",
+        "function": "0x102b2a8c"
        }
       ]
      },
      "state_dependencies": {
-      "description": "Action list computed from current source capabilities via f_102b29d0/f_102fcbf4; the per-capability action mapping is unresolved.",
+      "description": "The source-state byte can suppress the entire list. Otherwise source mode selects a default mask, a live streamer-derived mask or a live indexed-session mask.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102b2a8c",
-        "notes": "impl decode",
-        "function": "f_102b2a8c"
+        "address": "0x102b2a0c",
+        "notes": "Queries f_10741b4c with impl+0x448 and the source name at impl+0x3dc. A nonzero first byte suppresses capability lookup and returns mask zero; otherwise f_102b2914 computes the mask.",
+        "function": "0x102b29d0"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b2b94",
-        "notes": "f_102b29d0 action-list builder",
-        "function": "f_102b2a8c"
+        "address": "0x102b2950",
+        "notes": "For mode other than 1 or 2, the mask is 0x01010000 (Stop, Play).",
+        "function": "0x102b2914"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b2ba0",
-        "notes": "f_102fcbf4",
-        "function": "f_102b2a8c"
+        "address": "0x102b299c",
+        "notes": "isel chooses 0x01000000 if f_102931f0(impl+0x5dc) is zero, 0x01010000 otherwise. It ORs in the stream capability word only when f_106a7c54(*(impl+0x5a0), &word) succeeds, then always sets 0x00800000.",
+        "function": "0x102b2914"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10258a90",
+        "notes": "Mode 2 uses f_10258a14(*(impl+0x580)). It reads indexed state through f_10257704 and calls f_102587b4 with selector 3 and the retrieved halfword, masks the result to 0x0173800f, then the caller sets 0x00800000.",
+        "function": "0x10258a14"
        }
       ]
      },
@@ -45824,31 +45840,23 @@
       ]
      },
      "return_behavior": {
-      "description": "0 on success; 718 for InstanceID!=0 where the arg exists.",
+      "description": "On success, request +0x24 obtains the Actions output at 0x102f893c and request +0x0c commits it at 0x102f8964. The engine returns 718 only for nonzero InstanceID; the wrapper separately emits 402 if request input materialization fails.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "f_102b2a8c",
-        "notes": "impl decode",
-        "function": "f_102b2a8c"
+        "address": "0x102f88d0",
+        "notes": "Invokes impl slot +0x4c (0x102b2a8c in both classes), with a 1024-byte output. Failure is sent via request +0x14 at 0x102f88ec; failed request materialization uses literal 402 at 0x102f8920.",
+        "function": "0x102f884c"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x102b2b94",
-        "notes": "f_102b29d0 action-list builder",
-        "function": "f_102b2a8c"
-       },
-       {
-        "type": "firmware",
-        "binary": "anacapad",
-        "build": "86.10-80260",
-        "address": "0x102b2ba0",
-        "notes": "f_102fcbf4",
-        "function": "f_102b2a8c"
+        "address": "0x102b2a94",
+        "notes": "Checks InstanceID; nonzero returns 718 at 0x102b2ac4 before reading capabilities. The ID-zero path takes the engine +0x458 scope, calls both helpers, ignores the formatter's return, and returns zero at 0x102b2bb0.",
+        "function": "0x102b2a8c"
        }
       ]
      },
@@ -45863,27 +45871,29 @@
       {
        "code": 718,
        "code_expr": "vret(r5-in)",
-       "meaning": "nonzero InstanceID rejected by the impl vfunc (rc 0x2ce materialised at the impl head)",
+       "meaning": "Parsed InstanceID was nonzero.",
        "fault_sites": [
         "0x102f88ec"
        ],
        "conditions": [
         {
-         "description": "InstanceID argument was nonzero (the engine only accepts instance 0)",
+         "description": "A nonzero parsed ID returns 718 before the capability read; source state and formatting do not return faults on the ID-zero path.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "address": "0x102f88ec",
-           "notes": "718 gate in impl"
+           "address": "0x102b2a94",
+           "notes": "Checks InstanceID; nonzero returns 718 at 0x102b2ac4 before reading capabilities. The ID-zero path takes the engine +0x458 scope, calls both helpers, ignores the formatter's return, and returns zero at 0x102b2bb0.",
+           "function": "0x102b2a8c"
           },
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
-           "function": "0x102b2a8c",
-           "notes": "718 rc constant site in impl"
+           "address": "0x102f88d0",
+           "notes": "Invokes impl slot +0x4c (0x102b2a8c in both classes), with a 1024-byte output. Failure is sent via request +0x14 at 0x102f88ec; failed request materialization uses literal 402 at 0x102f8920.",
+           "function": "0x102f884c"
           }
          ]
         }
@@ -45893,22 +45903,20 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x102f88ec",
-         "notes": "718 gate"
+         "address": "0x102b2a94",
+         "notes": "Checks InstanceID; nonzero returns 718 at 0x102b2ac4 before reading capabilities. The ID-zero path takes the engine +0x458 scope, calls both helpers, ignores the formatter's return, and returns zero at 0x102b2bb0.",
+         "function": "0x102b2a8c"
         },
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x102b2a8c",
-         "notes": "rc 0x2ce constant in impl head; InstanceID!=0 -> 718 convention verified"
+         "address": "0x102f88d0",
+         "notes": "Invokes impl slot +0x4c (0x102b2a8c in both classes), with a 1024-byte output. Failure is sent via request +0x14 at 0x102f88ec; failed request materialization uses literal 402 at 0x102f8920.",
+         "function": "0x102f884c"
         }
        ],
-       "domain_note": "domain fully bounded: impl 0x102b2a8c exits=[28, 64, 718]; the fault path is reached when the impl call reports failure",
-       "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in); sites: 0x102f88ec).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-       ]
+       "domain_note": "The engine returns zero or 718. Small immediates in the function are not additional engine return codes."
       }
      ],
      "firmware_differences": [],
@@ -45958,12 +45966,67 @@
        "build": "86.10-80260",
        "address": "0x10eb30c0",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102f88d0",
+       "notes": "Invokes impl slot +0x4c (0x102b2a8c in both classes), with a 1024-byte output. Failure is sent via request +0x14 at 0x102f88ec; failed request materialization uses literal 402 at 0x102f8920.",
+       "function": "0x102f884c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b2a94",
+       "notes": "Checks InstanceID; nonzero returns 718 at 0x102b2ac4 before reading capabilities. The ID-zero path takes the engine +0x458 scope, calls both helpers, ignores the formatter's return, and returns zero at 0x102b2bb0.",
+       "function": "0x102b2a8c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b2a0c",
+       "notes": "Queries f_10741b4c with impl+0x448 and the source name at impl+0x3dc. A nonzero first byte suppresses capability lookup and returns mask zero; otherwise f_102b2914 computes the mask.",
+       "function": "0x102b29d0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b2950",
+       "notes": "For mode other than 1 or 2, the mask is 0x01010000 (Stop, Play).",
+       "function": "0x102b2914"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x102b299c",
+       "notes": "isel chooses 0x01000000 if f_102931f0(impl+0x5dc) is zero, 0x01010000 otherwise. It ORs in the stream capability word only when f_106a7c54(*(impl+0x5a0), &word) succeeds, then always sets 0x00800000.",
+       "function": "0x102b2914"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10258a90",
+       "notes": "Mode 2 uses f_10258a14(*(impl+0x580)). It reads indexed state through f_10257704 and calls f_102587b4 with selector 3 and the retrieved halfword, masks the result to 0x0173800f, then the caller sets 0x00800000.",
+       "function": "0x10258a14"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10eb39d0",
+       "notes": "Table order (mask -> string): 0x00800000 Set; 0x00010000 Stop; 0x00008000 Pause; 0x01000000 Play; 0x00200000 X_DLNA_SeekTime; 0x00020000 Next; 0x00100000 Previous; 0x00400000 X_DLNA_SeekTrackNr. Formatter appends only set bits using the literal comma-space separator at 0x10e727bc.",
+       "function": "0x102fcbf4"
       }
      ],
      "notes": null,
      "todo": [
-      "Established: direct dispatch to handler 0x102f884c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "Resolve the final per-source capability predicates behind the indexed f_102587b4 mask, and identify the concrete stream capability providers reached through the two +0x2c calls at 0x106a7cac and 0x106a7cc8. The outer mode choice, baseline masks, action names/order, separator, and engine fault are verified."
      ]
     },
     "GetDeviceCapabilities": {
