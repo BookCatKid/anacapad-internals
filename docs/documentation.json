@@ -151244,15 +151244,28 @@
      "type": "firmware",
      "address": "0x10e7390c",
      "notes": "dsp files block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100bc780",
+     "notes": "System binary filename appears in a cleanup list."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100bc8bc",
+     "notes": "Native consumer invokes remove, not a binary decoder or DSP loader."
     }
    ],
    "unlock_dsp_console": "opt/htdocs_locked/dsp/{configDSP,meters}.{htm,css,js} (unlock-gated live DSP console (served via /tmp/htdocs_locked). Exercises the real DSP routes: GET /getDSP (bare = all-block dump, ?audioSystemsTuning, ?ChProcSysPlaybar.ChProcInputMeter, ?<BlockName>, ?<meterId>), POST /putDSP (form pairs 'Block.param=val -- '), GET eqdata.txt + ChProcInputMeter.xml + getDSP_{3,playbar}.xml (static block descriptor XML). Param grammar 'Block.param') ChProcSysPlaybar.ChProcInputMeter, BassManager.mode, active_iir, allpass1.a{0,1,2}/b{0,1,2}/type/bandpassQ, freq '700', gain '0.707', AB_indicator/ab_control preset-compare. Confirms /getDSP returns per-block param XML and /putDSP takes dotted-name writes: the same dotted namespace as the DSP param registry.",
-   "todo": [
-    "Residual: dsp_system_*.bin image format (the DSP program blob headers) - the files are not present in this image; their loader exists but the payload format needs a dev-supplied file or another build."
-   ],
+   "todo": "Residual: identify the actual readers/consumers of dsp_system_*.bin and satellite_processor.bin, then recover any binary header/payload grammar from those readers. Current native filename evidence is an override-cleanup list, not a loader; the named files are absent from both the reference tree and shipped SquashFS listing.",
    "resolved_findings": [
-    "Resolved: formats = eqdata.txt (EQ preset rows), persistentEQ.xml (XML param doc), unlock_dsp_console gated debug surface.",
-    "File roles proven: dsp_preset{,_default,_satellite}.xml are XML parameter documents under app/debug/dsp/ (dev/JFFS override location - not shipped); dsp_system_default.bin and dsp_system_satellite.bin plus satellite_processor.bin are compiled DSP program/pipeline images selected per role (default vs bonded satellite); eqdata.txt (+ /dsp/eqdata.txt) is the EQ coefficient text table; persistentEQ.xml stores user EQ. sonos-dspid is the DSP identifier token in the tap/console surface. Only /opt/dsp/S9_array.xml ships in this rootfs (the woofer beamforming arrays, rootfs_data_files record) - the presets/bin images are either compiled-in defaults or developer-installed. The /playmode status XML <Playmode><Shuffle>%s<Repeat>%s<Crossfade>%s sits adjacent. AudioTap target names recovered {linein, codecout, irdecoder, tv_, mixersat, mixergm, as-srcin-chsnk0, as-srcout-chsnk0, as-, mixerstats, dspout, formatter, llaout, mixerout, mzdsp, extvoice, extchirp} - tap points across the pipeline."
+    "Artifact absence was checked against both the complete recursive reference tree and the shipped package/86.10-80260-1-9-rootfs.squashfs inode listing with unsquashfs -ll. The DSP data directory contains only /opt/dsp/S9_array.xml; the engineering UI is under /opt/htdocs_locked/dsp/. No dsp_system_default.bin, dsp_system_satellite.bin, satellite_processor.bin, dsp_preset*.xml or .binpb was found in either inventory. The separately shipped device-payload.bin identifies as a Xilinx BIT FPGA configuration, not evidence of a DSP program image. Absence here is scoped to these artifacts, not all device models or writable installations.",
+    "The native reference to dsp_system_default.bin at 0x100bc780 is NOT a program loader. f_100bc518 checks an HTTP request, builds a list under app/debug/dsp/ including dsp_preset_satellite.xml, dsp_system_default.bin, dsp_system_satellite.bin and satellite_processor.bin (0x100bc61c-0x100bc808), then resolves each local path, checks sonosFileExists and invokes remove at 0x100bc8a8-0x100bc8bc. Missing files are skipped; remove failures clear the aggregate success flag and log, while successes continue the list. This is cleanup of developer overrides, not evidence of file headers, executable images or a binary loader ABI.",
+    "The S9_array.xml artifact is genuine shipped array coefficient data, with arrayDefinition version 1.0 and per-config woofer numChan/numTaps, weights, alphas and delays. It is not a substitute for the missing named system files. Compiled HT configuration is independently present in the ELF (f_10d7bebc fallback constructors); that does not establish that a dsp_system_*.bin payload is embedded or that a particular header format exists. The previous compiled DSP program/pipeline image classification from filenames alone is withdrawn."
    ]
   },
   "mod_zp": {
