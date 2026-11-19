@@ -154169,15 +154169,35 @@
      "type": "firmware",
      "address": "0x10ea49d4",
      "notes": "spotify thread block"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "request admission / predicate wait",
+     "address": "0x10226c6c",
+     "callsite": "0x10226ca8 / 0x10226d44 / 0x102271f4 / 0x1022729c",
+     "notes": "Occupied slot returns0, free path signals work. Predicate precedes clock, optional result translation and expired80000007 checked; a8d set/reset around wait rather than on expiry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "deadline construction and reuse",
+     "address": "0x10215618",
+     "callsite": "0x10215624 / 0x1021564c / 0x102156e8 / 0x102279f4 / 0x10227c60",
+     "notes": "Imported timevalAddMs establishes1000/10000ms. Login receives r8 deadline and cached words are restored on already-logging-in branch. Tail calls included; no complete global operation-budget census asserted."
     }
    ],
    "todo": [
-    "Residual: the numeric timeout budget per request type - the deadline is a caller-parameterized timeval (arg chain r8->r7), so each request site carries its own; enumerating them is per-call-site work."
+    "Established: concrete request admission, absolute-deadline wait contract,1000/10000-ms logout construction, inherited/cached login deadline, success/error/expired behavior and non-sticky waiting flag. Remaining: enumerate producers of the incoming deadlines through f_10215664/f_102276cc and tail wrappers, bind each call arm to its operation/retry/shutdown predicate, and separately recover telemetry/fatal-error rate-limit counters. Start at0x10215618/0x10215640 and cached-deadline stores0x102279f4. Do not call this one uniform timeout for every Sp* request. This is actionable static work."
    ],
    "resolved_findings": [
-    "Resolved: request serialization = single-request constraint (Already have a spotify request in progress) + per-request Executing %s/%s timeout; rate limit constants = the telemetry rate-limit guards.",
-    "Serialization model proven: a single worker serializes every spotify request - Already have a spotify request in progress, can only have one!! rejects concurrent ops; each request logs Executing %s ... then %s timeout on deadline (the timeout constant is the request budget). Rate limiting: spotify telemetry rate limit exceeded! / restricting excessive fatal error reporting (spotrl domain) cap telemetry+fatal-error uploads. The Sp* op vocabulary {SpDisableConnect, SpEnableConnect, SpSetDisplayName, ...} is the request set the thread executes serially.",
-    "Resolved: the '%s timeout' mechanism - the worker-run loop f_10227110 (spotify_thread.cxx ~0x638) takes the deadline as a caller-supplied timeval* (arg r7), spins the work fn (r27/mtctr) until done, compares sonosClockGetTime(CLOCK=1) >= deadline via timevalGeq, waits the remainder via f_10987584 on mutex this+0xb0, and sets the timed-out byte this+0xa8d. The login path (0x102276cc) builds it as waitForLogin/waitForLogout with the deadline arriving as the 5th arg from 0x10215664, which forwards its own caller's deadline - there is no single rodata timeout constant; the budget is per-request, propagated down the request-call chain."
+    "The single-request guard is concrete at f_10226c6c: under receiver+0xb0 lock it tests shutdown byte+0xa80 and occupied request pointer+0xa74. Occupied requests log the constraint and return0; a free slot stores the new request and signals receiver+0x220 before waiting for its completion. This does not prove every Sp* API uses one identical timeout loop.",
+    "f_10227110 is a predicate/wait helper used by waitForLogin/waitForLogout wrappers. It calls the predicate before checking the clock. If incomplete, a nonzero optional result word is translated through f_10224b90; otherwise sonosClockGetTime(1) and timevalGeq compare an absolute deadline. Expiry returns0x80000007. Successful completion with no result pointer or a zero result word returns0. Thus an already-complete predicate need not fail merely because its supplied deadline is past.",
+    "Byte receiver+0xa8d is set to1 immediately before the timed condition wait f_10987584 and reset to0 after it returns. The expiration branch itself does not set this byte; the former timed-out-byte interpretation is withdrawn. The remaining wait is calculated by timevalDiff(deadline,now).",
+    "Concrete logout budgets are built at0x10215618-0x10215630 and0x10215640-0x10215658: sonosClockGetTime(1), timevalAddMs with1000 or10000, then f_10227d20 -> f_102272c4 -> wait helper. Units are established by the imported timevalAddMs, not inferred from literal magnitude.",
+    "The login caller0x102156e8 copies its incoming r8 timeval to the stack before f_102276cc. That function passes it as r7 to the helper at0x10227a4c and caches it at receiver+0xa90/+0xa94. The already-logging-in arm restores that cached deadline before0x10227c8c instead of granting a fresh timeout. Tail wrappers0x10227328/0x10227dc8 also reach the helper, so a bl-only census is not a complete call graph."
    ]
   },
   "smapi_descriptor": {
