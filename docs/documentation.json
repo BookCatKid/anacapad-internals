@@ -61086,7 +61086,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a3f28",
+         "function": "0x1039ccbc",
          "notes": "consumed at impl boundary"
         }
        ],
@@ -61095,7 +61095,7 @@
      },
      "outputs": {
       "CurrentMute": {
-       "description": "Group mute byte produced by impl f_103a3f28 via the shared group-session state acquired by f_106ff3b8",
+       "description": "Boolean byte written by f_1039ccbc at 0x1039cd5c: the first cached halfword is nonzero and equals the second, read through object+0x25c at +0xd28c/+0xd292 under mutex +0x1c8. Counter semantics require their writers; this is not a session destructor output.",
        "direction": "out",
        "primitive": {
         "fmt_helper": "0x1055fc08",
@@ -61129,7 +61129,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a3f28",
+         "function": "0x1039ccbc",
          "notes": "produced by impl path"
         }
        ],
@@ -61251,7 +61251,7 @@
        "fault_sites": [
         "0x10738f38"
        ],
-       "meaning": "nonzero worker rc; resolved domain {702(InstanceID!=0), 402(DesiredVolume>100 range), 701/801(member-apply failure), member-delegate-rc}",
+       "meaning": "No bound group: f_1039ccbc returns 701 when f_1075cf7c returns null.",
        "conditions": [
         {
          "description": "group object lookup via f_1075cf7c fails (no group bound)",
@@ -61282,12 +61282,11 @@
          "notes": "impl returns 0x2bd on lookup miss"
         }
        ],
-       "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
+       "condition": "f_1039ccbc returns 701 when f_1075cf7c finds no bound group; 702 is the separate nonzero InstanceID gate. The session destructor chain does not produce these action errors.",
        "resolved_domain": "{0,701,702} + wrapper {401,402}",
        "resolved_findings": [
         "701 is emitted only by the impl-head member lookup miss: f_1075cf7c(*(impl+0x278), *(impl+0x274)) is an atomic refcounted-pointer accessor (lwarx/stwcx refcount bump on *(obj+8)+4, null-safe) whose null return selects r3=0x2bd when the zone has no bound group-member object.",
-        "Domain fully proven: f_1039ccbc complete literal rc set is {0, 701, 702} - InstanceID!=0 -> 702, accessor miss -> 701 at 0x1039ccfc, and the success path ends with addi r3,0 (downstream worker rc is discarded, not forwarded). No 801 can ever surface from this action; the pooled 701/801 phrasing was a shared member-domain superset artifact.",
-        "Resolved: worker rc ladder = member rejects -> 701, member-failure -> 801 (same pooled split as GetGroupVolume)."
+        "Domain fully proven: f_1039ccbc complete literal rc set is {0, 701, 702} - InstanceID!=0 -> 702, accessor miss -> 701 at 0x1039ccfc, and the success path ends with addi r3,0 (downstream worker rc is discarded, not forwarded). No 801 can ever surface from this action; the pooled 701/801 phrasing was a shared member-domain superset artifact."
        ]
       },
       {
@@ -61322,7 +61321,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a3f28",
+         "function": "0x10738e9c",
          "notes": "402 gate verified in handler body"
         }
        ],
@@ -61386,8 +61385,9 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x103a3f28",
-       "notes": "impl vfunc on vtable 0x10ec37b4 +0x08"
+       "function": "0x1039ccbc",
+       "notes": "Concrete SOAP delegate slot in the constructor-installed GRC primary vtable 0x10ec3824; not the session destructor formerly attributed to this action.",
+       "address": "0x1039ccbc"
       },
       {
        "type": "firmware",
@@ -61403,14 +61403,35 @@
        "build": "86.10-80260",
        "address": "0x10f11aa8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039f534",
+       "function": "0x1039f2e0",
+       "notes": "GroupRenderingControl constructor f_1039f2e0 is called at 0x103fb3ec; its object is stored at media-player+0x192c at 0x103fb434 (raw 0x931f192c). The constructor forms final primary vptr 0x10ec3824 at 0x1039f520 and stores it at object+0 at 0x1039f534 (raw 0x913f0000). The initializer passes the +0x192c pair to f_104d49e8, which stores its pointer at services-block+0x28 at 0x104d4cf0 (raw 0x913f0028). Since the block is zone-player+0x3fa2c and the GRC SOAP service is zone-player+0x3fa50, this is GRC service+4. Final primary table words 0x10ec382c/0x10ec3830 bind slots +8/+0xc to f_1039ccbc/f_103a23b4. The previously cited 0x10ec37b4 is not the installed primary address point: its first two words are zero and its +8/+0xc contain session destructors, not these SOAP methods."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103a3f28",
+       "function": "0x103a3f28",
+       "notes": "f_103a3f28 stores vptr 0x10e97d30 then tail-calls base destructor f_106ff3b8. That base installs 0x10f0b854, frees the allocation at +0x272c via f_108094fc at 0x106ff3e8, destroys +0x1b98/+0x498 and tail-calls f_1056b880 on +0xc. f_103a3f40 does the same and then calls f_108094fc(this,0x2740) at 0x103a3f7c. These are non-deleting/deleting session destructors, not GetGroupMute/SetGroupMute implementations or request-posting adapters. Independently read words of vptr 0x10e97d30: +0x7c=0x1019f510, +0xd8=0x1017fcb8, +0xdc=0x10180350; they differ from the queue-side AVTransport object."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104660c0",
+       "function": "0x10465fac",
+       "notes": "Independent queue-side cross-check: f_103fa434 calls AVTransport constructor f_10511f34 at 0x103fb5d8 and stores that object at media-player+0x1934 at 0x103fb680. f_10511f34 calls base f_102c05d8 at 0x1051218c (alternate paths 0x1051275c/0x10512b34), then forms final vptr 0x10edfbb8 at 0x10512340/44 and stores it at object+0 at 0x105123c0 (raw 0x91370000). The queue constructor receives media-player+0x1934 in r5 at 0x103fb6e0/0x103fb6e8; f_10465fac saves r5 in r27 and stores it at queue-manager+0x128 at 0x104660c0 (raw 0x937f0128). Thus this member points to the derived AVTransport object, not 0x10e97d30. Its raw table slots +0x7c/+0xd8/+0xdc are f_102aa8b4/f_102bd324/f_102bd4f0. Forwarders f_1046594c/f_10465970 load queue-manager+0x128 then dispatch +0xd8/+0xdc. This separate queue binding must not be substituted for the GRC primary table 0x10ec3824."
       }
      ],
      "notes": null,
-     "implementation_notes": "Adapter vfunc: installs interface vptr 0x10e97d30 on this, then tail-calls f_106ff3b8: the shared group-session acquire worker on obj+0x272c. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4. Impl domain fully bounded: {702 if out-arg r4==0; 701 on f_1075cf7c group-lookup miss; 0 on success}.",
-     "todo": [
-      "Established: direct dispatch to handler 0x10738e9c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "SOAP service+4 is bound to the GroupRenderingControl object constructed by f_1039f2e0, final primary vptr 0x10ec3824. Slot +8 is f_1039ccbc. It returns 702 for InstanceID r4!=0, 701 on f_1075cf7c group-lookup miss, and otherwise refreshes cached group state through f_1039c5f0, locks +0x1c8, writes the CurrentMute byte via r5 and returns zero. The output is the nonzero/equality comparison of cached unsigned-halfword fields reached through object+0x25c at offsets +0xd28c/+0xd292; interpretation of those counters requires their writers. The old f_103a3f28/f_103a3f40 attribution was a session destructor pair: installing 0x10e97d30 and freeing memory through f_108094fc does not acquire a group session or post a mute request. The queue-side member at queue-manager+0x128 is independently bound to derived AVTransport vptr 0x10edfbb8, which is also not the GRC SOAP delegate.",
+     "todo": "Established: service+4 binding, constructor-installed primary vptr 0x10ec3824 and GetGroupMute slot +8 -> f_1039ccbc are proven; the old f_103a3f28 attribution was a destructor. InstanceID!=0 returns 702, missing group returns 701, otherwise cached counters produce a byte and the worker returns zero. Residual: trace f_1039c5f0 and writers of the state pointer at object+0x25c and halfwords +0xd28c/+0xd292 to establish the exact member aggregation rule; finish the action section-level state/event traces. This is recoverable static work, not a runtime-injection boundary."
     },
     "GetGroupVolume": {
      "description": "Returns the group volume as CurrentVolume u16. Aggregation across members (average vs coordinator's own) is unresolved - the group impl computes it via v[+0x10].",
@@ -61813,7 +61834,7 @@
      ]
     },
     "SetGroupMute": {
-     "description": "Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; callback f_103a3f28; 'SetGroupMute: %s set to %d rc=%d').",
+     "description": "Sets mute across the group. Impl-side logging in f_103a1b8c shows member fan-out: the local zone is set directly ('SetGroupMute: local set to %d rc=%d') while remote members receive per-member UPnP RenderingControl.SetMute requests (member table of 0x2740-byte records; 'SetGroupMute: %s set to %d rc=%d').",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10738fb0",
@@ -61886,7 +61907,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a3f40",
+         "function": "0x103a23b4",
          "notes": "consumed at impl boundary"
         }
        ],
@@ -61906,7 +61927,7 @@
        "format": "decimal text",
        "unit": "none - boolean-ish byte",
        "accepted_values": "byte numeric",
-       "range": "boolean: parsed by f_10561444 byte-bool reader: nonzero literal -> 1; forwarded as the DesiredMute flag to impl f_103a3f40",
+       "range": "boolean: parsed by f_10561444 byte-bool reader: nonzero literal -> 1; forwarded as the DesiredMute flag to impl f_103a23b4",
        "special_values": "none observed in this build",
        "required": true,
        "default": "none - required argument",
@@ -61930,7 +61951,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a3f40",
+         "function": "0x103a23b4",
          "notes": "consumed at impl boundary"
         }
        ],
@@ -62140,7 +62161,7 @@
          "notes": "addi r3,0x2bd path"
         }
        ],
-       "condition": "impl vfunc nonzero rc forwarded verbatim through req->v[+0x14] (CR-flag convention); rc domain produced by group-op chain f_106ff3b8/f_108094fc/f_10807034: vocabulary unresolved",
+       "condition": "f_103a23b4 returns 701 when f_1075cf7c finds no bound group; success delegates to f_103a2160/f_103a1b8c. Downstream worker faults require tracing those workers, not the unrelated session destructor chain.",
        "domain_note": "domain fully bounded: impl 0x103a23b4 exits=[701, 702]; impl rc propagated to fault vfunc; per-member rc only logged",
        "resolved_domain": "{0,701,702,801,member-delegate}",
        "todo": [
@@ -62180,7 +62201,7 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x103a3f40",
+         "function": "0x10738fb0",
          "notes": "402 gate verified in handler body"
         }
        ],
@@ -62281,8 +62302,9 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x103a3f40",
-       "notes": "impl vfunc on vtable 0x10ec37b4 +0x0c"
+       "function": "0x103a23b4",
+       "notes": "Concrete SOAP delegate slot in the constructor-installed GRC primary vtable 0x10ec3824; not the session destructor formerly attributed to this action.",
+       "address": "0x103a23b4"
       },
       {
        "type": "firmware",
@@ -62298,14 +62320,35 @@
        "build": "86.10-80260",
        "address": "0x10f11ac0",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1039f534",
+       "function": "0x1039f2e0",
+       "notes": "GroupRenderingControl constructor f_1039f2e0 is called at 0x103fb3ec; its object is stored at media-player+0x192c at 0x103fb434 (raw 0x931f192c). The constructor forms final primary vptr 0x10ec3824 at 0x1039f520 and stores it at object+0 at 0x1039f534 (raw 0x913f0000). The initializer passes the +0x192c pair to f_104d49e8, which stores its pointer at services-block+0x28 at 0x104d4cf0 (raw 0x913f0028). Since the block is zone-player+0x3fa2c and the GRC SOAP service is zone-player+0x3fa50, this is GRC service+4. Final primary table words 0x10ec382c/0x10ec3830 bind slots +8/+0xc to f_1039ccbc/f_103a23b4. The previously cited 0x10ec37b4 is not the installed primary address point: its first two words are zero and its +8/+0xc contain session destructors, not these SOAP methods."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x103a3f28",
+       "function": "0x103a3f28",
+       "notes": "f_103a3f28 stores vptr 0x10e97d30 then tail-calls base destructor f_106ff3b8. That base installs 0x10f0b854, frees the allocation at +0x272c via f_108094fc at 0x106ff3e8, destroys +0x1b98/+0x498 and tail-calls f_1056b880 on +0xc. f_103a3f40 does the same and then calls f_108094fc(this,0x2740) at 0x103a3f7c. These are non-deleting/deleting session destructors, not GetGroupMute/SetGroupMute implementations or request-posting adapters. Independently read words of vptr 0x10e97d30: +0x7c=0x1019f510, +0xd8=0x1017fcb8, +0xdc=0x10180350; they differ from the queue-side AVTransport object."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x104660c0",
+       "function": "0x10465fac",
+       "notes": "Independent queue-side cross-check: f_103fa434 calls AVTransport constructor f_10511f34 at 0x103fb5d8 and stores that object at media-player+0x1934 at 0x103fb680. f_10511f34 calls base f_102c05d8 at 0x1051218c (alternate paths 0x1051275c/0x10512b34), then forms final vptr 0x10edfbb8 at 0x10512340/44 and stores it at object+0 at 0x105123c0 (raw 0x91370000). The queue constructor receives media-player+0x1934 in r5 at 0x103fb6e0/0x103fb6e8; f_10465fac saves r5 in r27 and stores it at queue-manager+0x128 at 0x104660c0 (raw 0x937f0128). Thus this member points to the derived AVTransport object, not 0x10e97d30. Its raw table slots +0x7c/+0xd8/+0xdc are f_102aa8b4/f_102bd324/f_102bd4f0. Forwarders f_1046594c/f_10465970 load queue-manager+0x128 then dispatch +0xd8/+0xdc. This separate queue binding must not be substituted for the GRC primary table 0x10ec3824."
       }
      ],
      "notes": null,
-     "implementation_notes": "Adapter vfunc: installs 0x10e97d30, calls f_106ff3b8 (group-session acquire on +0x272c), then f_108094fc(this,0x2740): posts the SetMute op record; f_103a1b8c builds remote RenderingControl:SetMute fan-out records per zone. Impl object is *(svc+4), dynamically installed (ctor zeroes it); class vtable 0x10ec37b4.",
-     "todo": [
-      "Established: direct dispatch to handler 0x10738fb0; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ]
+     "implementation_notes": "SOAP service+4 is bound to the GroupRenderingControl object constructed by f_1039f2e0, final primary vptr 0x10ec3824. Slot +0xc is f_103a23b4. It returns 702 for InstanceID r4!=0 and 701 on f_1075cf7c group-lookup miss; success tail-calls f_103a2160 with the desired mute byte. The old f_103a3f28/f_103a3f40 attribution was a session destructor pair: installing 0x10e97d30 and freeing memory through f_108094fc does not acquire a group session or post a mute request. The queue-side member at queue-manager+0x128 is independently bound to derived AVTransport vptr 0x10edfbb8, which is also not the GRC SOAP delegate.",
+     "todo": "Established: service+4 binding, constructor-installed primary vptr 0x10ec3824 and SetGroupMute slot +0xc -> f_103a23b4 are proven; the old f_103a3f40 attribution was a deleting destructor. InstanceID/group gates lead to f_103a2160 -> f_103a1b8c, not to a destructor or deallocator request adapter. Residual: finish the fan-out worker/delegate error, state and notification paths below f_103a2160/f_103a1b8c before resolving the remaining section records. This is recoverable static work, not a runtime-injection boundary."
     },
     "SetGroupVolume": {
      "description": "Sets absolute volume across the group. Impl logs 'SetGroupVolume: local:%d netops:%u zones:%u' - local set count, pending network operations, and zone count - showing the impl fans the request out to every group member (local direct + remote RenderingControl.SetVolume UPnP ops).",
