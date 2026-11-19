@@ -177102,7 +177102,7 @@
    "todo": "Established: Binder f_1023a214 installs schemaVersion at field index 1 as type 4 (fixed character buffer), target model+0, capacity 17 and flags byte 1. The common field constructor f_109c0eb8 stores that flags byte at descriptor+0x20. Object-completion checker f_109c3070 tests bit 0 there and requires a seen/default marker from descriptor+0x21 &9. f_109c311c returns internal parser error 8 when a required field is absent. Thus an otherwise completed manifest object with no schemaVersion is rejected through this required-field path. Other named manifest fields are bound without this required flag. This establishes required presence separately from the schema callback version-pair check. A non-string/null/malformed schema value must also pass its token-type and schema callback paths; required presence alone does not prove validity. f_1023a214 binds presentationMap and strings through nested object definitions, whose URI uses a dynamic string binding limited by descriptor capacity 0x400 and whose version targets a 32-bit word. Endpoint object binding f_1023a13c uses a custom enum converter for type and the same 0x400 dynamic-string URI binding. apiKey.zp also uses that 0x400 string binding. Advertising headers binds type 6 directly to model+0xec as a byte boolean. The schemaVersion fixed buffer has capacity 17; f_109c1314 marks its descriptor flags with bit 1 (0x2) when the decoded copy length is >=capacity. Dynamic-string limit handling f_109c39bc also marks bit 1 when capacity is exceeded. Binding capacities and per-field truncation flags are proven; aggregate acceptance of oversized values still needs tracing through the enclosing parser and callback checks. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
   },
   "0x10238144": {
-   "description": "Endpoint collector f_10238144 handles object-end callback token kind 1 for field metadata index zero. With its target model installed, it copies the completed scratch endpoint to the next 0x1c-byte slot while count<=2, increments model+0xa0, and clears the scratch endpoint type/URI afterward. At count>2 it returns zero without appending or incrementing; the collector itself supplies no overflow error. This yields at most three stored endpoints even if further object callbacks arrive. accountTiers instead uses a generic array binding: f_1023a214 binds the count at model+0xe8 with maximum four and binds model+0xd8 as four 4-byte custom enum values. The generic array completion stores the smaller of parsed element count and the declared maximum. Exact overall acceptance and side effects for extra elements or repeated arrays still require the shared element cursor/error paths.",
+   "description": "Endpoint collector f_10238144 is the object-end action callback (vptr+4 slot of the endpoints-array binder vtable at 0x10ea5ae8) installed on the binder subobject the manifest parser object builds at parent+0x270; binder+0xa4 is the parsed model pointer and +0xa8 the scratch endpoint {type word@+0, uri string@+4} installed by setter f_10239dac. It fires only on token kind 1 (object end) with a nonzero context word at arg4+8. While the stored endpoint count at model+0xa0 is <=2 it stores the scratch type word at model+0x4c+count*0x1c and string-copies the scratch URI into model+0x50+count*0x1c via assign f_1082deb8, then clears the scratch type to 0 and assigns the URI string empty. The count is incremented before the string copy runs. At count>2 it returns without appending or error, so at most three endpoints are stored no matter how many array elements arrive; it always returns 0. The scratch 'type' word is produced by sibling enum binder f_10238370 mapping endpoint-type names through the {name,len,value} table at 0x10ea5b38 (empty->0, 'radio'->1, 'reporting'->2, 'audiobook'->3, 'browse'->4) and returning 0x10 on match, 3 on no-match; accountTiers uses the twin binder f_10238250 on table 0x10ea5afc ('none'->0, 'free'->1, 'paidLimited'->2, 'paidPremium'->3). The parse driver in f_1011aabc feeds streamed tokens to shared JSON cursor f_109c4b34 (0xa=continue, 0=done, else abort; cursor error word at ctx+0x44) and on clean completion runs model assign f_102399a4, the concrete consumer that copies every collected {type,uri} row into the caller's model.",
    "why_external": "Determines which downloaded endpoint objects enter the stored music-service manifest.",
    "required_for_behavior": true,
    "role": "music_service_manifest_parser",
@@ -177113,9 +177113,82 @@
      "build": "86.10-80260",
      "address": "0x10238144",
      "notes": "Instruction-level binder/collector/stream analysis; see music_service_manifest."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10238144",
+     "function": "0x10238144",
+     "notes": "Object-end commit: kind gate reads token kind word at arg6+0 (must be 1), context gate requires arg4+8 nonzero, count>2 early-out at 0x102381b8; count stored +1 at 0x102381c0 BEFORE the URI copy f_1082deb8 at 0x102381fc; scratch then cleared (type word 0, URI string assigned empty)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5ae8",
+     "notes": "Endpoints-binder vtable {f_1023a5fc subobject getter (this+0x70), f_10238144 action, f_10237fe8 reset over 3 sub-objects, f_10238c28 and f_10238490 destructor walkers, data 0x10ea6a2c, 0}; the shared generic action is f_100d3728 (return 0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239d68",
+     "notes": "Endpoint-binder ctor f_10239d68 wraps f_10239084 then installs vptr 0x10ea5ae8 at +0 and zeroes +0xa4/+0xa8; setter f_10239dac stores parsed model into +0xa4 and scratch endpoint into +0xa8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5b38",
+     "notes": "Endpoint-type enum table consumed by f_10238370, 5 entries stride 0xc {name,len,value}: {'',0,0},{'radio',5,1},{'reporting',9,2},{'audiobook',9,3},{'browse',6,4}; name match by strnlen(0x21)+memcmp, value stored to *out, returns 0x10 match / 3 no-match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea5afc",
+     "notes": "accountTiers enum table consumed by twin binder f_10238250: {'none',4,0},{'free',4,1},{'paidLimited',0xb,2},{'paidPremium',0xb,3}. Emitter f_1023915c indexes the endpoint-type table backward to render 'type' names."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011ab80",
+     "function": "0x1011aabc",
+     "notes": "Parse driver: streamed token via virtual call on the JSON stream object, then shared cursor f_109c4b34 at 0x1011abb0; r3==0xa loops, r3==0 ends, else abort. Model assign f_102399a4 runs only past the clean-end gates at 0x1011abfc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109c4bd4",
+     "function": "0x109c4b34",
+     "notes": "Cursor error aggregation: ctx+0x44 stores 1 (token object construction failure -> return 0xc) at 0x109c4bd4 and 0x11 (syntax, expected '[' on ctx+0x40 path -> return 6) at 0x109c4c98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011b964",
+     "function": "0x1011b710",
+     "notes": "Download-worker consumer chain: f_1011aabc(stream model at sp+0xafa0) -> on success memcpy of the 0x401-byte URI field then f_102399a4 into the worker's model at 0x1011b964; failure logs 'downloading music service manifest'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102399a4",
+     "notes": "Model assign consumer: byte/word/string copies for fixed fields, then iterates rows at src+0x4c stride 0x1c for src+0xa0 count copying {type@+0, uri@+4} per row with no bound check, then copies +0xa4/+0xa8/+0xc0 strings, the +0xd8..0xe4 tier array with +0xe8 count and +0xec byte."
     }
    ],
-   "todo": "Established: Endpoint collector f_10238144 handles object-end callback token kind 1 for field metadata index zero. With its target model installed, it copies the completed scratch endpoint to the next 0x1c-byte slot while count<=2, increments model+0xa0, and clears the scratch endpoint type/URI afterward. At count>2 it returns zero without appending or incrementing; the collector itself supplies no overflow error. This yields at most three stored endpoints even if further object callbacks arrive. accountTiers instead uses a generic array binding: f_1023a214 binds the count at model+0xe8 with maximum four and binds model+0xd8 as four 4-byte custom enum values. The generic array completion stores the smaller of parsed element count and the declared maximum. Exact overall acceptance and side effects for extra elements or repeated arrays still require the shared element cursor/error paths. Remaining: exhaust shared JSON error/null/type/duplicate/oversized aggregation and concrete consumers, including exception paths."
+   "resolved_findings": [
+    "Established: shared cursor and error aggregation. The manifest loop in f_1011aabc drives generic JSON cursor f_109c4b34 per streamed token: 0xa continues, 0 ends cleanly, anything else aborts before model assign. The cursor keeps its own error word at ctx+0x44 (1 = token object construction failure returning 0xc, 0x11 = syntax such as a missing '[' returning 6); field callbacks return 0 whether they consumed or skipped a token, so the collector's silent drop at count>2 is indistinguishable from success at the cursor level.",
+    "Established: null, type and duplicate outcomes. A JSON null or unrecognized 'type' name leaves the scratch type word at its cleared 0 value (the enum binder only runs on string tokens and writes *out after an initial 0 store; no-match returns 3), and the object-end commit still stores a {0,uri} row when the context gate passes; the runtime resolver f_1011c34c later rejects type 0. Repeated endpoint objects all flow through the same scratch: each object end commits while count<=2 and is silently dropped after the third.",
+    "Established: concrete consumers of collected endpoints are (a) model assign f_102399a4 with seven call sites - post-parse finalize inside f_1011aabc at 0x1011abfc, the download worker at 0x1011b964 after a 0x401-byte URI memcpy, view ctors at 0x1011c188/0x1011c274 and svcmanifestfile paths 0x10118f60/0x10118fb0/0x10119030 - which iterates source count +0xa0 with no bound check while copying each {type,uri} row, and (b) sibling emitter pair f_1023915c/f_10239208 which re-renders 'type' through the same enum-name table and emits 'uri' only when the stored string is nonempty.",
+    "Established: exception paths. The endpoint count is incremented at 0x102381c0 before the URI string assign at 0x102381fc, so a throw inside f_1082deb8 leaves the count ahead of fully-copied rows with the scratch still populated; the collector itself installs no guard. Unwind cleanup belongs to the binder family's destructor walkers (f_10238c28/f_10238490 iterate sub-object slots backward calling each one's vfn0) and the cursor's own token temporaries.",
+    "Established: binder vtable shape. All manifest binders use a 7-slot vtable {subobject getter, object-end action, field reset, destructor walker, destructor walker, data/0, 0}; the endpoints binder at 0x10ea5ae8 substitutes collector f_10238144 for the shared no-op action f_100d3728 (plain `return 0`), while the two enum binders at 0x10ea5a1c/0x10ea5a3c carry their {name,len,value} scan in the +8 slot."
+   ]
   },
   "0x1011aabc": {
    "description": "Download JSON reader f_1011aabc creates a fresh model, schema adapter and streaming parser, binds through f_1011bd2c, then requests chunks of up to 1024 bytes from input slot +8 using the supplied deadline. It feeds the reported byte count to f_109c4b34 without branching on that read call return register. Internal result 10 continues only while the last reported byte count is nonzero; a zero-length read with result 10 falls into the logged failure path. Parser result zero reaches root descriptor status checks: when the root has a seen/default marker, status bit 0x2 produces local internal error 7. Only after these checks does it postprocess a nonempty apiKey.zp and copy the scratch model to the caller with f_102399a4. Parse failure returns false without this final model copy. JSON framework error numbers here are not SOAP fault codes; the outer download worker maps this false result to 801.",
