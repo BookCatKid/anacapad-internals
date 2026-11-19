@@ -52000,6 +52000,14 @@
          "address": "0x104356c4",
          "notes": "The topology result is an HTTP base, not an XML fragment supplied by another device. f_10487dd0 extracts an art URL candidate from the stream record and f_10435658 tests it for the literal /getaa? prefix. For a matching path it builds a URL from the topology-supplied base and that path (0x104357a4/0x104357d4 or 0x104359a0/0x104359d0). The separate string copied in the wrapper from record+0x608 is emitted as r:tiid when nonempty (0x10449744); the title/creator fields come from the record, not from topology.",
          "function": "0x10435658"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10449d78",
+         "notes": "After f_10487dd0 successfully builds the art candidates, it replaces the primary span at record+0x70 and rebuilds the sorted-by-input-order nonempty alternate spans at record+0x94 (count at +0x88). The DIDL writer f_10449ca4 prefers the first alternate span when the count is nonzero (0x10449d80); otherwise it uses the primary span. It emits upnp:albumArtURI only for a nonempty resulting string.",
+         "function": "0x10449ca4"
         }
        ],
        "notes": null
@@ -52663,7 +52671,7 @@
      "notes": null,
      "todo": [
       "Established: all eight output slots are mapped. Topology slot +0x48 supplies an HTTP base for a relative /getaa? art path, not title or creator XML. Spotify writes a position, with a saved-position fallback, and the common wrapper checks the separate record ordinal-valid flag. Spotify is the only direct source registration found in this build.",
-      "Trace the SpotifyAudioInput track/cache callbacks and all indirect record writers to confirm whether they can set record+0xf04/+0xf08. Map which source metadata fields and cache result choose the emitted title, creator and art fields, and trace the /getaa? alternative-URL branch and its downstream DIDL insertion."
+      "Trace the SpotifyAudioInput track/cache callbacks and indirect record writers to confirm whether they can set record+0xf04/+0xf08. Map which source metadata fields and cache result select the emitted title, creator and the input art candidate, and decode the eligibility gate for the alternate artwork URL in f_10435658."
      ]
     },
     "GetRemainingSleepTimerDuration": {
