@@ -136764,9 +136764,39 @@
          "build": "86.10-80260",
          "address": "0x100c6314",
          "notes": "Lock, account snapshot and response projection path; helper effects not exhausted."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b688c",
+         "notes": "Locked read-only account snapshot: acquires the account-manager lock at +0xa878 and copies the count plus up to 32 records at stride 0x250 into the caller buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100c5fd0",
+         "notes": "Builds the musicservices.xml path and open64s it read-only; no write or create flags."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1011a5d0",
+         "notes": "Serializes the svcmanifestfile auxiliary list into the caller output through locked iterator f_1011a4bc; the list is not mutated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100ca7f4",
+         "notes": "Output callbacks 0x100ca7f4 and 0x100ca84c only emit strings through output-record vfunc+0x10."
         }
        ],
-       "todo": "Established: response projection and commit path are decoded. Remaining: trace f_101b688c, f_100c5fd0, f_1011a5d0 and output callbacks to identify cache/storage and other effects."
+       "resolved_findings": [
+        "Every helper on the serializer path is read-only or output-only. f_101b688c is a locked read-only snapshot of the account manager: it takes the lock at mgr+0xa878 and copies the record count plus up to 32 records at stride 0x250. f_100c5fd0 builds the musicservices.xml path and open64s it read-only. f_1011a5d0 serializes the svcmanifestfile auxiliary list into the caller output through locked iterator f_1011a4bc with no mutation. Output callbacks 0x100ca7f4/0x100ca84c are pure string emitters through output-record vfunc+0x10. No cache, storage or account write occurs."
+       ]
       }
      ],
      "events_triggered": {
