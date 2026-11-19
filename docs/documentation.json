@@ -129226,35 +129226,55 @@
    ]
   },
   "queue_engine": {
-   "resolution": "FULLY STATIC - previously marked runtime-bound; wiring proven end-to-end",
+   "resolution": "Concrete queue-manager injection and derived AVTransport object identity established statically; lifecycle thunks are destruction, not reset.",
    "engine": {
     "alloc": "new(0xae38) at 0x103fb4a0",
     "ctor": "f_10511f34 (0x103fb5d8)",
-    "primary_vtable": "0x10e97d30 (9 slots: f_1019f774,f_1019f78c,f_106fd104,f_106fd5d4,f_106ff454,f_106ff898,f_106fd3a8,f_106fd048,f_1019f754)",
-    "storage": "*(zp+0x1934); injected into queue-manager ctor f_10465fac(r5) -> *(qm+0x128); qm singleton 0x11096770",
+    "primary_vtable": "0x10edfbb8, installed into this+0 at0x105123c0 after base constructor f_102c05d8 at0x1051218c. The base and derived constructors are distinct from the queue-manager constructor.",
+    "storage": "The derived object is stored at zp+0x1934 and passed as r5 to f_10465fac. That separate manager stores it at qm+0x128 at0x104660c0; manager primary vptr is0x10ed1bcc and its singleton is0x11096770. qm+0x128 is not an object whose primary vptr is0x10e97d30.",
     "sub_vptrs": {
-     "+0x148": "0x10edff64 -> f_10400310,f_10405180,f_102b80a0,f_102b76dc,f_102c988c,f_102b7ea0 (queue workers, exits {36..160})",
-     "+0x324": "0x10ee0100 -> {f_104003a8,f_10405218}: method-thunk(-0x324)->f_104000c4 (full re-ctor), dtor-thunk(-0x324)->f_10404f0c",
+     "+0x148": "0x10edff64 -> f_10400310,f_10405180 followed by f_102b80a0,f_102b76dc,f_102c988c,f_102b7ea0; destruction thunks plus operational methods, not a two-slot-only interface",
+     "+0x324": "0x10ee0100 -> {f_104003a8,f_10405218}: nondeleting-deleting-dtor-thunk(-0x324)->f_104000c4 (nondeleting destructor), deleting-dtor-thunk(-0x324)->f_10404f0c",
      "+0x340": "0x10ee0110 -> {f_104003b0,f_10405220}: same pair at -0x340",
      "+0x394": "0x10ee0140 -> {f_104003c8,f_10405238}: same pair at -0x394",
      "+0x3b0": "0x10ee0150 -> {f_104003d0,f_10405240}: same pair at -0x3b0",
      "+0x3cc": "0x10ee0160 -> f_104003d8,f_10405248,f_102ce060,f_102c8774,f_102c6c70,f_102c7294",
-     "+0x3d0": "0x10ee0180 -> f_104003e0,f_10405250,f_102ad8f4,f_102d225c (session/AVTransportURI ops; exits incl 718); trailing embedded method-name table 'processAVTransportURI...'"
+     "+0x3d0": "0x10ee0180 -> f_104003e0,f_10405250,f_102ad8f4,f_102d225c; destruction thunks followed by session/AVTransportURI-related operational methods. Nearby method-name strings are separate data, not further function pointers."
     },
-    "sub_vptr_decode": "All secondary slices share ONE 2-method lifecycle interface: slot0 = this-adjust thunk into f_104000c4 (the complete re-ctor that reinstalls all ~30 vptrs, i.e. in-place reset), slot1 = this-adjust dtor thunk into f_10404f0c (teardown body restoring base vptrs). The engine registers this reset/destroy interface at each secondary base offset; the adjustor encodes which sub-base was invoked."
+    "sub_vptr_decode": "Secondary bases have adjusting nondeleting/deleting destructor entries, not a reset/destroy registration pair. f_104000c4 reinstalls derived vptrs during destruction and tail-calls base destructor f_102cc070 at0x104002bc. f_10404f0c calls that base destructor at0x104050cc then tail-calls sized delete with size0xae38 at0x1040512c. Vptr restoration during C++ destruction is not evidence of an in-place re-constructor. Several secondary slices also contain operational methods after these two entries.",
+    "distinct_nested_vtable": "The0x10e97d30 store at0x10512f70 targets a separate cursor r30, not the constructor this register r23. This path follows failed f_1053c370 setup, destroys cursor elements through f_106ff3b8 and advances by0x2740. It is cleanup of another object range and cannot identify the primary vtable of the injected AVTransport object."
    },
-   "worker_domains": "engine worker literal-exit sets (internal status ints + UPnP codes): f_102b80a0{36,52,128,160}, f_102b76dc{128,160}, f_102b7ea0{52,128,160}, f_102ce060{84}, f_102c8774{64,160,192,pt}, f_102c6c70{36,120,164,19924}, f_102c7294{32,164}, f_102ad8f4{64,96,718}, f_102d225c{16,19,20,52,112,336,718}",
+   "worker_domains": "The secondary tables expose queue-editing, transport/session and AVTransportURI-related workers. Literal integers appearing anywhere in a worker are not a set of return statuses: the previous literal-exit lists mixed offsets, sizes and status constants and are not retained as verified return-code domains.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
+     "function": "f_103fa434 / f_10511f34 / f_10465fac",
      "address": "0x103fb4a0",
-     "function": "0x10511f34",
-     "notes": "new(0xae38)+ctor+vptr installs incl this+0=0x10e97d30 at 0x10512f70; qm ctor store stw r27,0x128(r31) at 0x104660c0"
+     "callsite": "0x103fb4a0; 0x103fb5d8; 0x103fb680; 0x103fb6e8; 0x104660c0-0x104660d0; 0x1051218c; 0x10512340-0x10512430",
+     "notes": "Allocation0xae38, derived constructor after base, true primary10edfbb8 atthis+0, secondary installs and manager injection at+0x128."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10511f34 cleanup",
+     "address": "0x10512f04",
+     "callsite": "0x10512f04-0x10512fa8",
+     "notes": "Failed setup branches into element cleanup; r30 cursor receives10e97d30, calls106ff3b8 and advances2740. Not the this+0 install at105123c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104000c4 / f_10404f0c",
+     "address": "0x104000c4",
+     "callsite": "0x104000c4-0x10400310; 0x104050cc-0x10405148",
+     "notes": "Adjusting destructor entries restore vtables and call/tail-call base102cc070; deleting variant then sized-deletesae38. No reset operation inferred."
     }
    ],
-   "boundary_note": "interface semantic name is not distinguishable beyond ctor/dtor bodies"
+   "boundary_note": "This record establishes object identity, injection and vtable/lifecycle boundaries, not a fabricated reset API or exhaustive worker return-code grammar."
   },
   "deviceproperties_impl_vtable": {
    "vtable": "0x10e97e10",
