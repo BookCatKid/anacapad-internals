@@ -11554,7 +11554,7 @@
      "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 at 0x10351bf4 over the base vtable 0x10ebd214 installed by f_1035e5ac. 0x10ebd214 is the base vtable only; the slots used by the bonding actions are overridden in 0x10ebc630. Slot +0x18 of the base vtable 0x10ebd214 is f_1035a390, a stub returning 401, which is why reading the base vtable makes this action look unimplemented; the runtime object dispatches to f_1035560c instead. f_1035560c passes zero for the worker's fifth to eighth arguments, so the SOAP path never supplies the optional trigger, bond-duration or Muse-API arguments that f_103548f4 also accepts."
     },
     "AddHTSatellite": {
-     "description": "Attaches a home-theater satellite. The wrapper parses HTSatChanMapSet (cap 640) and calls slot +0x48 of runtime vtable 0x10ebc630, f_1034f670, a thunk that calls f_1034f5b0 with two zero arguments. f_1034f5b0 asks f_1065a73c about the zone-player context at impl+0x25c: when it answers nonzero this player acts as the primary and the work is done by f_1034ec5c; otherwise f_1065a6cc validates the map for the satellite role, returning 402 when it refuses, and f_1034cf38 converts this player into a satellite. The result is then banded: 1032 and 1035 pass through unchanged, any other value in 1000..9999 becomes 800, and values outside that band are returned as they are. When the result is 1032 the wrapper commits success and afterwards calls slot +0x74 (f_1034c82c, which forwards to slot +0x80, f_1034cabc) unless that slot is the empty stub f_1012b9a8.",
+     "description": "Attaches a home-theater satellite. The wrapper parses HTSatChanMapSet (cap 640) and calls slot +0x48 of runtime vtable 0x10ebc630, f_1034f670, a thunk that calls f_1034f5b0 with two zero arguments. f_1034f5b0 asks f_1065a73c about the zone-player context at impl+0x25c: when it answers nonzero this player acts as the primary and the work is done by f_1034ec5c; otherwise f_1065a6cc validates the map for the satellite role, returning 402 when it refuses, and f_1034cf38 stages the satellite map. The result is then banded: 1032 and 1035 pass through unchanged, any other value in 1000..9999 becomes 800, and values outside that band are returned as they are. When the result is 1032 the wrapper commits success and afterwards calls slot +0x74 (f_1034c82c, which forwards to slot +0x80, f_1034cabc). The runtime follow-up calls f_1034c850 from 0x1034ccd4 to consume the pending map, update primary UUID/network settings and take the applicable restart path.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x10737e14",
@@ -11657,8 +11657,8 @@
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "function": "0x1017fa08",
-         "notes": "impl consumes the map string"
+         "address": "0x1034f5fc",
+         "notes": "f_1034f5b0 dispatches to the primary worker; the satellite dispatch is at 0x1034f668"
         },
         {
          "type": "firmware",
@@ -11799,21 +11799,35 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration').",
+      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1034f5dc",
-        "notes": "impl+0x25c"
+        "address": "0x1034f07c",
+        "notes": "IPC"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1034cf38",
-        "notes": "unpaired-setting literals saved when the player becomes a satellite"
+        "address": "0x1034f154",
+        "notes": "Rendering/sonar manager"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f4a4",
+        "notes": "Topology monitor"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034c8a0",
+        "notes": "Pending map"
        }
       ]
      },
@@ -11865,40 +11879,96 @@
       }
      ],
      "events_triggered": {
-      "description": "No GENA event is raised by the wrapper or the worker. The role implementations publish the in-process bondedZoneChange topology event (zoneType 'HT').",
+      "description": "Primary handling requests GENA processing via f_1067c6ec on the new-map and propagation paths. The generic sender can be absent; this is not evidence of a wire NOTIFY. The role paths can also publish the internal HT bondedZoneChange event.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x1035c9f4",
-        "notes": "event name"
+        "address": "0x1034eff4",
+        "notes": "New-map notification"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1034f5b0",
-        "notes": "no publisher call in the worker itself"
+        "address": "0x1034e068",
+        "notes": "Propagation notification"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1067c5c8",
+        "notes": "Sender path"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034f21c",
+        "notes": "Primary topology event"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034d750",
+        "notes": "Satellite topology event"
        }
       ]
      },
      "state_transitions": {
-      "description": "A player that takes the satellite path leaves standalone operation for satellite mode and keeps its previous LED, button-lock, name, icon and configuration as the 'Unpaired*' settings so they can be restored. A primary gains the satellite in its map. Result 1032 means the operation completed but the player must still run the slot +0x74 follow-up.",
+      "description": "The satellite path saves Unpaired settings and writes a pending map at impl+0x10e0. For 1032, the wrapper commits first, then reaches f_1034c850 via +0x74 and +0x80; it reads the pending map, updates primary UUID/network settings and can take a restart path. The primary persists its map after the join path succeeds.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "function": "0x1034cf38",
-        "notes": "unpaired-setting saves and mode switch"
+        "address": "0x1034d650",
+        "notes": "Write pending map"
        },
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
-        "address": "0x10737ea8",
-        "notes": "1032 treated as success with a follow-up"
+        "address": "0x10737eb8",
+        "notes": "Commit"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034ccd4",
+        "notes": "Follow-up implementation"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034c8a0",
+        "notes": "Read pending map"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034c954",
+        "notes": "NetSettingsUpdatePrimaryUUID"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034c8e8",
+        "notes": "Restart branch"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1034ca00",
+        "notes": "Alternate restart branch"
        }
       ]
      },
@@ -12278,12 +12348,12 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "function": "0x1017fa08",
-       "notes": "impl vtable 0x10e98278 slot +0x48; secondary-base trampoline this-0x3a8 via 0x1017fa90"
+       "address": "0x10737e94",
+       "notes": "Runtime vtable 0x10ebc630 selects f_1034f670 at +0x48"
       }
      ],
      "notes": null,
-     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x48 is the same function in both vtables. The wrapper treats 1032 as success: at 0x10737ea8 it compares the worker result against 0x408 and takes the commit path, then runs the slot +0x74 follow-up, which is how a satellite that has just been reconfigured reports itself."
+     "implementation_notes": "Runtime object: the DeviceProperties implementation constructed by f_10351904 (called only from f_103fa434 at 0x103fc274), which installs vtable 0x10ebc630 over the base vtable 0x10ebd214 installed by f_1035e5ac. Slot +0x48 is the same function in both vtables. The wrapper treats 1032 as success: at 0x10737ea8 it compares the worker result against 0x408 and takes the commit path, then runs the slot +0x74 follow-up, which reaches f_1034c850 at 0x1034ccd4 to complete the pending role change."
     },
     "CreateStereoPair": {
      "description": "Runtime slot +0x20 selects the six-instruction f_10350210 thunk, which tail-calls slot +0x18 and reaches the AddBondedZones worker. The request and submitted map must validate for the local UUID. A nonempty existing bonded map must also validate. A nonempty HT map at impl+0xe60 yields 402; otherwise the worker reaches the constant-401 helper. Thus the application branch is unreachable on this build, but the failure path can run rollback and publish a bondedZoneChange result.",
