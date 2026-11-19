@@ -144523,6 +144523,51 @@
      "notes": "Short writes accumulate; nonpositive write fails with no errno retry."
     }
    ]
+  },
+  "paranoid_atoui": {
+   "name": "Checked unsigned decimal conversion",
+   "scope": "Unsigned sibling of paranoid_signed_decimal. libsonosminiutils.so.1 exports paranoid_strtoull_ex at0x72a8, paranoid_atoui_ex at0x73a0, paranoid_atoui at0x7430 and paranoid_strtoull at0x7440. The public decimal wrappers set base10; _ex forwards the supplied base.",
+   "contract": "The input is a required nonnull NUL-terminated C string and output is a required pointer. Return1 means accepted;0 means rejected. Outputs are cleared before conversion: atoui writes32 bits; strtoull writes64 bits as big-endian high/low words. The helper first rejects ANY minus byte before the terminating NUL, including -0, before calling libc. It then clears errno, calls strtoull(input,&end,base), and accepts only errno==0, input[0]!=NUL and *end==NUL. Leading libc whitespace and an optional plus are accepted; trailing whitespace/junk, empty/sign-only/all-whitespace input and overflow reject. Embedded NUL terminates the supplied string. Decimal wrappers do not accept hex prefixes. There is no local pointer validation, trimming or canonicalization.",
+   "range_and_errors": "strtoull accepts the unsigned64-bit range when libc reports no error. atoui additionally requires the high word of the parsed64-bit value to be zero, accepting0..4294967295 without truncating larger values. Rejection leaves the output zero; valid zero requires retaining the boolean return to distinguish it from failure. Minus rejection precedes errno reset, while libc conversion resets errno and does not restore the previous value. The extra32-bit-fit check does not set errno.",
+   "consumers": "R_RDM handling at anacapad0x104b0c68 calls paranoid_atoui. AirplayIncludeLinked change notification at0x104b1ff4 also uses it, and only a successful conversion reaches the local Airplay event path. This differs from mutation validation0x1066a9d4 ->0x10c397cc, which accepts case-insensitive true/false/yes/no and0/1: stored textual booleans are not canonicalized and do not trigger that strict unsigned callback. R_ContentFiltering instead uses signed paranoid_atoi at0x1066a888 and unsigned-compares the result<=1, so accepted values are exactly0 and1, not arbitrary unsigned32-bit values.",
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "function": "paranoid_strtoull_ex",
+     "address": "0x72a8",
+     "callsite": "0x72ec-0x7398",
+     "notes": "Output clearing, strchr(input,0x2d) minus rejection, errno reset, forwarded-base strtoull call and exact full-consumption checks. This is minus, not colon."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonosminiutils.so.1",
+     "build": "86.10-80260",
+     "function": "paranoid_atoui_ex / decimal wrappers",
+     "address": "0x73a0",
+     "callsite": "0x73cc-0x73f0 / 0x7424 / 0x7430-0x744c",
+     "notes": "32-bit output zeroed; nonzero high word rejects without truncation. Both public wrappers supply base10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "R_RDM / Airplay notification",
+     "address": "0x104b0c68",
+     "callsite": "0x104b0c48-0x104b0c8c / 0x104b1fc0-0x104b2000 / 0x104b22c8-0x104b22fc",
+     "notes": "Actual imported unsigned-parser callers; failed Airplay parse bypasses event queue branch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1066a788 / f_10c397cc",
+     "address": "0x1066a888",
+     "callsite": "0x1066a888-0x1066a8a4 / 0x1066a9d4-0x1066a9e4 / 0x10c397cc",
+     "notes": "ContentFiltering uses signed parser plus unsigned<=1 check. Airplay validator accepts textual booleans but callback uses strict unsigned parsing; no normalization claim."
+    }
+   ]
   }
  },
  "subsystems": {
