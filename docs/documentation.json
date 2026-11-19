@@ -176867,7 +176867,7 @@
    ]
   },
   "0x10552938": {
-   "description": "The start/end adapter uses active-state bytes, not an element-depth stack. Its constructor clears valid/catalog/Service/Policy/Presentation/Manifest/Ratings/Rating/BuiltInService flags at +0x0c..+0x13 and +0x16. Start recognition uses literal case-sensitive strcmp and current flags. End handler f_10552938 checks active Policy first, then Presentation, Manifest, Rating, Ratings, Service, BuiltInService and Services. Once it finds an active branch it compares only that branch name and returns even if the closing name differs. A matching close clears that flag. Thus this adapter is not an independent strict parent/child grammar validator. Unknown elements do not create a subtree-skip depth in this adapter; recognized descendants can still reach its handlers while the corresponding flags remain active. The underlying XML parser still enforces XML well-formedness.",
+   "description": "Catalog XML end adapter f_10552938(parser, name), registered with start adapter f_10552c20 by constructor f_105528ac (thunk f_10554c64 into the shared SAX engine; delegate at parser+8). It walks the same independent active-state flag bytes as the start adapter in a fixed priority order, not an element-depth stack: flag +0xf Policy, +0x10 Presentation, +0x11 Manifest, +0x13 Rating, then +0x12 Ratings-or-Service, +0x16 BuiltInService and +0xd Services. At the first active flag it compares only that branch's literal name with case-sensitive strcmp: a match clears the flag and, for branches that have one, tail-calls the delegate processor; a mismatch returns immediately, leaving every other flag untouched. There is no mismatch error anywhere: the function always returns void, so an out-of-order or unexpected close name is silently swallowed while the flag stays set, and the engine's own XML well-formedness check is the only hard failure. Processor mapping: Policy close only clears +0xf (no end callback, its attributes were already consumed at start); Presentation close clears +0x10 and calls vfunc+0x24 guarded by stub f_10552784; Manifest close clears +0x11 with no callback (the start-side load request is fire-and-forget); Rating close clears +0x13 and calls vfunc+0x38 guarded by f_10552784; when flag +0x12 is clear an active Service close clears +0xe and calls unguarded vfunc+0x40; when +0x12 is set a 'Ratings' close clears it and calls vfunc+0x3c guarded by f_10552784; BuiltInService close clears +0x16 and calls unguarded vfunc+0x48; Services close clears +0xd and calls unguarded vfunc+0x44. Malformed/repeated nesting consequences, all proven from the flag order: a </Service> that arrives while <Ratings> is still open never reaches the Service branch - the 'Ratings' strcmp fails and the function returns, so flag +0xe remains set, no endService processor runs, and the service formally stays open until a later </Service> can close it; symmetric swallow applies to any close whose flag sits below a still-active higher-priority one (e.g. </Presentation> while Policy is open). Because flags are boolean, repeated or nested same-name elements collapse into one flag, a single inner close clears the outer element's state, and elements keep matching whenever their flag survives, regardless of true parentage - confirming this adapter is not an independent strict parent/child grammar validator; only the shared engine's well-formedness enforcement bounds the input.",
    "why_external": "Determines catalog end-event recognition and processor completion callbacks.",
    "required_for_behavior": true,
    "role": "music_service_catalog_parser",
@@ -176877,10 +176877,37 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10552938",
-     "notes": "Start/end parser instruction audit; see music_service_catalog input_rules and evidence."
+     "notes": "Full end-adapter audit: fixed flag order Policy(+0xf) > Presentation(+0x10) > Manifest(+0x11) > Rating(+0x13) > Ratings(+0x12)-or-Service(+0xe) > BuiltInService(+0x16) > Services(+0xd); each active branch strcmps only its own literal and returns on mismatch at 0x10552974."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105529b0",
+     "notes": "Processor calls: Presentation -> vfunc+0x24 guarded vs f_10552784 (bctr at 0x105529dc); Rating -> vfunc+0x38 guarded (0x10552a28-0x10552a44); Ratings -> vfunc+0x3c guarded (0x10552aa4-0x10552ac0); Service -> unguarded vfunc+0x40 (0x10552a78-0x10552a8c); BuiltInService -> unguarded vfunc+0x48 (0x10552aec); Services -> unguarded vfunc+0x44 (0x10552b28). Policy and Manifest closes only clear their flags."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552a4c",
+     "notes": "Swallowed-close mechanism: flag +0x12 tested before +0xe at 0x10552a4c-0x10552a54, so </Service> inside an open <Ratings> falls to the 'Ratings' strcmp at 0x10552a94 and returns with +0xe still set - the service never closes and no vfunc+0x40 runs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105528ac",
+     "function": "0x105528ac",
+     "notes": "Registration: thunk f_10554c64 -> f_10552938 and f_10554c70 -> f_10552c20 installed into shared SAX context via f_10c3fcd4 at parser+4; same flag bytes cleared at construction; five constructor sites (f_100c76a4, f_100c7898, f_100cc34c, f_100cc4f4, f_10554918)."
     }
    ],
-   "todo": "Established: active-state dispatch and Ratings/Icon callbacks are decoded. Remaining: trace all installed processors, return/error handling, malformed/repeated nesting effects and shared XML-engine lexical behavior."
+   "resolved_findings": [
+    "Resolved: complete processor inventory for close events - vfunc+0x24 endPresentation, +0x38 endRating, +0x3c endRatings (each skipped when the delegate still holds stub f_10552784), unguarded +0x40 endService, +0x44 endServices/endCatalog, +0x48 endBuiltInService; Policy and Manifest have no end callback.",
+    "Resolved: error handling - the adapter returns void on every path including all name mismatches, so malformed closes are silently swallowed with flags left set; the only failure signal is the shared engine's own XML well-formedness result consumed by f_10554918.",
+    "Resolved: malformed/repeated nesting - fixed flag priority means a close is honored only when it is the highest-priority active branch's literal: </Service> during open <Ratings> is lost entirely (flag +0xe stays set, no processor), boolean flags collapse repeated/nested elements into one state, and any element continues matching while its flag survives regardless of parentage.",
+    "Resolved: lexical behavior - close names arrive as C strings compared with case-sensitive strcmp; no depth counter, no character-data handling, delegate at parser+8 dispatches all processors."
+   ]
   },
   "0x10553994": {
    "description": "f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4). The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62, followed by a terminator. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
