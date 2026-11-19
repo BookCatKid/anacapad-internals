@@ -170557,7 +170557,7 @@
    ]
   },
   "0x1039fbd4": {
-   "description": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event.",
+   "description": "'process GroupVolumeSetActionEvent (%u,%d)' - async task launcher for the internal group-volume bookkeeping event, not a synchronous handler. The worker copies the incoming 12-byte event {u8@+0, u16@+2, u32@+4, u32@+8} into stack frames, snapshots the manager emitter at this+0x280 through its virtual slot +8 (out object at sp+0xa4, emitter vtable family 0x10e86f94/0x10e86fa4), then installs three callback closures into emitter slots 0, 2 and 4. Closure A binds a 0x20-byte heap block {mgr, packed event bytes, snapshot words, vli object from event+8} with manager f_1039beb0 and invoker f_103a39bc -> task body f_103a37b0; it is wrapped by generic adaptor f_100efd2c, which heap-allocates a node and installs adaptor pair f_100e574c/f_100e4fb4 around the typed closure. Closures B and C bind 0x10-byte blocks {mgr, event+4, event+8} with managers f_1039bfb4/f_1039c26c and invokers f_103a1520 ('async processGroupSetVolEvt task stopped') / f_103a1634 ('scheduler failed to run processGroupSetVolEvt task'), moved by f_1099b054/f_1099b0e4 which copy the four words and clear the source. All three manager functions are std::function-style lifecycle ops only (1=shallow copy, 2=heap clone, 3=sized free); none is an invoke path. The worker then hands the emitter to f_103a5020(this+0x2a0, emitter), which builds a heap emitter copy plus refcounted control node, clones the bound-data blocks (manager op 2), and posts the package to the bounded executor through f_1099bd70 - an atomic counter claim under global mutex 0x11096a40 instrumented by sonos perfcounters - wrapped in invoker f_103a760c -> emitter drain f_100efee0. On executor-claim failure the task's failure callback is invoked instead. Every stack copy is then destroyed via manager op 3, the snapshot emitter via f_100e7754 and four leftover heap blocks via f_100c5050. None of the three invokers is called inside the worker: the run path is fully deferred to executor execution. Deferred consumers: f_103a37b0 logs 'running GroupVolumeSetActionEvent (vol:%u,mute:%d,vligrouping:%d)', applies group volume through f_103a3388 or member mute through manager vfunc+0xc/f_103a2160 gated by f_103a2c4c and f_1075cf7c, then fires VliVolumeProcessingCompleteEvent carrying the apply result byte on the emitter at bound-obj+0x10+0x1a4 via f_103a7b74; the stopped and sched-fail callbacks fire the same completion event with result byte 0 when bound-data+0xc (the event+8 vli object) is nonnull.",
    "why_external": "Shows group volume/mute changes are carried by an internal event object, relevant to accepted-vs-completed timing semantics.",
    "evidence": [
     {
@@ -170565,27 +170565,54 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1039fbd4",
-     "notes": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event."
+     "notes": "'process GroupVolumeSetActionEvent (%u,%d)' - processor for the internal group-volume bookkeeping event; arg order confirmed: %u=lhz event+2, %d=lbz event+0 (0x1039fc20-0x1039fc58)."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x1039fcd0",
-     "notes": "The first direct allocation argument is 0x20; the other two are 0x10. The shared helper f_10809f0c calls malloc at 0x10809f54 and returns storage on success, not a queued event."
+     "address": "0x1039fd80",
+     "function": "0x100efd2c",
+     "notes": "Closure A wrapped into emitter slot 0 (sp+0xd8): allocates a 0x10 node, repacks the typed closure inside it and installs generic adaptor pair f_100e574c (mgr) / f_100e4fb4 (invoker), destroying displaced slot contents via mgr op 3."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x1039fe18",
-     "notes": "f_1099b054 moves a four-word wrapper to a new destination and clears its source callback slot; f_1099b0e4 at 0x1039fe8c has the same wrapper-transfer shape. Neither performs dispatch."
+     "notes": "Closures B (slot 2, sp+0xf8) and C (slot 4, sp+0x118) moved by f_1099b054/f_1099b0e4: four-word copy plus source clear; manager fns f_1039beb0/f_1039bfb4/f_1039c26c are lifecycle-only (op1 copy, op2 heap clone, op3 sized free via f_108094fc); invokers are f_103a39bc/f_103a1520/f_103a1634."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039ffd4",
+     "function": "0x103a5020",
+     "notes": "Enqueue path: builds heap emitter copy (0xa4) + refcounted control node, clones bound data (op 2) and posts each wrapped task via f_1099bd70, the bounded-executor atomic slot claim under mutex 0x11096a40 with perfcounters instrumentation; post failure invokes the task failure callback; invoker f_103a760c drains the emitter through f_100efee0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103a37b0",
+     "notes": "Deferred run body: 'running GroupVolumeSetActionEvent (vol:%u,mute:%d,vligrouping:%d)'; volume apply f_103a3388 (flag path) or member-mute vfunc+0xc / f_103a2160 gated by f_103a2c4c and f_1075cf7c; then 'firing VliVolumeProcessingCompleteEvent vliType %s' via f_103a7b74 on emitter bound+0x10+0x1a4 with apply-result byte."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103a1520",
+     "notes": "Stopped callback f_103a1520 ('async processGroupSetVolEvt task stopped') and sched-fail callback f_103a1634 ('scheduler failed to run processGroupSetVolEvt task'): when bound-data+0xc vli object nonnull, both fire VliVolumeProcessingCompleteEvent through f_103a7b74 on mgr+0x1a4 with result byte 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039ffe4",
+     "notes": "Local teardown: every emitter slot destroyed via mgr op 3 (0x1039ffe4-0x103a0080), snapshot emitter via f_100e7754 at 0x1039ffe0, four leftover heap blocks via f_100c5050; no invoker call inside the worker."
     }
    ],
    "required_for_behavior": true,
-   "todo": [
-    "Residual: trace the three constructed callback wrappers through their downstream dispatch, identify which are enqueued rather than invoked or cleaned up locally, and bind any posted event to its consumers. Allocation and wrapper moves are not evidence of a post."
-   ],
    "disasm_digest": {
     "insns": 344,
     "calls": [
@@ -170645,9 +170672,11 @@
     ]
    },
    "resolved_findings": [
-    "Resolved via complete decompile pass: 344-insn worker; direct calls: f_109b6fe4, f_109b72ac, f_10809f0c, f_100efd2c, f_1099b054, f_1099b0e4, f_101a473c, f_100eb990, f_101a29d0, f_103a5020, f_100e7754, f_100c5050, f_101a2abc, f_110985d8; string literals: grc; onEvent; ../anacapa-1.0/oc/zone/zoneplayer/grc_zpimpl.cxx; %s:%s:%d  process GroupVolumeSetActionEvent (%u,%d); member stores: 0x214,0x1ec,0x8,0x18,0x1c,0x68,0x6c,0x78,0x7c,0x28,0x2c,0x38; immediate compares: 0x0,0x3. Reconciled against the documented role at call/literal granularity; any deeper field-level semantics are noted where statically visible.",
-    "The incoming GroupVolumeSetActionEvent has {+0 u8, +2 u16, +4 u32, +8 u32}. The log's %u receives the zero-extended halfword from event+2 (lhz at 0x1039fc28); %d receives the zero-extended byte from event+0 (lbz at 0x1039fc20, stored to the stack argument at 0x1039fc34 before the call at 0x1039fc58). The worker builds heap-backed callback wrappers at 0x1039fd14, 0x1039fdcc and 0x1039fe40.",
-    "The wrappers carry manager functions f_1039beb0, f_1039bfb4 and f_1039c26c, respectively. The first wrapper enters f_100efd2c at 0x1039fd80; the other two enter wrapper-transfer helpers at 0x1039fe18 and 0x1039fe8c. The allocations alone do not establish the number of downstream notifications."
+    "Resolved: all three wrappers are enqueued, never invoked locally - the worker only moves/clones their bound data into the posted heap emitter and destroys the stack copies via manager op 3; invocation is deferred to the bounded executor.",
+    "Resolved: dispatch path is f_103a5020(this+0x2a0, emitter) -> f_1099bd70, an atomic slot claim in a global counter array under mutex 0x11096a40; the posted package runs invoker f_103a760c -> f_100efee0 which drains the emitter slots.",
+    "Resolved: wrapper roles bound to consumers - slot0 run f_103a39bc -> f_103a37b0 applies the group volume/mute and fires VliVolumeProcessingCompleteEvent with the apply result; slot2 stopped f_103a1520 and slot4 sched-fail f_103a1634 fire the same completion event with result 0 (guarded by nonnull event+8 vli object).",
+    "Resolved: closure managers f_1039beb0/f_1039bfb4/f_1039c26c implement only lifecycle ops (1=ptr copy, 2=heap clone via f_10809f0c, 3=sized free via f_108094fc, 0x20/0x10/0x10); op-2 calls in the worker are data clones feeding the post, not callback invocations.",
+    "Resolved: adaptor f_100efd2c is not a queue post either - it type-erases closure A into a node carrying generic pair f_100e574c/f_100e4fb4; f_1099b054/f_1099b0e4 are plain move-and-clear of the four-word closure."
    ]
   },
   "0x104164e4": {
