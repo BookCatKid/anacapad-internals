@@ -80630,7 +80630,7 @@
    },
    "actions": {
     "Next": {
-     "description": "Requests Next on the selected source action interface through f_106a6cf4. Enforces accepted/matching InstanceID, faults 401 when no interface exists, and ignores the concrete interface call result. Actual provider skip effects remain unresolved.",
+     "description": "Requests Next on the selected source action interface through f_106a6cf4. Enforces accepted/matching InstanceID, faults 401 when no interface exists, and ignores the concrete interface call result. Actual provider skip effects remain unresolved. For the recovered Spotify provider (ID 2), startup attaches Spotify+4 as the action interface and Next reaches f_102132e0, which submits RSpotifyPlaybackSkipToNext after updating audio-input accounting.",
      "visibility": "advertised",
      "reachability": "callable",
      "handler": "0x1073ce18",
@@ -80757,7 +80757,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Depends on selected-source descriptor +0x354, its ID at +0 and provider at +4. Provider slot +0x2c supplies a separate action interface; interface slot +0x18 is invoked under manager mutex +0x150. This is not controller table 0x10ecbe2c slot +0x1c.",
+      "description": "Depends on selected-source descriptor +0x354, its ID at +0 and provider at +4. Provider slot +0x2c supplies a separate action interface; interface slot +0x18 is invoked under manager mutex +0x150. This is not controller table 0x10ecbe2c slot +0x1c. The recovered Spotify provider returns child+0x188 under child mutex+0x50. That field starts null and is attached to Spotify+4 during startup through f_1021b410/f_1022c7d4. Its concrete worker uses audio input Spotify+0x148 and the Spotify request engine at +0x7ae8.",
       "evidence": [
        {
         "type": "firmware",
@@ -80790,13 +80790,29 @@
         "address": "0x1073ce94",
         "function": "0x1073ce18",
         "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10219cf0",
+        "function": "0x10219600",
+        "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10213370",
+        "function": "0x102132e0",
+        "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
        }
       ],
-      "todo": "Established: selected record ID/provider offsets, locking and nested interface calls are traced. Residual: resolve provider bindings from f_106a76b8 registrations, then each provider+0x2c getter and returned interface dependencies; a controller numeric-slot match is not evidence."
+      "todo": "Established: Spotify ID-2 provider, mutex-protected getter, initially null interface field, startup attachment, final interface table and request-engine dependencies are traced. Residual: bind providers/interfaces for IDs 1,3,6,8 and enumerate dependencies inside Spotify f_10cf5754 and accounting f_104dc4a4. Raw registration-call/pointer searches and selected-record lookup inspection do not yet establish those other bindings."
      },
      "side_effects": [
       {
-       "description": "After the ID/descriptor/interface gates, calls the selected provider action interface +0x18 at 0x106a6e0c. The manager does not itself update playback/group counters or wait for a controller completion boolean. Concrete provider effects are not yet established.",
+       "description": "After the ID/descriptor/interface gates, calls the selected provider action interface +0x18 at 0x106a6e0c. The manager does not itself update playback/group counters or wait for a controller completion boolean. Concrete provider effects are not yet established. For recovered Spotify ID 2, f_102132e0 updates audio-input accounting through f_104ddcf4, creates a RSpotifyPlaybackSkipToNext request, and submits/waits through f_10226c6c. An occupied request or shutdown can prevent submission without changing the SOAP success path.",
        "evidence": [
         {
          "type": "firmware",
@@ -80829,13 +80845,29 @@
          "address": "0x1073ce94",
          "function": "0x1073ce18",
          "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10219cf0",
+         "function": "0x10219600",
+         "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10213370",
+         "function": "0x102132e0",
+         "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
         }
        ],
-       "todo": "Established: interface +0x18 call and ignored return are traced at 0x106a6e0c. Residual: identify providers written at 0x106a7748 and selected at 0x106a8df4, then enumerate concrete returned-interface +0x18 mutations and external forwarding."
+       "todo": "Established: Spotify accounting refresh, request object, busy/shutdown gates, pending request+0xa74 store and completion wait are traced through f_10226c6c. Residual: finish audio-input f_104dc4a4 and skip execution f_1021d890 -> f_10cf5754 mutations, and locate concrete workers for IDs 1,3,6,8. The previously unknown ID-2 provider/interface binding is resolved, not inferred from a numeric controller slot."
       }
      ],
      "events_triggered": {
-      "description": "No direct notify/event call appears in f_106a6cf4 beyond the selected provider action interface +0x18. A notification attributed solely to the previous controller callback is unsupported; provider and downstream event behavior remain to be traced.",
+      "description": "No direct notify/event call appears in f_106a6cf4 beyond the selected provider action interface +0x18. A notification attributed solely to the previous controller callback is unsupported; provider and downstream event behavior remain to be traced. Spotify request submission signals its engine condition +0x220 and completion signals request+0x98; these are internal wakeups, not GENA/WSS notifications. No action-specific route to the VLI metadata emitter has been established.",
       "evidence": [
        {
         "type": "firmware",
@@ -80868,12 +80900,28 @@
         "address": "0x1073ce94",
         "function": "0x1073ce18",
         "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10219cf0",
+        "function": "0x10219600",
+        "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10213370",
+        "function": "0x102132e0",
+        "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
        }
       ],
-      "todo": "Established: no direct emission in f_106a6cf4; provider+0x2c/interface+0x18 is the reachable extension path. Residual: trace registered provider getters and their interface workers from 0x106a6df0/0x106a6e0c to actual internal/GENA/WSS emission sites."
+      "todo": "Established: recovered Spotify Next reaches request-engine +0x220 and request-completion +0x98 condition signals, not a direct VLI notification. Residual: trace f_10cf5754/accounting f_104dc4a4 and other source workers to actual event sinks; recover the registrations for IDs 1,3,6,8. Whole-text direct branch and allocated-section pointer searches found no incoming reference to VLI metadata routine f_106ab4d4, so its existence does not prove this action triggers it."
      },
      "state_transitions": {
-      "description": "The source manager performs no transition store in Next. It delegates through provider+0x2c -> interface+0x18 without inspecting the callback result; whether that provider changes playback state is unresolved.",
+      "description": "The source manager performs no transition store in Next. It delegates through provider+0x2c -> interface+0x18 without inspecting the callback result; whether that provider changes playback state is unresolved. The recovered Spotify interface submits a source-specific skip request and waits for its completion flag; busy/shutdown rejection and the request result are still hidden by the SOAP action ignoring the interface result. Completion is not evidence that a new track became audible.",
       "evidence": [
        {
         "type": "firmware",
@@ -80906,9 +80954,25 @@
         "address": "0x1073ce94",
         "function": "0x1073ce18",
         "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10219cf0",
+        "function": "0x10219600",
+        "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10213370",
+        "function": "0x102132e0",
+        "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
        }
       ],
-      "todo": "Established: no manager transition store and callback return ignored. Residual: trace concrete interface+0x18 workers reached through selected providers registered by f_106a76b8, including their completion/failure paths, before claiming a next-track transition."
+      "todo": "Established: ID-2 request submission/busy/shutdown/completion control flow and the ignored SOAP result are traced through f_102132e0/f_10226c6c/f_1021d890. Residual: establish playback transitions inside f_10cf5754 and concrete workers for IDs 1,3,6,8 before asserting a completed next-track transition. Constructor, setter and vtable evidence now prove the Spotify interface rather than leaving that binding open."
      },
      "return_behavior": {
       "description": "402 on request validation, invalid ID, missing selected descriptor or selected-ID mismatch. 401 on null provider/action interface. Otherwise calls interface+0x18 and returns zero regardless of its result, committing with no outputs. SOAP success is dispatch success, not proven skip completion.",
@@ -81159,10 +81223,26 @@
        "address": "0x1073ce94",
        "function": "0x1073ce18",
        "notes": "Wrapper parses InstanceID, validates through request+8 at 0x1073ce74, calls bound +0x1c at 0x1073ce94, and faults nonzero at 0x1073ceb0. Failed validation selects 402. Zero commits at 0x1073cef8 without outputs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10219cf0",
+       "function": "0x10219600",
+       "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10213370",
+       "function": "0x102132e0",
+       "notes": "Concrete Spotify Next worker f_102132e0 first calls f_104ddcf4(Spotify+0x148) at 0x10213318. That helper locks audio-input+0x28, calls f_104dc4a4 and copies audio-input+0x100 to +0x104. f_102132e0 constructs a stack request with vptr 0x10ea1f78 and submits it to f_10226c6c(Spotify+0x7ae8, request) at 0x10213370; its request-name getter f_1021cdd4 returns RSpotifyPlaybackSkipToNext. f_10226c6c checks shutdown byte +0xa80 and occupied request +0xa74, logs Already have a spotify request in progress, can only have one!! on contention, otherwise stores the request at +0xa74 (0x10226d44), signals +0x220 and waits for request completion through +0x14 -> f_1021d4f8. The request execution method 0x10ea1f78+0x10 is f_1021d890, which calls f_10cf5754 at 0x1021d8a8, stores its result in request+0xec and signals completion byte+0xe8/condition+0x98. This proves the source-specific submission path but not the internals or event effects of f_10cf5754, nor the corresponding providers for the other accepted IDs. The SOAP wrapper still ignores the interface result."
       }
      ],
      "notes": "The controller table 0x10ecbe2c is not this SOAP delegate; controller callback/boolean/event semantics must not be substituted for the proven source-manager slot.",
-     "todo": "Established: f_106a6cf4 ID/descriptor gates, provider+0x2c -> interface+0x18 chain and complete local 402/401/0 result ladder are traced. Residual: map providers registered through f_106a76b8 (stores 0x106a7744-0x106a774c), selected by f_106a8b08, to their concrete +0x2c getters and returned interface +0x18 workers for accepted IDs 1,2,3,6,8. No runtime-only impossibility is claimed."
+     "todo": "Established: the raw direct registration caller 0x10219cf0 registers Spotify ID 2; final provider vptr 0x10ea53a8, getter f_1022ae3c/f_1022add4, interface attachment f_1021b410/f_1022c7d4 and interface vptr 0x10ea2210 bind +0x18 to f_102133cc/f_102132e0. Residual: recover registrations/getters/interfaces for accepted IDs 1,3,6,8 and trace Spotify request execution f_1021d890 -> f_10cf5754 plus accounting f_104dc4a4 to final mutations/events. Whole-text direct-branch, initialized-pointer and registry-base searches found no additional direct f_106a76b8 caller; indirect/aliased registrations are not excluded."
     },
     "Pause": {
      "description": "Pause is not implemented by this SOAP source manager. Bound 0x106a613c optionally logs \"Pause\" and returns 401, ignoring its inputs. Request validation failure selects 402; no playback or volume operation occurs.",
