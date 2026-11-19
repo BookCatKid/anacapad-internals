@@ -107555,29 +107555,29 @@
    ]
   },
   "0x103a3f28": {
-   "description": "Non-deleting destructor thunk for a 0x2740-byte session object. It restores the session vptr before transferring control to the base destructor.",
-   "why_external": "Session teardown, not an operation-completion hook. This thunk does not show whether SOAP waits for member results.",
+   "description": "Non-deleting destructor thunk in slot 0 of vtable 0x10ec37bc for the 0x2740-byte per-member RenderingControl SetMute request records.",
+   "why_external": "Cleans up the group mute fan-out request record. It is not a completion hook and does not establish whether SOAP waits for member results.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x103a3f28",
-     "notes": "0x103a3f34 writes session vptr 0x10e97d30 at this+0; 0x103a3f3c branches to base destructor f_106ff3b8."
+     "notes": "0x103a3f34 writes teardown vptr 0x10e97d30 at this+0; 0x103a3f3c branches to base destructor f_106ff3b8."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x105123c0",
-     "notes": "f_10511f34 calls base ctor f_102c05d8 at 0x1051218c, materializes 0x10edfbb8 at 0x10512344, and stores it at offset 0 of the derived AVTransport object."
+     "address": "0x10ec37bc",
+     "notes": "Slot 0 contains f_103a3f28; slot 1 contains the deleting variant f_103a3f40."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x104660c0",
-     "notes": "The AVTransport object constructed at 0x103fb5d8 is saved at zp+0x1934 at 0x103fb680. It is reloaded at 0x103fb6a0 and passed in r5 to f_10465fac at 0x103fb6e8. The queue-manager constructor saves r5 in r27 at 0x10465fd0 and stores it at qm+0x128."
+     "address": "0x103a1c54",
+     "notes": "In f_103a1b8c, r26 holds 0x10ec37bc. After calling f_106fe45c at 0x103a1c40 with RenderingControl:1 and SetMute, the loop installs that vptr in the record at r31-0x2740. The stride is 0x2740 bytes."
     }
    ],
    "required_for_behavior": true,
@@ -107594,7 +107594,7 @@
    },
    "resolved_findings": [
     "The base destructor f_106ff3b8 switches to vptr 0x10f0b854, frees +0x272c and destroys +0x1b98, +0x498 and +0xc. The related entries include deleting variants that pass the 0x2740-byte size to f_108094fc.",
-    "The session vtable 0x10e97d30 is not the queue engine vtable. The store of 0x10e97d30 at 0x10512f70 precedes a call to f_106ff3b8 at 0x10512f78 and advances by 0x2740, consistent with session teardown, not installation on the derived AVTransport object. At slots +0x7c, +0xd8 and +0xdc, 0x10e97d30 has f_1019f510, f_1017fcb8 and f_10180350; the derived AVTransport table 0x10edfbb8 has f_102aa8b4, f_102bd324 and f_102bd4f0."
+    "The vtable that dispatches this destructor is 0x10ec37bc, not 0x10e97d30. The latter is installed during teardown and has f_1019f774 at slot 0."
    ]
   },
   "0x1039d11c": {
