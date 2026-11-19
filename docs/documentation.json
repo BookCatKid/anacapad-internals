@@ -60689,15 +60689,24 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "engine worker validation"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b66c8",
+         "notes": "rlwinm r7,r4,0,16,31 (low 16 bits of Desired)"
         }
        ],
        "notes": null,
        "todo": [
-        "Established: the arg's parse path (0x105614e0) and declared constraints are documented.",
-        "Residual: `DesiredFirstTrackNumberEnqueued` is parsed then forwarded verbatim to r5-in vfunc +8 (site 0x104646b8) with zero impl-side validation between parse and forward - the remaining unknown is which delegate class consumes it inside that call, closed by locating the impl object's ctor."
+        "Established: only the low 16 bits reach f_1032e368 as the insert position; no validation exists in f_1046453c, f_102b6948, f_102b674c or f_102b62e8.",
+        "Residual: the meaning of position 0 and of positions past the queue end is decided inside f_1032e368/the request consumer behind f_10255f64, not traced; next step is to disassemble f_1032e368."
        ],
        "resolved_findings": [
-        "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x104646b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals."
+        "Resolved: post-parse handling of `DesiredFirstTrackNumberEnqueued` = verbatim forward to impl vfunc +8 (obj r5-in, call site 0x104646b8); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
+        "Resolved: bound as a u32 (f_105614e0 at 0x1046461c) and passed unchanged as r8 into f_102b6948, then r27 of f_102b674c, which stores it as the first stack argument of f_102b62e8 (0x102b6888). f_102b62e8 passes its low 16 bits (rlwinm r7 at 0x102b66c8) as the insert-position argument of the commit-request builder f_1032e368 (0x102b66d4); the entry insert f_1014f808 does not receive it. In plain terms: the value is a 16-bit 1-based track position handed to the session commit request; there is no range check on the Queue service side."
        ]
       },
       "EnqueueAsNext": {
@@ -60776,12 +60785,31 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "insert result"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b664c",
+         "notes": "stw r7(sp24),0(r21)"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1046453c",
+         "address": "0x10464728",
+         "notes": "lwz r4,0x34(r1) emit"
         }
        ],
        "notes": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `FirstTrackNumberEnqueued`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the value is the r9 out-param of the commit-request builder f_1032e368.",
+        "Residual: how f_1032e368 derives it from Desired/EnqueueAsNext and the queue length is not traced; next step is to disassemble f_1032e368."
+       ],
+       "resolved_findings": [
+        "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&First)=u16 sp+0x24, the r9 out-param of f_1032e368 (0x102b66bc). The pointer is the wrapper's sp+0x34 (r10 at 0x104646ac), emitted at 0x1046472c."
        ]
       },
       "NumTracksAdded": {
@@ -60821,12 +60849,19 @@
          "build": "86.10-80260",
          "function": "0x102b6948",
          "notes": "enqueue worker"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b6650",
+         "notes": "stw r8(sp20),0(r28)"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NumTracksAdded`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&Num)=u16 sp+0x20, the count accumulator passed by address to the insert worker f_1014f808 (r7 at 0x102b65c8) and forwarded as r6 to f_1032e368. Pointer is wrapper sp+0x38, emitted at 0x10464750. In plain terms: the number of tracks the insert worker reports it added (more than one when a playlist URI expands)."
        ]
       },
       "NewQueueLength": {
@@ -60859,12 +60894,23 @@
          "build": "86.10-80260",
          "address": "0x10eb3528",
          "notes": "argument name string"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b6654",
+         "notes": "stw r10(sp26),0(r27)"
         }
        ],
        "notes": null,
        "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewQueueLength`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the value is the r10 out-param of f_1032e368.",
+        "Residual: f_1032e368's computation of the length is not traced; next step is to disassemble f_1032e368."
+       ],
+       "resolved_findings": [
+        "Resolved (provenance): f_102b62e8 stores its u16 results only after the commit request is submitted successfully (0x102b664c..0x102b6658): *(&Len)=u16 sp+0x26, the r10 out-param of f_1032e368 (0x102b6600). Pointer is wrapper sp+0x3c, emitted at 0x10464774."
        ]
       },
       "NewUpdateID": {
@@ -60904,12 +60950,19 @@
          "build": "86.10-80260",
          "function": "0x10479bb4",
          "notes": "update counter decoded"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b674c",
+         "address": "0x102b68cc",
+         "notes": "stw r9,0(r22)"
         }
        ],
        "notes": null,
-       "todo": [
-        "Established: the arg's parse path (the request parser) and declared constraints are documented.",
-        "Residual: which impl field or worker produces `NewUpdateID`'s emitted value is not traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "resolved_findings": [
+        "Resolved: after f_102b62e8 returns 0, f_102b674c calls f_10149b24(queue,&sp54,&sp4a,0) at 0x102b68c4 and stores sp54 through the NewUpdateID pointer (stw at 0x102b68cc). Pointer is wrapper sp+0x40, emitted at 0x10464798. In plain terms: the reply carries the queue's update id read after the insert committed."
        ]
       }
      },
@@ -60926,7 +60979,7 @@
       ]
      },
      "requirements": {
-      "description": "impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×4, validate×1, commit×1); member delegates: r30 v[+?]",
+      "description": "QueueID names a session queue; nonzero UpdateID matches; transport mode 1 or 2",
       "evidence": [
        {
         "type": "firmware",
@@ -60934,15 +60987,30 @@
         "build": "86.10-80260",
         "function": "0x1046453c",
         "notes": "req-vfunc call map: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b674c",
+        "address": "0x102b68d4",
+        "notes": "li 0x2ce"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b62e8",
+        "address": "0x102b63ac",
+        "notes": "mode gate"
        }
       ],
-      "todo": [
-       "Established: this requirements/precondition analysis is backed by binary evidence - impl consumes in-args via req slots (raise-fault×1, required-arg fetch×6, out-arg write×4, validate×1, commit×1); member delegates: r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: in order, f_102b674c requires QueueID to match one of the two session queues (snprintf '%u' then strcmp against s+0x2d8ec and s+0x2fff4, s=*(engine+0x580); else 718 at 0x102b68d4) and a nonzero UpdateID to equal the queue's current update id (f_10149b24 at 0x102b6824; else 1028 at 0x102b6934); then f_102b62e8 requires transport mode *(engine+0x4654) to be 1 or 2 (cmplwi at 0x102b63ac; else 800). Wrapper parse failure gives 402 (0x10464708)."
       ]
      },
      "state_dependencies": {
-      "description": "service-internal state reached through member delegate(s): r30 v[+?]",
+      "description": "session queue records and update ids, engine mode (+0x4654), engine mutex (+0x458)",
       "evidence": [
        {
         "type": "firmware",
@@ -60950,16 +61018,23 @@
         "build": "86.10-80260",
         "function": "0x1046453c",
         "notes": "member vfunc calls: ['r30 v[+?]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b674c",
+        "address": "0x102b67ac",
+        "notes": "lwz r31,0x580(r3)"
        }
       ],
-      "todo": [
-       "Established: this state-dependency analysis is backed by binary evidence - service-internal state reached through member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: session *(engine+0x580) and its queue records s+0x2d890/s+0x2ff98 (ID string at +0x5c), the queue update id (f_10149b24), engine mode *(engine+0x4654) read at 0x102b63a4, and the engine mutex at engine+0x458."
       ]
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+?] (call-derived member-method semantics)",
+       "description": "inserts the URI into the selected queue and submits begin/commit (or abort) requests to the session",
        "evidence": [
         {
          "type": "firmware",
@@ -60967,11 +61042,30 @@
          "build": "86.10-80260",
          "function": "0x1046453c",
          "notes": "delegate map ['r30 v[+?]']; notify-family calls []"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b65d0",
+         "notes": "bl f_1014f808"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b62e8",
+         "address": "0x102b6698",
+         "notes": "f_1032e5b4 on failure"
         }
        ],
        "todo": [
-        "Established: this side-effect analysis is backed by binary evidence - state-mutation delegate: r30 v[+?] (call-derived member-method semantics).",
-        "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: the insert worker, the three request kinds and the failure request are identified with call sites.",
+        "Residual: what f_102b5ddc does to engine state before the begin request, and whether the f_1032e5b4 request undoes a partial insert, are not traced; next step is to disassemble f_102b5ddc and f_1032e5b4."
+       ],
+       "resolved_findings": [
+        "Resolved (dispatch): f_102b62e8 calls f_102b5ddc(engine) (0x102b6530), submits a begin request f_1032e350(req,kind) to the session via f_10255f64 (0x102b6580; kind 1 for s+0x2d890, 2 for s+0x2ff98), inserts the entry with f_1014f808(queue,&URI,&MD,1,&count,0,flags|2,0) (0x102b65d0), then submits the f_1032e368 commit request (0x102b662c). On begin-submit or insert failure it submits an f_1032e5b4 request (0x102b66a4) instead. The container branch f_1014fb34 (0x102b672c) is unreachable from AddURI because f_102b674c passes r9=0 (0x102b6864)."
        ]
       }
      ],
@@ -60984,15 +61078,26 @@
         "build": "86.10-80260",
         "function": "0x1046453c",
         "notes": "bl call scan: notify-family sites = []"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b62e8",
+        "address": "0x102b64b0",
+        "notes": "'enqueueEvent' (0x10eb0348) with category 'queue' (0x10ea29a4)"
        }
       ],
       "todo": [
-       "Established: this event-emission analysis is backed by binary evidence - direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method.",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: no UPnP notify call exists in f_1046453c, f_102b6948, f_102b674c or f_102b62e8; f_102b62e8 emits a 'queue'/'enqueueEvent' record through f_10559024.",
+       "Residual: whether the f_10559024 object is purely diagnostics, and which session-side consumer of the f_10255f64 requests raises the Queue UpdateID event, are not traced; next step is to disassemble f_10559024 and its vtable slot +0x1c."
+      ],
+      "resolved_findings": [
+       "Resolved (within the action): the only emission is in f_102b62e8, which brackets the work with clock_gettime (0x102b63a0/0x102b63d4) and calls f_10559024()->v[+0x1c](obj,timer,'queue','enqueueEvent',1,1) at 0x102b64bc on every exit. Inference: this is a diagnostics timing record, not a UPnP event, because it carries elapsed time and does not reference the Queue event template near 0x10ed1c6c."
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?]",
+      "description": "no transport state transition; queue content and update id change",
       "evidence": [
        {
         "type": "firmware",
@@ -61000,11 +61105,18 @@
         "build": "86.10-80260",
         "function": "0x1046453c",
         "notes": "no transition-literal/store pattern; member delegates: ['r30 v[+?]']"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102b62e8",
+        "address": "0x102b63a4",
+        "notes": "read-only use of +0x4654"
        }
       ],
-      "todo": [
-       "Established: this state-transition analysis is backed by binary evidence - no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+?].",
-       "Residual: the delegate/element this section flags as unresolved - `v[+?]` - is not resolved (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+      "resolved_findings": [
+       "Resolved: no transport-state transition; *(engine+0x4654) is only read (0x102b63a4) on this path. The queue gains entries and its update id advances."
       ]
      },
      "return_behavior": {
@@ -61016,11 +61128,22 @@
         "build": "86.10-80260",
         "function": "0x1046453c",
         "notes": "commit/fault slot usage: {'0x1c': 6, '0x8': 1, '0x14': 1, '0x24': 4, '0xc': 1}"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046453c",
+        "address": "0x104646c0",
+        "notes": "mr. r4,r3; beq -> outputs"
        }
       ],
       "todo": [
-       "Established: this return-behavior analysis is backed by binary evidence - 0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: []).",
-       "Residual: the impl-level internals behind the documented call map - which delegate or member method produces the described behavior - are not fully traced. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+       "Established: wrapper behaviour and the engine literal code set are traced.",
+       "Residual: the return-code domain of the insert worker f_1014f808 is not enumerated; next step is to collect its return literals and those of its callees f_1014f48c and f_1014b270."
+      ],
+      "resolved_findings": [
+       "Resolved: the engine rc is the wrapper rc. 0 -> four outputs emitted (0x10464710..0x10464798) then commit req->v[+0xc] at 0x104647ac; nonzero -> req->v[+0x14](req,rc) at 0x104646d4. Codes: 402 (wrapper parse), 718 (unknown QueueID), 1028 (UpdateID mismatch), 800 (mode gate, begin-submit or commit-submit failure), or the insert worker f_1014f808 rc passed through verbatim (0x102b6744)."
       ]
      },
      "fault_sites": [
@@ -61034,7 +61157,7 @@
       {
        "code": null,
        "code_expr": "vret(r5-in,+0x8)",
-       "meaning": "worker f_102b6948 exit r30 - no literal defs; rc fully call-derived (enqueue chain)",
+       "meaning": "engine rc from f_102b6948 (qm slot +0x8): 718 unknown QueueID, 1028 UpdateID mismatch, 800 mode gate or request-submit failure, or the f_1014f808 insert rc",
        "fault_sites": [
         "0x104646d4"
        ],
@@ -61087,6 +61210,14 @@
          "build": "86.10-80260",
          "address": "0x102b6948",
          "notes": "worker body; r30 accumulator derived"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102b674c",
+         "address": "0x102b6934",
+         "notes": "li 0x404"
         }
        ],
        "unresolved": {
@@ -61139,8 +61270,11 @@
         300
        ],
        "todo": [
-        "Established: fault sites and trigger conditions are documented with binary evidence (expression: vret(r5-in,+0x8); sites: 0x104646d4).",
-        "Residual: the impl-side predicate chain producing the nonzero code - the upstream worker's complete condition set is not enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: all literal codes in the action path are enumerated with sites.",
+        "Residual: the f_1014f808 insert-worker rc domain is not enumerated; next step is to collect its return literals."
+       ],
+       "resolved_findings": [
+        "Resolved: literals at 0x102b68d4 (718), 0x102b6934 (1028), 0x102b6354/0x102b6674/0x102b66ac (800); insert rc passthrough at 0x102b6744."
        ]
       },
       {
@@ -61214,6 +61348,13 @@
          "build": "86.10-80260",
          "address": "0x10ed2edc",
          "notes": "savedqueue dirObj vtable block into 0x1047b4xx-0x1047be68"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1047ee0c",
+         "notes": "direct-call scan for f_1047ee0c"
         }
        ],
        "conditions": [
@@ -61259,11 +61400,12 @@
         }
        ],
        "todo": [
-        "Established: the emit mechanism and code expression (store-commit rc (directory-object vfunc -> store save fn; surfaced verbatim via req v[+0x14])) are confirmed by binary evidence; fault path via propagated return codes (no direct fault site in this action).",
-        "Residual: the per-code trigger conditions are inferred from context, not decoded from the upstream worker's predicates. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+        "Established: no function on the AddURI path calls the saved-queues store save f_1047ee0c directly.",
+        "Residual: whether any transitive callee of f_1014f808 or the session consumer of the f_10255f64 requests reaches f_1047ee0c, so that these store codes can surface from AddURI, is not traced; next step is a transitive call-graph walk from f_1014f808 and the request consumer."
        ],
        "resolved_findings": [
-        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure."
+        "Resolved at ladder granularity: the upstream worker 0x10ed2edc emits constant set {no code constants found} (extracted from the worker body). The shared atomic-save rung semantics, decoded on the 0x10283998 exemplar: low 0x1f5-range = tmp-open/prep failure, 0x320-range = write/serialize failure, +1 = flush/sync failure, +2 = rename/commit failure. Constants outside the wire-code domain are data values (sizes/masks); rung-level attribution beyond the shared shape is bounded by the worker's own branch structure.",
+        "Checked: f_1047ee0c (savedqueues.xml save) is called only from 0x10479794..0x1047b1fc and not directly by f_1046453c, f_102b6948, f_102b674c, f_102b62e8, f_1014f808 or f_1014fb34."
        ]
       }
      ],
@@ -61283,12 +61425,43 @@
        "build": "86.10-80260",
        "address": "0x10ed19f8",
        "notes": "action dispatch table entry"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1046453c",
+       "address": "0x104646b8",
+       "notes": "qm->v[+0x8](qm,QueueID,UpdateID,&URI,&MD,Desired,EnqueueAsNext,&First,&Num,&Len,&UpdID)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10465a44",
+       "address": "0x10465a50",
+       "notes": "b f_102b6948 after lwz r3,0x128(r3)"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b6948",
+       "address": "0x102b6a54",
+       "notes": "bl f_102b674c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102b674c",
+       "address": "0x102b68a0",
+       "notes": "bl f_102b62e8"
       }
      ],
      "notes": "Enqueued URIs pass the f_104634c4 playlist classifier: asx/wax/wmx, m3u8/m3u, pls, wpl, x-file-cifs:// and .rsq suffixes are auto-detected and expanded by format-specific parser workers (f_10461e04/f_10462c80/f_10463164/f_10462f54/f_10460814); plain URIs enqueue directly.",
-     "todo": [
-      "Established: direct dispatch to handler 0x1046453c; the wrapper-level behavior (argument validation and fault ladder) is documented.",
-      "Residual: the implementation function behind the handler - which impl/engine function it calls and what it does there - has not been traced into this record. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
+     "resolved_findings": [
+      "Resolved: the impl chain is fully static. wrapper f_1046453c parses the six args, then calls qm->v[+0x8] at 0x104646b8; qm vtable 0x10ed1bcc slot +0x8 is f_10465a44, which loads the engine *(qm+0x128) and tail-branches to f_102b6948 (0x10465a50). f_102b6948 logs 'Add to queue %u; URI:/MD:' at level 5, locks engine+0x458 (0x102b6a10), maps EnqueueAsNext to a flag word (isel at 0x102b6a4c: 0 when false, 4 when true) and calls f_102b674c (0x102b6a54); f_102b674c selects and validates the queue, then calls the insert core f_102b62e8 (0x102b68a0). The engine object is the 0xae38-byte object built by f_10511f34 and stored at qm+0x128 by the qm ctor f_10465fac (0x104660c0). In plain terms: AddURI is a SOAP front end onto the shared queue engine; the same f_102b6948 is reached from AVTransport (call at 0x102b6af0)."
      ]
     },
     "AttachQueue": {
