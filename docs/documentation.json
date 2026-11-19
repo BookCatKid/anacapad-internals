@@ -95653,26 +95653,82 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE accepted at /MediaServer/ContentDirectory/Event via f_105e8290 (NT:upnp:event + NTS:upnp:propchange validated); notify emission path not recovered for this service",
+    "mechanism": "Native GENA source named ContentDirectory, constructed by10303de4 through1067aec4, with serializer103035c4. Local directory-update publishers queue CdNotifyUpdateId; the registered cd_impl observer updates counters and wakes the native source. SUBSCRIBE acceptance is separate from change production and delivery.",
     "lastchange_template": null,
-    "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
+    "no_template_note": "The concrete serializer103035c4 emits individual UPnP event properties, not LastChange. The unrelated LastChange namespace/template registry is not evidence that ContentDirectory lacks native GENA delivery.",
     "wss_event_names": [
      "contentDirectory",
      "indexerStatus",
      "favoritesVersionChange",
      "playlistsVersionChange"
     ],
-    "wss_note": "Event delivery for this service's state is attributed to the WSS subscription registry (0x110b8ce8) names above - name-based attribution, registry is confirmed runtime structure",
+    "wss_note": "Registry110b8ce8 contains the listed names and numeric metadata. Its constructor10098d34 and generic ID lookup109e1044 do not by themselves establish a ContentDirectory-to-WSS publisher binding. These names are retained as registry observations, not a claim that every SOAP mutation emits them.",
     "evidence": [
      {
       "type": "firmware",
       "binary": "anacapad",
       "build": "86.10-80260",
       "address": "0x10f0bedc",
-      "notes": "event-namespace registry lists exactly 3 evented services (AVT/RCS/Queue); /Event route for this service exists in route table 0x11090c00"
+      "notes": "LastChange namespace registry for AVT/RCS/Queue; this is not a complete inventory of native GENA sources. ContentDirectory Event route exists in table11090c00 and its concrete property serializer is evidenced below."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1030490c",
+      "address": "0x10304c44",
+      "notes": "Startup calls1030490c with media-player+190c at103fe9c4. It registers weak-self impl+11c in global CdNotifyUpdateId observer tree1109cfb8 through10306148. Constructor installs observer vptr10eb3fa0 at impl+11c; slot0=10304904 adjusts-11c then tail-calls10304808. ShareIndex observer impl+13c is registered separately against tree1109cf10. These are concrete native registrations, not runtime-injected unknown implementations."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10115574",
+      "address": "0x10115998",
+      "notes": "CdNotifyUpdateId delivery traverses the SAME observer tree1109cfb8 under mutex1109cfd0. Weak receiver is node+10, ownership node+14; expired or unregistering receivers are skipped. Active receiver vptr+0 is invoked at10115998 with record r16. Publisher10117654 constructs the queued function through101165dc: boxed invoker100e4fb4 calls10115a38 ->10115574. Queue submission is101179e0 ->100f14ec. Delivery is deferred and requires the observer and event loop still to be alive."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1037e554",
+      "address": "0x1037e6a4",
+      "notes": "Favorites/radio mutation publishes CdNotifyUpdateId via10117654(provider+10,record): R: categories0/1 identify R:0; favorite category2 identifies FV:2. Local update counter provider+128 increments at1037e650. Whole reset1037e7a0 publishes FV:2 at1037e8b4 and R:0 at1037e96c, after advancing+128/+14c. Saved-queue manager primary vptr10ed3054 +14=10477bd0 increments manager+cc, constructs SQ: record, and publishes via10117654(manager+8,record) at10477cb4. Separate manager+ec/provider+14c counters are replication versions, not SystemUpdateID."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10650660",
+      "address": "0x106507d8",
+      "notes": "Replication manager ctor installs final primary vptr10efcf88; +14=10652074, which logs informLocalReplicatedSettingVersion and updates setting versions under manager+320 mutex. Zone ctor1018edb4 constructs it and1018ede4 stores its pointer at ctx+2900c. Shared-pointer copies at10198fa8/10198ffc ->101a22c4 pass it into104791b0 and1037e188; stores10479208 and1037e1dc bind saved-queue manager+c0 and favorites provider+110 respectively. Their +14 callbacks pass setting2(SQ) or0(favorites). They are replication callbacks, not direct GENA senders."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x103035c4",
+      "address": "0x10303834",
+      "notes": "Concrete ContentDirectory property serializer is103035c4;10303de4 is its constructor, NOT a serializer. impl+8 vptr10eb3f78 +14=10303d94 adjusts-8 ->103035c4. Full/incremental output contains SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress and ShareIndexLastError. Five version records at+9a8,+9d4,+a00,+a2c,+a58 map FV:2/FavoritesUpdateID, R:0/RadioFavoritesUpdateID, R:/RadioLocationUpdateID, SQ:/SavedQueuesUpdateID, S:/ShareListUpdateID. Constructor sets names/IDs at103040a4..1030413c. Serializer writes version values as device-string, comma, unsigned counter through10676cf8/10676b88 and clears record+20 dirty byte after incremental output. It produces individual event properties, not a LastChange element."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10304808",
+      "address": "0x103048c4",
+      "notes": "Update listener inserts the container/update record through103032fc at10304888. A nonempty device-string at record+18/+1c also updates matching version record through1030470c at103048a8; matching is exact strcmp against FV:2,R:0,R:,SQ:,S:, device copy capacity25, counter record+34, dirty=1. Then increments u32 impl+4e0, sets dirty+4e4 and calls1067c6ec(impl+8). This tail-calls1067c46c, which sets native source pending byte+110 and wakes event thread through source+b4 ->10678c50 at1067c5c8 when bound. This schedules output, not a guarantee of successful network delivery."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10098d34",
+      "address": "0x10098d50",
+      "notes": "Initializes20-byte registry entries at110b8ce8 with names/IDs/tags. Generic lookup109e1044 computes base+20*index. This is only a registry observation; no publisher-to-wire WSS binding follows from the names."
      }
     ],
-    "notify_path": "f_103035c4 emits {ContainerUpdateIDs, ShareIndexInProgress} + f_10303de4 emits {FavoritesUpdateID, SavedQueuesUpdateID, ShareListUpdateID, RadioFavoritesUpdateID} via event-bus workers f_1067693c/f_1067cdd0",
+    "notify_path": "SQ and favorites/radio mutations ->10117654 -> queued boxed callback100e4fb4/10115a38 ->10115574 observer tree1109cfb8 -> impl+11c vptr10eb3fa0 slot0 ->10304904 ->10304808 ->1067c6ec(impl+8). Native source1067c46c sets pending and wakes10678c50; source vptr+14 ->10303d94 ->103035c4 serializes the properties. Separate replication receivers manager+c0 and provider+110 bind10652074, not the GENA serializer.",
     "wss_registry": [
      {
       "idx": 23,
@@ -95699,32 +95755,40 @@
       "tag": 34
      }
     ],
-    "todo": [
-     "Established: the GENA SUBSCRIBE acceptance path is documented; no LastChange template exists for this service (the registry only carries AVT/RCS/Queue); WSS event names attributed: `contentDirectory`, `indexerStatus`, `favoritesVersionChange`, `playlistsVersionChange`.",
-     "Residual: the notify emission path inside the binary is not recovered; the WSS attribution is name-based, not call-site-proven. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
-    "resolved_findings": [
-     "Resolved: the notify emission path is the GENA sender decoded under gena_internals - threaded per-(name,id) delivery, per-subscriber retry/backoff, persisted event queue; services feed it through the LastChange event-subscription machinery."
-    ]
+    "todo": "Established: the native CdNotifyUpdateId registration, concrete receiver, SystemUpdateID/version updates and GENA serializer/wake chain are traced. Remaining: WSS bridge attribution, not the native SOAP implementation. Examined registry initializer10098d34 and lookup109e1044: they install/lookup the names but contain no ContentDirectory publisher callback. Next trace consumers of registry lookup109e10d8/109e12b4 for event IDs80(contentDirectory),152(indexerStatus),115(favoritesVersionChange),195(playlistsVersionChange), then bind their payload producers. No runtime-injection impossibility is claimed."
    },
    "errors": [
     {
      "code": 401,
      "code_expr": null,
-     "meaning": "unknown action name for this service; dispatcher emits a SOAP fault (401 Invalid Action family) without invoking any handler",
+     "meaning": "Dispatcher rejection401: an unrecognized service URN returns401 to its caller without a local fault emission; after a recognized URN, unknown action or NULL service+4 emits401 through the request and finalizes without invoking an action handler.",
      "fault_sites": [
       "0x103076f4"
      ],
      "conditions": [
       {
-       "description": "Request action name matches no entry in the service dispatch table after the name-table search",
+       "description": "Service type matches neither urn:schemas-sonos-com:service:ContentDirectory:1 nor urn:schemas-upnp-org:service:ContentDirectory:1. Returns401 directly; this branch is not a second local SOAP fault-emitter.",
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
+         "function": "0x10307608",
+         "address": "0x10307744",
+         "notes": "strcmp at1030765c/10307674 accepts the two URNs; mismatch branches10307740, loads401 at10307744 and returns at10307778 without request+14 fault emission."
+        }
+       ]
+      },
+      {
+       "description": "For a recognized service type, binary-search action lookup misses, or the selected service has a NULL bound implementation at service+4.",
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10307608",
          "address": "0x103076f4",
-         "notes": "dispatcher unknown-action fault branch; reached when the binary-search name lookup misses"
+         "notes": "Lookup miss103076e0 loads401 at103076e4. Even a matched action loads service+4 at1030777c and NULL branches10307784 ->103076e0. Both converge on single request+14 fault-emitter103076f4, then request+38 finalization at1030773c. Non-NULL match calls the selected handler."
         }
        ]
       }
@@ -95734,18 +95798,20 @@
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
+       "function": "0x10307608",
+       "address": "0x10307744",
+       "notes": "strcmp at1030765c/10307674 accepts the two URNs; mismatch branches10307740, loads401 at10307744 and returns at10307778 without request+14 fault emission."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10307608",
        "address": "0x103076f4",
-       "notes": "fault raise site"
+       "notes": "Lookup miss103076e0 loads401 at103076e4. Even a matched action loads service+4 at1030777c and NULL branches10307784 ->103076e0. Both converge on single request+14 fault-emitter103076f4, then request+38 finalization at1030773c. Non-NULL match calls the selected handler."
       }
      ],
-     "notes": null,
-     "todo": [
-      "Established: fault sites and trigger conditions for code 401 are documented with binary evidence.",
-      "Residual: the complete emit-site set for this code across the dispatcher is not exhaustively enumerated. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-     ],
-     "resolved_findings": [
-      "Resolved: fault-table sweep complete - the dispatcher emits 401 from two reject paths (li 0x191 constant load at 0x103076e4,0x10307744); no additional emit sites exist beyond the recorded fault site. The 401 is the unknown-action reject reached after the table walk fails."
-     ]
+     "notes": null
     }
    ],
    "evidence": [
@@ -95817,13 +95883,53 @@
      "function": "0x103fd65c",
      "address": "0x103fdd60",
      "notes": "Calls shared service initializer with service block from media-player+0x220 and cd_impl shared pointer at media-player+0x190c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1030490c",
+     "address": "0x10304c44",
+     "notes": "Startup calls1030490c with media-player+190c at103fe9c4. It registers weak-self impl+11c in global CdNotifyUpdateId observer tree1109cfb8 through10306148. Constructor installs observer vptr10eb3fa0 at impl+11c; slot0=10304904 adjusts-11c then tail-calls10304808. ShareIndex observer impl+13c is registered separately against tree1109cf10. These are concrete native registrations, not runtime-injected unknown implementations."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10115574",
+     "address": "0x10115998",
+     "notes": "CdNotifyUpdateId delivery traverses the SAME observer tree1109cfb8 under mutex1109cfd0. Weak receiver is node+10, ownership node+14; expired or unregistering receivers are skipped. Active receiver vptr+0 is invoked at10115998 with record r16. Publisher10117654 constructs the queued function through101165dc: boxed invoker100e4fb4 calls10115a38 ->10115574. Queue submission is101179e0 ->100f14ec. Delivery is deferred and requires the observer and event loop still to be alive."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10650660",
+     "address": "0x106507d8",
+     "notes": "Replication manager ctor installs final primary vptr10efcf88; +14=10652074, which logs informLocalReplicatedSettingVersion and updates setting versions under manager+320 mutex. Zone ctor1018edb4 constructs it and1018ede4 stores its pointer at ctx+2900c. Shared-pointer copies at10198fa8/10198ffc ->101a22c4 pass it into104791b0 and1037e188; stores10479208 and1037e1dc bind saved-queue manager+c0 and favorites provider+110 respectively. Their +14 callbacks pass setting2(SQ) or0(favorites). They are replication callbacks, not direct GENA senders."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103035c4",
+     "address": "0x10303834",
+     "notes": "Concrete ContentDirectory property serializer is103035c4;10303de4 is its constructor, NOT a serializer. impl+8 vptr10eb3f78 +14=10303d94 adjusts-8 ->103035c4. Full/incremental output contains SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress and ShareIndexLastError. Five version records at+9a8,+9d4,+a00,+a2c,+a58 map FV:2/FavoritesUpdateID, R:0/RadioFavoritesUpdateID, R:/RadioLocationUpdateID, SQ:/SavedQueuesUpdateID, S:/ShareListUpdateID. Constructor sets names/IDs at103040a4..1030413c. Serializer writes version values as device-string, comma, unsigned counter through10676cf8/10676b88 and clears record+20 dirty byte after incremental output. It produces individual event properties, not a LastChange element."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10304808",
+     "address": "0x103048c4",
+     "notes": "Update listener inserts the container/update record through103032fc at10304888. A nonempty device-string at record+18/+1c also updates matching version record through1030470c at103048a8; matching is exact strcmp against FV:2,R:0,R:,SQ:,S:, device copy capacity25, counter record+34, dirty=1. Then increments u32 impl+4e0, sets dirty+4e4 and calls1067c6ec(impl+8). This tail-calls1067c46c, which sets native source pending byte+110 and wakes event thread through source+b4 ->10678c50 at1067c5c8 when bound. This schedules output, not a guarantee of successful network delivery."
     }
    ],
-   "notes": "None Browse internals decoded: handler shim 0x10306b3c -> real handler f_10304390 -> executor f_103042f0. BrowseFlag is literal-validated (BrowseDirectChildren / BrowseMetadata, else 402); DIDL output is generated by per-item writer callbacks (f_10306088/0x10306098/0x103060a8) driven through request v[+0x24]. UpdateID comes from the container record via f_1034a224(obj+0x168, selector 0x2bd).",
+   "notes": "Browse uses handler10304390, preflight103042f0 and deferred executor10305a98. BrowseDirectChildren/BrowseMetadata are exact literals; per-object metadata/children methods produce DIDL and container-specific counters. The Browse action record distinguishes traced outer behavior from its remaining backend-specific enumeration questions.",
    "impl_files": [
     "compiled lib (libsonos-upnp family): impl classes generated/static"
    ],
-   "todo": "Established: service-to-cd_impl binding, per-call request construction, and all ContentDirectory action primary slots/outer outputs/fault dispatch are traced. Residual concrete sub-areas only: Browse backend enumeration/DIDL/update semantics at the addresses named in Browse TODOs; share/R/FV XML collectors1034b068/10381428/10381440 and existing-file SAX mutations1038163c/10382c00; authenticated-share trial mount1042b214; savedqueues.rsq item transaction1047ee0c; mutation callback receivers for favorites+0x110 and saved-queue manager+0xc0/virtual+0x14. Next steps and call-specific phase/fault questions are recorded in CreateObject/UpdateObject/DestroyObject. RefreshShareIndex and RequestResort have no remaining action TODOs. Do not reopen runtime-injection or request-freshness questions.",
+   "todo": "Established: concrete service binding, request lifetime, action dispatch and complete service-dispatch401 branches are traced. Native directory-update observer registration and GENA property serialization/wake are also traced; mutation replication callbacks have concrete receivers. Remaining action-specific Browse enumeration and mutation SAX/trial-mount/SQ transaction details are localized in the action records. Service event TODO is limited to the separate WSS name-to-publisher attribution after examining10098d34/109e1044, not an unknown cd_impl or request-freshness boundary.",
    "resolved_findings": [
     "The ContentDirectory service is ctx+0x3fa68, vptr 0x10eb4258, constructed by 0x10307e94 at 0x1018fb90. Its implementation is statically bound cd_impl, constructed by 0x10303de4 at 0x103fb000 with primary vptr 0x10eb3f20. The shared service-block initializer f_104d49e8, not a service virtual setter, assigns the pointer: it receives the DeviceProperties-led block at ctx+0x3fa2c as r3 and &media-player+0x190c as r10, saves them to r31/r26, loads [r26] at 0x104d4e48 and stores it to block+0x40 at 0x104d4e54. This is ctx+0x3fa6c, exactly service+4. The ownership pointer is copied to block+0x44 at 0x104d4ecc. Dispatcher 0x10307608 loads service+4 at 0x1030777c and passes it as handler r5 at 0x103077b4.",
     "Binding provenance: ctx constructor computes the service-block pointer at 0x1018ef1c, saves it at sp+0xfc at 0x1018ef2c and passes it as r5 at 0x1018fc28 to f_101b08a0 (call 0x1018fd14). That wrapper saves it in r19 at 0x101b09c0 and passes r4=r19 at 0x101b0dfc to f_1040c02c at 0x101b0ea4; manager+0xbc receives it at 0x1040c0fc. Media-player construction path loads manager+0xbc at 0x10410244, passes it as r6 at 0x104106fc to f_103fa434 at 0x10410744, which saves r6 in r17 and stores it at media-player+0x220 at 0x103fa75c. f_103fd65c loads that field at 0x103fdd08, passes r10=&media-player+0x190c at 0x103fdd20 and calls f_104d49e8 at 0x103fdd60. The cd_impl pointer was stored at media-player+0x190c at 0x103fb048 after construction.",
