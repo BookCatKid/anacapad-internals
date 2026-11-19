@@ -177291,7 +177291,7 @@
    "todo": "Established: Manifest lookup f_1011a650 takes this, service ID and a nonnull output row. It formats service ID with %u and searches the three-entry memory cache by key length plus memcmp under mutex this+0x1f8. A hit refreshes entry+4 with the current clock word, copies the entire row from entry+0x20 through f_10118f64, unlocks and returns true. It does not compare a requested manifest version, cached row version, public SID/version index or cache entry+0 time word before returning a hit. There is no requested-version argument in this lookup. A cache miss unlocks, loads svcmanifests.json into a fresh 34-row scratch table through f_1011a5d0, finds the requested sid by exact word equality and copies it to output. Load failure or absent SID returns false. A successful file load can still update stored source/version/index even when the requested SID is absent. This lookup performs no HTTP download. The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops. Remaining: Audit all callers, clock wrap/replacement, file/cache races, malformed/null and exception contracts."
   },
   "0x1011be38": {
-   "description": "The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops.",
+   "description": "f_1011be38(cache, keystr, row, arg4) inserts or replaces one entry in the 3-slot memory cache that is separate from the 34-row persisted table; an empty key (keystr length zero) silently returns without inserting, and the sole caller does not inspect the result. Constructor f_10119a2c heap-allocates the entry array with new(0xf58) for exactly three 0x51c-byte slots at cache+8, fixes the count word at cache+4 to three (the cache never grows or shrinks), builds the named 'RCache' mutex at cache+0x18 and installs an owned clock delegate at cache+0x10 whose vfunc+8 (f_1098b4c0 on vtable 0x11089e3c) returns sonosClockGetTime(1) tv_sec, i.e. whole seconds. Entries hold a time-derived word at +0, last-access word at +4, string key object at +8 and a full 0x4fc manifest row at +0x20. The only static caller of f_1011be38 is the download worker f_1011b710 at 0x1011ba1c, which passes arg4=1 after a successful fetch/upsert/save; the sibling writer is the miss-fill path inside lookup f_1011a650, which is not a caller of this function but shares the same entry ABI. Both paths first reassign the entry key via f_1082deb8 and recopy the row via f_10118f64, then store the raw clock word at entry+4 and clock+arg4 (fill path uses 1) at entry+0. Selection: an equal key (equal length at entry+0xc plus memcmp on the entry+8 pointer) is replaced in place; otherwise isel-driven strict-LT tracking picks the slot with the smallest unsigned +4 word, and ties keep the earliest candidate, initially index zero, so on first insert the zero-timestamped slots fill in order 0,1,2. Audit result: entry+0 is written on every insertion but is never read by any code path in the binary; the LRU comparisons, the hit-refresh (which stores a fresh clock word to +4 only when the out-row pointer is nonnull) and the delete-side invalidation all key off entry+4 or the key fields, so the +0 time word is write-only bookkeeping with no expiration or other consumer. Clock wrap: comparisons are unsigned with no wrap compensation, so ordering inverts once across a u32 wraparound of the seconds value; entry+0 = sec+1 wraps to 0 at 0xffffffff but is never consumed. Exception behavior: the possibly-allocating key assign and row copy run under the +0x18 lock; the function has no catch, so a throw propagates through caller f_1011b710, whose active byte +0xc4 then remains set.",
    "why_external": "Determines memory-cache replacement and timestamps after downloading a service manifest.",
    "required_for_behavior": true,
    "role": "music_service_manifest_cache",
@@ -177302,9 +177302,62 @@
      "build": "86.10-80260",
      "address": "0x1011be38",
      "notes": "Instruction-level cache/receiver/delete analysis; see svc_manifest.details and music_service_manifest_cache."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011ba1c",
+     "function": "0x1011b710",
+     "notes": "Sole call site f_1011be38(obj+0x1e0,keystr,row,1); result untested; runs after successful save."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011bf18",
+     "function": "0x1011be38",
+     "notes": "Clock word = vfunc+8 on cache+0x10 delegate, stored raw at entry+4 (stw at 0x1011bfcc) and clock+arg4 at entry+0 (stwx at 0x1011bfc0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011bf6c",
+     "function": "0x1011be38",
+     "notes": "isel r29,r30,r29,cr28 strict-LT min pick over entry+4; no +0 read anywhere in the selection loop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011a94c",
+     "function": "0x1011a650",
+     "notes": "Lookup hit refreshes entry+4 with the current clock only when out-row nonnull; entry+0 is untouched on hits."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098b4c0",
+     "notes": "Clock delegate vfunc+8 implementation: sonosClockGetTime(1) then returns tv_sec; word is seconds."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119ad4",
+     "function": "0x10119a2c",
+     "notes": "Ctor: new(0xf58) for 3 entries at cache+8, count fixed at 3, 'RCache' mutex at +0x18, delegate vtable 0x11089e3c at +0x1ec back-linked at +0x1f0."
     }
    ],
-   "todo": "Established: The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops. Remaining: Audit every insertion caller and generic time-word purpose outside the inspected lookup, plus clock wrap and exception behavior."
+   "resolved_findings": [
+    "Established: exactly one caller exists (f_1011b710 at 0x1011ba1c, arg4=1); no other static reference to f_1011be38 occurs in the binary.",
+    "Established: the +0 time word is written on every insert (clock+arg4 here, clock+1 in the f_1011a650 fill) but is never read by any path; the hit path refreshes only +4.",
+    "Established: the clock is the owned delegate at cache+0x10 whose vfunc+8 resolves to sonosClockGetTime(1) seconds; ordering is unsigned strict-LT with no wrap compensation.",
+    "Established: an empty key returns early without inserting; the sole caller ignores the return, so the skip is silent.",
+    "Established: allocation-throwing callees (key assign f_1082deb8, row copy f_10118f64) run under the +0x18 lock and any exception propagates uncaught to f_1011b710, leaving +0xc4 set."
+   ]
   },
   "0x1011a204": {
    "description": "Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open.",
