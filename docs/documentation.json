@@ -64268,15 +64268,32 @@
          "function": "0x102c350c",
          "address": "0x102c362c",
          "notes": "cloud session eviction"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d086c",
+         "address": "0x102d08a4",
+         "notes": "compare impl+0x2e2a with impl+0x5dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x102d094c",
+         "address": "0x102d09d0",
+         "notes": "SetAVTransportURI with empty URI"
         }
        ],
        "todo": [
         "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
-        "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c), and when the change index 3 marked on impl+0x10 is sent to subscribers, are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40)."
+        "Residual: the fields impl+0x2e2a and impl+0x5dc are not named (which writers store the restorable URI there), and when change index 3 marked on impl+0x10 is sent to subscribers is not traced; next step is a store scan for impl offsets 0x2e2a and 0x5dc and the event thread's handling of marked indices."
        ],
        "resolved_findings": [
         "Resolved (dispatch): see the chain: optional f_102d094c(engine), optional f_102c350c 'Replaced' call for a previous owner string at engine+0xa0a4, then the f_1032e56c request submitted to the session.",
-        "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, flags 6) at 0x102c37d4. f_102c350c tests flags & 0x2 (andi. at 0x102c3514, branch at 0x102c3544); 6 has that bit, so CreateQueue takes the branch at 0x102c3628. That branch evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c363c, which walks the evented list at 0x11097824), and submits an op-15 request built by f_1032e56c (+0xe4 = 15, 0x102c3674). The session consumer applies it through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. The other branch (flags without bit 0x2, 0x102c3548..0x102c35cc), which calls notifyClients on impl+0x10 (f_1067c6ec) and posts the in-process event named by the string through f_102f4a00(impl+0x2ec), is not taken by CreateQueue. In plain terms: CreateQueue ends any cloud session and flags an AVTransport state change; it does not send a 'Replaced' in-process event."
+        "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, flags 6) at 0x102c37d4. f_102c350c tests flags & 0x2 (andi. at 0x102c3514, branch at 0x102c3544); 6 has that bit, so CreateQueue takes the branch at 0x102c3628. That branch evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c363c, which walks the evented list at 0x11097824), and submits an op-15 request built by f_1032e56c (+0xe4 = 15, 0x102c3674). The session consumer applies it through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. The other branch (flags without bit 0x2, 0x102c3548..0x102c35cc), which calls notifyClients on impl+0x10 (f_1067c6ec) and posts the in-process event named by the string through f_102f4a00(impl+0x2ec), is not taken by CreateQueue. In plain terms: CreateQueue ends any cloud session and flags an AVTransport state change; it does not send a 'Replaced' in-process event.",
+        "Established (f_102d094c, called when f_102b2ee4 is nonzero at 0x102e005c): it calls f_102d086c(impl, &flag) (0x102d0974), which compares the URI at impl+0x2e2a with impl+0x5dc (strcmp at 0x102d08a4). If they differ it sets flag and re-applies impl+0x2e2a with its metadata impl+0x322b through the SetAVTransportURI implementation f_102ceb40 ('SetAVTransportURI to %s'), returning that result. If they are equal it returns 0 and sets flag only when impl+0x5dc is empty. When flag is clear or the re-apply failed, f_102d094c calls f_102ceb40(impl, '', '', '') (0x102d09d0), which sets an empty transport URI. In plain terms: CreateQueue either restores the transport source stored at impl+0x2e2a or, failing that, clears the transport source."
        ]
       }
      ],
@@ -64329,15 +64346,32 @@
         "function": "0x102c350c",
         "address": "0x102c362c",
         "notes": "cloud session eviction"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d086c",
+        "address": "0x102d08a4",
+        "notes": "compare impl+0x2e2a with impl+0x5dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d094c",
+        "address": "0x102d09d0",
+        "notes": "SetAVTransportURI with empty URI"
        }
       ],
       "todo": [
        "Established: the calls f_102d094c (when f_102b2ee4 is nonzero), f_102c350c('Replaced') (when engine+0xa0a4 is set) and the f_1032e56c request submit are identified with sites.",
-       "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c), and when the change index 3 marked on impl+0x10 is sent to subscribers, are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40)."
+       "Residual: the fields impl+0x2e2a and impl+0x5dc are not named (which writers store the restorable URI there), and when change index 3 marked on impl+0x10 is sent to subscribers is not traced; next step is a store scan for impl offsets 0x2e2a and 0x5dc and the event thread's handling of marked indices."
       ],
       "resolved_findings": [
        "Resolved (within the front end): no notify call exists in f_10464bd0, f_102dff24 or f_102b2ee4; f_102c3694 calls f_102c350c with the reason 'Replaced' (0x10eac8c4) and code 6 when a previous owner string is present.",
-       "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, flags 6) at 0x102c37d4. f_102c350c tests flags & 0x2 (andi. at 0x102c3514, branch at 0x102c3544); 6 has that bit, so CreateQueue takes the branch at 0x102c3628. That branch evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c363c, which walks the evented list at 0x11097824), and submits an op-15 request built by f_1032e56c (+0xe4 = 15, 0x102c3674). The session consumer applies it through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. The other branch (flags without bit 0x2, 0x102c3548..0x102c35cc), which calls notifyClients on impl+0x10 (f_1067c6ec) and posts the in-process event named by the string through f_102f4a00(impl+0x2ec), is not taken by CreateQueue. In plain terms: CreateQueue ends any cloud session and flags an AVTransport state change; it does not send a 'Replaced' in-process event."
+       "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, flags 6) at 0x102c37d4. f_102c350c tests flags & 0x2 (andi. at 0x102c3514, branch at 0x102c3544); 6 has that bit, so CreateQueue takes the branch at 0x102c3628. That branch evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c363c, which walks the evented list at 0x11097824), and submits an op-15 request built by f_1032e56c (+0xe4 = 15, 0x102c3674). The session consumer applies it through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. The other branch (flags without bit 0x2, 0x102c3548..0x102c35cc), which calls notifyClients on impl+0x10 (f_1067c6ec) and posts the in-process event named by the string through f_102f4a00(impl+0x2ec), is not taken by CreateQueue. In plain terms: CreateQueue ends any cloud session and flags an AVTransport state change; it does not send a 'Replaced' in-process event.",
+       "Established (f_102d094c, called when f_102b2ee4 is nonzero at 0x102e005c): it calls f_102d086c(impl, &flag) (0x102d0974), which compares the URI at impl+0x2e2a with impl+0x5dc (strcmp at 0x102d08a4). If they differ it sets flag and re-applies impl+0x2e2a with its metadata impl+0x322b through the SetAVTransportURI implementation f_102ceb40 ('SetAVTransportURI to %s'), returning that result. If they are equal it returns 0 and sets flag only when impl+0x5dc is empty. When flag is clear or the re-apply failed, f_102d094c calls f_102ceb40(impl, '', '', '') (0x102d09d0), which sets an empty transport URI. In plain terms: CreateQueue either restores the transport source stored at impl+0x2e2a or, failing that, clears the transport source."
       ]
      },
      "state_transitions": {
@@ -64429,15 +64463,32 @@
         "function": "0x102c350c",
         "address": "0x102c362c",
         "notes": "cloud session eviction"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d086c",
+        "address": "0x102d08a4",
+        "notes": "compare impl+0x2e2a with impl+0x5dc"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x102d094c",
+        "address": "0x102d09d0",
+        "notes": "SetAVTransportURI with empty URI"
        }
       ],
       "todo": [
        "Established: Empties the default queue, renumbers it (QueueID+1, UpdateID reset then bumped to 1), stores owner, context and policy on it, and resets the play index when it is the playing queue.",
-       "Residual: what f_102d094c changes when f_102b2ee4 is nonzero (0x102e005c), and when the change index 3 marked on impl+0x10 is sent to subscribers, are not traced; next step is to disassemble f_102d094c (f_102d086c, f_102ceb40)."
+       "Residual: the fields impl+0x2e2a and impl+0x5dc are not named (which writers store the restorable URI there), and when change index 3 marked on impl+0x10 is sent to subscribers is not traced; next step is a store scan for impl offsets 0x2e2a and 0x5dc and the event thread's handling of marked indices."
       ],
       "resolved_findings": [
        "Resolved (front end): f_102dff24 and f_102c3694 store only QueueID and stack data; any transition happens in f_102d094c or the request consumer.",
-       "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, flags 6) at 0x102c37d4. f_102c350c tests flags & 0x2 (andi. at 0x102c3514, branch at 0x102c3544); 6 has that bit, so CreateQueue takes the branch at 0x102c3628. That branch evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c363c, which walks the evented list at 0x11097824), and submits an op-15 request built by f_1032e56c (+0xe4 = 15, 0x102c3674). The session consumer applies it through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. The other branch (flags without bit 0x2, 0x102c3548..0x102c35cc), which calls notifyClients on impl+0x10 (f_1067c6ec) and posts the in-process event named by the string through f_102f4a00(impl+0x2ec), is not taken by CreateQueue. In plain terms: CreateQueue ends any cloud session and flags an AVTransport state change; it does not send a 'Replaced' in-process event."
+       "Established (f_102c350c 'Replaced'): f_102c3694 builds the string 'Replaced' (f_102ab4dc at 0x102c37c0) and calls f_102c350c(impl, &str, r31, flags 6) at 0x102c37d4. f_102c350c tests flags & 0x2 (andi. at 0x102c3514, branch at 0x102c3544); 6 has that bit, so CreateQueue takes the branch at 0x102c3628. That branch evicts the cloud session (f_102b3124, 'sessionError', 'evict'), marks change index 3 on the AVTransport impl's UPnP event source impl+0x10 (f_1067b4f4 at 0x102c363c, which walks the evented list at 0x11097824), and submits an op-15 request built by f_1032e56c (+0xe4 = 15, 0x102c3674). The session consumer applies it through f_10262670 -> f_1014d8c4, the same CreateQueue mutation. The other branch (flags without bit 0x2, 0x102c3548..0x102c35cc), which calls notifyClients on impl+0x10 (f_1067c6ec) and posts the in-process event named by the string through f_102f4a00(impl+0x2ec), is not taken by CreateQueue. In plain terms: CreateQueue ends any cloud session and flags an AVTransport state change; it does not send a 'Replaced' in-process event.",
+       "Established (f_102d094c, called when f_102b2ee4 is nonzero at 0x102e005c): it calls f_102d086c(impl, &flag) (0x102d0974), which compares the URI at impl+0x2e2a with impl+0x5dc (strcmp at 0x102d08a4). If they differ it sets flag and re-applies impl+0x2e2a with its metadata impl+0x322b through the SetAVTransportURI implementation f_102ceb40 ('SetAVTransportURI to %s'), returning that result. If they are equal it returns 0 and sets flag only when impl+0x5dc is empty. When flag is clear or the re-apply failed, f_102d094c calls f_102ceb40(impl, '', '', '') (0x102d09d0), which sets an empty transport URI. In plain terms: CreateQueue either restores the transport source stored at impl+0x2e2a or, failing that, clears the transport source."
       ]
      },
      "return_behavior": {
