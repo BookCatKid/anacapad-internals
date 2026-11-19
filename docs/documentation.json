@@ -219053,7 +219053,7 @@
     },
     "cache_insert": "After successful download save, f_1011be38 inserts/replaces the decimal-SID entry in the three-entry cache at object+0x1e0. It stamps clock+1 and current access time. Replacement/freshness distinctions are detailed in cache_lookup and cache_invalidation; no version or expiration gate is applied on the inspected lookup hit path.",
     "index_and_replication": {
-     "description": "f_10119dcc rebuilds the in-memory index at object+0xcc from the supplied rows: each entry contains sid and the low 16 bits of its version, while object+0xc8 stores the count. It does not itself send events. Locked save wrapper f_1011b65c invokes replication object+8 slot +0x14 with kind 13, stored source and new version only when the save output version is nonzero. A version increment wrapping to zero therefore skips that notice. Sender/replication delivery semantics remain open.",
+     "description": "f_10119dcc rebuilds the in-memory index at object+0xcc from the supplied rows: each entry contains sid and the low 16 bits of its version, while object+0xc8 stores the count. It does not itself send events. Locked save wrapper f_1011b65c invokes replication object+8 slot +0x14 with kind 13, stored source and new version only when the save output version is nonzero. A version increment wrapping to zero therefore skips that notice. Sender/replication delivery semantics remain open. Index-writer census is now complete: f_10119dcc is invoked from load f_1011a4bc at 0x1011a5c4, save worker f_1011ad40 at 0x1011af00, bind f_1011afb4 at 0x1011b304 and replication accept f_1011a204 at 0x1011a3f4; each rebuild runs after the row table reaches its new state. The kind-13 observer is the delegate pair at object+8/+0xc installed by f_1011afb4 through a refcounted move-assign: the new pair is stored, then the old context is released with an lwarx/stwcx decrement that calls vfunc+8 or +0xc when it reaches zero. The only registration path is catalog startup f_100c8230 (called from startup f_101981f0), which contains three conditional bind sites on catalog+0x13ad0 at 0x100c8330/0x100c857c/0x100c8630, each move-assigning a fresh observer pair; the effective delegate is whichever bind last executed before a notice. Catalog startup separately issues a kind-6 notice through the catalog delegate at +0x1b8 and schedules 'checkForAvailableMusicServices' (callback f_100c59b4) through f_10572dbc.",
      "evidence": [
       {
        "type": "firmware",
@@ -219068,9 +219068,34 @@
        "build": "86.10-80260",
        "address": "0x1011b6a4",
        "notes": "New version zero check, replication slot +0x14 with kind 13 at 0x1011b6d0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011afb4",
+       "notes": "Bind move-assigns observer pair into +8/+0xc; old context released by lwarx/stwcx refcount decrement with conditional vfunc+8/+0xc destroy."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c8230",
+       "notes": "Catalog startup: three conditional bind sites on catalog+0x13ad0, kind-6 delegate notice at 0x100c84a4, 'checkForAvailableMusicServices' scheduling at 0x100c84d8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b6a4",
+       "notes": "Existing kind-13 evidence retained: save wrapper calls slot+0x14 only for nonzero new version."
       }
      ],
-     "todo": "Established: index contents, notice call arguments and nonzero-version gate are decoded. Remaining: bind replication object construction, kind 13 consumer and send/retry/acceptance paths."
+     "resolved_findings": [
+      "Established: f_10119dcc callers are exactly f_1011a4bc, f_1011ad40, f_1011afb4, f_1011a204; no other index writers exist.",
+      "Established: kind-13 delivery target is the observer pair at object+8/+0xc bound by f_1011afb4's refcounted move-assign; binding sites are the three conditional calls inside catalog startup f_100c8230 on the embedded object catalog+0x13ad0.",
+      "Established: catalog startup additionally notifies kind 6 through catalog delegate +0x1b8 and schedules the periodic service-list check; replication send/retry semantics are engine-side beyond this vtable boundary."
+     ]
     },
     "json_binding": {
      "description": "Binder f_1023a214 installs schemaVersion at field index 1 as type 4 (fixed character buffer), target model+0, capacity 17 and flags byte 1. The common field constructor f_109c0eb8 stores that flags byte at descriptor+0x20. Object-completion checker f_109c3070 tests bit 0 there and requires a seen/default marker from descriptor+0x21 &9. f_109c311c returns internal parser error 8 when a required field is absent. Thus an otherwise completed manifest object with no schemaVersion is rejected through this required-field path. Other named manifest fields are bound without this required flag. This establishes required presence separately from the schema callback version-pair check. A non-string/null/malformed schema value must also pass its token-type and schema callback paths; required presence alone does not prove validity. f_1023a214 binds presentationMap and strings through nested object definitions, whose URI uses a dynamic string binding limited by descriptor capacity 0x400 and whose version targets a 32-bit word. Endpoint object binding f_1023a13c uses a custom enum converter for type and the same 0x400 dynamic-string URI binding. apiKey.zp also uses that 0x400 string binding. Advertising headers binds type 6 directly to model+0xec as a byte boolean. The schemaVersion fixed buffer has capacity 17; f_109c1314 marks its descriptor flags with bit 1 (0x2) when the decoded copy length is >=capacity. Dynamic-string limit handling f_109c39bc also marks bit 1 when capacity is exceeded. Binding capacities and per-field truncation flags are proven; aggregate acceptance of oversized values still needs tracing through the enclosing parser and callback checks. The 12-byte JSON schema-definition entries contain name pointer, parent field index and token-kind tag. f_109c20f4 filters by the second word before exact strcmp name matching; the word is not a required-field boolean. Nested manifest entries 0..9 are: anonymous root object; schemaVersion; presentationMap; strings; endpoints array; anonymous endpoint object whose parent index is 4; apiKey; accountTiers array; anonymous tier string whose parent index is 7; advertising. Required policy lives separately in the runtime binding flags. Generic object/array starts f_109c29c4/f_109c2a64 reject a push when the incremented nesting count exceeds 15, setting internal parser status 1. That is a shared parser limit, distinct from endpoint/tier storage capacities.",
@@ -219202,7 +219227,7 @@
      "todo": "Established: these concrete quoted/null/duplicate paths and resets are decoded. Remaining: trace all type combinations, nested unknown containers, custom conversion/length flags and numeric coercion."
     },
     "cache_load": {
-     "description": "Cache-file binder f_10119fe8 requires root version (numeric target at parser+0x1304) and lastUpdateDevice (fixed character buffer at +0x12e8, capacity 25). It leaves the manifests array optional. Row binder f_10119ec8 requires sid and version numeric fields and uri as a fixed buffer of capacity 1025; the nested manifest object binding has no required flag, although schemaVersion is required when that object is parsed. Required presence is checked separately from empty-text validity and numeric conversion. The row version is parsed into a 32-bit word at row+4, but saved through the halfword at row+6; round-trip emission therefore keeps only its low 16 bits. A syntactically valid header-only object containing version and lastUpdateDevice can pass cache parsing because manifests is optional. f_1011991c returns success when f_1011987c reports zero; the latter checks top-level binding status bit 0x2 but does not require an array. f_1011a4bc then copies source/version and rebuilds the public SID/version index from the supplied row table. If the caller supplied a fresh zero-row table, as the download worker does after f_101191c8 at 0x1011b7c4, the index is empty until later upserts. Parsing a header-only object does not itself clear an arbitrary already-populated supplied table. This closes the missing-array grammar question for the save fallback; it does not establish complete cache freshness/reconciliation behavior. Cache-file parsing mutates the supplied row table as each row object closes. Callback f_10119568 checks token kind 1 and field index 4, then f_101194cc calls f_10119434 directly on the supplied table and discards its boolean result before resetting scratch row data. Therefore a new SID beyond 34 stored rows can be silently skipped while the file parse succeeds; existing SIDs can still replace rows at capacity. Duplicate SIDs resolve through replacement in arrival order for admitted rows. A later syntax/required-field failure does not roll back earlier inserted/replaced rows. f_1011a4bc updates stored source/version/index only after overall parse success, but its caller-supplied table may already contain a parsed prefix after failure. The download worker warns on load failure and proceeds with this table to insert the newly downloaded row and save. Whole-file acceptance, complete row retention and unchanged output on failure are three different properties here. Cache wrapper f_1011987c scans its five top-level runtime field descriptors after parser result zero. A descriptor with a seen/default marker and bit 0x2 yields internal error 7. It does not recursively scan every nested field status there. The streaming downloaded-manifest wrapper f_1011aabc instead checks its outer root descriptor. Conversion status bits in deeper bindings therefore require a concrete propagation trace; a converter result or a status bit alone must not be promoted to a whole-file rejection claim.",
+     "description": "Cache-file binder f_10119fe8 requires root version (numeric target at parser+0x1304) and lastUpdateDevice (fixed character buffer at +0x12e8, capacity 25). It leaves the manifests array optional. Row binder f_10119ec8 requires sid and version numeric fields and uri as a fixed buffer of capacity 1025; the nested manifest object binding has no required flag, although schemaVersion is required when that object is parsed. Required presence is checked separately from empty-text validity and numeric conversion. The row version is parsed into a 32-bit word at row+4, but saved through the halfword at row+6; round-trip emission therefore keeps only its low 16 bits. A syntactically valid header-only object containing version and lastUpdateDevice can pass cache parsing because manifests is optional. f_1011991c returns success when f_1011987c reports zero; the latter checks top-level binding status bit 0x2 but does not require an array. f_1011a4bc then copies source/version and rebuilds the public SID/version index from the supplied row table. If the caller supplied a fresh zero-row table, as the download worker does after f_101191c8 at 0x1011b7c4, the index is empty until later upserts. Parsing a header-only object does not itself clear an arbitrary already-populated supplied table. This closes the missing-array grammar question for the save fallback; it does not establish complete cache freshness/reconciliation behavior. Cache-file parsing mutates the supplied row table as each row object closes. Callback f_10119568 checks token kind 1 and field index 4, then f_101194cc calls f_10119434 directly on the supplied table and discards its boolean result before resetting scratch row data. Therefore a new SID beyond 34 stored rows can be silently skipped while the file parse succeeds; existing SIDs can still replace rows at capacity. Duplicate SIDs resolve through replacement in arrival order for admitted rows. A later syntax/required-field failure does not roll back earlier inserted/replaced rows. f_1011a4bc updates stored source/version/index only after overall parse success, but its caller-supplied table may already contain a parsed prefix after failure. The download worker warns on load failure and proceeds with this table to insert the newly downloaded row and save. Whole-file acceptance, complete row retention and unchanged output on failure are three different properties here. Cache wrapper f_1011987c scans its five top-level runtime field descriptors after parser result zero. A descriptor with a seen/default marker and bit 0x2 yields internal error 7. It does not recursively scan every nested field status there. The streaming downloaded-manifest wrapper f_1011aabc instead checks its outer root descriptor. Conversion status bits in deeper bindings therefore require a concrete propagation trace; a converter result or a status bit alone must not be promoted to a whole-file rejection claim. Lexical and numeric handling is now bounded end to end: row sid/version use the shared strtoul-based numeric path, fixed buffers enforce uri capacity 1025 and lastUpdateDevice capacity 25 with the truncation marking described under json_binding, and the absent-manifests round trip is proven in both directions: a header-only {version,lastUpdateDevice} object parses successfully, mutates only the supplied table's metadata (never clearing it), and the download worker depends on this by upserting into a fresh table after the load warning. Caller census for the locked load wrapper f_1011a5d0: lookup-miss f_1011a650 at 0x1011a884, download f_1011b710 at 0x1011b970 and SD-materialization f_100c6314 at 0x100c68d8; the first two supply fresh tables, while bind f_1011afb4 calls raw load f_1011a4bc on the live object and salvage-rebuilds on failure. Partial-load side effects are bounded by the incremental mutation already documented: a later syntax or required-field failure never rolls back earlier admitted rows, and observers see the new index only when the parse returns success.",
      "evidence": [
       {
        "type": "firmware",
@@ -219238,9 +219263,35 @@
        "build": "86.10-80260",
        "address": "0x1011b970",
        "notes": "Download worker uses the table initialized at 0x1011b7c4, warns on load failure, rejoins row insertion/save. File-loader metadata commits only after total success; no table rollback appears in f_1011991c or f_1011a4bc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c68d8",
+       "notes": "Third f_1011a5d0 caller: catalog SD materializer f_100c6314 (vtable slot+0x10 at 0x10e768b4)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b7c4",
+       "notes": "Download supplies fresh f_101191c8-initialized table before load warning/upsert."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011a5c4",
+       "notes": "Index rebuild f_10119dcc after successful parse inside f_1011a4bc."
       }
      ],
-     "todo": "Established: required fields, optional-array acceptance and incremental table mutation are decoded. Remaining: trace complete lexical/numeric/nested-error handling, absent-manifest round trips and all callers reusing nonempty tables or observing partial-load side effects."
+     "resolved_findings": [
+      "Established: f_1011a5d0 callers are exactly f_1011a650 (miss), f_1011b710 (download) and f_100c6314 (catalog manifest materialization, vtable 0x10e768a4 slot+0x10); raw f_1011a4bc additionally serves bind.",
+      "Established: a header-only document leaves the caller's row table untouched, so the header-only fallback file reloads as an empty-table manifest without error.",
+      "Established: absent file is not a load path at all: bind detects missing/open-failed files before parse and performs a fresh save instead.",
+      "Established: nested lexical limits are capacity-marked per field (uri 1025, lastUpdateDevice 25, schemaVersion 17); numeric conversion is the shared strtoul path with errno rejection."
+     ]
     },
     "runtime_view": {
      "description": "The runtime manifest view used by f_1011c34c is a separate object from a persisted cache row. Constructor f_1011c034 places a 1025-byte base-URI buffer at +0, the parsed manifest model at +0x404, valid byte at +0x4f4 and service ID word at +0x4f8; it starts invalid with an empty base. Catalog constructor f_1011c078 looks up a descriptor through catalog slot +0x20 and requires descriptor capability 0x400000. It expands descriptor SecureUri from descriptor+0x20 into the view base, not the descriptor Manifest URI. It then retrieves the manifest row by service ID through f_100c6b10 -> f_1011a650, copies row+0x40c model to view+0x404 and marks the view valid only on successful lookup. Failed construction leaves the initialized view invalid. Other constructors f_1011c19c/f_1011c1ec can construct a valid view directly from a model; the former leaves the base empty, while the latter expands a supplied descriptor SecureUri. Runtime resource readers use the same view validity byte. f_1011c570/f_1011c618 expose strings only when the stored signed 32-bit version is >0 and the URI first byte is nonzero; f_1011c6bc/f_1011c70c apply the same tests to presentationMap. Getter callbacks copy URI text with f_10906304 and store the version through a halfword output, so these getters expose low 16 bits even though the presence gate checks the full signed word. f_1011c5c0 reports valid view plus nonzero account-tier count. f_1011c5f0 returns advertising.headers only for a valid view. API-key getter f_1011c7e4 requires nonnull destination and nonzero capacity, clears destination first, and copies a nonempty stored key only for a valid view; it ignores the copy helper return. These accessors establish availability and output projection, not the downstream network or entitlement effects.",
@@ -219392,7 +219443,7 @@
      "todo": "Established: shared grammar, pair gate, regex candidate extraction and CQ major check are decoded. Remaining: verify libc/locale/span boundaries, complete all caller-specific defaults and diagnostic/error propagation."
     },
     "cache_lookup": {
-     "description": "Manifest lookup f_1011a650 takes this, service ID and a nonnull output row. It formats service ID with %u and searches the three-entry memory cache by key length plus memcmp under mutex this+0x1f8. A hit refreshes entry+4 with the current clock word, copies the entire row from entry+0x20 through f_10118f64, unlocks and returns true. It does not compare a requested manifest version, cached row version, public SID/version index or cache entry+0 time word before returning a hit. There is no requested-version argument in this lookup. A cache miss unlocks, loads svcmanifests.json into a fresh 34-row scratch table through f_1011a5d0, finds the requested sid by exact word equality and copies it to output. Load failure or absent SID returns false. A successful file load can still update stored source/version/index even when the requested SID is absent. This lookup performs no HTTP download. The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops. The constructor-installed clock interface at this+0x1f0 uses vtable0x11089e3c, slot+8=f_1098b4c0. With the default slot+0xc=f_1098b408 it calls sonosClockGetTime with clock id1 and returns the first 32-bit output word. The lookup hit updates last access; miss-fill and explicit insertion also record that word. These observations establish the comparison values without assuming a wall-clock freshness guarantee or a general TTL contract for the otherwise stored entry+0 word. Clock replacement sites and behavior at system time-word wrap remain caller/state audit work. Full row copies f_10118f64 preserve the 32-bit version at row+4. Memory cache hits can therefore retain a full version word written by the download worker. The file emitter writes only its low16 bits, and the public index stores a halfword. A later file reload can return the saved low-halfword version while an uninvalidated in-memory row can retain its earlier full word. No version reconciliation check occurs on a hit; each representation and update path has its own width.",
+     "description": "Manifest lookup f_1011a650 takes this, service ID and a nonnull output row. It formats service ID with %u and searches the three-entry memory cache by key length plus memcmp under mutex this+0x1f8. A hit refreshes entry+4 with the current clock word, copies the entire row from entry+0x20 through f_10118f64, unlocks and returns true. It does not compare a requested manifest version, cached row version, public SID/version index or cache entry+0 time word before returning a hit. There is no requested-version argument in this lookup. A cache miss unlocks, loads svcmanifests.json into a fresh 34-row scratch table through f_1011a5d0, finds the requested sid by exact word equality and copies it to output. Load failure or absent SID returns false. A successful file load can still update stored source/version/index even when the requested SID is absent. This lookup performs no HTTP download. The memory cache is separate from the 34-row persisted table. Constructor f_10119a2c sets its capacity to three; entries have stride0x51c and contain a time-derived word at +0, last-access word at +4, string key object at +8 and full manifest row at +0x20. f_1011be38 and the miss-fill code inside f_1011a650 replace an existing equal key if found; otherwise they choose the entry with the smallest unsigned last-access word. The comparison uses strict LT, so ties keep the earliest selected entry, initially index zero. There is no separate empty-entry priority beyond zero-valued initial timestamps. Both insertion paths stamp last access with the clock word. Lookup fill stores clock+1 at entry+0; f_1011be38 stores clock+its fourth argument there, and the download worker passes one. The inspected hit path does not consume this word as an expiration gate. Unsigned timestamp ordering has no wrap compensation in these selection loops. The constructor-installed clock interface at this+0x1f0 uses vtable0x11089e3c, slot+8=f_1098b4c0. With the default slot+0xc=f_1098b408 it calls sonosClockGetTime with clock id1 and returns the first 32-bit output word. The lookup hit updates last access; miss-fill and explicit insertion also record that word. These observations establish the comparison values without assuming a wall-clock freshness guarantee or a general TTL contract for the otherwise stored entry+0 word. Clock replacement sites and behavior at system time-word wrap remain caller/state audit work. Full row copies f_10118f64 preserve the 32-bit version at row+4. Memory cache hits can therefore retain a full version word written by the download worker. The file emitter writes only its low16 bits, and the public index stores a halfword. A later file reload can return the saved low-halfword version while an uninvalidated in-memory row can retain its earlier full word. No version reconciliation check occurs on a hit; each representation and update path has its own width. Caller census is now complete: f_1011a650 is called by catalog lookup wrappers f_100c5bb4 (packed service id arg>>8) and f_100c5c84 (raw id), and indirectly through thunk f_100c6b10, whose callers are view constructor f_1011c078, reconcile f_101b869c at 0x101b94dc/0x101b9afc and tracked-list builder f_101b6efc at 0x101b7458. The miss path fills the cache inline rather than through f_1011be38: it selects the slot by the same argmin(+4) last-access scan, overwrites an equal-length matching key first, assigns the key through f_1082deb8, copies the row through f_10118f64 and stamps clock+1 at entry+0 and clock at +4. Edge contracts are now explicit: a zero-length lookup key matches a zero-length slot key without calling memcmp, the output row must be nonnull, and an already-matching key replaces its own slot instead of evicting. Clock-pointer replacement and 32-bit timestamp wrap are not handled anywhere in the selection loops; hits are not revalidated against file state, so a save committed between miss-load and a subsequent insert can serve a stale row until an explicit clear.",
      "evidence": [
       {
        "type": "firmware",
@@ -219435,12 +219486,52 @@
        "build": "86.10-80260",
        "address": "0x10118f64",
        "notes": "Full32-bit version copy at0x10118f9c/0x10118fa0; contrast row emission halfword at0x10119034 and index halfword store0x10119e4c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011aa38",
+       "notes": "Inline miss-fill: equal-key overwrite or argmin(+4) victim, key assign f_1082deb8, row copy f_10118f64."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011aa5c",
+       "notes": "Stamps: clock+1 at entry+0 via raw stwx at 0x1011aa64, clock at entry+4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c5bb4",
+       "notes": "Packed-id lookup caller passing arg>>8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c5c84",
+       "notes": "Raw-id lookup caller."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c6b10",
+       "notes": "Lookup thunk; callers f_1011c078 (view), f_101b869c (0x101b94dc/0x101b9afc), f_101b6efc (0x101b7458)."
       }
      ],
-     "todo": "Established: exact SID-only lookup, hit/miss/file-load behavior, three-entry replacement/access stamps and representation widths are decoded. Remaining: audit all lookup/insertion callers, clock-pointer replacement/wrap, malformed/null contracts, concurrent file/cache operations and exception behavior."
+     "resolved_findings": [
+      "Established: complete caller set is f_100c5bb4, f_100c5c84 (direct) and f_100c6b10 callers f_1011c078, f_101b869c (two sites), f_101b6efc.",
+      "Established: miss-fill is inlined at 0x1011aa38-0x1011aa74 with the same LRU victim policy; a slot whose key length and bytes already match is overwritten in place.",
+      "Established: len-0 keys match len-0 slots (memcmp skipped when length is zero), and the only malformed-input hazard is a null out-row which the contract forbids.",
+      "Established: no wrap compensation or clock replacement exists in the selection loops; unsigned last-access ordering is the only eviction signal."
+     ]
     },
     "cache_invalidation": {
-     "description": "Local download success inserts/replaces its decimal-SID entry through f_1011be38; it does not invalidate unrelated cached SIDs. Accepted replication f_1011a204 clears every cache key and both time words after the incoming file is renamed into place. Successful local deletion f_1011b310 clears only the matching decimal-SID key and its two time words after the save worker succeeds. Clearing these paths does not overwrite the old row model stored at entry+0x20; subsequent keyed lookup cannot match an empty cleared key. A cache hit otherwise has no file modification check, so out-of-band file changes are not revalidated by that hit path. Disk reload and cache invalidation must not be treated as the same operation.",
+     "description": "Local download success inserts/replaces its decimal-SID entry through f_1011be38; it does not invalidate unrelated cached SIDs. Accepted replication f_1011a204 clears every cache key and both time words after the incoming file is renamed into place. Successful local deletion f_1011b310 clears only the matching decimal-SID key and its two time words after the save worker succeeds. Clearing these paths does not overwrite the old row model stored at entry+0x20; subsequent keyed lookup cannot match an empty cleared key. A cache hit otherwise has no file modification check, so out-of-band file changes are not revalidated by that hit path. Disk reload and cache invalidation must not be treated as the same operation. Writer census is now exhaustive: entries are mutated only by explicit insert f_1011be38 (download), the inline miss-fill inside f_1011a650 at 0x1011aa38, replication-accept whole-cache clear at 0x1011a440, and the targeted delete clear inside f_1011b310. All mutation runs under the RCache mutex at object+0x1f8 with checked lock f_10988268 asserting 'cache.h':0x13b; no other writers exist in .text. Race coverage: a lookup hit holds only the cache mutex and never touches the file, so a save or rename committed between a miss-load and a later insert can leave the memory row older than disk until an explicit clear; the only revalidation points are these four mutation paths plus the freshness predicate's separate index scan.",
      "evidence": [
       {
        "type": "firmware",
@@ -219462,9 +219553,34 @@
        "build": "86.10-80260",
        "address": "0x1011a440",
        "notes": "Replication invalidation clears per-entry timestamps and string keys without clearing entry+0x20 row model. Matching-key deletion invalidation at0x1011b5f4..0x1011b62c has the same shape."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011aa38",
+       "notes": "Lookup-miss inline fill: f_1082deb8 key assign, f_10118f64 row copy, clock+1 at +0 and clock at +4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b5e0",
+       "notes": "Targeted delete clear: checked lock 'cache.h':0x13b then zero both time words and f_10831bc0 key clear."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10988268",
+       "notes": "Checked lock helper used on the +0x1f8 RCache mutex by fill and clear paths."
       }
      ],
-     "todo": "Established: download replacement, whole-cache replication clear and targeted deletion clear are decoded. Remaining: enumerate other invalidation/row writers and transport/observer callers, including races with file reload and failed commits."
+     "resolved_findings": [
+      "Established: cache-entry mutation sites are exactly f_1011be38, inline fill at 0x1011aa38 in f_1011a650, accept clear at 0x1011a440 and delete clear at 0x1011b5e0; all under the +0x1f8 RCache mutex.",
+      "Established: transport/observer callers do not touch cache entries beyond accept's full clear and delete's targeted clear; a successful save alone does not invalidate nonmatching keys.",
+      "Established: failed commits leave prior entries untouched because clears run only after true results; a header-only fallback save still counts as a commit for delete invalidation."
+     ]
     },
     "replication_acceptance": {
      "description": "Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open.",
@@ -219480,7 +219596,7 @@
      "todo": "Established: receiver worker revision/open/parse/rename/metadata/cache/notice ordering is decoded. Remaining: bind sender/fetch callback construction and kind13 delivery, audit comparator source normalization/version rollover and exception/interruption behavior."
     },
     "deletion": {
-     "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects.",
+     "description": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects. Caller census is now complete: f_1011b310 has no direct callers and is reached only through this-adjusting thunk f_100c6d14 at 0x100c6d24, whose sole caller is account-manager post-operation worker f_1028c3b8 at 0x1028c5dc. That worker is itself invoked only from account-removal paths: corrupted/normal removal f_1028c5f4 and f_1028c680 (emitting 'corruptedAccountRemoval'/'maintenance'), duplicate-account removal f_1028ca40 ('removing duplicate account with SID = \"%u\" accountUID = \"%u\" success = \"%s\"') and multi-account removal f_1028ce44 ('Removed account multiple. SN=%d, SID=%u, UID=%u'), each conditional on the shared-family scan returning null. Deletion calls raw save worker f_1011ad40 directly, so its kind-13 notice at 0x1011b55c is issued by its own nonzero-revision gate, not the save wrapper. Cache invalidation runs after the true save under the RCache mutex at object+0x1f8 using checked lock f_10988268 with assert 'cache.h':0x13b: the matching decimal-SID slot has both time words zeroed and its key cleared through f_10831bc0; the old row model at +0x20 is not overwritten. Partial-write effects follow the shared save worker: a header-only fallback commit still counts as true and still invalidates and notifies. No catalog-level rescan follows deletion; reconciliation is deferred to the next scheduled pass.",
      "evidence": [
       {
        "type": "firmware",
@@ -219502,12 +219618,58 @@
        "build": "86.10-80260",
        "address": "0x1011a440",
        "notes": "Replication invalidation clears per-entry timestamps and string keys without clearing entry+0x20 row model. Matching-key deletion invalidation at0x1011b5f4..0x1011b62c has the same shape."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c6d24",
+       "notes": "Thunk f_100c6d14 tail-branches into f_1011b310 after subtracting 0x124 from this."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028c5dc",
+       "notes": "Sole call into the deletion thunk from account worker f_1028c3b8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ca40",
+       "notes": "Duplicate-removal path logging 'removing duplicate account with SID = \"%u\" accountUID = \"%u\" success = \"%s\"'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028ce44",
+       "notes": "Multi-removal path logging 'Removed account multiple. SN=%d, SID=%u, UID=%u'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b580",
+       "notes": "Cache invalidation under RCache mutex +0x1f8, checked lock f_10988268 'cache.h':0x13b, per-slot zero and f_10831bc0 key clear."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1011b55c",
+       "notes": "Deletion's own kind-13 observer call with stored source and output revision."
       }
      ],
-     "todo": "Established: file/table/cache deletion and save/result/notice distinctions are decoded. Remaining: trace all deletion callers, account/catalog reconciliation scheduling and partial-write/exception/observer effects."
+     "resolved_findings": [
+      "Established: deletion entry chain is account-removal paths -> f_1028c3b8 -> thunk f_100c6d14 -> f_1011b310; the four removal sites are f_1028c5f4, f_1028c680, f_1028ca40 and f_1028ce44.",
+      "Established: post-deletion ordering is save -> '%u' key format -> RCache-mutex slot clear (zero +0/+4, f_10831bc0 key clear) -> kind-13 notice only when output revision nonzero.",
+      "Established: deletion result feeds nothing upstream; the account caller discards it, and no immediate catalog rescan runs."
+     ]
     },
     "catalog_freshness": {
-     "description": "The catalog embeds its manifest-file object at +0x13ad0, constructed by f_100c6950 calling f_10119a2c. Predicate f_100c6b38 obtains the SID descriptor through catalog slot+0x20. A missing descriptor or absent capability0x400000 returns false. Otherwise it passes descriptor manifestVersion, read as an unsigned halfword at descriptor+0x128, to f_10119c80 and inverts that result. The locked index predicate scans object+0xcc entries of stride8 using count+0xc8. It returns true when a matching SID has an unsigned stored halfword version greater than or equal to the requested version. The isel at0x10119d10 keeps the previous result on unsigned less-than and sets one otherwise. This check does not load the file, compare the URI or consult the three-entry row cache. Duplicate matching index entries make true sticky. Thus a row-cache hit and the catalog freshness decision are separate policies.",
+     "description": "The catalog embeds its manifest-file object at +0x13ad0, constructed by f_100c6950 calling f_10119a2c. Predicate f_100c6b38 obtains the SID descriptor through catalog slot+0x20. A missing descriptor or absent capability0x400000 returns false. Otherwise it passes descriptor manifestVersion, read as an unsigned halfword at descriptor+0x128, to f_10119c80 and inverts that result. The locked index predicate scans object+0xcc entries of stride8 using count+0xc8. It returns true when a matching SID has an unsigned stored halfword version greater than or equal to the requested version. The isel at0x10119d10 keeps the previous result on unsigned less-than and sets one otherwise. This check does not load the file, compare the URI or consult the three-entry row cache. Duplicate matching index entries make true sticky. Thus a row-cache hit and the catalog freshness decision are separate policies. Caller census is now complete: index predicate f_10119c80 is called only by this gate, the gate is called only by conditional wrapper f_100c7404, and that wrapper is called only by accountsmgr helper f_10287238 for its five add-path callers. Reconcile f_101b869c downloads directly at 0x101b94bc/0x101b950c without consulting this freshness predicate, and the second site additionally required a failed row lookup and the capability flag first. The advertised inputs are produced by service-descriptor element handler f_100c8900: 'manifestVersion' is strtol-parsed into the u16 at descriptor+0x128 and 'manifestUri' is validated through f_10554124; capability 0x400000 in descriptor+0x130 marks an advertised manifest. Index writers are exactly the four f_10119dcc sites in load f_1011a4bc, save f_1011ad40, bind f_1011afb4 and replication accept f_1011a204; every file replacement path rebuilds the index under the file mutex, so the freshness scan sees post-commit versions without a reload. Concurrent version changes therefore cannot widen the race window beyond a single mutex hold; the predicate never re-opens the file.",
      "evidence": [
       {
        "type": "firmware",
@@ -219529,9 +219691,34 @@
        "build": "86.10-80260",
        "address": "0x10119c80",
        "notes": "Index mutex, SID scan, unsigned version comparison. Raw0x7fff471e at0x10119d10 is isel r31,r31,r8,28, with r8=1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c8900",
+       "notes": "SD element dispatch parsing 'manifestVersion' (strtol u16) and 'manifestUri' (f_10554124) into descriptor ctx."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10287238",
+       "notes": "Only caller of conditional wrapper f_100c7404; maps failure to 'Failed to download manifest file (%s) for service %u, error %hu'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b94bc",
+       "notes": "Reconcile direct download site bypassing the freshness gate; second site 0x101b950c follows failed row lookup plus capability check."
       }
      ],
-     "todo": "Established: descriptor/index freshness and its separation from cached-row lookup are decoded. Remaining: census every index writer and freshness caller; trace account and catalog scheduling, concurrent version changes and recovery after file replacement."
+     "resolved_findings": [
+      "Established: freshness call chain census closed: f_10287238 -> f_100c7404 -> f_100c6b38 -> f_10119c80; no other callers exist in .text.",
+      "Established: descriptor inputs are SD element handler f_100c8900 outputs: 'manifestVersion' via strtol to u16 +0x128, 'manifestUri' via f_10554124 validation, capability 0x400000 at +0x130.",
+      "Established: index writers are exactly load/save/bind/accept calls to f_10119dcc; the predicate reads the rebuilt in-memory index and never revalidates against disk or the three-entry row cache."
+     ]
     },
     "catalog_download_wrapper": {
      "description": "f_100c6c3c initializes status402, looks up the SID descriptor through catalog slot+0x20 and returns402 if lookup fails or capability0x400000 is absent. With that capability it expands the manifest URI through f_105543d0 into a1025-byte buffer, loads descriptor+0x128 as an unsigned halfword version, and calls f_1011b710 with the embedded manifest-file object, SID, version and URI. The worker result is returned unchanged; the wrapper adds no separate nonempty-URI check. Conditional wrapper f_100c7404 first calls f_100c6b38: a false freshness predicate returns zero, while true tail-calls the download wrapper. Adapter f_100c7464 reads SID at argument+0x134 and enters this conditional wrapper; thunk f_100c7474 subtracts0x124 from this before entering the adapter. Account reconciliation code also calls the download wrapper directly at0x101b94bc and0x101b950c, so not every download goes through the index freshness gate. Account-manager helper f_10287238 invokes this conditional wrapper and maps any nonzero result to802; its five direct add-path callers and ordering are documented in music_accounts.manifest_refresh_precondition. The expanded manifest URI comes from SD context string at +0xe0 through f_105543d0: when the advertised URI contains the literal '{device}' placeholder, the helper substitutes the two-byte string 'zp' from 0x10e735b0, otherwise it plain strlcpy-copies. Substitution failure to fit the caller's buffer strlcpy-copies the unsubstituted text and logs 'Service manifest URI truncated: %s' in domain 'msd'; the no-placeholder path truncates silently. The advertised fields are produced by service-descriptor element handler f_100c8900: 'manifestVersion' is strtol-parsed to the u16 at descriptor+0x128 and 'manifestUri' is validated through f_10554124 which logs 'Unable to load manifest URI %s' in domain 'musicservices'; capability 0x400000 in descriptor+0x130 marks an advertised manifest. Caller census is complete: worker f_1011b710 is reached only here; this gate is called only from reconcile f_101b869c; conditional wrapper f_100c7404 is called only by accountsmgr helper f_10287238 which maps failure to 'Failed to download manifest file (%s) for service %u, error %hu' for its five add-path callers. The only registered periodic driver is the 'checkForAvailableMusicServices' task scheduled at catalog startup f_100c8230 with self-rescheduling callback f_100c59b4 ('next check for available services in %u s [source=%s]', source 'Player'), which refreshes the descriptor list that advertises these URIs.",
