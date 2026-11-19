@@ -166612,7 +166612,7 @@
    "name": "sonosledmgrd",
    "summary": "sonosledmgrd (/opt/bin/sonosledmgrd): the LED manager daemon that executes the R_LED_* mode vocabulary shared with anacapad's leds_zp library - it owns the physical hal_led device, pattern engine, and captouch feedback color.",
    "todo": [
-    "Residual: the concrete id-to-handler assignments inside the inline dispatch (kind domain proven <=0xe2; each arm is an inlined field-consume in f_10081160's index table, not a named table)."
+    "Residual: locate the actual LED-server request decoder/registration path and bind its commands and argument layouts to the mode/pattern operations. The previously claimed 0..226 request-kind dispatcher is a Mersenne Twister state update, not IPC; the cited four-word operations are wide-character memory copies, not socket reads."
    ],
    "artifacts": [
     "opt/bin/sonosledmgrd",
@@ -166623,10 +166623,27 @@
     "Mode execution: applies every mode in the anacapad-decoded table ('applyLEDMode R_LED_UPGRADE/BROKEN_DEVICE/JOIN_HH[_OPEN]/BEGIN_SETUP_MODE/IN_SETUP_MODE/WAC/WAC_TIMEOUT/BREAK_POP/SHUTDOWN/HHID/TRANSFER_REGISTRATION/CONTROL_FEEDBACK/IDENTIFY_PLAYER/AUDIO_OFF/MUTED/FAULT/WAITING_TO_PLAY/WAITING_TO_PAUSE/PLAYING/WARN/DEMO_MODE/DEMO_CONFIGURE_IR') plus hardcoded patterns set_pattern_for_mode {FACTORY_RESET, BOOTING, JOIN_HH, JOIN_HH_OPEN, BYPASS_BLOCKED, BYPASS, CLONE_CHECK_FAIL} and resumeDefaultLEDPattern fallbacks.",
     "Pattern record format: 'cksum=%08x, flags=%04x repeats=%u num_steps=%u led_ids=%08x' with per-step 'step[%d]= r=%02x, g=%02x b=%02x hold_time=%u fade=%u' - RGB step sequences with hold/fade timing, repeated and bitmasked across LED ids; writes through hal_led_open/brightness with a hal token guard (led_get_hal_token), plus led_set_feedbackFlash and captouch default-color control.",
     "Lifecycle: /etc/runledmgrd respawns it with trackrestart and a stale-pid watchdog loop; --fr runs the factory-reset flash pattern (driven by frcheck rc != 1 in Configure); /var/run/sonosledmgrd.flash_booting_led marks boot-time LED activity; writes /var/run/sonosledmgrd.pid.",
-    "Client surface: socket-based IPC (socket/bind imports, 'hostPort' field, client channel name '/sonosledmgrd-external' referenced from anacapad) serving the leds_zp client lib shared with anacapad and netstartd (netstartd contains the same 'applyLEDMode R_LED_WAC_TIMEOUT' call site).",
     "Logger: /opt/conf/sonosledmgrd_logger.toml (/jffs/conf/ override first) - sonosledmgrd.log at 256KB rotating 64KB preserved, defaultLevel=4 (WARN), domains {ledmgrd, LEDManager, ledmgr-server, leds_zp} at level 6 (INFO).",
-    "IPC framing proven: the client socket protocol reads fixed 4-byte words sequentially (read(fd,buf,4) at 0x100e4cf8, 0x100e854c, 0x100e856c, 0x100e8588, 0x100e85d0 inside the connection loop) - each request is a sequence of u32 fields (id/args) rather than a self-describing frame; arg presence branches on each read result. Byte-level arg extraction via rlwinm byte masks.",
-    "Request framing decoded further: the connection loop reads into a ring buffer (f_10080e4c family, max message bound 0x26f=623 at 0x10080e88); the per-message handler f_10081160 reads the request-kind u32 and bound-checks it <= 0xe2 (cmplwi at 0x10081190) - the request-kind domain is therefore 0..226, dispatched through an index*4 word-table reader, with a second field bound 0x26e for the trailing arg word."
+    "Prior inline-dispatch premise disproved at instruction level: f_10080e4c seeds a 624-word state array using multiplier 0x6c078965 (0x10080ec4-0x10080ecc), iterates indices 1..623, then stores index 624 at object+0x9c0. f_10081160 combines adjacent high/low bits, xors state word index+397, shifts by one, and conditionally xors 0x9908b0df (0x100811d4-0x10081218). f_100810a0 consumes that state and tempers the returned word with shifts 11/7/15/18 and masks 0x9d2c5680/0xefc60000 at 0x100810e0-0x10081138. These exact constants and dataflow identify MT19937 random-number generation. Bounds 226 and 622 divide the twist passes; they are neither a request-kind domain nor message-length bounds. No socket or LED-handler call occurs in the alleged dispatch loop.",
+    "Independent falsification of the earlier framing claim: instructions at 0x100e854c/0x100e856c/0x100e8588 only load r5=4 and call f_1004623c, not read(fd,buf,4). f_1004623c forwards its arguments to wmemcpy@plt at 0x1004627c (unless count zero), showing wide-character memory movement in an object operation, not connection reads. Also hostPort at 0x100ed394 is adjacent to logging-destination fields UDP, hostIP and STDERR, not a proven LED IPC field. Socket imports and these unrelated library helpers therefore do not establish a wire format. Actual command decoding remains open and is no longer assigned fabricated numeric ids."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "opt/bin/sonosledmgrd",
+     "build": "86.10-80260",
+     "function": "0x10081160",
+     "address": "0x10081208",
+     "notes": "MT19937 twist constant 0x9908b0df; state seeding and tempering corroborate, not IPC dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/sonosledmgrd",
+     "build": "86.10-80260",
+     "function": "0x1004623c",
+     "address": "0x1004627c",
+     "notes": "Alleged four-byte reads actually call wmemcpy."
+    }
    ]
   },
   "bin_busybox_applets": {
