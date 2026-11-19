@@ -185243,32 +185243,136 @@
    ]
   },
   "music_service_accounts_file": {
-   "name": "Music-service accounts file header and save behavior",
-   "description": "accounts.xml stores an Accounts root. Header emitter f_105071e4 supplies LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud and MuseHouseholdID. The table/row grammar is separate from this established header. The save fallback can emit only this root and closing tag, resetting Version=0, NextSerialNum=1 and PreferredSerialNum=0 and using an empty clock object. A root-only fallback can replace the live file while the writer returnsfalse. See music_accounts.account_file_commit and account_save_fallback for status/bookkeeping ordering.",
+   "name": "Music-service accounts file (accounts.xml)",
+   "description": "accounts.xml is a two-level XML document parsed and written by accountsmgr.cxx code. Root <Accounts> carries eight attributes: LastUpdateDevice (string), Version, NextSerialNum, SchemaVersion, PreferredSerialNum (all %u-formatted words) and MuseHouseholdID, plus optional VClockHousehold and VClockCloud strings omitted when their first byte is zero. Each account row is <Account Type= SerialNum= Flags=> with %u attribute fields, optional attributes Deleted=\"1\" (tombstone rows), Id (uuid) and per-row VClockHousehold/VClockCloud, followed by optional child elements <UN> <NN> <PW> <MD> <OADevID> <Hash> <Tier> <Token> <Key> each emitted only when its field is nonempty (Tier only when the word is nonzero), then </Account>. Text and attribute values are escaped with the five-standard-entity XML set. Tombstone rows come from a second list, are written after live rows and never carry Token/Key; a tombstone whose username field is empty emits no child elements at all. The reader is expat 2.5.0 SAX over 0x1000-byte file chunks with a name-table state machine that accepts only the exact element spellings and the Accounts>Account>leaf nesting. Field text is accumulated with bounded append then length-validated at </Account>; an over-cap field drops that record and marks the parse corrupt but does not stop parsing. Deleted-attribute values are strtol'd, so Deleted=\"0\" or garbage produces a live row. The Id attribute is written on save but the reader never binds it (its name compare targets an unrelated literal), so parsed uuids are always cleared. A root-only file produced by the save fallback (Version=0, NextSerialNum=1, PreferredSerialNum=0, null clock attrs omitted) parses cleanly as an empty account list, which is the designed recovery path after a failed full save. A structurally malformed file yields whatever complete Account elements parsed before the first expat error with no error surfaced to the caller.",
    "evidence": [
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10508988",
-     "notes": "Temporary full write/close/rename; fallback root-only write through0x10508bcc and unconditional false return0x10508abc."
+     "notes": "Save entry: writes path+\".tmp\" (snprintf cap0x400), streams via f_105084e0, then rename(tmp,path)+unlink(tmp). On stream-open or serialize failure writes a minimal root-only file to the tmp path instead, renames it and returns0 anyway (0x10508ac4..0x10508bd0)."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x105071e4",
-     "notes": "Accounts header emitter through0x105073bc. Fallback changes Version to0, NextSerialNum to1 and PreferredSerialNum to0, then caller closes Accounts without row emission."
+     "notes": "Header emitter: snprintf '%u' x4 into 12-byte slots for state+4/+8/+0xc/+0x10, builds 8-entry {name,value} attr table LastUpdateDevice/Version/NextSerialNum/SchemaVersion/PreferredSerialNum/VClockHousehold/VClockCloud/MuseHouseholdID, open tag via f_105784a4 then newline. VClock attrs use clock-obj +4/+0x28 strings and are skipped when first byte is 0."
     },
     {
      "type": "firmware",
      "binary": "anacapad",
      "build": "86.10-80260",
-     "address": "0x10578514",
-     "notes": "Closing-tag writer begins with literal </, confirming fallback Accounts close at0x10508b70."
+     "address": "0x105081bc",
+     "notes": "Row emitter f_105081bc(writer, deleted_flag, record): literal '  <Account Type=\"' + %u rec+4, '\" SerialNum=\"' + %u rec+0, '\" Flags=\"' + %u rec+0x1f4, optional ' Deleted=\"1' when flag!=0 (closed by the following \"' or '>'), ' Id=\"'+uuid when sonos_uuid at rec+0x240 nonnull, ' VClockHousehold=\"'+rec+0x1fc / ' VClockCloud=\"'+rec+0x220 when first byte nonzero, '\">\\n', then child elements gated on nonempty first byte: UN rec+8, NN rec+0x14b, PW rec+0x10a, MD rec+0x89, OADevID rec+0x18c, Hash rec+0x1cd, Tier %u when rec+0x1e8!=0. Early return when UN empty AND deleted (bare open tag)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105084e0",
+     "notes": "Save driver: header into a 0x2000-cap buffer then stream-write; iterates live list r30+0x14 (stride0x250, entry+0/+4 must be nonzero else abort save), per-entry filter callback r6 (f_105050b0 here) may skip the row; live rows additionally emit '<Token>' (rec+0x1ec ptr via f_1056f07c, 0x801 buf) and '<Key>' (rec+0x1f0 via f_1056f0c4) when nonempty, then '  </Account>\\n'; second loop over deleted list r30+0x18 emits flag=1 rows without Token/Key; finishes with '</Accounts>\\n' written directly to stream. Return0 on any failed stream write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105779c8",
+     "notes": "Escaping append (writer vfunc+0x10 via +0xc strlen wrapper f_10577c40): per byte c, idx=(c-0x22)&0xff; mask0x14000031 bits at idx{0,4,5,26,28} select chars 0x22 0x26 0x27 0x3c 0x3e; replacement table emits &quot; &amp; &apos; &lt; &gt;. Same vfunc used for attribute values (f_105782a0) and element text (f_10578598): identical escaping in both contexts."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10505ea8",
+     "notes": "expat wiring: f_10c3fd88 registers start=0x105067e8->f_105065cc, end=0x1050649c->f_10505fac, chardata=0x105065c0->f_105064a8 on a 0x120c parser-state object {+0 vtable 0x10edecf4, +8 consumer sink, +0xc depth, +0x10.. element-index array, +0x1c corrupt flag, +0x1d.. leaf-field buffers}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10505fac",
+     "notes": "startElement: depth>2 just increments; matches name against 'Accounts' then table0x10edecc4 {Account,UN,PW,MD,NN,OADevID,Token,Key,Hash,Tier} (index0..10, unknown stores -1 at parser+0x10+depth*4). 'Accounts' handled only at depth1: walks attr pairs into 8 slots by strcmp then sink vfunc+8. 'Account' handled only at depth2 when root index==0: clears the 9 leaf buffers, walks attrs Type/SerialNum/Flags/Deleted/<unbindable>/VClockHousehold/VClockCloud then sink vfunc+0x10. Leaf elements only bump depth."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105064a8",
+     "notes": "characterData: only at depth==3; jump table0x10edec94 on depth-3 element index appends text via f_10c3a06c (bounded append, cap-1+NUL, truncates) into UN +0x1d cap0x82, PW +0x121 cap0x42, MD +0x9f cap0x82, NN +0x163 cap0x42, OADevID +0x1a5 cap0x42, Token +0x1e7 cap0x802, Key +0x9e9 cap0x802, Hash +0x11eb cap0x1a, Tier +0x1205 cap4. Multi-chunk text accumulates; text for elements not at depth3 is dropped."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105065cc",
+     "notes": "endElement: 'Account' end at depth2 with depth-2 index==1 validates strlen UN<0x80, MD<0x80, PW<0x40, NN<0x40, OADevID<0x40, Token<0x800, Key<0x800, Hash<0x18, Tier<3; any violation sets parser+0x1c corrupt flag and skips commit; else sink vfunc+0x14 with (UN,PW,MD,NN,OADevID,Token,Key,Hash,Tier). 'Accounts' end at depth1 with root index==0 calls sink vfunc+0xc. Then depth--."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1050591c",
+     "notes": "Probe-sink onAccountsAttrs (vtable0x10eded28): requires LastUpdateDevice strlen==24 and nonnull Version/NextSerialNum else returns; strlcpy LUD cap0x19, strtol Version->+0x58, strtol NextSerialNum->+0x5c and flag+4 only when parsed nonzero, paranoid_atoui PreferredSerialNum->+0x60 and paranoid_atoi SchemaVersion->+0x64 (failure only logs 'Error reading ...' via accountsfile channel), f_1056ed84 parses VClock pair, strlcpy MuseHouseholdID cap0x36."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10505170",
+     "notes": "Import-sink onAccountAttrs (vtable0x10eded48): strtol Type->+0x10c; SerialNum strtol->+0x110 or0 when absent/empty; paranoid_atoui Flags->+0x114; strtol Deleted->byte +0x64 (nonzero marks tombstone); VClock strings into +0xb7 struct via f_1056ed84 or f_1056ecb4; the fifth attr arg is always0 because its name compare targets literal 't-Type: %s\\r\\n' at0x10ee8450 which can never match, so the Id attribute is effectively unbound and sonos_uuid_clear(+0xfc) always runs. Flag +0x65 set when Type!=0 or (Type==0 and Serial==0 and Flags&4)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10505474",
+     "notes": "Import-sink onAccountRecord: paranoid_atoui Tier clamped to0 when >0xff; MD=='1' bit extracted; Deleted!=0 routes insert to list +0x11c (skipped when null) else +0x118; calls f_10570688(list, Type, Serial, UN, MD, PW, NN, OADevID, Token, Key, Hash, tier, &uuid, &clock, flag)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105068ec",
+     "notes": "Parse driver: open file obj (f_1054ee48/f_1054eef0), register SAX, feed loop f_1054ef38 reads 0x1000-byte chunks into sp+0x123c passed to f_10c3fc68 (XML_Parse); parse status is not checked. On loop end writes sink-side flag = !(parser+0x1c). File-open failure returns early without touching that flag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102884ec",
+     "notes": "Replication apply path: rejects arg Version>2 with 'Rejected version %u, schema %u from %s' log, probes staged file with sink vtable0x10eded28, requires flag+4 (NextSerialNum parsed nonzero) AND flag+5 (!corrupt) before logging 'replicating accounts file from %s' and rename()ing the staged file over the live path, then copies header fields (LUD->mgr+0xb8 cap0x19, Version->+0xd4, NextSerial->+0xd8, PrefSerial->+0xdc, Schema->+0xe0, VClock->+0xe7, MuseHHID->+0x10b) and notifies observer vfunc+0x14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028e074",
+     "function": "0x1028ddf4",
+     "notes": "Boot/local load path builds the same probe sink, parses the file, and adopts the header fields into the manager only when flag+4 (nonzero NextSerialNum) and flag+5 (!corrupt) are both set; otherwise the file's header is ignored while records may still load through the import pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10506b0c",
+     "notes": "Import driver builds import sink (vtable0x10eded48 with real onAccountRecord f_10505474), stores caller-supplied live/deleted list heads at sink+0x118/+0x11c, runs the same expat feed loop, and writes sink+0x68 = !corrupt. Sole caller f_102887e0 is shared by ~25 account-mutation paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10edeedc",
+     "notes": "Literal pool: 'accountsfile' log tag at0x10edeee0 used for 'Error reading schema version' / 'Error reading PreferredSerialNum' diagnostics; Id-attr compare literal0x10ee8450 is 't-Type: %s\\r\\n' (dead compare)."
     }
    ],
-   "todo": "Established: Accounts root header fields and root-only fallback emission/result are decoded. Remaining: recover the complete account/credential/tombstone row schema, field omission and escaping, parser acceptance and round trips, and recovery after root-only save or malformed files."
+   "write_grammar": "Established: exact serialization order and conditions. Header <Accounts> opens with up to8 attributes in fixed order LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud, MuseHouseholdID; each value is written via the escaping vfunc except the four %u numbers which are formatted to text first. Rows follow in list order: live list then deleted list, each '  <Account ...>' at indent2 and children at indent4, '  </Account>' after, then '</Accounts>'. Attribute order per row: Type, SerialNum, Flags, [Deleted=\"1], [Id], [VClockHousehold], [VClockCloud]. Child order: UN, NN, PW, MD, OADevID, Hash, Tier, then Token, Key for live rows only; each child skipped entirely when its field is empty (Tier when its word is0). A tombstone row with empty UN emits no children. The Deleted literal intentionally lacks its closing quote which is supplied by whichever of Id/VClock/'>' follows. No XML declaration is written: the file begins directly with <Accounts.",
+   "parse_grammar": "Established: expat 2.5.0 SAX state machine. Depth tracked in parser+0xc, per-depth matched-element index stored at +0x10,+0x14,+0x18 (index-1 for unrecognized names). Accepted structure is exactly <Accounts ...> at depth1, <Account ...> at depth2 under that root, and the nine leaf names at depth3; anything deeper only advances the depth counter, unrecognized names are ignored but still nest. characterData is captured only at depth3 and appended with cap-1 truncation per leaf buffer, so repeated callbacks accumulate. 'Account' end validates nine field lengths (UN<0x80 MD<0x80 PW<0x40 NN<0x40 OADevID<0x40 Token<0x800 Key<0x800 Hash<0x18 Tier<3); a violation marks parser+0x1c and skips that record only. 'Accounts' end only fires vfunc+0xc when the root index is0. Whitespace and entity expansion are expat's; unknown entities abort the parse where they occur.",
+   "attribute_and_field_coercion": "Established: numeric attributes are parsed text, not validated words. Type, SerialNum and Deleted use strtol base10 (leading digits only, trailing junk ignored, no errno check); Deleted is stored as a single byte of the result so Deleted=\"256\" reads back as0/live. Flags and header PreferredSerialNum use paranoid_atoui, SchemaVersion uses paranoid_atoi, each into an out word with failure only logging. Tier text (cap4 buffer, then <3 required) is paranoid_atoui and clamped to0 when it exceeds0xff. '1' is the only meaningful MD marker byte at commit (MD=='1' bit extracted). A missing Type attribute leaves sink+0x10c at its previous value while a missing/empty SerialNum yields0. Header acceptance requires LastUpdateDevice exactly24 chars plus nonnull Version and NextSerialNum, and the +4 flag additionally requires NextSerialNum to parse nonzero.",
+   "round_trip": "Established: fields written by the save path always satisfy the read-side caps (writer field caps 0x81/0x41/0x801/0x19 are inside the accumulate caps 0x82/0x42/0x802/0x1a and the stricter commit bounds), so a daemon-written file round-trips losslessly including all five escapable characters via expat entity expansion. Round-trip asymmetries: the Id uuid is written but never read (cleared); %u numeric attrs survive through strtol but a hand-edited negative like Type=\"-1\" stores0xffffffff and rewrites as \"4294967295\"; Deleted with any nonnumeric or zero-parsing text resurrects the row into the live list; Tier parses>255 are clamped to0; fields longer than the commit bound drop the record and set the corrupt flag while siblings still import; a second sibling <Accounts> root re-runs the header handler and overwrites the parsed header.",
+   "failure_and_recovery": "Established: save is atomic via .tmp+rename; on serialize/open failure the fallback writes '<Accounts ...></Accounts>' (real LUD/SchemaVersion/MuseHouseholdID, forced Version=0 NextSerialNum=1 PreferredSerialNum=0, VClock attrs suppressed by a null-clock object), renames it over the live path and still returns0, so a failed save silently replaces the file with an empty account list rather than leaving the old file. A root-only file parses cleanly: header accepted when NextSerialNum parses nonzero (the forced 1 qualifies), zero records committed. A malformed or truncated file commits every complete <Account> finished before the expat error and no error propagates through the feed loop (XML_Parse status unchecked); an unclosed trailing Account loses only that record's buffered fields. File-open failure leaves the parse-clean flag untouched. Replication apply additionally requires Version<=2, nonzero parsed NextSerialNum and !corrupt before the staged file replaces the live one.",
+   "related_paths": "Inferred: vtables at0x10eded28 (probe sink: header fields + Type-converter tombstone detect, record/end vfuncs are nops) and0x10eded48 (import sink: full attr-to-field coercion and list insertion) are the two parse consumers; a separate template-serializer family at0x10eded78 emits the same Accounts/Account/leaf grammar into a string document for AccountsInfo replication output (f_10507b9c open+attrs, f_10507e54 leaf row, f_10507cb0 close) through the shared escaping writer, so wire replication XML and the file format share the schema but not the serializer."
   },
   "music_service_account_udn": {
    "name": "Music-service account UDN selection format",
