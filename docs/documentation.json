@@ -197384,13 +197384,78 @@
      "note": "muse authorization is evaluated by the Thor policy subsystem: op calls carry credType through the <Command> envelope and Thor checks the caller against UserAuthorization policy keys"
     }
    },
-   "todo": [
-    "Established: the OAuth grant table (jwt-bearer, RS256/HS256, sonos subject URNs) and the Thor policy layer are recovered.",
-    "Residual: Thor's policy evaluation internals - how UserAuthorization policy keys gate each op."
-   ],
-   "thor_eval": "Thor evaluation path decoded: the PolicyKeyTable (guarded by PolicyKeyTableMutex, cache-hit log 'Policy mapping retrieved from cache') maps an op's policy key to a ROLE name ('Role from policy key: %s'; policy keys arrive over lechmere - 'Could not parse role from lechmere policy key'). The role then gates: 'Guest access disallowed' / 'Using guest policy' for guest-role ops, 'Unauthenticated control disallowed' for unauthenticated callers. Authorized ops proceed to the credential check: JWT validation ('JWT parsing failed with error=%s', 'Invalid JWT string', 'Invalid signature') plus registration state ('Unable to retrieve current registration status/state', 'Registration request state is not supported'). Singletons 'UserAuthorization' and 'ThorOperations' are registered by the thor static-init (f_1008e190), which also subscribes TopologyZpListChangedEvent/InfoUpdatedEvent observers ('ie-obs') so cached policy invalidates on topology/info changes. 'validateUserAuthorization violation' is a dead literal - the live denial logs are the role gates above.",
+   "thor_eval": "Thor op gating decoded end to end. Static-init f_1008e190 registers the named singletons 'UserAuthorization' (object 0x110a6d98) and 'ThorOperations' (0x110a6e30), a named 'PolicyKeyTableMutex', the 'museauth' log domain, and the URN 'urn:dev:ops:44974-zp-'. Ops dispatch into the UserAuthorization object through vtable 0x10ef9774: slot+0x10 f_10601ecc is the offline guest path (logs 'Using guest policy for offline mode'), slot+0x14 f_10602014 is the mTLS path (logs 'Using mTLS policy', pre-sets result bytes +0x6=1 and +0xc=3), slot+0x18 f_10605544 is the credential gate, and slot+0x1c f_10606644 is the policy-key op path. f_10605544 parses envelope tags 4 and 5 (f_109ed0a8) into flag bytes at result+0x28/+0x29 and copies credType (ctx+0) to result+0xc. When its guest-mode arg is set, credType==1 means an unauthenticated guest: flag byte 0 denies with 'Unauthenticated control disallowed' (status code 3 in the error out-param). Other credTypes route through f_10604af0, which serializes the caller credential via ctx vfunc+0x28 into a 0x204-byte blob and enforces credential-type slots (compares against 2 and 4) plus the ctx+0x28 flag, denying with 'Credential is not allowed' or 'Guest access disallowed' (status 3); success falls into f_10600824. With no guest arg the op takes the offline path: flag byte must be 0, then f_10601d7c looks up a policy object by a fixed 16-byte key (rodata 0x10ef97b0) in the locked map at 0x110a86b8 before the same f_10600824 allow check, logging 'Using guest policy' on success. f_10606644 gates by op-descriptor policy key: when descriptor+0x30 is set it calls role resolver f_10606170, otherwise it invokes the context object's vfunc+0 directly and denies with 'Permissions are insufficient' (status 3) on a zero result. f_10606170 resolves the role for a policy key: a cached policy blob under this+0x2c or a lechmere fetch via f_10603194 supplies the policy, the resolved role string is logged at level 6 'Role from policy key: %s', a missing policy yields 'Could not fetch policy' and an unparseable lechmere reply yields 'Could not parse role from lechmere policy key' (both status 3), and success again ends at f_10600824. f_10600824 is the terminal allow: with a context object it calls the context vfunc+0 predicate through delegate f_105ffbdc and denies 'Permissions are insufficient' on 0; with no context it computes (required_bits arg4 & ~granted_mask) == 0 where the granted mask comes from f_109d8e70(arg5), so an op is allowed only when every required permission bit is granted. The allow byte is written to out+1. f_106058d4 is the PolicyKeyTable cache lookup: it builds a composite key from the op's policy-key string (split at '-') and walks two map regions under locks 0x110a76b0/0x110a76a8; a hit stores the mapped role code to out+0x1c and logs 'Policy mapping retrieved from cache' at level 7. Cache state invalidates via the ie-obs observers f_1008e190 subscribes (TopologyZpListChangedEvent/InfoUpdatedEvent). 'validateUserAuthorization violation' remains a dead literal; the live denial strings are the role gates and status-3 writes above.",
    "resolved_findings": [
-    "Established: policy key -> role mapping under PolicyKeyTableMutex with cache; role gates {guest,unauthenticated}; JWT + registration-state checks; topology/info-change cache invalidation via ie-obs observers."
+    "Established: policy key -> role mapping under PolicyKeyTableMutex with cache; role gates {guest,unauthenticated}; JWT + registration-state checks; topology/info-change cache invalidation via ie-obs observers.",
+    "Established: ops reach Thor through the UserAuthorization singleton vtable 0x10ef9774; slots +0x10/+0x14 are the offline-guest and mTLS entry points, +0x18 is the credential gate f_10605544, +0x1c is the policy-key op path f_10606644.",
+    "Established: the credential gate reads envelope tags 4/5 into flag bytes and credType into the result; guest credType==1 denies 'Unauthenticated control disallowed', other creds validate through f_10604af0 (0x204-byte serialized credential, type slots 2/4, ctx+0x28 flag), and the no-arg arm is the offline 'Using guest policy' path.",
+    "Established: policy-key ops resolve their role through f_10606170 using a cached policy or the lechmere fetch f_10603194, with a PolicyKeyTable cache lookup f_106058d4 under two map locks logging 'Policy mapping retrieved from cache'; misses produce 'Could not fetch policy'/'Could not parse role from lechmere policy key' status 3.",
+    "Established: every path ends at f_10600824, which allows via a context vfunc+0 predicate or a required-vs-granted permission-bitmask check (f_109d8e70), denying with 'Permissions are insufficient' status 3."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1008e190",
+     "notes": "Thor static-init: registers 'UserAuthorization' (f_10989174, obj 0x110a6d98), 'ThorOperations' (f_109874dc, 0x110a6e30), named 'PolicyKeyTableMutex', 'museauth' domain, urn:dev:ops:44974-zp-."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef9774",
+     "notes": "UserAuthorization vtable: +0x10=f_10601ecc guest-offline, +0x14=f_10602014 mTLS, +0x18=f_10605544 credential gate, +0x1c=f_10606644 policy-key op path; ctor f_106067e4 stores it at obj+0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10605544",
+     "notes": "Credential gate: envelope tags 4/5 -> result+0x28/+0x29, credType ctx+0 -> +0xc; credType==1 guest denied 'Unauthenticated control disallowed' (0x106057b4); else f_10604af0 then f_10600824; offline arg==0 arm at 0x10605848 requires flag 0, f_10601d7c+f_10600824, logs 'Using guest policy'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10604af0",
+     "notes": "Credential validator: ctx vfunc+0x28 serializes 0x204-byte blob; credential-type slots vs 2/4 and ctx+0x28 flag; denials 'Credential is not allowed'/'Guest access disallowed' status 3."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10606644",
+     "notes": "Policy-key op path: op descriptor +0x30 set -> f_10606170 role resolve; unset -> ctx vfunc+0 predicate; 0 denies 'Permissions are insufficient' status 3; result fields +5 byte, +6=1, +0x10=3, +0xc=2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10606170",
+     "notes": "Role-from-policy-key: policy from this+0x2c cache or lechmere fetch f_10603194 (flag at sp+0x74==1); logs 'Role from policy key: %s' lvl6; 'Could not fetch policy'/'Could not parse role from lechmere policy key' status 3; success -> f_10600824."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10600824",
+     "notes": "Terminal allow: ctx!=0 -> ctx vfunc+0 predicate via delegate f_105ffbdc, deny 'Permissions are insufficient' status 3; ctx==0 -> (arg4 required bits & ~f_109d8e70(arg5) granted mask)==0; allow byte -> out+1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106058d4",
+     "notes": "PolicyKeyTable cache lookup: composite key from op policy-key string split at '-' via f_10831ea8; maps under locks 0x110a76b0/0x110a76a8; hit stores role to out+0x1c, logs 'Policy mapping retrieved from cache' lvl7."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10601d7c",
+     "notes": "Locked policy-map find at 0x110a86b8 keyed by 16-byte key 0x10ef97b0; returns policy object entry+0xc."
+    }
    ]
   },
   "netsettings_mgr": {
