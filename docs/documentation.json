@@ -223364,14 +223364,17 @@
   },
   "virtual_linein": {
    "source_manager": "group hooks {[groupAdded] configureLocalTransport(VLI),[groupRemoved] configureLocalTransport(null),[startLocalPBAsGM]/[stopLocalPBAsGM] + proxyactive}; source lifecycle {register(vli type),suspend,resume,onSelect,deactivate(type,sender)}; \"Recording State Snapshot in state %d\"; \"Starting vli audio input subsystem (type=%d)\"/\"ending vli ai subsystem (cached type=%d; new=%d)\"; cookie validation {\"validate cookie failed for [%d], [%d]\",\"no source to validate cookie\"}; ai_vli thread",
-   "todo": [
-    "Established: six executable factories, selectSource member callback and bounded source-enum conversion, including unknown-member and unmatched-value behavior. Remaining: bind all six command constructors, metadata consumers and context+0x108 implementation injection to their concrete input/output models, requiredness, validation failures and lifecycle effects. Start with vtable0x10faaf94, f_10b8103c, f_109dafc8 and f_10b81de0, then repeat for the other five factories. Resolve empty/unknown source handling beyond the converter before assigning an API error. These are actionable static joins, not external Muse-spec-only grammars."
-   ],
    "resolved_findings": [
     "The compiled namespace selector f_10b80d00 compares the requested operation against six name/factory pairs: selectSource/f_10b812e0, startTransmission/f_10b81570, stopTransmission/f_10b81800, sendBackChannelCmd/f_10b81aa0, startAudio/f_10b81b6c and stopAudio/f_10b81cac. An unmatched name returns a null command. Player-scoped and household/player-scoped route literals exist, but neither their order nor the selector order proves a required select->transmit->audio lifecycle.",
     "selectSource has an in-image command model: factory f_10b812e0 allocates and calls f_10b811c0, which installs vtable0x10faaf94. Its member callback at vtable+0x28 is f_10b8103c: source is recognized by f_108337b0 and converted by f_10b9dcf4 into command+0x15c; unknown member names return0. Metadata registration f_10b81128 also passes source to f_109cc8f4. Body grammar is therefore not established as external Muse-spec-only data.",
     "The source converter f_10b9dcf4 initializes its output to0, then scans four stride12 rows at0x10fadcfc: empty spelling->0, AIRPLAY->1, SPOTIFY->2 and BLUETOOTH->3. It requires matching length and strncasecmp equality, returns1 on a match and0 otherwise. The member callback returns1 after conversion even if conversion fails, so this boundary alone does not prove an invalid-source rejection, field requiredness, or linein/homeTheater source vocabulary.",
-    "Execution f_10b81de0 first runs target-ID validation f_109da4f8, then the status0x34 admission check and f_109dafc8 validation before reaching the nonnull implementation at context+0x108, virtual+8. Target addressing, body parsing and domain execution are separate joins. The earlier generic source-manager inventory does not bind every verb to volume/skip propagation, x-rincon-stream routing or one universal activation order."
+    "Execution f_10b81de0 first runs target-ID validation f_109da4f8, then the status0x34 admission check and f_109dafc8 validation before reaching the nonnull implementation at context+0x108, virtual+8. Target addressing, body parsing and domain execution are separate joins. The earlier generic source-manager inventory does not bind every verb to volume/skip propagation, x-rincon-stream routing or one universal activation order.",
+    "All six command classes share the base layout proven for selectSource: a primary vtable (0x10faaf94,0x10fab014,0x10fab094,0x10fab114,0x10fab194,0x10fab214) plus a second interface vptr at +0x78, a member-binding callback at vtable+0x28, and a per-command exec at vtable+0x38 (f_10b81de0,f_10b820c0,f_10b823a4,f_10b82688,f_10b8296c,f_10b82c50). Each exec calls a distinct consecutive slot of the namespace actor interface: virtual+8,+0xc,+0x10,+0x14,+0x18,+0x1c for selectSource through stopAudio.",
+    "Member binding is concrete per command: selectSource, startTransmission and stopTransmission bind body member 'source' (presence via f_108337b0 on the member map at command+0x50; conversion f_10b9dcf4 into command+0x15c); sendBackChannelCmd binds 'backChannelCmd' via f_10b9dbf0 into command+0x15c; startAudio and stopAudio inherit the base callback 0x101c069c that returns 0, so they carry no body member. The 'source' table 0x10fadcfc has four rows {'':0,'AIRPLAY':1,'SPOTIFY':2,'BLUETOOTH':3} and the 'backChannelCmd' table 0x10fadcc0 has five rows {'':0,'PLAY':1,'PAUSE':2,'NEXT_TRACK':3,'PREV_TRACK':4}; both require exact length plus strncasecmp equality, empty maps to 0, and an unmatched nonempty value leaves 0 while the member still counts as bound.",
+    "Each exec runs the same staged admission: f_109da4f8 formats status 0x4c 'Missing <names>' by iterating the required-name list of the per-command 12-byte schema entry (runtime-built entries at 0x110ca248,+0xc,+0x18,+0x24,+0x30,+0x3c) and yields sentinel 0x34 to continue; f_109dafc8 bound-checks f_109dcc80(command+0x7c) against tuple {1,*0x110bb360,1} returning 0x60 below-min, 0x61 at-or-over max, or 0x5a on the f_109dd7d0 gate, with 0x34 again meaning proceed; a null actor at context+0x108 produces status 0x59 'Namespace has no actor'; for stopAudio only, an actor whose virtual+0x1c still equals default stub f_10b82fc8 short-circuits to status 0x5f without a call.",
+    "context+0x108 is the actor shared_ptr inside the per-request invocation context, not an unbound global: namespace-descriptor ctor f_10b81d80 installs vtable 0x10fab294 (name getter f_10b82ff4 returning 'virtualLineIn' at +0x1c, verb selector f_10b80d00 at +0x18, actor getter f_10b82fe4 returning this+0x38 at +0x20) and zeroes actor slot +0x38. Namespace registrar f_100d12f4 indexes a ctor jump table at 0x10e781d8 by a u16 namespace id (bound 0x52), allocates each 0x3c-byte descriptor and installs it into the registry. Dispatch entry f_109ebd74 obtains the actor provider via getActorProvider (f_109e07b8, log tag 'muse'), resolves the invocation through provider vfunc+8 and copies the returned ~0x124-byte request context whose +0x108 word is the actor. The concrete class registered as the virtualLineIn actor is a runtime service-registration fact with no static store in this image; the related device-local surface is UPnP service urn:schemas-upnp-org:service:VirtualLineIn:1 at /MediaRenderer/VirtualLineIn/Control, installed at 0x104344c4.",
+    "Routing is doubly bound: each of the six verbs has both v1/players/{playerId}/virtualLineIn/<verb> and v1/households/{householdId}/players/{playerId}/virtualLineIn/<verb> descriptor rows at 0x10e7b8a4-0x10e7b9c8 (flag word 0x20000102), whose handler stubs tail-call f_100d2e18 with scope selector 0 or 1.",
+    "Command objects are 0x180 bytes, allocated by factories f_10b812e0/f_10b81570/f_10b81800/f_10b81aa0/f_10b81b6c/f_10b81cac via f_10809f0c and built on shared ctor f_109d9b18 (target descriptor arg at +0x7c, args 5,6 at +0x80/+0x84, six embedded SSO strings, secondary interface vptr at +0x78). f_109da18c hydrates the command per request from the request descriptor (member strings +0xf0,+0x108,+0x124,+0x13c and fields +0xec,+0x120), then the generic invoker around 0x109eb1c4 copies the invocation context and calls command virtual+0x38."
    ],
    "evidence": [
     {
@@ -223380,6 +223383,76 @@
      "build": "86.10-80260",
      "address": "0x10b80d00",
      "notes": "Six selector/factory pairs; selectSource constructor0x10b811c0 installs0x10faaf94, member callback0x10b8103c, metadata0x10b81128, converter0x10b9dcf4 and four raw stride12 rows0x10fadcfc-0x10fadd2b. Execution0x10b81de0 separates target validation, body admission and domain virtual+8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b81de0",
+     "notes": "selectSource exec: f_109da4f8 on cmd+0x7c must yield 0x34; f_109dafc8 bound check {1,*0x110bb360,1} must yield 0x34; ctx+0x108 null -> status 0x59 'Namespace has no actor'; else actor vfunc+8 marshals {status i32,flag byte,ptr pair,16B blob} into out and cmd+0xac into *out2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b82d24",
+     "notes": "stopAudio exec compares actor vfunc+0x1c to default stub f_10b82fc8; an unimplemented slot returns status 0x5f without dispatch. The other five execs dispatch their actor slots +8..+0x18 unconditionally."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fadcfc",
+     "notes": "source member enum: 4 stride-0xc rows {'':0,'AIRPLAY':1,'SPOTIFY':2,'BLUETOOTH':3}; exact-length plus strncasecmp. backChannelCmd table 0x10fadcc0: {'':0,'PLAY':1,'PAUSE':2,'NEXT_TRACK':3,'PREV_TRACK':4}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109da4f8",
+     "notes": "Formats 'Missing <csv>' status 0x4c by iterating the required-name list inside the per-command 0xc-byte schema entry at runtime table 0x110ca248 (entries at +0x0,+0xc,+0x18,+0x24,+0x30,+0x3c per command index); status 0x34 sentinel = proceed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109dafc8",
+     "notes": "Bound-checks f_109dcc80(cmd+0x7c) against tuple {min,max,units}={1,*0x110bb360,1}: value>=max -> 0x61, value<min -> 0x60, then f_109dd7d0 gate -> 0x5a on failure else 0x34 proceed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b81d80",
+     "notes": "virtualLineIn namespace descriptor ctor: vtable 0x10fab294, name()='virtualLineIn' via f_10b82ff4 at vt+0x1c, selector f_10b80d00 at vt+0x18, actor getter f_10b82fe4 returning this+0x38 at vt+0x20; +0x38 actor slot zeroed at construction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d12f4",
+     "notes": "Namespace registrar: u16 id from the descriptor row indexes ctor jump table 0x10e781d8 (bound 0x52); each arm allocates a 0x3c-byte descriptor; VLI arm calls f_10b81d80 at 0x100d1964; r30 passes the provider handle into the ctor."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ebd74",
+     "notes": "Namespace dispatch entry: getActorProvider via f_109e07b8 (tag 'muse','%s - not initialized'), resolves the invocation through provider vfunc+8, then copies the returned ~0x124-byte request context; the exec reads the actor pointer at ctx+0x108. Actor identity is runtime-registered, not statically bound."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e7b8a4",
+     "notes": "Route descriptor rows for virtualLineIn: {csv 'playerId,virtualLineIn,<verb>', uri literal, 0x20000102, 0, handler, 0} per route; two scopes per verb; handlers 0x100d36c0/0x100d36e4 tail-call f_100d2e18 with r8=0/1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104344c4",
+     "notes": "UPnP service-table init registers urn:schemas-upnp-org:service:VirtualLineIn:1 at /MediaRenderer/VirtualLineIn/Control (service index 0x4d); shipped SCPD lists 8 actions, none named selectSource/sendBackChannelCmd/startAudio/stopAudio."
     }
    ]
   },
