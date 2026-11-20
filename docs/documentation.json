@@ -231653,11 +231653,95 @@
      "build": "86.10-80260",
      "address": "0x104b0988",
      "notes": "R_HideTuneIn=true settings update; zero returns0, nonzero maps809 at0x104b09dc. Raw0x4182ff90 at0x104b09c8 checks zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0e84",
+     "address": "0x10ed75c4",
+     "notes": "Installed settings-delegate vtable slot map: +0x14 f_104b0500, +0x18 f_104b07f0, +0x1c f_104b052c (AddOAuthAccountX adapter), +0x20 f_104b0918 (RemoveAccount), +0x24 f_104b0684 (password), +0x28 f_104b071c, +0x2c f_104b0510 (RefreshAccountCredentialsX), +0x30 f_104b06d0 (metadata), +0x34 f_104b0b04, +0x38 f_104b0c90 (DoPostUpdateTasks)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028aaf4",
+     "notes": "Log-name offset +0x40 resolves to 'int_addAccountWithOAuthToken': f_1028a224 is the internal OAuth add core. Complete caller set (bl and tail-b): addAccountWithOAuthToken f_1028b2e4@0x1028b43c, addAccountWithOAuthCode f_1028b440@0x1028b5b0, addPreinstalledService f_1028ad54@0x1028b140, addAccountForOAuthDirectControl f_1028b5bc@0x1028b754. No other static call or branch reaches it."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b440",
+     "address": "0x1028b568",
+     "notes": "addAccountWithOAuthCode calls f_10286e44 (device-auth-token exchange: 'getDeviceAuthToken failed (res = %d)' at 0x1028714c, smapi 'dcLogin'/'zpAM' strings at 0x10287108/0x10287110, clock_gettime at 0x10286fbc/0x10287028) to mint the token, then calls f_1028a224."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b5bc",
+     "address": "0x1028b754",
+     "notes": "addAccountForOAuthDirectControl calls f_1028a224 after the same f_10287238 gate. Its only callers are internal: f_1020eb2c@0x1020f02c (flags assembled rlwinm 8,0,23 | ori 0x7) and f_1028fa98@0x102902ac. It is not reachable through the public adapter f_104b052c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028ac18",
+     "notes": "After the operand checks and duplicate guard ('addAccount failed: account already exists on household' at 0x1028acd0), the add/migrate op f_1028686c performs the guest-account migration path ('Bad guest migration: UDN = %s - UserIDHash = %s', 'Existing account is not a guest account, migrateGuestAccount failing', 'Migrated %s replication account (%d)') using addNicknameIfNecessary and markAccountsForPushLocked; success logs 'Account added. Returning UDN=%s' at 0x1028a4a4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0624",
+     "address": "0x104b0648",
+     "notes": "AccountTier semantics: cmplwi r29,0xffff, r9=0xffff, isel (op31 943) selects min(tier,65535) - a saturating unsigned 16-bit clamp, not a modulo or enum validation. Enum constants remain {none=1,free=2,paidLimited=3,paidPremium=4}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0684",
+     "address": "0x104b06bc",
+     "notes": "Password adapter loads embedded accounts object from delegate+0x26c, passes this=+0x118, forwards the credential into modifier arg slot r7 with all other optional-field args zeroed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b06d0",
+     "address": "0x104b0708",
+     "notes": "Metadata adapter identical shape: delegate+0x26c -> +0x118 this, metadata into arg slot r8, other fields zeroed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0510",
+     "address": "0x104b0528",
+     "notes": "RefreshAccountCredentialsX adapter tails into vfunc+0x18 of the embedded object at delegate+0x26c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0c90",
+     "address": "0x104b0d0c",
+     "notes": "DoPostUpdateTasks adapter first checks delegate vfunc+0x4c identity == f_100c9be8 (capability gate), reads setting 'R_PromoVersion' through the settings object vfunc+0x24, compares versions via f_1090b418 and runs fixups (f_1090b078/f_1090c360 paths) when they differ."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b760",
+     "address": "0x1028bae4",
+     "notes": "modifyAccount: f_102887e0 precondition gate, per-field nonzero optional checks (r28/r24/r23/r25 at 0x1028b904..0x1028b980), account lookup, per-field virtual setter calls on the account object, 'modifyAccount' trace via f_105709c0, commit via f_10289258->f_102890b0."
     }
-   ],
-   "todo": [
-    "Residual: bind action v[+0x1c] to its concrete implementation and follow the Token/Code/DirectControl routes through their credential parsers. f_1028a224 is now traced through its initial checks and guest-account reauthentication rejection, but is not proven to be the complete OAuth dispatch boundary.",
-    "Established: SystemProperties ownership, the three OAuth add/refresh/replace handlers and their public length/return contracts are audited; internal account acquisition and refresh preconditions are documented in music_accounts. Remaining: verify other action-specific delegates, replace broad action/store/migration mappings with direct evidence and document reachable result, persistence and observer behavior."
    ],
    "resolved_findings": [
     "Resolved: action->dispatch map = the arg set {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUI} -> account-store write path.",
@@ -231666,7 +231750,12 @@
     "Correction to the previous OAuthDevID gate attribution: f_1028a224 preserves incoming r6 as r20 and incoming r8 as r24 (0x1028a258/0x1028a260). After f_102887e0 succeeds, 0x1028a400-0x1028a410 requires r24 to be non-null and non-empty, then 0x1028a518-0x1028a528 independently requires r20 to be non-null and non-empty. Failure of either check reaches the same missing required Token or OAuthDevID log and sets 802 (0x322). These instructions implement two required operands on this path, not a demonstrated Token-OR-DeviceID route. 0x1028a460 instead tests r25, an incoming stack argument, before copying the returned UDN through f_1056f254. Following UID extraction f_1056ffb0, f_105714c8 looks up an existing account; when its flags at +0x1f4 have bit 0 set (mask 0x1) and f_105714d8 returns nonzero, the path logs guest upgrade not allowed via reauth and returns 803 (0x323). Operand names and complete route coverage require the concrete caller trace; no OAuth subclass assignment is inferred from this alone.",
     "Bit-index audit with GNU e500 and the fixed repository listing: 0x1028a64c loads account+0x1f4 and 0x1028a650 executes andi. r10,r9,1, followed by the zero branch at 0x1028a654. The guard is mask 0x1, conventional zero-based bit 0, not bit 1/mask 0x2. Only the set branch reaches the additional f_105714d8 test and the guest-reauthentication error path. This corrects the bit label without changing the independently recovered two-required-operand gate.",
     "Instruction audit and concrete adapter mapping establish that f_1028a224 requires both token (argument6) and OAuthDeviceID (argument8) non-null and nonempty. The former Token OR OAuthDevID claim was incorrect. The optional output pointer tested at0x1028a460 is not the second credential input. Public routing is token first, then authorization code, then preinstalled-service fallback in installed adapter f_104b052c.",
-    "Public endpoint correction: AddAccountX, AddOAuthAccountX, RemoveAccount, ReplaceAccountX, RefreshAccountCredentialsX, EditAccountPasswordX, EditAccountMd, SetAccountNicknameX, GetWebCode and DoPostUpdateTasks are under /SystemProperties/Control. AddOAuthAccountX limits are token/key2048, deviceID64, authorization code1024, redirectURI8192 and hash24 bytes, each enforced by strlen before delegate dispatch. RefreshAccountCredentialsX uses delegate slot+0x2c, not+0x14. ReplaceAccountX limits are UDN144, newID128, newPassword64, token/key2048 and deviceID64 bytes."
+    "Public endpoint correction: AddAccountX, AddOAuthAccountX, RemoveAccount, ReplaceAccountX, RefreshAccountCredentialsX, EditAccountPasswordX, EditAccountMd, SetAccountNicknameX, GetWebCode and DoPostUpdateTasks are under /SystemProperties/Control. AddOAuthAccountX limits are token/key2048, deviceID64, authorization code1024, redirectURI8192 and hash24 bytes, each enforced by strlen before delegate dispatch. RefreshAccountCredentialsX uses delegate slot+0x2c, not+0x14. ReplaceAccountX limits are UDN144, newID128, newPassword64, token/key2048 and deviceID64 bytes.",
+    "Resolved: delegate vtable slot +0x1c = f_104b052c, the installed AddOAuthAccountX routing adapter; the token/code/preinstall precedence it implements is the only public OAuth entry selection.",
+    "Resolved: f_1028a224 is the complete OAuth dispatch boundary for account adds. It is int_addAccountWithOAuthToken and is reached by exactly four wrappers: public addAccountWithOAuthToken (thin forward after the f_10287238 gate), public addAccountWithOAuthCode (mints the token through the device-auth exchange f_10286e44 first), addPreinstalledService (shared with internal provisioning callers f_101877c0/f_101b6c20), and addAccountForOAuthDirectControl (internal only, callers f_1020eb2c and f_1028fa98; never a branch of the public adapter).",
+    "Resolved: post-validation behavior inside the OAuth core covers duplicate rejection ('account already exists on household'), guest-account migration through f_1028686c with addNicknameIfNecessary and markAccountsForPushLocked staging, and 'Account added. Returning UDN=%s' on success. Persistence and replication push staging follow the established markAccountsForPushLocked -> pushToReplicationService contract.",
+    "Resolved: AccountTier is forwarded as a saturating unsigned 16-bit value (isel min(tier,0xffff) at 0x104b0648); the enum {none=1,free=2,paidLimited=3,paidPremium=4} is not range-validated at this layer.",
+    "Resolved: settings adapters are positional forwarders into the embedded accounts object (delegate+0x26c, this=+0x118): password f_104b0684 -> modifyAccount arg r7, metadata f_104b06d0 -> arg r8, refresh f_104b0510 tails into object vfunc+0x18, DoPostUpdateTasks f_104b0c90 gates on vfunc+0x4c capability then compares/updates R_PromoVersion via f_1090b418."
    ],
    "details": {
     "credential_presence_correction": {
@@ -231682,7 +231771,7 @@
      ]
     },
     "concrete_settings_delegate": {
-     "description": "Zone construction at0x1018e4f8 creates settings delegate f_104b0e84, stores it at the field used as argument4 to account-service constructor f_10732e94 at0x1018e594, and that constructor stores the delegate at service+4. f_104b0e84 installs primary vtable0x10ed75c4. The service therefore does not obtain these account methods from the DeviceProperties vtable0x10e98278. Password slot+0x24 targets f_104b0684 and metadata slot+0x30 targets f_104b06d0; both call f_1028b760 with different optional fields. Post-update slot+0x38 targets f_104b0c90.",
+     "description": "Zone construction at0x1018e4f8 creates settings delegate f_104b0e84, stores it at the field used as argument4 to account-service constructor f_10732e94 at0x1018e594, and that constructor stores the delegate at service+4. f_104b0e84 installs primary vtable0x10ed75c4. The service therefore does not obtain these account methods from the DeviceProperties vtable0x10e98278. Password slot+0x24 targets f_104b0684 and metadata slot+0x30 targets f_104b06d0; both call f_1028b760 with different optional fields. Post-update slot+0x38 targets f_104b0c90. Adapter audit: every account-settings adapter resolves the embedded accounts object at delegate+0x26c and calls with this=+0x118. Password f_104b0684 fills modifyAccount's r7 optional slot only; metadata f_104b06d0 fills r8 only; nickname adapter f_104b071c passes its single arg into r8 (nickname slot); refresh f_104b0510 tails directly into the object's vfunc+0x18. f_1028b760 (modifyAccount) gates on f_102887e0, validates each supplied optional field, invokes the matching virtual setter on the located account, then commits through f_10289258->f_102890b0 with a 'modifyAccount' trace entry. DoPostUpdateTasks f_104b0c90 is gated by delegate vfunc+0x4c == f_100c9be8 and performs R_PromoVersion comparison/fixups through f_1090b418.",
      "evidence": [
       {
        "type": "firmware",
@@ -231704,12 +231793,35 @@
        "build": "86.10-80260",
        "address": "0x104b0684",
        "notes": "Password adapter through account modifier0x1028b760; metadata adapter begins0x104b06d0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_104b0684",
+       "address": "0x104b06bc",
+       "notes": "Password->modifyAccount r7-only forwarding; all other field args zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_104b0c90",
+       "address": "0x104b0d0c",
+       "notes": "Post-update adapter: vfunc+0x4c capability check, R_PromoVersion read via settings vfunc+0x24, version compare f_1090b418, fixups f_1090b078/f_1090c360."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_1028b760",
+       "address": "0x1028baec",
+       "notes": "'modifyAccount' trace via f_105709c0 after per-field vfunc setters; commit tail f_10289258->f_102890b0."
       }
-     ],
-     "todo": "Established: actual installed account service delegate and password/metadata forwarding are decoded. Remaining: audit each settings adapter and account modifier to establish operation-specific validation, persistence and event effects."
+     ]
     },
     "oauth_public_routing": {
-     "description": "Installed AddOAuthAccountX adapter f_104b052c first tests AccountToken. A non-null/nonempty token selects f_1028b2e4 (token path), even when AuthorizationCode is also supplied. With no token, non-null/nonempty AuthorizationCode selects f_1028b440 (code acquisition); if neither is supplied it selects f_1028ad54 (preinstalled-service path). OAuthDeviceID is forwarded in all three branches; RedirectURI is forwarded to the code path. The token branch clamps AccountTier to unsigned65535 before forwarding it. This binds the earlier account-manager credential check to public names: shared worker f_1028a224 requires both generated/supplied token and OAuthDeviceID nonempty. The SOAP handler itself only binds/validates fields; this installed adapter owns routing. The separately identified OAuth-direct-control worker is not a fourth branch of this adapter.",
+     "description": "Installed AddOAuthAccountX adapter f_104b052c first tests AccountToken. A non-null/nonempty token selects f_1028b2e4 (token path), even when AuthorizationCode is also supplied. With no token, non-null/nonempty AuthorizationCode selects f_1028b440 (code acquisition); if neither is supplied it selects f_1028ad54 (preinstalled-service path). OAuthDeviceID is forwarded in all three branches; RedirectURI is forwarded to the code path. The token branch clamps AccountTier to unsigned65535 before forwarding it. This binds the earlier account-manager credential check to public names: shared worker f_1028a224 requires both generated/supplied token and OAuthDeviceID nonempty. The SOAP handler itself only binds/validates fields; this installed adapter owns routing. The separately identified OAuth-direct-control worker is not a fourth branch of this adapter. Worker audit: the token branch f_1028b2e4 only early-outs through f_10287238 and tail-calls f_1028a224 unchanged. The code branch f_1028b440 first runs f_10286e44, the device-auth-token exchange (logs 'getDeviceAuthToken failed (res = %d)', smapi dcLogin/zpAM traffic, clock_gettime), then calls f_1028a224 with the minted token. The preinstall branch f_1028ad54 and the internal addAccountForOAuthDirectControl f_1028b5bc enter the same core; the direct-control worker's only callers are f_1020eb2c and f_1028fa98, so it is a separate internal entry, not a public route. f_1028a224 is therefore the single OAuth core: token + OAuthDeviceID must both be nonempty, guest-reauthentication is rejected with 803, duplicates fail with 'account already exists on household', guest migration runs through f_1028686c, and success returns the new UDN.",
      "evidence": [
       {
        "type": "firmware",
@@ -231724,9 +231836,32 @@
        "build": "86.10-80260",
        "address": "0x104b0610",
        "notes": "Token branch argument forwarding, unsigned tier clamp0x104b0624/0x104b0648 and token-worker call0x104b0660."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_1028b440",
+       "address": "0x1028b568",
+       "notes": "Code path: f_10286e44 exchange mints token before f_1028a224."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_1028b5bc",
+       "address": "0x1028b754",
+       "notes": "Direct-control worker enters f_1028a224; callers f_1020eb2c/f_1028fa98 only."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_104b0624",
+       "address": "0x104b0648",
+       "notes": "Tier: isel min(tier,0xffff) saturating u16 clamp."
       }
-     ],
-     "todo": "Established: concrete public token/code/preinstall routing, precedence and credential-name mapping are decoded. Remaining: trace worker-specific provider/account validation and post-success persistence/event behavior; audit exact tier semantics and the separate direct-control entry."
+     ]
     },
     "tunein_removal": {
      "description": "RemoveAccount is not a uniform deletion operation: installed delegate f_104b0918 treats full AccountType65031 (0xFE07) as R_HideTuneIn=true. The remaining account types enter the normal account-removal path. See music_accounts.public_account_removal for status, commit, manifest cleanup and callback ordering.",
