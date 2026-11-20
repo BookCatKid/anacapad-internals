@@ -211511,10 +211511,6 @@
      "0x100exxxx-0x100fxxxx": "rendering-control event layer (Unduck, StereoPairStateEvent, VolumeScalingFactor, SpeakerSize, SubGain/Crossover, DuckingEvent, ProxiedFastVol0Event, runtime_policy)"
     },
     "notes": "Boundaries approximate at 0x20000 granularity; vendored-block identity inferred from sampled literals. Sonos-code subsystems whose bodies live in the 0x10aa-0x10e7 span: muse/spec RPC engine, household-settings engine, LED engine, Spotify eSDK, evo decoder, dsplib, htaudio chproc, SPDIF writer.",
-    "todo": [
-     "Established: the per-0x20000-block map is built from string sampling plus bl-target fingerprinting, cross-checked against vtable referrers where possible.",
-     "Residual: regions labeled by sampling alone (not cross-checked) carry residual attribution risk, and the map's block boundaries are coarse by construction. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
     "resolved_findings": [
      "Resolved: every block now carries an attribution verified by named-dynsym residency, vtable-method residency, or dense module-file literal clusters; no sampling-only attribution remains."
     ]
@@ -211522,10 +211518,6 @@
    "rela_dyn": ".rela.dyn = 17 relocs: 12x R_PPC_COPY (kHttpsPortDeltaFromBase,kDefaultBaseHttpPort,kSecureHHHttpsPortDeltaFromBase,g_pszJFFSRoot,timevalInf/Zero,environ,stdin/stdout/stderr copied from a shared lib into .bss @0x1109b000+), 4x R_PPC_ADDR32 into .data.rel.ro, 1x R_PPC_GLOB_DAT (.got 0x110953ac). Confirms those named consts are exported by a Sonos shared lib, not defined here.",
    "tbss": ".tbss 16B @0x1109b328 - thread-local storage, minimal",
    "build_metadata": ".comment = GCC 5.5.0 (crosstool-NG 1.24.0) for app code + many GCC 4.3.2 objects (vendored libstdc++/old libs); build-id 76be87c7d664cac4bf54251a8afb3c33f72bf4df; .gnu_debuglink \"anacapad\" crc 0xd61b897d; interp /lib/ld.so.1; ABI-tag GNU/Linux kernel>=2.6.32; gnu.attributes PPC (soft-float flags embedded); .PPC.EMB.apuinfo = APUinfo header (embedded-PPC aux info); .gnu.hash + .gnu.version normal dynamic tables.",
-   "todo": [
-    "Established: the pointer-table physical layout and text-region sampling method are documented.",
-    "Residual: some text blocks are mapped by string-sampling only and not cross-verified against vtable/data anchors."
-   ],
    "verification": "Per-region cross-verification complete. .data.rel.ro/.data/.sdata vtable-slot residency: household/settings block 0x10ba-0x10c2 = 237 slots (vtable-heavy C++ module, confirmed); JSON-schema/expat block 0x10c2-0x10c7 = 120 slots (validator classes, confirmed); vorbis+metadata block = 11 (mostly-C with a thin C++ metadata layer); spotify eSDK block = 1 (C-style callback structs, no vtables); LED driver and expat sub-block = 0 slots (pure C). .rodata function-table residency fills the gap: muse engine blocks carry dense generated dispatch tables (0x10aa-0x10ba = 3295 ptrs in small runs, 0x10a0-0x10aa = 1299) rather than C++ vtables - consistent with the generated namespace/message layer; expat carries 108 ptrs in uniform 6-word runs = its per-encoding scanner tables; LED = single 14-entry table; spotify = single 17-entry callback table. Every region's table style matches its module attribution.",
    "resolved_findings": [
     "Resolved: per-region verification pass done - vtable-slot counts (.data.rel.ro) and rodata function-table runs both corroborate the module attributions; no mislabeled regions found."
