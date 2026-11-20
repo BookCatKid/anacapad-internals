@@ -230989,17 +230989,56 @@
      "build": "86.10-80260",
      "address": "0x107dcc10",
      "notes": "Constructor installs0x10f270dc; destructor0x107dc978 reinstalls it. Wrapper0x10d733ac compares virtual154 to null-return stub107dd03c before returned-interface dispatch, not poll/select timeout loading."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107d8e44 processing loop",
+     "address": "0x107d8e44",
+     "callsite": "0x107d8f80 / 0x10f25ffc / 0x10f26030",
+     "notes": "The processing loop's state variable is receiver+0xf5c. Each iteration calls gate f_10d5d37c (locks receiver+0xa8, returns byte+0x1a8 XOR 1 = run-while-not-stopped), then dispatches +0xf5c through signed-offset jumptable 0x10f25ffc with bound 0xc. The 13 case entries form a fall-through ladder (INPUT_ERROR 0x107d9064 down to INITIAL 0x107d9100): entering state k runs handler k then every lower handler. Phase names come from table 0x10f26030; the default logs 'unhandled state: %d:%s' and reloops."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "receiver virtual+0x154 binding",
+     "address": "0x10d733ac",
+     "callsite": "0x10fe89dc / 0x10d74bec",
+     "notes": "Wrappers f_10d733ac/f_10d7340c/f_10d73478 load *(obj+0) (an injected nested interface), read its virtual+0x154 and compare to default stub f_107dd03c (returns0). Four same-family vtables share the wrapper slots: 0x10f270dc, 0x10fe866c, 0x10fe89dc, 0x10fe8c0c. Only 0x10fe89dc overrides +0x154: f_10d74bec returns interface member +0x68's +0x9c sub-object or null. On a real impl, f_10d733ac forwards to the returned object's virtual+0x18."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "injected wait/read/clock interfaces",
+     "address": "0x107d0dc4",
+     "callsite": "0x107d0e1c / 0x107d6674 / 0x107d22f4",
+     "notes": "obj+0x8d0 is an injected interface: virtual+0xc produces a timestamp copied into the per-state table at obj+0x1a20+state*4 via f_105a8f00, and virtual+8 is called with selector 2 or 3 (chosen by a -1 result check) = the read/poll entry. obj+0x1e8 virtual+0x14 is a timed wait called with timeval {1,0} when obj+0xc6c is set (WAITING handler f_107d6620). INPUT_ERROR handler f_107d229c fetches setting 'tvp.inperr.timewait' (f_1098a7a0) and schedules it via f_10987584 -> f_10987204 on obj+0x1b80 under the +0x1af0 lock. Loop start stamps sonosClockGetTime(1) into obj+0x1bd0 and registers the work callback f_107d5afc -> f_107d59a8 through f_10d52440 on the obj+8 worker interface."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "interrupt-reason dispatch",
+     "address": "0x107d0c30",
+     "callsite": "0x10f25f9c / 0x10f2990c",
+     "notes": "A second signed-offset jumptable at 0x10f25f9c dispatches member +0x44 (+1, bound 0x17) - the interrupt/loss-reason code - to mostly shared default handling, with distinct cases at indices 0,2,12,13,14,22,23 over the 19-name reason table 0x10f2990c (NO_REASON, INPUT_ERROR, DIALOG_EXTRACTOR_ERROR, STREAM_ERROR, CONFIG_CHANGE and three extended codes)."
     }
    ],
    "chaos_params": "fault injection {stream_underflow(\"Inducing stream underflow\"/\"Inducing %ums processing stall to trigger underflow\"/\"Invalid stall time. Valid range is 0-1000\"),stream_error,signal_lost,rate_change,signal_discontinuity,decoder_error,sync_tap_playback,latency_change(\"Simulating latency change\"),out_loud(\"HT swap out loud override %s\"),set_timeout(\"Setting report timeout to %d secs\"),perf2(\"Setting perf2 to %s\")}; \"Synchronize SPDIF tap playback with output tap (%s)\"",
    "todo": [
-    "Established: object constructor/destructor vtable installation and null-aware nested interface wrappers; old state-order table and global-timeout premise disproved. Remaining: locate the actual state variable and dispatch in the processing loop, bind concrete implementations of receiver virtual+0x154 and the returned interface slots, then follow real wait/read/poll calls and deadline producers for intervals and units. Start with constructor f_107dcba8, table0x10f270dc and wrappers f_10d733ac/f_10d7340c/f_10d73478. Revalidate read-size/parse-bound claims against actual handlers rather than vtable ordinal. This is actionable static reverse engineering."
+    "Established: state variable receiver+0xf5c and the 13-case fall-through dispatch in f_107d8e44, the stop gate (lock +0xa8, flag +0x1a8), the virtual+0x154 nested-interface indirection (concrete impl f_10d74bec -> obj+0x930 +0x68 +0x9c), the injected read/poll/timestamp/wait interfaces on obj+0x8d0/+0x1e8, and the 'tvp.inperr.timewait' scheduled-wait producer. Remaining: bind the concrete objects installed at obj+0x8d0/+0x1e8/+0x930 to their producer call chains and recover the returned-interface vtable behind f_10d74bec's +0x18 forward; per-handler semantics of the 13 phase functions are only partly decoded (f_107d36a8 = PARSING is joined to spdif_burst)."
    ],
    "resolved_findings": [
     "Resolved: decoder selections + FSM = the state enum {READING,PARSING,DECODING,DECODER_DSP,NOISE_SILENCE_DETECTION,WRITING,WAITING,INPUT_ERROR,RECORDING,MONITOR_IDLING,MONITORING} + tv_block_descriptor + chaos_params; <TVProc> dump carries the full state.",
     "Decoder selection proven via htaudio pipeline decode: ActiveDecoder enum {None, PCM, Dolby, DTS, UDC} - the SPDIFParser IEC-61937 burst-type drives selection; unknown Dolby databurst falls back to UDC (Unknown Dolby Databurst Type; choosing UDC); decoder set {dlbdec, dts, dolbyOAR, dlbdmx, udcdecoder, evo/DDPI}. The FSM {READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING, MONITORING} drives input->parse->decode->mix->write with NSD silence detection and monitor-idle states.",
     "Table0x10f270dc is a concrete object vtable, not the claimed13-entry state-handler dispatch. Constructor f_107dcba8 installs it at receiver+0 and subsidiary tables at+4/+8; f_107dc950 reinstalls these tables during destruction and destroys members. The pointer run continues past the alleged13-row boundary. Therefore assigning state names to its successive method pointers was invalid.",
-    "f_10d733ac, f_10d7340c and f_10d73478 are distinct nested virtual wrappers: they compare receiver virtual+0x154 against default f_107dd03c, whose body returns null, then dispatch returned interface slots+0x18/+0x24/+0x28 when nonnull. The 0x107e address formation constructs a function pointer for comparison, not a global timeout load. The checked wrappers contain no poll/select timeout argument."
+    "f_10d733ac, f_10d7340c and f_10d73478 are distinct nested virtual wrappers: they compare receiver virtual+0x154 against default f_107dd03c, whose body returns null, then dispatch returned interface slots+0x18/+0x24/+0x28 when nonnull. The 0x107e address formation constructs a function pointer for comparison, not a global timeout load. The checked wrappers contain no poll/select timeout argument.",
+    "Processing-loop state is receiver+0xf5c, dispatched each iteration through signed-offset jumptable 0x10f25ffc (13 cases, fall-through ladder) under a mutex-guarded stop flag at receiver+0x1a8; phase names are the 0x10f26030 vocabulary. PARSING's handler is f_107d36a8, the same burst-extract path documented in spdif_burst.",
+    "receiver virtual+0x154 resolves a nested-interface indirection: default impl f_107dd03c returns0 and is bypassed by wrappers f_10d733ac/f_10d7340c/f_10d73478; concrete impl f_10d74bec (vtable 0x10fe89dc) returns the injected obj+0x930 interface's member+0x68 +0x9c sub-object, which the wrapper then calls at its own virtual+0x18.",
+    "Wait/poll/read and deadlines are all injected-interface or tunable driven: obj+0x8d0 virtual+8 is the read/poll entry (selector 2/3), obj+0x8d0 virtual+0xc supplies per-state timestamps into obj+0x1a20+state*4, obj+0x1e8 virtual+0x14 is a timed wait with timeval {1,0}, and INPUT_ERROR's wait comes from setting 'tvp.inperr.timewait' scheduled via f_10987204. No global hardcoded timeout exists."
    ]
   },
   "htaudio_chproc": {
