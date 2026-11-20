@@ -223728,16 +223728,55 @@
      "build": "86.10-80260",
      "address": "0x10415854",
      "notes": "Wrapper tail branch0x10415d34 reaches StartSession; type switch0x10415940, abort-helper call0x10415998, URI/control virtual dispatch0x10415a24-0x10415a64, returned-handle use0x10415a78, flag clear0x10415a98 and action3 submission0x10415bd4. Mask wait f_10413184 supplies3000 at0x10413204."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104132a8 VliCtrl ctor / f_103fa434 mp ctor / f_10407f90 MpAp vfunc+0x8",
+     "address": "0x10413690",
+     "callsite": "0x103fbd34 / 0x10415a28",
+     "notes": "+0x10c shared_ptr copied from parent+0x23c: 0x1c8-byte MpAp/mp_autoplay object (ctor f_10405ff8), vtable 0x10ecb44c, slot+0x8 f_10407f90 scheme-dispatched session-URI builder over 'x-rincon-stream'/'x-sonos-htastream'/'x-sonos-vli'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10413184 -> f_10987584 -> f_10987204",
+     "address": "0x10413204",
+     "callsite": "0x10987268",
+     "notes": "Wait helper tests +0x218 mask then timed-waits on +0x1c0 condvar; f_10987204 converts the arg as milliseconds into a CLOCK_MONOTONIC deadline (clock_gettime id 1, /1000 sec + ms-to-ns with 999999999 rollover). StartSession timeout 3000 = 3 s."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10412eb4 onEvent / f_1013f0f4 / f_101239ac",
+     "address": "0x10412f68",
+     "callsite": "0x10415bd4 / 0x10415a78",
+     "notes": "'VliSessionProcessingCompleteEvent' clears per-action pending bits at +0x218 (andc) and signals +0x1c0; f_1013f0f4 posts to the inprocess-events bus; f_101239ac admits handles into the +0x104 session object under +0x318 lock via f_10765a00."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10415854 StartSession jump table",
+     "address": "0x10ecbb64",
+     "callsite": "0x10415950",
+     "notes": "10-entry table: vliType {0,9}->unusable/unknown + RabortIfUnlocked; 1=AirPlay,2=Spotify,3=Bluetooth,6=URI,8='TV Proxy'; {4,5,7}->empty-name arm (0x10ea6a2c) reaching URI build."
     }
-   ],
-   "todo": [
-    "Established: reachable local StartSession, injected URI/control call, pending/completion flag gating and local action3 submission. Remaining: bind receiver+0x10c to its installed implementation, follow f_101239ac and f_1013f0f4 through actual request submission/completion and serializers, and repeat for Stop/Suspend/volume/property handlers. Recover wait argument units and per-operation input/output/error fields from those consumers, not method-name strings. Start at f_10415854, f_10413184 and the wrapper0x10415d34. The presumed universal actor-socket grammar and spawned-player limitation are withdrawn; this is actionable static work."
    ],
    "resolved_findings": [
     "Concrete local StartSession implementation f_10415854 is reached by wrapper tail branch0x10415d34. It takes VLI type, cookie and additional call arguments, logs type/cookie, acquires receiver+0x130 and calls f_10413184 to wait for existing TX flags. This path does not establish an apiKey/operation/position/volume socket message, session-id issuance or a spawned-player wire protocol.",
     "The bounded source-type switch reaches AirPlay, Spotify, Bluetooth, URI and TV Proxy literal pairs before URI construction. The unusable/unknown arm logs StartSession for unusable/unknown type and calls RabortIfUnlocked at0x10415998; it is not a demonstrated clean protocol rejection. The accepted construction path uses protocolInfo=\"x-sonos-vli:*:audio:*\", a formatted cookie and source information, calls the interface at receiver+0x10c virtual+8, and forwards the resulting handle through f_101239ac. The full contract of that injected interface remains unbound.",
     "f_10413184 tests receiver+0x218 against a supplied mask. If bits remain it waits through f_10987584 on receiver+0x1c0 with argument3000, then tests again and returns whether the masked flags are clear; an already-clear mask returns without waiting. The helper logs a timeout but does not establish the argument unit by itself. StartSession stores pending flag1 and later clears bit0 of this word. The nonzero f_10673ffc path submits a local VliTransportAction stack pair {VLI type, action3} through f_1013f0f4 at0x10415bd4.",
-    "The onVirtualLineInStart/Stop/Suspend/GetVolume, session-info/property and playback/volume names identify local handlers and events, not a complete field encoding. Actor selection in media_player_mgr is a separate layer; neither actor terminology nor those method names proves that this checked local path sends each operation over an actor socket."
+    "The onVirtualLineInStart/Stop/Suspend/GetVolume, session-info/property and playback/volume names identify local handlers and events, not a complete field encoding. Actor selection in media_player_mgr is a separate layer; neither actor terminology nor those method names proves that this checked local path sends each operation over an actor socket.",
+    "Established: receiver+0x10c is bound at construction to the media player's session-URI builder. VliCtrl ctor f_104132a8 copies arg3's shared_ptr pair into +0x10c/+0x110; the caller (mp ctor f_103fa434 at 0x103fbd34) passes the address of parent+0x23c, which holds a 0x1c8-byte object allocated at 0x103fa7d0 and constructed by f_10405ff8 (log names 'MpAp'/'mp_autoplay'). Its primary vtable is 0x10ecb44c; slot+0x8 = f_10407f90, which compares the requested scheme against 'x-rincon-stream', 'x-sonos-htastream' and 'x-sonos-vli' and composes the session/stream URI from member state (+0x188/+0x18c pair, h16 +0x1a4, +0x1ac/+0x1b4 fields). The returned handle is what StartSession forwards through f_101239ac. This is a compiled URI-builder interface, not an actor socket.",
+    "Established: f_101239ac runs on the member+0x104 object: it locks member+0x318, looks up the target record through f_10765a00 in table +0x5a8, and gates on record byte +0x14f8 before returning - admission of the built handle into the media-player session registry. f_1013f0f4 builds an inprocess-events record (f_10bba944/f_1013c75c) and posts it to the event bus at 0x1109xxxx ('inprocess-events', 'Change in event loop detected'); the local {vliType, action3} pair is event-queue submission, not a serialized socket message.",
+    "Established wait-arg units: f_10413184 masks member+0x218 and calls f_10987584 on member+0x1c0 with the supplied timeout; f_10987584 forwards it to f_10987204, which builds a CLOCK_MONOTONIC deadline (clock_gettime clock id 1) by adding arg/1000 to seconds and folding the remainder into nanoseconds with the 999999999 rollover check. The argument is therefore milliseconds, and StartSession's 3000 constant is a 3-second wait for the tx-flag clear/completion signal.",
+    "Established vliType admission: the 10-entry jump table at 0x10ecbb64 maps vliType 0..9 to {0,9}: 'StartSession for unusable/unknown type' + RabortIfUnlocked; {1:'airplay'/AirPlay, 2:'spotify'/Spotify, 3:'bluetooth'/Bluetooth, 6:'uri'/URI, 8:'tvproxy'/'TV Proxy'} name pairs used in the URI build; {4,5,7}: an empty-string name pointer (0x10ea6a2c = \"\") so those types proceed to URI construction with an empty source name. protocolInfo 'x-sonos-vli:*:audio:*' and scheme 'x-sonos-vli' are the fixed inputs to the +0x10c vfunc+0x8 call.",
+    "Established completion model: StopSession (f_10415d38) reuses the same machinery - acquires +0x130, waits flags via f_10413184 (mask -1 then mask 2), sets pending bit 0x2 at +0x218, submits the halt through f_1040ad64 on member+0x20, waits again and logs 'AvtHaltActionEvent %s completion signal %s' with the 'timed out!!!!!!!' timeout arm, then clears the pending bit and sets byte +0x21c. Completion events arrive through onEvent f_10412eb4 ('processing VliSessionProcessingCompleteEvent vli type %s action %s success %d flags %#x'), which clears the per-action pending bits from +0x218 (andc) and signals member+0x1c0 - the condition the wait helper blocks on.",
+    "Established local invokers: the onVirtualLineIn* surface is driven in-process - the RSpotifyVLIControl adapter family at f_1022cxxx logs 'calling onVirtualLineInSuspendSession() cookie %d' / 'StartAudio' / 'StopAudio' / 'PlayModesChanged' and 'Ignoring stale stopSession due to cookie mismatch: %d != %d'. Cookie matching at the caller side gates stale completions. No actor-socket or spawned-player wire grammar exists on this checked path; per-operation fields beyond {vliType, cookie, URI/out-params} are not invented from method names."
    ]
   },
   "didl_extractor": {
