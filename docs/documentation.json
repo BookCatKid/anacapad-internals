@@ -210619,14 +210619,100 @@
      "build": "86.10-80260",
      "address": "0x103c82b4",
      "notes": "Construction copies field-name pointers; no required-field mask test at the cited validator address."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2f40",
+     "function": "hwmessagelib_parseRawNetlinkMessage",
+     "notes": "Exported parser: nlmsg/genlmsg validity gates, genl cmd byte must be 1, nla_parse(tb[7], maxtype 6) with policy at .data+4 (hwevtq_policy mirror: {0:unspec,1:string256,2:u64,3:u64,4:u16,5:u16,6:u32})."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x31fc",
+     "function": "hwmessagelib_parseRawNetlinkMessage",
+     "notes": "Required-attr bitmask built by isel/ori chain: bit0=attr2, bit1=attr3, bit2=attr5, bit3=attr4; cmplwi 0xf gate; failure at 0x3254 logs 'not all fields found in received message [0x%04X]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x3274",
+     "function": "hwmessagelib_parseRawNetlinkMessage",
+     "notes": "Output fill: stw 2 -> out+0 (msgType EVENT); nla_get_u64(attr2) * 1e6 + nla_get_u64(attr3) -> out+8 (u64 usec); nla_get_u16(attr4) -> out+0x10 source; nla_get_u16(attr5) -> out+0x14 info; bounds source<=0x3c, info<=0x30 at 0x32e4-0x32fc else 'IS_VALID_HWEVENT failed'."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": "0x5f0",
+     "function": "hwevtq_send_event",
+     "notes": "Producer side: genl cmd byte 1 written at skb+0x10; ktime_get -> nla_put attr2 (u64 sec) at 0x710, attr3 (u64 nsec/1000) at 0x784, attr4 (u16 source) at 0x7a4, attr5 (u16 info) at 0x7c4, attr6 (u32 mcgrp) at 0x7e4; netlink_broadcast at 0x820."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": "0x550",
+     "function": "hwevtq_get_mcgrp_from_source",
+     "notes": "source->group: u16 default table at .rodata+0x1c0 (62 entries); AMP+{TEMP_WARNING,TEMP_FAULT,TEMP_OK} -> temp(9); info==0x26 WAKEUP + src in bitmask 0x40001005 over src-12 or src==3/[0x30..0x34]/0x25 -> wakeup(0xa). mcgrp_names .data+0x20c 12 ptrs incl index0 'reserved'."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": "0x1f0",
+     "function": "hwevtq_policy",
+     "notes": ".data+0x1f0: 7-entry nla_policy {0:{0,0}, 1:{NLA_STRING,256}, 2:{NLA_U64,8}, 3:{NLA_U64,8}, 4:{NLA_U16,2}, 5:{NLA_U16,2}, 6:{NLA_U32,4}}. Source name table .rela.rodata+0 (62 ptrs), info name table .rela.rodata+0xf8 (50 ptrs)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c5188",
+     "function": "f_103c4e64",
+     "notes": "RHWEvtHandlerZP ctor: stack array of 9 {name,err} pairs filled by hwmessagelib_multicast_group_{AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH} string getters (0x103c5188-0x103c51cc), then hwmessagelib_connection_init(this+0x80, pairs, 9, errbuf, f_103c4cb0) at 0x103c5200."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c674c",
+     "function": "f_103c6718",
+     "notes": "RHWEvtHandlerZP::readEvent: hwmessagelib_connection_readNextMsg(this+0x80, &raw24); type 2 -> out {source=raw+0x10 @0x103c6894, info=raw+0x14 @0x103c68a4, age via f_10982b78/f_10982f7c with 0x7fffffff clamp}; type 1 -> out {source=0, info=0x17 QUEUE OVERRUN} at 0x103c6828-0x103c6840."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c83cc",
+     "function": "f_103c822c",
+     "notes": "PlayerButtons required-field check: andi. on event+0x34 mask for bits {0x2,0x4,0x8}; first missing -> 'telemetry'-tagged 'PlayerButtons missing required field %s' at 0x103c8520 with name from stack array [log2(bit)] = {action,audio_type,orientation}; emission continues."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c7efc",
+     "function": "f_103c7eac",
+     "notes": "Presence-bit writers: ori 0x8 + strlcpy -> event+0x35c (orientation via f_10557480); ori 0x4 + strlcpy 'none' -> +0x328 (audio_type, when player+0x9c vcall +0x68 returns 0); ori 0x2 + strlcpy caller str -> +0x2d6 (action); all len-cap 0x29 into mask word event+0x34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ec6b58",
+     "notes": "PlayerButtons schema descriptor: +0x00..0x34 thirteen FSM state-name ptrs, +0x38 'base', +0x3c 'action', +0x40 'audio_type', +0x44 'orientation', +0x48 'event_id' then remaining field names to +0x74, +0x84 small-int type codes."
     }
    ],
    "button_vocabulary": "BUTTON_PLAYPAUSE(+_PRESSED/_HELD), BUTTON_VOL_UP/DN(+_PRESSED), BUTTON_JOIN(+_PRESSED), BUTTON_MODE, BUTTON_POWER, BUTTON_MICMUTE/STATE_BUTTON_MICMUTE_PRESSED, BUTTON_PAIRING, BUTTON_VOL_ROCKER, BUTTON_MUTE, BUTTON_WIFIBT_MODE, SWIPED",
-   "forwarding": "hwmessagelib_multicast_group_BUTTON bus; 'No button handler, unable to forward buttons'; '%s button pressed (cid: %s)'/'Play button held (cid: %s)' correlation ids; PlayerButtons XML with required-field validation",
+   "forwarding": "libhwmessagelib genl family 'HW_EVQ' multicast bus; anacapad RHWEvtHandlerZP ('hwevt_handler'/'buttons') subscribes 9 of 11 groups {AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH} (not hwevtq_btnpwr/hwevtq_wakeup) via hwmessagelib_connection_init at 0x103c5200 with callback f_103c4cb0; kernel hwevent_queue.ko routes each event to a group from a per-source u16 default table (.rodata+0x1c0) with WAKEUP-info overrides; events arrive as genl cmd=1 messages with nla attrs {2:u64 tv_sec, 3:u64 tv_usec, 4:u16 source, 5:u16 info, 6:u32 mcgrp_id}; parseRawNetlinkMessage requires attrs {2,3,4,5} (found-mask 0xf else 'not all fields found in received message [0x%04X]'), bounds source<=0x3c and info<=0x30, and delivers {u32 type=2, u64 usec_ts = attr2*1e6+attr3, u32 source, u32 info}; type 1 (NLMSG_OVERRUN) is re-synthesized by RHWEvtHandlerZP::readEvent into {source=NO_SOURCE, info=0x17 QUEUE OVERRUN}; 'No button handler, unable to forward buttons'; '%s button pressed (cid: %s)'/'Play button held (cid: %s)' correlation ids; PlayerButtons telemetry with presence-mask required-field validation",
    "lock": "SetButtonLockState/GetButtonLockState/GetButtonState SOAP surface; DesiredButtonLockState/CurrentButtonLockState vars; UnpairedButtonLock; BUTTONS_LOCKED + IN_BUTTON_OBSERVATION_MODE + DAT_IN_BUTTONLESS_SETUP_MODE states; 'button-notify' config mode (cm_button/buttonAction); 'Becoming standalone due to button press'",
    "ir": "irdecoder.cxx select-thread (selthrd.RIRDecoder.*); LearnIRCode/CommitLearnedIRCodes/GetButtonState actions; one-button learn mode with timeout + UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND fault; codes fetched from http://ir.ws.sonos.com/IRCode/ (O_IR_DB_WS_IRCODE_URL key), <IRCode> XML schema; demo-mode missing-code path",
    "cloud": "v1/players/{playerId}/virtualRemoteControl/buttonCommand + household-scoped variant, sendButtonCommand op: cloud-injected virtual remote",
-   "todo": "Residual: trace the telemetry encoding and required-field validation backend, and recover the separate libhwmessagelib hardware-message field descriptors. Compiled PlayerButtons field-name metadata is not a wire-tag or required-bit table.",
    "resolved_findings": [
     "Resolved: IR learn flow - learn FSM captures pulses, rejects over-ten-codes as non-repeat-style, succeeds via Successful long code learn; local store keys {vol_up_codes,vol_down_codes,vol_mute_codes} by remote id; on miss the code is POSTed to http://ir.ws.sonos.com/IRCode/ as <IRCode><value>..</value></IRCode> with a guid, then polled until Requested code not found resolves; failure surfaces UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND.",
     "Three layers separated: (1) hardware messages arrive as protobuf events on the libhwmessagelib BUTTON multicast group ({HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO} over hwmessagelib_connection_* APIs), pumped by selthrd.RHWEvtHandlerZP; lib shipped at reference/public/files/lib/libhwmessagelib.so.1. (2) vocabulary complete in hw_input_events: BUTTON_{PLAYPAUSE,VOL_UP,VOL_DN,JOIN}_PRESSED, PLAYPAUSE_HELD, STATE_BUTTON_MICMUTE_PRESSED, VOLUME_{UP,UP_REPEAT,DOWN,DOWN_REPEAT,DOWN_FAST_RAMP,SLIDE_UP,SLIDE_DOWN}, SWIPED, actions JOIN_{HH,HH_CHIME,HH_CANCEL}, OPEN_AP, NEXT_TRACK, PREV_TRACK, PLAY_RECENT, BECOME_STANDALONE, PREPARE_SWAP, PERFORM_SWAP, ENTER_SETUP_READY. (3) FSM semantics: play/pause falls back to un-mute; long-press cycles the household GC MRU list; coordinator forward Forwarding button events / No button handler with (cid:%s) correlation. IR learn: irdecoder.cxx histogram decode, two-pass long-code learn, three learnable groups; persistence proven by shipped reference/public/files/opt/ir/irconfig.txt (:vol_up_codes: style sections + repeat-code line), writable copy /jffs/irconfig.txt; cloud submit GET/POST ir.ws.sonos.com/IRCode/ with <IRCode><code/><value/><guid/></IRCode>. SOAP: LearnIRCode{IRCode cap 0x20, Timeout} + CommitLearnedIRCodes; IdentifyIRRemote carries an undocumented IRCode arg.",
@@ -210636,7 +210722,13 @@
     "Remote-button enum confirmed at 0x10fac9bc ({name*,len,id}): {POWER=1, BACK=2, HOME=3, MENU=4, PLAY_PAUSE=5, MUSIC=6, DPAD_UP=7, DPAD_DOWN=8, DPAD_LEFT=9, DPAD_RIGHT=10, DPAD_SELECT=11} + dpad table at 0x10facdb8 {UP=1,DOWN=2,LEFT=3,RIGHT=4,SELECT=5}; playback-action enum at 0x10fadccc {PLAY=1,PAUSE=2,NEXT_TRACK=3,PREV_TRACK=4}.",
     "Descriptor layout corrected by raw words and consumers: 0x10ec6b58 starts with fourteen string pointers for disallowed-action reason names. f_103c7250 bounds reason <=13 and indexes those pointers at 0x103c7358-0x103c7364 for a diagnostic; they are not wire enum ids. Immediately following at +0x38/+0x3c/+0x40/+0x44 are pointers to base/action/audio_type/orientation, not a fourteen-entry numeric enum table. Constructor f_103c822c copies those four pointers into object metadata at 0x103c82b4-0x103c82e4, then copies the eleven base-player field-name pointers from table+0x48 at 0x103c8340-0x103c8350. The earlier claimed positional value table {3,3,4,...} is not present at that location and is withdrawn.",
     "Live telemetry construction corroboration: f_103c9f0c takes queued button events, labels a PlayerButtons object with schema string 7.31.0-test and source hwEvtHandler through f_10c5be44 at 0x103c9fd0-0x103ca004, allocates/zeros 0x38c payload bytes at 0x103ca024-0x103ca060, and installs the same static field-name pointers at 0x103ca008-0x103ca03c. Thus the names are compiled metadata, not stripped names inferred from a dynamic protobuf table. Vtable 0x10ec6c88 slots +8/+0xc point to f_103cba78/f_103cba88, which only return embedded object+0x40/+0x9c. Neither these accessors nor construction calls decode a protobuf msgdesc. Numbered wire tags and the relation to the separate libhwmessagelib event transport remain unproven; no tag numbers are manufactured from array position.",
-    "Bit-field audit rejects the earlier required-field-mask claim at 0x103c822c. Both GNU e500 and the fixed repository listing show construction: f_10c5be44 initialization, four field-name-pointer loads/stores at 0x103c82b4-0x103c82e4, allocation of 0x38c bytes and nested-object construction. There is no 1<<field_index test or required-bits {1,2,3} validator in that cited path. The field names base/action/audio_type/orientation remain proven metadata, but that does not establish that action/audio_type/orientation are mandatory or that all others are optional. The unsupported required-field assertion is withdrawn; encoding/validation must be traced to its real implementation."
+    "Bit-field audit rejects the earlier required-field-mask claim at 0x103c822c. Both GNU e500 and the fixed repository listing show construction: f_10c5be44 initialization, four field-name-pointer loads/stores at 0x103c82b4-0x103c82e4, allocation of 0x38c bytes and nested-object construction. There is no 1<<field_index test or required-bits {1,2,3} validator in that cited path. The field names base/action/audio_type/orientation remain proven metadata, but that does not establish that action/audio_type/orientation are mandatory or that all others are optional. The unsupported required-field assertion is withdrawn; encoding/validation must be traced to its real implementation.",
+    "Resolved: PlayerButtons telemetry encoding and required-field backend. Schema descriptor 0x10ec6b58 = {+0x00..0x34 thirteen FSM state-name ptrs (ALLOWED, NOT_IN_HOUSEHOLD, PROCESSING_PLAYBACK, IN_DEMO_MODE, IN_RDM_MODE, IN_BUTTON_OBSERVATION_MODE, IN_TRANSFER_MODE, PROCESSING_JOIN, JOIN_CHIME_UNAVAILABLE, REGISTRATION_CHIME_UNAVAILABLE, BUTTONS_LOCKED, UNKNOWN, DAT_IN_BUTTONLESS_SETUP_MODE + DAT_IN_SETUP_DISCOVERY at +0x34), +0x38.. field-name ptrs {base,action,audio_type,orientation,event_id,event_name,event_schema_version,household_id,model_type,muse_household_id,serial_number,sonos_id,sw_build_type,sw_full_version,timestamp_utc}, +0x84 small-int type codes}. Emitter f_103c822c calls schema ctor f_10c5be44('PlayerButtons','7.31.0-test',schema,1), copies names schema+0x38..0x44 to stack array, builds 'TelemetryBasePlayer'/'TelemetryCategoryContext' objects.",
+    "Required-field backend is a presence bitmask at event-object+0x34, bit = 1<<field-index, populated by the filler itself: f_103c7eac ORs 0x2 when strlcpy'ing the caller action string into +0x2d6 (cap 0x29), ORs 0x4 when writing 'none' into +0x328 (audio_type; written when virtual call on player+0x9c vtable+0x68 returns 0), ORs 0x8 when writing f_10557480's state-name result into +0x35c (orientation). After serializer f_103c7830 runs, the check at 0x103c83cc tests mask bits {0x2,0x4,0x8} in order; for the first missing bit it logs 'PlayerButtons missing required field %s' through the 'telemetry' tag (level 3 gate f_109b6fe4, logger f_109b72ac), resolving the name as stack_array[log2(bit)] = {action,audio_type,orientation}. Emission proceeds regardless - the validation is a diagnostic, not a gate.",
+    "Resolved: libhwmessagelib hardware-message field descriptors. hwmessagelib_parseRawNetlinkMessage (.text+0x2f40, exported) validates nlmsg via nlmsg_valid_hdr/genlmsg_valid_hdr, requires genl cmd byte 1 (EVENT), then nla_parse(tb[7], maxtype=6, genlmsg_data, len, policy). Attr decode: attr2 = nla_get_u64 (event tv_sec, sign-extended s64), attr3 = nla_get_u64 (event tv_usec = tv_nsec/1000), attr4 = nla_get_u16 (event source), attr5 = nla_get_u16 (event info), attr6 = u32 mcgrp id (optional, not stored). Required-field mask is computed as {bit0:attr2, bit1:attr3, bit2:attr5, bit3:attr4}; mask != 0xf logs 'not all fields found in received message [0x%04X]' (the printed value is the found-mask) and fails. IS_VALID_HWEVENT bounds source<=0x3c and info<=0x30 (rejecting the '*' sentinels at 61/49). Output event struct is 24 bytes: {u32 msgType = 2 (EVENT; NOOP=0, OVERFLOW=1), u32 pad, u64 timestamp_usec = attr2*1000000 + attr3, u32 source, u32 info}.",
+    "Kernel corroboration from reference/public/files/modules/hwevent_queue.ko (has full .symtab): hwevtq_send_event (.text+0x5f0) issues nla_put with the same types {2:u64 ktime sec, 3:u64 nsec/1000, 4:u16 source, 5:u16 info, 6:u32 mcgrp}; hwevtq_policy (.data+0x1f0) = {0:unspec, 1:NLA_STRING len 256 (userspace->kernel TX, used by hwmessagelib_connection_sendMsgToKernel nla_put_string attr1), 2:NLA_U64/8, 3:NLA_U64/8, 4:NLA_U16/2, 5:NLA_U16/2, 6:NLA_U32/4}. Source/info name tables live in .rela.rodata+0x00/+0xf8; hwevtq_mcgrp_names = {reserved,audio,battery,button,btnpwr,capzone,ht,led,sensor,temp,wakeup,switch}.",
+    "Source->group routing in hwevtq_get_mcgrp_from_source (.text+0x550): default = u16 table .rodata+0x1c0 indexed by source (62 entries: button group <- {IR,BUTTON_PLAYPAUSE..BUTTON_MODE,BUTTON_MICMUTE,BUTTON_PAIRING,NFC}, btnpwr <- BUTTON_POWER, switch <- MICMUTE_SWITCH, audio <- {AMP,HEADPHONE,SUBWOOFER,LINEIN,DAC,ADC,AVTRIGGER,LINEOUT,SPDIF_OUT,HDMI,BANANA_PLUG}, temp <- {CPU,SOC,POWER,MCU1..4_AMP_L/R}, sensor <- {ORIENTATION,LIGHT_SENSOR,MOTION_DETECTOR}, capzone <- {CAPZONEA..CAPZONECAT,LEAN_UI_*}, battery <- {BATTERY,FUEL_GAUGE}, ht <- {SONGLE,SCI_BOARD,PSOC,CEC,UART,PMU}, wakeup <- {BLE,WIFI,LAN,CHARGER,RTC}); overrides: AMP + info in {TEMP_WARNING,TEMP_FAULT,TEMP_OK} -> temp; info == WAKEUP (0x26) + source in {IR, BUTTON_POWER, BUTTON_PAIRING, SOC, LAN(0x25), SCI_BOARD..PMU} -> wakeup group.",
+    "anacapad wiring: RHWEvtHandlerZP ctor f_103c4e64 builds 9 {group_name,err_out} pairs on the stack from hwmessagelib_multicast_group_*() string getters and calls hwmessagelib_connection_init(conn = this+0x80, pairs, 9, errbuf, cb = f_103c4cb0); failure iterates 'ERROR: NetLink multicastGrp init failure [%s] %s' with enumStr_hwmessage_multicastGroupAddFailure. RHWEvtHandlerZP::readEvent f_103c6718 calls hwmessagelib_connection_readNextMsg(conn+0x80, &raw24); on msgType 2 it repacks {source = raw+0x10, info = raw+0x14, age = f_10982b78/f_10982f7c(raw+8 timestamp) -> +8/+0xc, 0x7fffffff sentinel on conversion failure or >0x7ffffffe}, on msgType 1 it synthesizes {source = 0 (NO_SOURCE), info = 0x17 (QUEUE OVERRUN)}, other types log 'RHWEvtHandlerZP::readEvent() unknown [%d]'. The repacked {source,info} pair drives FSM handler f_103c854c."
    ]
   },
   "chirp_stack": {
