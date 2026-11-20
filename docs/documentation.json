@@ -231844,7 +231844,7 @@
   },
   "spec_pair_stream": {
    "name": "Muse object/status pair metadata",
-   "summary": "The checked alarms pair pool is object/status admissibility metadata, not a flat JSON field/type schema. Concrete operation virtual+0x58 getters supply a pointer and count; f_109daaf0 compares both words and translates a matching status through0x10f94604. Applying the object-name table to the second word produced spurious type names and union/optional interpretations.",
+   "summary": "The muse spec-pair pools are per-op response/status admissibility tables, not a JSON field/type grammar. Every op class exposes counted pair pools through accessor vfuncs: slot +0x58 is the declared response/error pool ({member-name-idx, status-idx} pairs naming the op's response object and each admissible status plus globalError fallbacks), slot +0x64 carries an alternate/minimal response pool, and slot +0x68 carries the subscription/event response pool. The proven consumer is f_109daaf0 on the command error path: it iterates the accessor's count-bounded pool, matches an {object,status} pair, and translates the status through the 108-row HTTP table at 0x10f94604, falling back to the 13-pair common pool from f_10ae63a8 and finally to the default row. Reading the second word through the name table (yielding 'upnpEvent'/'wiredSubStatus' pseudo-types) is a coincidental mis-decode; the correct domain is the status index space 0-107.",
    "evidence": [
     {
      "type": "firmware",
@@ -231868,6 +231868,24 @@
      "address": "0x10ac459c",
      "callsite": "0x10f9f89c / 0x10f9f91c / 0x10ac4618 / 0x10ac4678",
      "notes": "Eight returned pointer/count slices exactly cover22 pairs; endpoint10f9fd24 is adjacent sentinel data but not read as loop terminator by the checked consumer. Other pools and unrelated layout decoder remain unjoined."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109daaf0 status translation consumer",
+     "address": "0x109dab2c",
+     "callsite": "0x109dab18-0x109dab34 vptr+0x58 call / 0x109dab4c-0x109dab90 match loop / 0x109dabc8-0x109dac4c fallback",
+     "notes": "Calls the op object's vptr+0x58 with out-slot r1+0x14, takes r3 as the pair COUNT (mtctr), scans stride-8 pairs comparing both words against the input {member,status}, and on match copies table row 0x10f94604[status] {idx,http} to the out pointer. Count zero or exhausted -> f_10ae63a8 common pool; total miss -> row 0x358 (index 0x6b, HTTP 500). Called from 0x109db83c (f_109db780) and f_109dba70; the result lands at command+0x9c sub-object +0x120/+0x124 (response status, http code)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "accessor shape and common pool",
+     "address": "0x10ae63a8",
+     "callsite": "0x10ac459c-0x10ac45b4 / 0x10ac4678-0x10ac4694",
+     "notes": "Accessors are 0x20-byte stubs: form a rodata base, add a constant blob offset, store the pointer at the out-arg and return the pair count in r3. f_10ae63a8 itself returns the 13-pair shared pool at 0x10fa19c0 used as the global fallback."
     }
    ],
    "grammar": {
@@ -231879,14 +231897,25 @@
     "index_space": "f_109ecb5c accepts object ids0..326 inclusive at base0x10f97094;327 or above returns the empty string. The table base already addresses semantic index0."
    },
    "todo": [
-    "Established: concrete count-bounded object/status consumer, all eight alarms slice getters, translation examples and empty/local-miss/common-miss behavior. Remaining: bind every other claimed spec-pair pool to its actual virtual+0x58 provider and producer object/status values, enumerate status translations and their callers, and distinguish any differently shaped neighboring data. Start with f_109daaf0, f_10ae63a8 and0x10f94604. Do not reuse the old field:type/union/optional grammar or the unrelated f_10927c1c layout decoder without a reachable join. This remains actionable static work, not missing build-time schema data."
+    "Established: full provider binding (all 7123 op vtables, 417 unique pools, slot census), pair semantics {member,status}, the f_109daaf0 consumer, the 108-entry HTTP status table and the common/default fallback chain. Remaining: attribute dedicated runtime consumers to the +0x64 and +0x68 pools (their accessor shape is identical and their first-members fit alternate and event/subscription response shapes, but no equivalent of f_109daaf0 has been isolated for them), and classify pair pools whose second word exceeds 0x6b (e.g. the 0x12e/0x131 runs) which index past the status table and must be a different pair kind. This is actionable static work."
    ],
    "resolved_findings": [
     "Reachable chain: producer f_109efe04 passes object0x131/status0x34 into f_109dbbd8, which calls f_109dba70 -> f_109daaf0. The latter calls operation virtual+0x58, receives a count in r3 and an array pointer through its output argument, compares both pair words and advances by8 under CTR. It does not scan for ffffffff sentinels or parse adjacent verb strings.",
     "Alarms getters f_10ac459c/f_10ac45b8/f_10ac45d8/f_10ac45f8/f_10ac4618/f_10ac4638/f_10ac4658/f_10ac4678 return slices of0x10f9fc74 at offsets0/8/0x10/0x18/0x28/0x50/0x78/0x98 with counts1/1/1/2/5/5/4/3, totaling22 rows. Getter cells include0x10f9f89c and0x10f9f91c at their respective vtable+0x58. Thus operation-local slicing is compiled, not recoverable only from neighboring verb order.",
     "A match indexes status table0x10f94604 with the second word times8 and copies the resulting two words to the result. Status0x34 maps to{0x34,200},0x3f to{0x3f,499},0x42 to{0x42,404},0x47/0x48 to{same-code,400}. The previous upnpEvent/wiredSubStatus/bluetoothDevice/channelMapPair/chirpRequest type labels for those numbers are unrelated object-name lookups, disproved by this actual consumer.",
-    "Empty operation metadata or no local match tries common provider f_10ae63a8. No match there leaves default tuple{0x6b,500}; f_109dba70 treats0x6b as the not-found condition and reaches Error code not found in objectStatusMap. A successful tuple is stored at result-state+0x120/+0x124. The later _objectType JSON marker uses f_109ecb5c on an explicit object id, not the status code."
-   ]
+    "Empty operation metadata or no local match tries common provider f_10ae63a8. No match there leaves default tuple{0x6b,500}; f_109dba70 treats0x6b as the not-found condition and reaches Error code not found in objectStatusMap. A successful tuple is stored at result-state+0x120/+0x124. The later _objectType JSON marker uses f_109ecb5c on an explicit object id, not the status code.",
+    "The provider binding is complete: all 7123 op vtables across the 67 muse resources resolve +0x58 to a counted pair pool (plus +0x64 on 1046 instances and +0x68 on 218). 417 unique pool blobs exist; 372 serve more than one op, dominated by the shared upnp*-bridge sets reused 120 times each. Pools are count-bounded first (303 additionally carry ffffffff terminators); the consumer iterates by the accessor's returned count, never by terminator scan.",
+    "Pair semantics are fixed: {member-name index into 0x10f97094, status index into 0x10f94604}. The earlier b-field reading as a member/type name was coincidental: the same word is a valid index into both tables, but only the status decode produces a coherent domain (internal status -> HTTP 200/400/404/499/500 family). The f_109daaf0 match loop compares both words, so each pool pair asserts 'this response member may be emitted with this status'.",
+    "Translation and fallback chain verified: op pool match -> 0x10f94604[status] {idx,http}; no op match -> common pool f_10ae63a8 (13 pairs at 0x10fa19c0); still no match -> row 0x6b {0x6b,500}. The emitted pair is stored as the response status/http at command+0x9c:+0x120/+0x124 from callsite 0x109db83c."
+   ],
+   "census": {
+    "op_vtables_bound": "7123 of 7123 op vtables across 67 muse resources carry spec accessors; slot distribution: +0x58 on all (14157 accessor instances), +0x64 (1046), +0x68 (218)",
+    "unique_pools": 417,
+    "pool_sharing": "372 pools serve more than one op; the six largest (0x10fb1340/0x10fb18b8/0x10fb1e10/0x10fb2368/0x10fb28c0/0x10fb2e18) each back 120 accessor instances, the shared upnp*-bridge response sets",
+    "termination": "303 pools carry the ffffffff terminator; 114 do not within 32 pairs and are purely count-bounded, matching the mtctr-count consumption loop",
+    "common_pool": "f_10ae63a8 returns r3=13 pairs at 0x10fa19c0 (the global-namespace block): {groupCoordinatorChanged,0x42} plus eleven {globalError,status} entries covering statuses 0x43-0x60",
+    "status_table": "0x10f94604: 108 sequential rows {status-idx, HTTP code}; HTTP distribution 200x1,201x1,202x1,204x1,304x1,400x14,401x2,403x3,404x8,405x1,409x1,410x2,412x1,415x1,417x1,490x1,491x1,499x53,500x10,501x1,503x2,504x1; default row index 0x6b = {0x6b,500}"
+   }
   },
   "muse_verb_ns_registry": {
    "name": "muse verb<->namespace registry (.data)",
@@ -706024,20 +706053,27 @@
     "literal_extras": "non-verb literals in blocks are param names + defaults (e.g. PT0H5M0S in alarms block = default snooze 5m)",
     "accessors": "confirmed: generated accessor functions (0x20-byte stride, e.g. f_10ac459c..f_10ac4678) each form descriptor-base and write &spec[k] to caller out-slot; spec array is AT descriptor offset 0: per-param {tag,val} descriptor array indexed by param position",
     "entry_semantics": {
-     "shape": "one {u32 a, u32 b} entry per op (accessor for op_i returns &entry_i); entries NOT per-param",
-     "a_field": "0xae for ordinary locally-served REST ops; unique ascending values 0x20-0x141 for household/VRC/registration-family ops: consistent with a numbered dispatch (lechmere cmd-id) namespace; clusters: 0x82/0x86/0xa0/0xae high-bit group vs 0x13-0x48 low group",
-     "b_field": "0x34 for ~all entries (schema marker/version); rare 0x36/0x39/0x3a variants (sendButtonCommand param-adjacent entries)"
+     "shape": "one {u32 a, u32 b} entry per op response/status assertion; accessor returns (pool-ptr via out-arg, count in r3); pools are count-bounded, 303 of 417 additionally ffffffff-terminated",
+     "a_field": "member-name index into table 0x10f97094 (the op's declared response member, e.g. alarm, settings, transitionToShipModeStatus; globalError for error assertions)",
+     "b_field": "status index into the 108-row {idx,HTTP} table 0x10f94604 (values 0x00-0x6b); values above 0x6b (the 0x12e/0x131 runs) exceed the table and belong to a different pair kind",
+     "previous_claim_corrected": "the earlier 'unique ascending 0x20-0x141 lechmere cmd-id' reading of a and the 'type-name' reading of b are both withdrawn: a is a member-name index and b is a status index; the name-table names seen through b (upnpEvent etc.) are coincidental collisions"
     },
     "notes": "Pairs carry two u32 words and can be interpreted against the global name table at 0x10f97094. Name lookup and association to a particular operation are distinct steps.",
     "todo": [
-     "Residual: establish the owner command and direction (request, response, or event) of each pair. Table index names can be decoded; mapping them to an owning operation by adjacent string order is unproven."
+     "Residual narrowed: pin down dedicated consumers for the +0x64/+0x68 pools (shapes and first-members suggest alternate and event/subscription responses) and classify the b>0x6b pair runs (0x12e/0x131) that do not index the status table. Ownership and response direction for the +0x58 census are proven."
     ],
     "resolved_findings": [
      "Build 86.10-80260: reading the first pairs at 0x10f9fc74 via the pointer table at 0x10f97094 gives {ok,upnpEvent}, {ok,upnpEvent}, {alarmList,upnpEvent}, {alarm,upnpEvent}, {globalError,channelMapPair}. Thus these words do have in-binary labels; the label for 0xae is ok, not a local REST dispatcher ID. A label lookup does not prove which operation owns an individual alarm field.",
-     "f_10927c84 compares its r4 argument against type-like indices; for case 0x70 the packed value in r5 contributes to stores at 0x10927d00 and 0x10927d04. This verifies the local switch behavior, not a direct call from the alarms pair range."
+     "f_10927c84 compares its r4 argument against type-like indices; for case 0x70 the packed value in r5 contributes to stores at 0x10927d00 and 0x10927d04. This verifies the local switch behavior, not a direct call from the alarms pair range.",
+     "Owner join is now mechanical rather than inferred: pair pools are reachable only through op-class accessor vfuncs (+0x58/+0x64/+0x68), so a pair's owner is the op class vtable that resolves to its pool. Verified shape: 0x20-byte accessors return pool pointer via out-arg and count via r3 (f_109daaf0 uses the count as mtctr); adjacent-string order is no longer needed for ownership.",
+     "Direction resolved as response/status: f_109daaf0 compares an emitted {member,status} pair against the op's +0x58 pool and writes the translated {status,http} into the command response at +0x120/+0x124; non-matches fall back to the 13-pair common pool at 0x10fa19c0 then row 0x6b. No request-consumption path for these pairs has been found; request grammars live in the separate field-metadata structures."
     ],
     "consumer": "The layout switch includes comparisons at 0x10927c84 through 0x10927cb0 and packed-word decode into slots +0x348/+0x34c; a direct join from this block's pairs to each case has not been demonstrated.",
-    "tag_enumeration": "census across all ffffffff/ffffffff-terminated pair runs in .rodata: dominant a-tags 0x82 (577x, the type-ref/member-descriptor tag), 0xae (191x, local-REST-op field), 0x86 (57x), 0x12e/0x131 (60x each, paired count fields), 0xb9 (44x), plus the unique-id field space (0x13-0x141 ascending, one per op/field). Dominant b-values are name-table type indices: 0x34 (380x, upnpEvent wrapper), 0x3f (204x), 0x47 (95x), 0x48 (81x), 0x66 (45x), 0x59 (44x), 0x42 (57x), 0x5a (28x), 0x41 (26x), 0x50 (19x), 0x4c (11x) - each resolves to a member type name in the 331-entry name table."
+    "tag_enumeration": "census across all ffffffff/ffffffff-terminated pair runs in .rodata: dominant a-tags 0x82 (577x, the type-ref/member-descriptor tag), 0xae (191x, local-REST-op field), 0x86 (57x), 0x12e/0x131 (60x each, paired count fields), 0xb9 (44x), plus the unique-id field space (0x13-0x141 ascending, one per op/field). Dominant b-values are name-table type indices: 0x34 (380x, upnpEvent wrapper), 0x3f (204x), 0x47 (95x), 0x48 (81x), 0x66 (45x), 0x59 (44x), 0x42 (57x), 0x5a (28x), 0x41 (26x), 0x50 (19x), 0x4c (11x) - each resolves to a member type name in the 331-entry name table.",
+    "owner_and_direction": {
+     "owner": "each pair is owned by the op class whose vtable accessor returns its pool: slot +0x58 on all 7123 op vtables, +0x64 and +0x68 on subsets; 417 unique pools, 372 shared across ops",
+     "direction": "response side. The proven consumer f_109daaf0 sits on the command error/status path and maps an admitted {member,status} pair to {status,HTTP}; request-side field grammar is a different structure (the f_109cc8f4 body-field metadata under muse_semantics)"
+    }
    }
   },
   "dispatch_mechanism": {
