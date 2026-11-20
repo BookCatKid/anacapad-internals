@@ -83873,11 +83873,68 @@
         "function": "0x1067c700",
         "address": "0x1067c860",
         "notes": "f_1067c700 sets pending via f_1067c46c (SUBSCRIBE path)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x1067d0cc",
+        "notes": "isDue: iface->vptr+0x1c compared against base f_100e4ef4; non-default slot invoked via mtctr/bctrl at 0x1067d1c0..0x1067d1c8 when +0x110 clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1c2c",
+        "notes": "Queue iface vtable 0x10ed1c10 slot +0x1c = f_10465b4c: addi r3,-8; b f_10465aa4 (Queue-manager isDue override)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465aa4",
+        "address": "0x10465afc",
+        "notes": "f_102b0908(*(qm+0x128),arr,6,flag 0) -> f_1025bfd4(*(impl+0x580)) peek of session queue records"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c108",
+        "notes": "returns isel-OR of f_1014d540 on slot records session+0x2d890+0x5c and session+0x2ff98+0x5c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d540",
+        "notes": "dirty test: returns first nonzero of rec+0x10,+0x18,+0x119,+0x52b"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146cc0",
+        "address": "0x10146cf4",
+        "notes": "flag!=0 clears rec+0x10/+0x18/+0x119/+0x52b on the source after the 0x2574 copy (send-time drain)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10683da0",
+        "address": "0x10684060",
+        "notes": "send path calls iface->vtable+0x18 -> +0x14 = f_10465f74 thunk -> generator f_10465e28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1109b010",
+        "notes": "dynsym 'timevalZero' (8 bytes, .bss); all .text refs are reads; statically {0,0}"
        }
-      ],
-      "todo": [
-       "Established: the action path itself emits no event.",
-       "Residual: no call that sets the Queue interface's pending byte (qm+8+0x110) after a Queue mutation has been found. The direct-call closure of the mutation hook f_1014d738, four levels deep (239 functions, including the in-process dispatcher f_10117654), contains no call to f_1067c6ec, f_1067c46c or f_1067c700. The session consumer's mark-changed call targets AVTransport, and the subscription paths (f_1068faa4, f_1068e65c) only cover new subscribers. No data word in any non-.text section points at f_1067c6ec, f_1067c46c or f_1067c700, so these setters are reached only by direct calls. An indirect call from a Queue mutation would therefore have to land in one of their direct callers. No call to f_1067c6ec lies in the queue engine (0x10144000..0x10156000) or in the Queue manager (0x10460000..0x10468000). The session code calls it at 0x102648c4 and 0x10265a08 (AVTransport, per S01). The AVTransport implementation (0x102b0000..0x102f8000) calls it at 59 sites. 54 of them pass an object's +0x10 address, which is the AVTransport interface pattern that S01 traced at 0x103fbb78. The other 5 sites pass a saved register, and each register is also set to an object's +0x10 address: r29 = r30+0x10 at 0x102b7f84 (call 0x102b7fbc), r30 = r28+0x10 at 0x102bc3f0 (0x102bc484), r27 = r29+0x10 at 0x102c3548 (0x102c3588), r29 = r30+0x10 at 0x102b79b8 (0x102b7ab4) and r25 = r30+0x10 at 0x102e30f8 (0x102e32e8). At the last two sites the only later definitions are epilogue reloads (0x102b7a90, 0x102e3294) on paths that leave before the call (0x102b7aa0; 0x102e32b4, 0x102e32c8). This is a register-definition scan, not a full path proof. None of the 59 sites uses an object's +0x8 address, which is where the Queue interface sits in the Queue manager. Across the whole binary there are 213 calls to f_1067c6ec or f_1067c46c. 111 of them pass some object's +0x8 address, the same shape as the Queue interface at qm+8. None of those 111 calls is in a slot function of the Queue manager vtables 0x10ed1bcc or 0x10ed1c10. None of them loads the Queue manager pointer (main+0x193c) within 40 instructions before the call, or its holder (main+0x1940) earlier in the same function. This scan matches instruction patterns. It does not prove the base object of each +0x8 call, so whether a Queue mutation reaches the pending byte through some other path stays open. On timing: for each interface the eventing pass f_10679b14 ('runOnce starting') calls f_1067d028 (0x10679da8). f_1067d028 returns 1 at once when the pending byte +0x110 is set. Otherwise it walks the subscriber list (count +0xa0, list +0x1c) and checks each subscriber's byte +0x170 and times +0x18c/+0x190. For a due interface the pass reads the timeval that slot +0x10 returns (the Queue's slot is the shared base function f_1067ab74, which returns this+0xc4) and tests it with timevalIsZero (0x10679df0). A nonzero timeval branches to a separate path at 0x10679ffc. A zero timeval goes on to send through f_10683da0 (0x10679e54) and folds the 8-byte timeval at 0x1109b010 into the next wake time with timevalMinimize (0x10679e64). 0x1109b010 is in .bss and its address is taken in many functions (f_100c71d0, f_100e323c, f_100fd44c and others), so its value is set at runtime and the wake interval is not a constant in the image. Which value it holds is not established."
       ],
       "resolved_findings": [
        "Resolved (negative within the action): no event or notify call exists in f_10464f34, f_1046594c, f_102bd324, f_10511858, f_105115b8 or f_105116e0; any Queue UpdateID event must come from the session-side consumer of the f_10255f64 requests or the insert workers.",
@@ -83885,7 +83942,9 @@
        "Established (who calls the LastChange generator): the Queue manager is allocated in f_103fa434 (new(0x130) at 0x103fb6b4, constructor f_10465fac at 0x103fb6e8) and stored at main+0x193c, with its shared-pointer holder at main+0x1940 (0x103fb720). The constructor installs a second vtable 0x10ed1c10 at qm+8 (0x104660d8). In that vtable, slot +0x14 is f_10465f74, a this-8 thunk to f_10465e28 (Queue-manager slot +0x34, the only direct caller of f_10465e28 at 0x10465f78), and slot +0x18 is f_1067ab54, which tail-calls this->vtable+0x14. The upnpeventing loop f_10679b14 walks an array of 8-byte shared-pointer elements ending at registry+0x114, filled by f_1067938c (11 callers). For each interface it calls f_1067a9f0 (0x10679cec) to look it up in a separate vector at registry+0x128, and skips the interface when it is found there. Otherwise it calls f_1067d028 (0x10679da8), and when that returns nonzero and the interface's +0x10 timeval (this+0xc4, timevalIsZero at 0x10679df0) is nonzero, it calls f_10683da0 (0x10679e54). f_10683da0 calls interface->vtable+0x18 at 0x10684060, which for the Queue interface reaches f_1067ab54 -> f_10465f74 -> f_10465e28. f_103f6a48 adds qm+8 (0x103f6b18) to the registry+0x128 vector through f_106794f0 (0x103f6b24, push_back at 0x10679570), registry = *(*(main+0x228)+4), as one of 14 such calls. In plain terms: the Queue's LastChange text is built by the shared UPnP eventing thread, which asks each registered service interface for its event body, not by the Queue actions themselves.",
        "Established (when the Queue interface is in the eventing loop): registering a MediaPlayer (f_1040fc34, log 'MediaPlayer [%s] registered. [%zu]', at 0x1040fdd4; also f_1040fffc at 0x10410d60) calls f_103fd65c, which calls f_103f8924 (0x103fdde4). At 0x103f8b60..0x103f8bb8, f_103f8924 builds a shared pointer {qm+8, holder main+0x1940} (isel at 0x103f8b78, reference count raised) and passes it to f_104017c8, which calls f_1067938c(registry = *(*(main+0x228)+4), &pointer) at 0x10401830. This adds the Queue interface to the array that f_10679b14 walks. Shutting down a MediaPlayer (f_1040e944, log 'Request to shutdown MediaPlayer [%s]', at 0x1040ea8c) calls f_103fe5c4, which calls f_103f6a48 (0x103fe918). That adds the same interfaces to the registry+0x128 vector through f_106794f0, and the loop skips every interface in that vector. In plain terms: Queue events start once the MediaPlayer that owns the Queue service is registered, and stop as soon as its shutdown is requested.",
        "Established (what gates each send): f_1067d028 (0x10679da8) atomically reads the interface's pending byte +0x110 and returns 1 when it is set. The evented-interface base constructor f_1067aec4, which the Queue manager constructor calls at 0x1046607c, sets +0x110 to 1 (0x1067b06c) and stamps sonosClockGetTime into +0xcc, so the first LastChange goes out after registration. The shared mark-changed function f_1067c6ec (232 callers) sets +0x110 again through f_1067c46c (0x1067c4c8), and f_10683da0 clears it after a send (0x10683fdc). The session request consumer f_1026571c calls f_1067c6ec at 0x10265a08 only on session+0x2578, which f_1025f19c (0x1025f540) fills from main+0x1934 (0x103fbb78), a different service than the Queue manager at main+0x193c. In plain terms: an event is sent when an interface's pending flag is set, and the flag is set at startup and by explicit mark-changed calls.",
-       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass."
+       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass.",
+       "Resolved (why the Queue interface is due after a mutation): the shared pending byte is not the mutation path at all. When iface+0x110 is clear, f_1067d028 dispatches iface->vtable+0x1c whenever that slot differs from the base f_100e4ef4 (0x1067d0cc..0x1067d0e0, mtctr/bctrl at 0x1067d1c0..0x1067d1c8). The Queue interface overrides it: secondary vtable 0x10ed1c10 (offset-to-top -8) has slot +0x1c = f_10465b4c, a this-8 thunk into f_10465aa4 on the Queue manager, which calls f_102b0908(*(qm+0x128) = the AVTransport impl, arr, 6, flag 0) at 0x10465afc..0x10465b0c. f_102b0908 locks impl+0x458 and delegates to f_1025bfd4(*(impl+0x580) = the session object, lock session+0x208), which snapshots the two embedded queue records (session+0x2d890+0x5c and session+0x2ff98+0x5c) through f_10146cc0 with flag 0, a peek that does not clear markers, and returns f_1014d540(slot0) isel-ORed with f_1014d540(slot1) at 0x1025c108: the interface is due exactly when either queue's dirty-marker bytes (+0x10 QueueID, +0x18 UpdateID, +0x119 OwnerID, +0x52b Curated) are set. Mutations write those bytes synchronously on the live queue records: f_1014d738 bumps UpdateID (rec+0x14 = q+0x70), marks +0x18 (q+0x74) and re-evaluates Curated through f_1014d5c0 (marks +0x52b on change); the field setters mark +0x10 (f_1014d30c writes rec+0 and sets the byte), +0x119 (f_1014d448 writes rec+0x19; the session updater f_1028347c also sets +0x119 at 0x10283714 after matching a queue's id string) and +0x52b (f_1014d5c4). On send, f_10683da0 clears +0x110 and calls iface->vtable+0x18 (0x10684060) which reaches vtable+0x14 = f_10465f74, a this-8 thunk to the generator f_10465e28(qm, chan0, chan1, wake): it re-runs the same snapshot with flag 1, and f_10146cc0 then copies each 0x2574 record and clears the four marker bytes on the live queue (0x10146cf4..0x10146d04), so markers accumulate between sends and reset on send. f_10465e28 emits the full form into chan0 via f_10465b54(r4=1) and the marker-gated incremental form into chan1 via f_10465b54(r4=0), only when the drained slot0 record was dirty (0x10465ec8..0x10465f08). In plain terms: queue edits mark per-field dirty bytes on the queue records themselves, and the eventing thread's per-interface due check polls those bytes for the Queue service through a dedicated virtual override instead of the shared mark-changed function, which is why no mark-changed call targets the Queue interface.",
+       "Resolved (wake-time datum): the .bss 8-byte value at 0x1109b010 is the exported dynamic symbol 'timevalZero' (.dynsym entry 0x10010bb8, size 8, shndx .bss). Every .text reference takes its address with lis+addi/addis+lwz pairs and only reads it: the runOnce accumulator seed at 0x10679c6c..0x10679c88 and the generators' next-wake outputs (Queue f_10465e28 at 0x10465f08..0x10465f1c, AVTransport f_102e6048 at 0x102e6250..0x102e6264). No stw/stb/sth immediate store, no indexed store and no r2-relative access targets it, so within this binary it holds {0,0}: the canonical zero-timeval meaning 'no scheduled wake time'. Its .got2 slot 0x1108d4a0 exists for the dynamic linker/export only."
       ]
      },
      "state_transitions": {
@@ -85174,19 +85233,79 @@
         "function": "0x1067c700",
         "address": "0x1067c860",
         "notes": "f_1067c700 sets pending via f_1067c46c (SUBSCRIBE path)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x1067d0cc",
+        "notes": "isDue: iface->vptr+0x1c compared against base f_100e4ef4; non-default slot invoked via mtctr/bctrl at 0x1067d1c0..0x1067d1c8 when +0x110 clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1c2c",
+        "notes": "Queue iface vtable 0x10ed1c10 slot +0x1c = f_10465b4c: addi r3,-8; b f_10465aa4 (Queue-manager isDue override)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465aa4",
+        "address": "0x10465afc",
+        "notes": "f_102b0908(*(qm+0x128),arr,6,flag 0) -> f_1025bfd4(*(impl+0x580)) peek of session queue records"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c108",
+        "notes": "returns isel-OR of f_1014d540 on slot records session+0x2d890+0x5c and session+0x2ff98+0x5c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d540",
+        "notes": "dirty test: returns first nonzero of rec+0x10,+0x18,+0x119,+0x52b"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146cc0",
+        "address": "0x10146cf4",
+        "notes": "flag!=0 clears rec+0x10/+0x18/+0x119/+0x52b on the source after the 0x2574 copy (send-time drain)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10683da0",
+        "address": "0x10684060",
+        "notes": "send path calls iface->vtable+0x18 -> +0x14 = f_10465f74 thunk -> generator f_10465e28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1109b010",
+        "notes": "dynsym 'timevalZero' (8 bytes, .bss); all .text refs are reads; statically {0,0}"
        }
-      ],
-      "todo": [
-       "Established: no UPnP notify call exists in f_1046453c, f_102b6948, f_102b674c or f_102b62e8; f_102b62e8 emits a 'queue'/'enqueueEvent' record through f_10559024.",
-       "Residual: no call that sets the Queue interface's pending byte (qm+8+0x110) after a Queue mutation has been found. The direct-call closure of the mutation hook f_1014d738, four levels deep (239 functions, including the in-process dispatcher f_10117654), contains no call to f_1067c6ec, f_1067c46c or f_1067c700. The session consumer's mark-changed call targets AVTransport, and the subscription paths (f_1068faa4, f_1068e65c) only cover new subscribers. No data word in any non-.text section points at f_1067c6ec, f_1067c46c or f_1067c700, so these setters are reached only by direct calls. An indirect call from a Queue mutation would therefore have to land in one of their direct callers. No call to f_1067c6ec lies in the queue engine (0x10144000..0x10156000) or in the Queue manager (0x10460000..0x10468000). The session code calls it at 0x102648c4 and 0x10265a08 (AVTransport, per S01). The AVTransport implementation (0x102b0000..0x102f8000) calls it at 59 sites. 54 of them pass an object's +0x10 address, which is the AVTransport interface pattern that S01 traced at 0x103fbb78. The other 5 sites pass a saved register, and each register is also set to an object's +0x10 address: r29 = r30+0x10 at 0x102b7f84 (call 0x102b7fbc), r30 = r28+0x10 at 0x102bc3f0 (0x102bc484), r27 = r29+0x10 at 0x102c3548 (0x102c3588), r29 = r30+0x10 at 0x102b79b8 (0x102b7ab4) and r25 = r30+0x10 at 0x102e30f8 (0x102e32e8). At the last two sites the only later definitions are epilogue reloads (0x102b7a90, 0x102e3294) on paths that leave before the call (0x102b7aa0; 0x102e32b4, 0x102e32c8). This is a register-definition scan, not a full path proof. None of the 59 sites uses an object's +0x8 address, which is where the Queue interface sits in the Queue manager. Across the whole binary there are 213 calls to f_1067c6ec or f_1067c46c. 111 of them pass some object's +0x8 address, the same shape as the Queue interface at qm+8. None of those 111 calls is in a slot function of the Queue manager vtables 0x10ed1bcc or 0x10ed1c10. None of them loads the Queue manager pointer (main+0x193c) within 40 instructions before the call, or its holder (main+0x1940) earlier in the same function. This scan matches instruction patterns. It does not prove the base object of each +0x8 call, so whether a Queue mutation reaches the pending byte through some other path stays open. On timing: for each interface the eventing pass f_10679b14 ('runOnce starting') calls f_1067d028 (0x10679da8). f_1067d028 returns 1 at once when the pending byte +0x110 is set. Otherwise it walks the subscriber list (count +0xa0, list +0x1c) and checks each subscriber's byte +0x170 and times +0x18c/+0x190. For a due interface the pass reads the timeval that slot +0x10 returns (the Queue's slot is the shared base function f_1067ab74, which returns this+0xc4) and tests it with timevalIsZero (0x10679df0). A nonzero timeval branches to a separate path at 0x10679ffc. A zero timeval goes on to send through f_10683da0 (0x10679e54) and folds the 8-byte timeval at 0x1109b010 into the next wake time with timevalMinimize (0x10679e64). 0x1109b010 is in .bss and its address is taken in many functions (f_100c71d0, f_100e323c, f_100fd44c and others), so its value is set at runtime and the wake interval is not a constant in the image. Which value it holds is not established."
       ],
       "resolved_findings": [
        "Resolved (within the action): the only emission is in f_102b62e8, which brackets the work with clock_gettime (0x102b63a0/0x102b63d4) and calls f_10559024()->v[+0x1c](obj,timer,'queue','enqueueEvent',1,1) at 0x102b64bc on every exit. Inference: this is a diagnostics timing record, not a UPnP event, because it carries elapsed time and does not reference the Queue event template near 0x10ed1c6c.",
+       "Established (within the action): no UPnP notify call exists in f_1046453c, f_102b6948, f_102b674c or f_102b62e8; f_102b62e8 emits a 'queue'/'enqueueEvent' record through f_10559024.",
        "Established (GENA path): the Queue LastChange is generated by Queue-manager vtable slot +0x34, f_10465e28 (.rodata 0x10ed1c00). It snapshots the queues through f_102b0908 (lock impl+0x458) and f_1025bfd4, where f_10146cc0 copies the queue header from q+0x5c (QueueID text, UpdateID q+0x70, owner q+0x75) into a slot and, for the update property set, clears the change bytes q+0x6c, q+0x74, q+0x175 and q+0x587 (0x10146cf8..0x10146d04). f_1014d540 tests those bytes, and f_10465e28 emits the update property set only when the default-queue snapshot shows a change (0x10465eec). f_10465b54 formats it as the LastChange value '<Event xmlns=\"urn:schemas-sonos-com:metadata-1-0/Queue/\"><QueueID val=\"%.20s\"><UpdateID val=\"%u\"/><QueueOwnerID val=\"%s\"/></QueueID></Event>' (strings 0x10ed1c6c, 0x10ed1cd0, 0x10ed1ce8, 0x10ed1ca8) for the event URL /MediaRenderer/Queue/Event (.data 0x11091028). f_1014d738 is the function that increments UpdateID and sets q+0x74, so a change that reaches it shows up in the next LastChange with the new UpdateID. In plain terms: Queue event subscribers receive a LastChange naming the QueueID, its new UpdateID and the queue owner. For this action the commit f_1014dc98 calls f_1014d738 at 0x1014dfcc when the queue name byte q+0x4c is nonzero (0x1014dfbc).",
        "Established (who calls the LastChange generator): the Queue manager is allocated in f_103fa434 (new(0x130) at 0x103fb6b4, constructor f_10465fac at 0x103fb6e8) and stored at main+0x193c, with its shared-pointer holder at main+0x1940 (0x103fb720). The constructor installs a second vtable 0x10ed1c10 at qm+8 (0x104660d8). In that vtable, slot +0x14 is f_10465f74, a this-8 thunk to f_10465e28 (Queue-manager slot +0x34, the only direct caller of f_10465e28 at 0x10465f78), and slot +0x18 is f_1067ab54, which tail-calls this->vtable+0x14. The upnpeventing loop f_10679b14 walks an array of 8-byte shared-pointer elements ending at registry+0x114, filled by f_1067938c (11 callers). For each interface it calls f_1067a9f0 (0x10679cec) to look it up in a separate vector at registry+0x128, and skips the interface when it is found there. Otherwise it calls f_1067d028 (0x10679da8), and when that returns nonzero and the interface's +0x10 timeval (this+0xc4, timevalIsZero at 0x10679df0) is nonzero, it calls f_10683da0 (0x10679e54). f_10683da0 calls interface->vtable+0x18 at 0x10684060, which for the Queue interface reaches f_1067ab54 -> f_10465f74 -> f_10465e28. f_103f6a48 adds qm+8 (0x103f6b18) to the registry+0x128 vector through f_106794f0 (0x103f6b24, push_back at 0x10679570), registry = *(*(main+0x228)+4), as one of 14 such calls. In plain terms: the Queue's LastChange text is built by the shared UPnP eventing thread, which asks each registered service interface for its event body, not by the Queue actions themselves.",
        "Established (when the Queue interface is in the eventing loop): registering a MediaPlayer (f_1040fc34, log 'MediaPlayer [%s] registered. [%zu]', at 0x1040fdd4; also f_1040fffc at 0x10410d60) calls f_103fd65c, which calls f_103f8924 (0x103fdde4). At 0x103f8b60..0x103f8bb8, f_103f8924 builds a shared pointer {qm+8, holder main+0x1940} (isel at 0x103f8b78, reference count raised) and passes it to f_104017c8, which calls f_1067938c(registry = *(*(main+0x228)+4), &pointer) at 0x10401830. This adds the Queue interface to the array that f_10679b14 walks. Shutting down a MediaPlayer (f_1040e944, log 'Request to shutdown MediaPlayer [%s]', at 0x1040ea8c) calls f_103fe5c4, which calls f_103f6a48 (0x103fe918). That adds the same interfaces to the registry+0x128 vector through f_106794f0, and the loop skips every interface in that vector. In plain terms: Queue events start once the MediaPlayer that owns the Queue service is registered, and stop as soon as its shutdown is requested.",
        "Established (what gates each send): f_1067d028 (0x10679da8) atomically reads the interface's pending byte +0x110 and returns 1 when it is set. The evented-interface base constructor f_1067aec4, which the Queue manager constructor calls at 0x1046607c, sets +0x110 to 1 (0x1067b06c) and stamps sonosClockGetTime into +0xcc, so the first LastChange goes out after registration. The shared mark-changed function f_1067c6ec (232 callers) sets +0x110 again through f_1067c46c (0x1067c4c8), and f_10683da0 clears it after a send (0x10683fdc). The session request consumer f_1026571c calls f_1067c6ec at 0x10265a08 only on session+0x2578, which f_1025f19c (0x1025f540) fills from main+0x1934 (0x103fbb78), a different service than the Queue manager at main+0x193c. In plain terms: an event is sent when an interface's pending flag is set, and the flag is set at startup and by explicit mark-changed calls.",
-       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass."
+       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass.",
+       "Resolved (why the Queue interface is due after a mutation): the shared pending byte is not the mutation path at all. When iface+0x110 is clear, f_1067d028 dispatches iface->vtable+0x1c whenever that slot differs from the base f_100e4ef4 (0x1067d0cc..0x1067d0e0, mtctr/bctrl at 0x1067d1c0..0x1067d1c8). The Queue interface overrides it: secondary vtable 0x10ed1c10 (offset-to-top -8) has slot +0x1c = f_10465b4c, a this-8 thunk into f_10465aa4 on the Queue manager, which calls f_102b0908(*(qm+0x128) = the AVTransport impl, arr, 6, flag 0) at 0x10465afc..0x10465b0c. f_102b0908 locks impl+0x458 and delegates to f_1025bfd4(*(impl+0x580) = the session object, lock session+0x208), which snapshots the two embedded queue records (session+0x2d890+0x5c and session+0x2ff98+0x5c) through f_10146cc0 with flag 0, a peek that does not clear markers, and returns f_1014d540(slot0) isel-ORed with f_1014d540(slot1) at 0x1025c108: the interface is due exactly when either queue's dirty-marker bytes (+0x10 QueueID, +0x18 UpdateID, +0x119 OwnerID, +0x52b Curated) are set. Mutations write those bytes synchronously on the live queue records: f_1014d738 bumps UpdateID (rec+0x14 = q+0x70), marks +0x18 (q+0x74) and re-evaluates Curated through f_1014d5c0 (marks +0x52b on change); the field setters mark +0x10 (f_1014d30c writes rec+0 and sets the byte), +0x119 (f_1014d448 writes rec+0x19; the session updater f_1028347c also sets +0x119 at 0x10283714 after matching a queue's id string) and +0x52b (f_1014d5c4). On send, f_10683da0 clears +0x110 and calls iface->vtable+0x18 (0x10684060) which reaches vtable+0x14 = f_10465f74, a this-8 thunk to the generator f_10465e28(qm, chan0, chan1, wake): it re-runs the same snapshot with flag 1, and f_10146cc0 then copies each 0x2574 record and clears the four marker bytes on the live queue (0x10146cf4..0x10146d04), so markers accumulate between sends and reset on send. f_10465e28 emits the full form into chan0 via f_10465b54(r4=1) and the marker-gated incremental form into chan1 via f_10465b54(r4=0), only when the drained slot0 record was dirty (0x10465ec8..0x10465f08). In plain terms: queue edits mark per-field dirty bytes on the queue records themselves, and the eventing thread's per-interface due check polls those bytes for the Queue service through a dedicated virtual override instead of the shared mark-changed function, which is why no mark-changed call targets the Queue interface.",
+       "Resolved (wake-time datum): the .bss 8-byte value at 0x1109b010 is the exported dynamic symbol 'timevalZero' (.dynsym entry 0x10010bb8, size 8, shndx .bss). Every .text reference takes its address with lis+addi/addis+lwz pairs and only reads it: the runOnce accumulator seed at 0x10679c6c..0x10679c88 and the generators' next-wake outputs (Queue f_10465e28 at 0x10465f08..0x10465f1c, AVTransport f_102e6048 at 0x102e6250..0x102e6264). No stw/stb/sth immediate store, no indexed store and no r2-relative access targets it, so within this binary it holds {0,0}: the canonical zero-timeval meaning 'no scheduled wake time'. Its .got2 slot 0x1108d4a0 exists for the dynamic linker/export only."
       ]
      },
      "state_transitions": {
@@ -88969,19 +89088,79 @@
         "function": "0x1067c700",
         "address": "0x1067c860",
         "notes": "f_1067c700 sets pending via f_1067c46c (SUBSCRIBE path)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x1067d0cc",
+        "notes": "isDue: iface->vptr+0x1c compared against base f_100e4ef4; non-default slot invoked via mtctr/bctrl at 0x1067d1c0..0x1067d1c8 when +0x110 clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1c2c",
+        "notes": "Queue iface vtable 0x10ed1c10 slot +0x1c = f_10465b4c: addi r3,-8; b f_10465aa4 (Queue-manager isDue override)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465aa4",
+        "address": "0x10465afc",
+        "notes": "f_102b0908(*(qm+0x128),arr,6,flag 0) -> f_1025bfd4(*(impl+0x580)) peek of session queue records"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c108",
+        "notes": "returns isel-OR of f_1014d540 on slot records session+0x2d890+0x5c and session+0x2ff98+0x5c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d540",
+        "notes": "dirty test: returns first nonzero of rec+0x10,+0x18,+0x119,+0x52b"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146cc0",
+        "address": "0x10146cf4",
+        "notes": "flag!=0 clears rec+0x10/+0x18/+0x119/+0x52b on the source after the 0x2574 copy (send-time drain)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10683da0",
+        "address": "0x10684060",
+        "notes": "send path calls iface->vtable+0x18 -> +0x14 = f_10465f74 thunk -> generator f_10465e28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1109b010",
+        "notes": "dynsym 'timevalZero' (8 bytes, .bss); all .text refs are reads; statically {0,0}"
        }
-      ],
-      "todo": [
-       "Established: The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
-       "Residual: no call that sets the Queue interface's pending byte (qm+8+0x110) after a Queue mutation has been found. The direct-call closure of the mutation hook f_1014d738, four levels deep (239 functions, including the in-process dispatcher f_10117654), contains no call to f_1067c6ec, f_1067c46c or f_1067c700. The session consumer's mark-changed call targets AVTransport, and the subscription paths (f_1068faa4, f_1068e65c) only cover new subscribers. No data word in any non-.text section points at f_1067c6ec, f_1067c46c or f_1067c700, so these setters are reached only by direct calls. An indirect call from a Queue mutation would therefore have to land in one of their direct callers. No call to f_1067c6ec lies in the queue engine (0x10144000..0x10156000) or in the Queue manager (0x10460000..0x10468000). The session code calls it at 0x102648c4 and 0x10265a08 (AVTransport, per S01). The AVTransport implementation (0x102b0000..0x102f8000) calls it at 59 sites. 54 of them pass an object's +0x10 address, which is the AVTransport interface pattern that S01 traced at 0x103fbb78. The other 5 sites pass a saved register, and each register is also set to an object's +0x10 address: r29 = r30+0x10 at 0x102b7f84 (call 0x102b7fbc), r30 = r28+0x10 at 0x102bc3f0 (0x102bc484), r27 = r29+0x10 at 0x102c3548 (0x102c3588), r29 = r30+0x10 at 0x102b79b8 (0x102b7ab4) and r25 = r30+0x10 at 0x102e30f8 (0x102e32e8). At the last two sites the only later definitions are epilogue reloads (0x102b7a90, 0x102e3294) on paths that leave before the call (0x102b7aa0; 0x102e32b4, 0x102e32c8). This is a register-definition scan, not a full path proof. None of the 59 sites uses an object's +0x8 address, which is where the Queue interface sits in the Queue manager. Across the whole binary there are 213 calls to f_1067c6ec or f_1067c46c. 111 of them pass some object's +0x8 address, the same shape as the Queue interface at qm+8. None of those 111 calls is in a slot function of the Queue manager vtables 0x10ed1bcc or 0x10ed1c10. None of them loads the Queue manager pointer (main+0x193c) within 40 instructions before the call, or its holder (main+0x1940) earlier in the same function. This scan matches instruction patterns. It does not prove the base object of each +0x8 call, so whether a Queue mutation reaches the pending byte through some other path stays open. On timing: for each interface the eventing pass f_10679b14 ('runOnce starting') calls f_1067d028 (0x10679da8). f_1067d028 returns 1 at once when the pending byte +0x110 is set. Otherwise it walks the subscriber list (count +0xa0, list +0x1c) and checks each subscriber's byte +0x170 and times +0x18c/+0x190. For a due interface the pass reads the timeval that slot +0x10 returns (the Queue's slot is the shared base function f_1067ab74, which returns this+0xc4) and tests it with timevalIsZero (0x10679df0). A nonzero timeval branches to a separate path at 0x10679ffc. A zero timeval goes on to send through f_10683da0 (0x10679e54) and folds the 8-byte timeval at 0x1109b010 into the next wake time with timevalMinimize (0x10679e64). 0x1109b010 is in .bss and its address is taken in many functions (f_100c71d0, f_100e323c, f_100fd44c and others), so its value is set at runtime and the wake interval is not a constant in the image. Which value it holds is not established."
       ],
       "resolved_findings": [
        "Resolved (engine side): the only effects in the traced code are the clear request (f_1032e47c kind 1 or 2) submitted with f_10255f64 at 0x102b3a2c and the conditional store of 0 to engine+0x6ed8 at 0x102b3a64; no notify call is made directly in f_10464908, f_102b3a84 or f_102b397c.",
+       "Established (mutation marking): the queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
        "Established (GENA path): the Queue LastChange is generated by Queue-manager vtable slot +0x34, f_10465e28 (.rodata 0x10ed1c00). It snapshots the queues through f_102b0908 (lock impl+0x458) and f_1025bfd4, where f_10146cc0 copies the queue header from q+0x5c (QueueID text, UpdateID q+0x70, owner q+0x75) into a slot and, for the update property set, clears the change bytes q+0x6c, q+0x74, q+0x175 and q+0x587 (0x10146cf8..0x10146d04). f_1014d540 tests those bytes, and f_10465e28 emits the update property set only when the default-queue snapshot shows a change (0x10465eec). f_10465b54 formats it as the LastChange value '<Event xmlns=\"urn:schemas-sonos-com:metadata-1-0/Queue/\"><QueueID val=\"%.20s\"><UpdateID val=\"%u\"/><QueueOwnerID val=\"%s\"/></QueueID></Event>' (strings 0x10ed1c6c, 0x10ed1cd0, 0x10ed1ce8, 0x10ed1ca8) for the event URL /MediaRenderer/Queue/Event (.data 0x11091028). f_1014d738 is the function that increments UpdateID and sets q+0x74, so a change that reaches it shows up in the next LastChange with the new UpdateID. In plain terms: Queue event subscribers receive a LastChange naming the QueueID, its new UpdateID and the queue owner.",
        "Established (who calls the LastChange generator): the Queue manager is allocated in f_103fa434 (new(0x130) at 0x103fb6b4, constructor f_10465fac at 0x103fb6e8) and stored at main+0x193c, with its shared-pointer holder at main+0x1940 (0x103fb720). The constructor installs a second vtable 0x10ed1c10 at qm+8 (0x104660d8). In that vtable, slot +0x14 is f_10465f74, a this-8 thunk to f_10465e28 (Queue-manager slot +0x34, the only direct caller of f_10465e28 at 0x10465f78), and slot +0x18 is f_1067ab54, which tail-calls this->vtable+0x14. The upnpeventing loop f_10679b14 walks an array of 8-byte shared-pointer elements ending at registry+0x114, filled by f_1067938c (11 callers). For each interface it calls f_1067a9f0 (0x10679cec) to look it up in a separate vector at registry+0x128, and skips the interface when it is found there. Otherwise it calls f_1067d028 (0x10679da8), and when that returns nonzero and the interface's +0x10 timeval (this+0xc4, timevalIsZero at 0x10679df0) is nonzero, it calls f_10683da0 (0x10679e54). f_10683da0 calls interface->vtable+0x18 at 0x10684060, which for the Queue interface reaches f_1067ab54 -> f_10465f74 -> f_10465e28. f_103f6a48 adds qm+8 (0x103f6b18) to the registry+0x128 vector through f_106794f0 (0x103f6b24, push_back at 0x10679570), registry = *(*(main+0x228)+4), as one of 14 such calls. In plain terms: the Queue's LastChange text is built by the shared UPnP eventing thread, which asks each registered service interface for its event body, not by the Queue actions themselves.",
        "Established (when the Queue interface is in the eventing loop): registering a MediaPlayer (f_1040fc34, log 'MediaPlayer [%s] registered. [%zu]', at 0x1040fdd4; also f_1040fffc at 0x10410d60) calls f_103fd65c, which calls f_103f8924 (0x103fdde4). At 0x103f8b60..0x103f8bb8, f_103f8924 builds a shared pointer {qm+8, holder main+0x1940} (isel at 0x103f8b78, reference count raised) and passes it to f_104017c8, which calls f_1067938c(registry = *(*(main+0x228)+4), &pointer) at 0x10401830. This adds the Queue interface to the array that f_10679b14 walks. Shutting down a MediaPlayer (f_1040e944, log 'Request to shutdown MediaPlayer [%s]', at 0x1040ea8c) calls f_103fe5c4, which calls f_103f6a48 (0x103fe918). That adds the same interfaces to the registry+0x128 vector through f_106794f0, and the loop skips every interface in that vector. In plain terms: Queue events start once the MediaPlayer that owns the Queue service is registered, and stop as soon as its shutdown is requested.",
        "Established (what gates each send): f_1067d028 (0x10679da8) atomically reads the interface's pending byte +0x110 and returns 1 when it is set. The evented-interface base constructor f_1067aec4, which the Queue manager constructor calls at 0x1046607c, sets +0x110 to 1 (0x1067b06c) and stamps sonosClockGetTime into +0xcc, so the first LastChange goes out after registration. The shared mark-changed function f_1067c6ec (232 callers) sets +0x110 again through f_1067c46c (0x1067c4c8), and f_10683da0 clears it after a send (0x10683fdc). The session request consumer f_1026571c calls f_1067c6ec at 0x10265a08 only on session+0x2578, which f_1025f19c (0x1025f540) fills from main+0x1934 (0x103fbb78), a different service than the Queue manager at main+0x193c. In plain terms: an event is sent when an interface's pending flag is set, and the flag is set at startup and by explicit mark-changed calls.",
-       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass."
+       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass.",
+       "Resolved (why the Queue interface is due after a mutation): the shared pending byte is not the mutation path at all. When iface+0x110 is clear, f_1067d028 dispatches iface->vtable+0x1c whenever that slot differs from the base f_100e4ef4 (0x1067d0cc..0x1067d0e0, mtctr/bctrl at 0x1067d1c0..0x1067d1c8). The Queue interface overrides it: secondary vtable 0x10ed1c10 (offset-to-top -8) has slot +0x1c = f_10465b4c, a this-8 thunk into f_10465aa4 on the Queue manager, which calls f_102b0908(*(qm+0x128) = the AVTransport impl, arr, 6, flag 0) at 0x10465afc..0x10465b0c. f_102b0908 locks impl+0x458 and delegates to f_1025bfd4(*(impl+0x580) = the session object, lock session+0x208), which snapshots the two embedded queue records (session+0x2d890+0x5c and session+0x2ff98+0x5c) through f_10146cc0 with flag 0, a peek that does not clear markers, and returns f_1014d540(slot0) isel-ORed with f_1014d540(slot1) at 0x1025c108: the interface is due exactly when either queue's dirty-marker bytes (+0x10 QueueID, +0x18 UpdateID, +0x119 OwnerID, +0x52b Curated) are set. Mutations write those bytes synchronously on the live queue records: f_1014d738 bumps UpdateID (rec+0x14 = q+0x70), marks +0x18 (q+0x74) and re-evaluates Curated through f_1014d5c0 (marks +0x52b on change); the field setters mark +0x10 (f_1014d30c writes rec+0 and sets the byte), +0x119 (f_1014d448 writes rec+0x19; the session updater f_1028347c also sets +0x119 at 0x10283714 after matching a queue's id string) and +0x52b (f_1014d5c4). On send, f_10683da0 clears +0x110 and calls iface->vtable+0x18 (0x10684060) which reaches vtable+0x14 = f_10465f74, a this-8 thunk to the generator f_10465e28(qm, chan0, chan1, wake): it re-runs the same snapshot with flag 1, and f_10146cc0 then copies each 0x2574 record and clears the four marker bytes on the live queue (0x10146cf4..0x10146d04), so markers accumulate between sends and reset on send. f_10465e28 emits the full form into chan0 via f_10465b54(r4=1) and the marker-gated incremental form into chan1 via f_10465b54(r4=0), only when the drained slot0 record was dirty (0x10465ec8..0x10465f08). In plain terms: queue edits mark per-field dirty bytes on the queue records themselves, and the eventing thread's per-interface due check polls those bytes for the Queue service through a dedicated virtual override instead of the shared mark-changed function, which is why no mark-changed call targets the Queue interface.",
+       "Resolved (wake-time datum): the .bss 8-byte value at 0x1109b010 is the exported dynamic symbol 'timevalZero' (.dynsym entry 0x10010bb8, size 8, shndx .bss). Every .text reference takes its address with lis+addi/addis+lwz pairs and only reads it: the runOnce accumulator seed at 0x10679c6c..0x10679c88 and the generators' next-wake outputs (Queue f_10465e28 at 0x10465f08..0x10465f1c, AVTransport f_102e6048 at 0x102e6250..0x102e6264). No stw/stb/sth immediate store, no indexed store and no r2-relative access targets it, so within this binary it holds {0,0}: the canonical zero-timeval meaning 'no scheduled wake time'. Its .got2 slot 0x1108d4a0 exists for the dynamic linker/export only."
       ]
      },
      "state_transitions": {
@@ -89937,19 +90116,79 @@
         "function": "0x1067c700",
         "address": "0x1067c860",
         "notes": "f_1067c700 sets pending via f_1067c46c (SUBSCRIBE path)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x1067d0cc",
+        "notes": "isDue: iface->vptr+0x1c compared against base f_100e4ef4; non-default slot invoked via mtctr/bctrl at 0x1067d1c0..0x1067d1c8 when +0x110 clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1c2c",
+        "notes": "Queue iface vtable 0x10ed1c10 slot +0x1c = f_10465b4c: addi r3,-8; b f_10465aa4 (Queue-manager isDue override)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465aa4",
+        "address": "0x10465afc",
+        "notes": "f_102b0908(*(qm+0x128),arr,6,flag 0) -> f_1025bfd4(*(impl+0x580)) peek of session queue records"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c108",
+        "notes": "returns isel-OR of f_1014d540 on slot records session+0x2d890+0x5c and session+0x2ff98+0x5c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d540",
+        "notes": "dirty test: returns first nonzero of rec+0x10,+0x18,+0x119,+0x52b"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146cc0",
+        "address": "0x10146cf4",
+        "notes": "flag!=0 clears rec+0x10/+0x18/+0x119/+0x52b on the source after the 0x2574 copy (send-time drain)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10683da0",
+        "address": "0x10684060",
+        "notes": "send path calls iface->vtable+0x18 -> +0x14 = f_10465f74 thunk -> generator f_10465e28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1109b010",
+        "notes": "dynsym 'timevalZero' (8 bytes, .bss); all .text refs are reads; statically {0,0}"
        }
-      ],
-      "todo": [
-       "Established: The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
-       "Residual: no call that sets the Queue interface's pending byte (qm+8+0x110) after a Queue mutation has been found. The direct-call closure of the mutation hook f_1014d738, four levels deep (239 functions, including the in-process dispatcher f_10117654), contains no call to f_1067c6ec, f_1067c46c or f_1067c700. The session consumer's mark-changed call targets AVTransport, and the subscription paths (f_1068faa4, f_1068e65c) only cover new subscribers. No data word in any non-.text section points at f_1067c6ec, f_1067c46c or f_1067c700, so these setters are reached only by direct calls. An indirect call from a Queue mutation would therefore have to land in one of their direct callers. No call to f_1067c6ec lies in the queue engine (0x10144000..0x10156000) or in the Queue manager (0x10460000..0x10468000). The session code calls it at 0x102648c4 and 0x10265a08 (AVTransport, per S01). The AVTransport implementation (0x102b0000..0x102f8000) calls it at 59 sites. 54 of them pass an object's +0x10 address, which is the AVTransport interface pattern that S01 traced at 0x103fbb78. The other 5 sites pass a saved register, and each register is also set to an object's +0x10 address: r29 = r30+0x10 at 0x102b7f84 (call 0x102b7fbc), r30 = r28+0x10 at 0x102bc3f0 (0x102bc484), r27 = r29+0x10 at 0x102c3548 (0x102c3588), r29 = r30+0x10 at 0x102b79b8 (0x102b7ab4) and r25 = r30+0x10 at 0x102e30f8 (0x102e32e8). At the last two sites the only later definitions are epilogue reloads (0x102b7a90, 0x102e3294) on paths that leave before the call (0x102b7aa0; 0x102e32b4, 0x102e32c8). This is a register-definition scan, not a full path proof. None of the 59 sites uses an object's +0x8 address, which is where the Queue interface sits in the Queue manager. Across the whole binary there are 213 calls to f_1067c6ec or f_1067c46c. 111 of them pass some object's +0x8 address, the same shape as the Queue interface at qm+8. None of those 111 calls is in a slot function of the Queue manager vtables 0x10ed1bcc or 0x10ed1c10. None of them loads the Queue manager pointer (main+0x193c) within 40 instructions before the call, or its holder (main+0x1940) earlier in the same function. This scan matches instruction patterns. It does not prove the base object of each +0x8 call, so whether a Queue mutation reaches the pending byte through some other path stays open. On timing: for each interface the eventing pass f_10679b14 ('runOnce starting') calls f_1067d028 (0x10679da8). f_1067d028 returns 1 at once when the pending byte +0x110 is set. Otherwise it walks the subscriber list (count +0xa0, list +0x1c) and checks each subscriber's byte +0x170 and times +0x18c/+0x190. For a due interface the pass reads the timeval that slot +0x10 returns (the Queue's slot is the shared base function f_1067ab74, which returns this+0xc4) and tests it with timevalIsZero (0x10679df0). A nonzero timeval branches to a separate path at 0x10679ffc. A zero timeval goes on to send through f_10683da0 (0x10679e54) and folds the 8-byte timeval at 0x1109b010 into the next wake time with timevalMinimize (0x10679e64). 0x1109b010 is in .bss and its address is taken in many functions (f_100c71d0, f_100e323c, f_100fd44c and others), so its value is set at runtime and the wake interval is not a constant in the image. Which value it holds is not established."
       ],
       "resolved_findings": [
        "Resolved (engine side): the only effects in the traced code are the remove-range request (f_1032e45c kind 1 or 2, u16 first and last index) submitted with f_10255f64 at 0x102acbd4 and the conditional store of 0 to engine+0x6ed8 at 0x102acc10; no notify call is made directly in f_10464a44, f_102b3954 or f_102aca78.",
+       "Established (mutation marking): the queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
        "Established (GENA path): the Queue LastChange is generated by Queue-manager vtable slot +0x34, f_10465e28 (.rodata 0x10ed1c00). It snapshots the queues through f_102b0908 (lock impl+0x458) and f_1025bfd4, where f_10146cc0 copies the queue header from q+0x5c (QueueID text, UpdateID q+0x70, owner q+0x75) into a slot and, for the update property set, clears the change bytes q+0x6c, q+0x74, q+0x175 and q+0x587 (0x10146cf8..0x10146d04). f_1014d540 tests those bytes, and f_10465e28 emits the update property set only when the default-queue snapshot shows a change (0x10465eec). f_10465b54 formats it as the LastChange value '<Event xmlns=\"urn:schemas-sonos-com:metadata-1-0/Queue/\"><QueueID val=\"%.20s\"><UpdateID val=\"%u\"/><QueueOwnerID val=\"%s\"/></QueueID></Event>' (strings 0x10ed1c6c, 0x10ed1cd0, 0x10ed1ce8, 0x10ed1ca8) for the event URL /MediaRenderer/Queue/Event (.data 0x11091028). f_1014d738 is the function that increments UpdateID and sets q+0x74, so a change that reaches it shows up in the next LastChange with the new UpdateID. In plain terms: Queue event subscribers receive a LastChange naming the QueueID, its new UpdateID and the queue owner.",
        "Established (who calls the LastChange generator): the Queue manager is allocated in f_103fa434 (new(0x130) at 0x103fb6b4, constructor f_10465fac at 0x103fb6e8) and stored at main+0x193c, with its shared-pointer holder at main+0x1940 (0x103fb720). The constructor installs a second vtable 0x10ed1c10 at qm+8 (0x104660d8). In that vtable, slot +0x14 is f_10465f74, a this-8 thunk to f_10465e28 (Queue-manager slot +0x34, the only direct caller of f_10465e28 at 0x10465f78), and slot +0x18 is f_1067ab54, which tail-calls this->vtable+0x14. The upnpeventing loop f_10679b14 walks an array of 8-byte shared-pointer elements ending at registry+0x114, filled by f_1067938c (11 callers). For each interface it calls f_1067a9f0 (0x10679cec) to look it up in a separate vector at registry+0x128, and skips the interface when it is found there. Otherwise it calls f_1067d028 (0x10679da8), and when that returns nonzero and the interface's +0x10 timeval (this+0xc4, timevalIsZero at 0x10679df0) is nonzero, it calls f_10683da0 (0x10679e54). f_10683da0 calls interface->vtable+0x18 at 0x10684060, which for the Queue interface reaches f_1067ab54 -> f_10465f74 -> f_10465e28. f_103f6a48 adds qm+8 (0x103f6b18) to the registry+0x128 vector through f_106794f0 (0x103f6b24, push_back at 0x10679570), registry = *(*(main+0x228)+4), as one of 14 such calls. In plain terms: the Queue's LastChange text is built by the shared UPnP eventing thread, which asks each registered service interface for its event body, not by the Queue actions themselves.",
        "Established (when the Queue interface is in the eventing loop): registering a MediaPlayer (f_1040fc34, log 'MediaPlayer [%s] registered. [%zu]', at 0x1040fdd4; also f_1040fffc at 0x10410d60) calls f_103fd65c, which calls f_103f8924 (0x103fdde4). At 0x103f8b60..0x103f8bb8, f_103f8924 builds a shared pointer {qm+8, holder main+0x1940} (isel at 0x103f8b78, reference count raised) and passes it to f_104017c8, which calls f_1067938c(registry = *(*(main+0x228)+4), &pointer) at 0x10401830. This adds the Queue interface to the array that f_10679b14 walks. Shutting down a MediaPlayer (f_1040e944, log 'Request to shutdown MediaPlayer [%s]', at 0x1040ea8c) calls f_103fe5c4, which calls f_103f6a48 (0x103fe918). That adds the same interfaces to the registry+0x128 vector through f_106794f0, and the loop skips every interface in that vector. In plain terms: Queue events start once the MediaPlayer that owns the Queue service is registered, and stop as soon as its shutdown is requested.",
        "Established (what gates each send): f_1067d028 (0x10679da8) atomically reads the interface's pending byte +0x110 and returns 1 when it is set. The evented-interface base constructor f_1067aec4, which the Queue manager constructor calls at 0x1046607c, sets +0x110 to 1 (0x1067b06c) and stamps sonosClockGetTime into +0xcc, so the first LastChange goes out after registration. The shared mark-changed function f_1067c6ec (232 callers) sets +0x110 again through f_1067c46c (0x1067c4c8), and f_10683da0 clears it after a send (0x10683fdc). The session request consumer f_1026571c calls f_1067c6ec at 0x10265a08 only on session+0x2578, which f_1025f19c (0x1025f540) fills from main+0x1934 (0x103fbb78), a different service than the Queue manager at main+0x193c. In plain terms: an event is sent when an interface's pending flag is set, and the flag is set at startup and by explicit mark-changed calls.",
-       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass."
+       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass.",
+       "Resolved (why the Queue interface is due after a mutation): the shared pending byte is not the mutation path at all. When iface+0x110 is clear, f_1067d028 dispatches iface->vtable+0x1c whenever that slot differs from the base f_100e4ef4 (0x1067d0cc..0x1067d0e0, mtctr/bctrl at 0x1067d1c0..0x1067d1c8). The Queue interface overrides it: secondary vtable 0x10ed1c10 (offset-to-top -8) has slot +0x1c = f_10465b4c, a this-8 thunk into f_10465aa4 on the Queue manager, which calls f_102b0908(*(qm+0x128) = the AVTransport impl, arr, 6, flag 0) at 0x10465afc..0x10465b0c. f_102b0908 locks impl+0x458 and delegates to f_1025bfd4(*(impl+0x580) = the session object, lock session+0x208), which snapshots the two embedded queue records (session+0x2d890+0x5c and session+0x2ff98+0x5c) through f_10146cc0 with flag 0, a peek that does not clear markers, and returns f_1014d540(slot0) isel-ORed with f_1014d540(slot1) at 0x1025c108: the interface is due exactly when either queue's dirty-marker bytes (+0x10 QueueID, +0x18 UpdateID, +0x119 OwnerID, +0x52b Curated) are set. Mutations write those bytes synchronously on the live queue records: f_1014d738 bumps UpdateID (rec+0x14 = q+0x70), marks +0x18 (q+0x74) and re-evaluates Curated through f_1014d5c0 (marks +0x52b on change); the field setters mark +0x10 (f_1014d30c writes rec+0 and sets the byte), +0x119 (f_1014d448 writes rec+0x19; the session updater f_1028347c also sets +0x119 at 0x10283714 after matching a queue's id string) and +0x52b (f_1014d5c4). On send, f_10683da0 clears +0x110 and calls iface->vtable+0x18 (0x10684060) which reaches vtable+0x14 = f_10465f74, a this-8 thunk to the generator f_10465e28(qm, chan0, chan1, wake): it re-runs the same snapshot with flag 1, and f_10146cc0 then copies each 0x2574 record and clears the four marker bytes on the live queue (0x10146cf4..0x10146d04), so markers accumulate between sends and reset on send. f_10465e28 emits the full form into chan0 via f_10465b54(r4=1) and the marker-gated incremental form into chan1 via f_10465b54(r4=0), only when the drained slot0 record was dirty (0x10465ec8..0x10465f08). In plain terms: queue edits mark per-field dirty bytes on the queue records themselves, and the eventing thread's per-interface due check polls those bytes for the Queue service through a dedicated virtual override instead of the shared mark-changed function, which is why no mark-changed call targets the Queue interface.",
+       "Resolved (wake-time datum): the .bss 8-byte value at 0x1109b010 is the exported dynamic symbol 'timevalZero' (.dynsym entry 0x10010bb8, size 8, shndx .bss). Every .text reference takes its address with lis+addi/addis+lwz pairs and only reads it: the runOnce accumulator seed at 0x10679c6c..0x10679c88 and the generators' next-wake outputs (Queue f_10465e28 at 0x10465f08..0x10465f1c, AVTransport f_102e6048 at 0x102e6250..0x102e6264). No stw/stb/sth immediate store, no indexed store and no r2-relative access targets it, so within this binary it holds {0,0}: the canonical zero-timeval meaning 'no scheduled wake time'. Its .got2 slot 0x1108d4a0 exists for the dynamic linker/export only."
       ]
      },
      "state_transitions": {
@@ -91022,19 +91261,79 @@
         "function": "0x1067c700",
         "address": "0x1067c860",
         "notes": "f_1067c700 sets pending via f_1067c46c (SUBSCRIBE path)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x1067d0cc",
+        "notes": "isDue: iface->vptr+0x1c compared against base f_100e4ef4; non-default slot invoked via mtctr/bctrl at 0x1067d1c0..0x1067d1c8 when +0x110 clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1c2c",
+        "notes": "Queue iface vtable 0x10ed1c10 slot +0x1c = f_10465b4c: addi r3,-8; b f_10465aa4 (Queue-manager isDue override)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465aa4",
+        "address": "0x10465afc",
+        "notes": "f_102b0908(*(qm+0x128),arr,6,flag 0) -> f_1025bfd4(*(impl+0x580)) peek of session queue records"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c108",
+        "notes": "returns isel-OR of f_1014d540 on slot records session+0x2d890+0x5c and session+0x2ff98+0x5c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d540",
+        "notes": "dirty test: returns first nonzero of rec+0x10,+0x18,+0x119,+0x52b"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146cc0",
+        "address": "0x10146cf4",
+        "notes": "flag!=0 clears rec+0x10/+0x18/+0x119/+0x52b on the source after the 0x2574 copy (send-time drain)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10683da0",
+        "address": "0x10684060",
+        "notes": "send path calls iface->vtable+0x18 -> +0x14 = f_10465f74 thunk -> generator f_10465e28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1109b010",
+        "notes": "dynsym 'timevalZero' (8 bytes, .bss); all .text refs are reads; statically {0,0}"
        }
-      ],
-      "todo": [
-       "Established: The queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
-       "Residual: no call that sets the Queue interface's pending byte (qm+8+0x110) after a Queue mutation has been found. The direct-call closure of the mutation hook f_1014d738, four levels deep (239 functions, including the in-process dispatcher f_10117654), contains no call to f_1067c6ec, f_1067c46c or f_1067c700. The session consumer's mark-changed call targets AVTransport, and the subscription paths (f_1068faa4, f_1068e65c) only cover new subscribers. No data word in any non-.text section points at f_1067c6ec, f_1067c46c or f_1067c700, so these setters are reached only by direct calls. An indirect call from a Queue mutation would therefore have to land in one of their direct callers. No call to f_1067c6ec lies in the queue engine (0x10144000..0x10156000) or in the Queue manager (0x10460000..0x10468000). The session code calls it at 0x102648c4 and 0x10265a08 (AVTransport, per S01). The AVTransport implementation (0x102b0000..0x102f8000) calls it at 59 sites. 54 of them pass an object's +0x10 address, which is the AVTransport interface pattern that S01 traced at 0x103fbb78. The other 5 sites pass a saved register, and each register is also set to an object's +0x10 address: r29 = r30+0x10 at 0x102b7f84 (call 0x102b7fbc), r30 = r28+0x10 at 0x102bc3f0 (0x102bc484), r27 = r29+0x10 at 0x102c3548 (0x102c3588), r29 = r30+0x10 at 0x102b79b8 (0x102b7ab4) and r25 = r30+0x10 at 0x102e30f8 (0x102e32e8). At the last two sites the only later definitions are epilogue reloads (0x102b7a90, 0x102e3294) on paths that leave before the call (0x102b7aa0; 0x102e32b4, 0x102e32c8). This is a register-definition scan, not a full path proof. None of the 59 sites uses an object's +0x8 address, which is where the Queue interface sits in the Queue manager. Across the whole binary there are 213 calls to f_1067c6ec or f_1067c46c. 111 of them pass some object's +0x8 address, the same shape as the Queue interface at qm+8. None of those 111 calls is in a slot function of the Queue manager vtables 0x10ed1bcc or 0x10ed1c10. None of them loads the Queue manager pointer (main+0x193c) within 40 instructions before the call, or its holder (main+0x1940) earlier in the same function. This scan matches instruction patterns. It does not prove the base object of each +0x8 call, so whether a Queue mutation reaches the pending byte through some other path stays open. On timing: for each interface the eventing pass f_10679b14 ('runOnce starting') calls f_1067d028 (0x10679da8). f_1067d028 returns 1 at once when the pending byte +0x110 is set. Otherwise it walks the subscriber list (count +0xa0, list +0x1c) and checks each subscriber's byte +0x170 and times +0x18c/+0x190. For a due interface the pass reads the timeval that slot +0x10 returns (the Queue's slot is the shared base function f_1067ab74, which returns this+0xc4) and tests it with timevalIsZero (0x10679df0). A nonzero timeval branches to a separate path at 0x10679ffc. A zero timeval goes on to send through f_10683da0 (0x10679e54) and folds the 8-byte timeval at 0x1109b010 into the next wake time with timevalMinimize (0x10679e64). 0x1109b010 is in .bss and its address is taken in many functions (f_100c71d0, f_100e323c, f_100fd44c and others), so its value is set at runtime and the wake interval is not a constant in the image. Which value it holds is not established."
       ],
       "resolved_findings": [
        "Resolved (engine side): the only effects in the traced code are the optional f_1032e3c8 request submitted at 0x102acec8 and the conditional store of 0 to engine+0x6ed8 at 0x102acf14; no notify call is made directly in f_10464d68, f_102b3924 or f_102accf0.",
+       "Established (mutation marking): the queue-level change goes through f_1014d738 only when the byte q+0x4c is nonzero (clear 0x1014da54, remove 0x1014eb28, reorder 0x1014e8f4): it increments the UpdateID at q+0x70 (0x1014d7a8..0x1014d7c0), sets q+0x74 to 1, and posts an in-process event through f_10117654(q+0x18, ev) at 0x1014d820 carrying the queue ID string q+0x5c and the new UpdateID.",
        "Established (GENA path): the Queue LastChange is generated by Queue-manager vtable slot +0x34, f_10465e28 (.rodata 0x10ed1c00). It snapshots the queues through f_102b0908 (lock impl+0x458) and f_1025bfd4, where f_10146cc0 copies the queue header from q+0x5c (QueueID text, UpdateID q+0x70, owner q+0x75) into a slot and, for the update property set, clears the change bytes q+0x6c, q+0x74, q+0x175 and q+0x587 (0x10146cf8..0x10146d04). f_1014d540 tests those bytes, and f_10465e28 emits the update property set only when the default-queue snapshot shows a change (0x10465eec). f_10465b54 formats it as the LastChange value '<Event xmlns=\"urn:schemas-sonos-com:metadata-1-0/Queue/\"><QueueID val=\"%.20s\"><UpdateID val=\"%u\"/><QueueOwnerID val=\"%s\"/></QueueID></Event>' (strings 0x10ed1c6c, 0x10ed1cd0, 0x10ed1ce8, 0x10ed1ca8) for the event URL /MediaRenderer/Queue/Event (.data 0x11091028). f_1014d738 is the function that increments UpdateID and sets q+0x74, so a change that reaches it shows up in the next LastChange with the new UpdateID. In plain terms: Queue event subscribers receive a LastChange naming the QueueID, its new UpdateID and the queue owner.",
        "Established (who calls the LastChange generator): the Queue manager is allocated in f_103fa434 (new(0x130) at 0x103fb6b4, constructor f_10465fac at 0x103fb6e8) and stored at main+0x193c, with its shared-pointer holder at main+0x1940 (0x103fb720). The constructor installs a second vtable 0x10ed1c10 at qm+8 (0x104660d8). In that vtable, slot +0x14 is f_10465f74, a this-8 thunk to f_10465e28 (Queue-manager slot +0x34, the only direct caller of f_10465e28 at 0x10465f78), and slot +0x18 is f_1067ab54, which tail-calls this->vtable+0x14. The upnpeventing loop f_10679b14 walks an array of 8-byte shared-pointer elements ending at registry+0x114, filled by f_1067938c (11 callers). For each interface it calls f_1067a9f0 (0x10679cec) to look it up in a separate vector at registry+0x128, and skips the interface when it is found there. Otherwise it calls f_1067d028 (0x10679da8), and when that returns nonzero and the interface's +0x10 timeval (this+0xc4, timevalIsZero at 0x10679df0) is nonzero, it calls f_10683da0 (0x10679e54). f_10683da0 calls interface->vtable+0x18 at 0x10684060, which for the Queue interface reaches f_1067ab54 -> f_10465f74 -> f_10465e28. f_103f6a48 adds qm+8 (0x103f6b18) to the registry+0x128 vector through f_106794f0 (0x103f6b24, push_back at 0x10679570), registry = *(*(main+0x228)+4), as one of 14 such calls. In plain terms: the Queue's LastChange text is built by the shared UPnP eventing thread, which asks each registered service interface for its event body, not by the Queue actions themselves.",
        "Established (when the Queue interface is in the eventing loop): registering a MediaPlayer (f_1040fc34, log 'MediaPlayer [%s] registered. [%zu]', at 0x1040fdd4; also f_1040fffc at 0x10410d60) calls f_103fd65c, which calls f_103f8924 (0x103fdde4). At 0x103f8b60..0x103f8bb8, f_103f8924 builds a shared pointer {qm+8, holder main+0x1940} (isel at 0x103f8b78, reference count raised) and passes it to f_104017c8, which calls f_1067938c(registry = *(*(main+0x228)+4), &pointer) at 0x10401830. This adds the Queue interface to the array that f_10679b14 walks. Shutting down a MediaPlayer (f_1040e944, log 'Request to shutdown MediaPlayer [%s]', at 0x1040ea8c) calls f_103fe5c4, which calls f_103f6a48 (0x103fe918). That adds the same interfaces to the registry+0x128 vector through f_106794f0, and the loop skips every interface in that vector. In plain terms: Queue events start once the MediaPlayer that owns the Queue service is registered, and stop as soon as its shutdown is requested.",
        "Established (what gates each send): f_1067d028 (0x10679da8) atomically reads the interface's pending byte +0x110 and returns 1 when it is set. The evented-interface base constructor f_1067aec4, which the Queue manager constructor calls at 0x1046607c, sets +0x110 to 1 (0x1067b06c) and stamps sonosClockGetTime into +0xcc, so the first LastChange goes out after registration. The shared mark-changed function f_1067c6ec (232 callers) sets +0x110 again through f_1067c46c (0x1067c4c8), and f_10683da0 clears it after a send (0x10683fdc). The session request consumer f_1026571c calls f_1067c6ec at 0x10265a08 only on session+0x2578, which f_1025f19c (0x1025f540) fills from main+0x1934 (0x103fbb78), a different service than the Queue manager at main+0x193c. In plain terms: an event is sent when an interface's pending flag is set, and the flag is set at startup and by explicit mark-changed calls.",
-       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass."
+       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass.",
+       "Resolved (why the Queue interface is due after a mutation): the shared pending byte is not the mutation path at all. When iface+0x110 is clear, f_1067d028 dispatches iface->vtable+0x1c whenever that slot differs from the base f_100e4ef4 (0x1067d0cc..0x1067d0e0, mtctr/bctrl at 0x1067d1c0..0x1067d1c8). The Queue interface overrides it: secondary vtable 0x10ed1c10 (offset-to-top -8) has slot +0x1c = f_10465b4c, a this-8 thunk into f_10465aa4 on the Queue manager, which calls f_102b0908(*(qm+0x128) = the AVTransport impl, arr, 6, flag 0) at 0x10465afc..0x10465b0c. f_102b0908 locks impl+0x458 and delegates to f_1025bfd4(*(impl+0x580) = the session object, lock session+0x208), which snapshots the two embedded queue records (session+0x2d890+0x5c and session+0x2ff98+0x5c) through f_10146cc0 with flag 0, a peek that does not clear markers, and returns f_1014d540(slot0) isel-ORed with f_1014d540(slot1) at 0x1025c108: the interface is due exactly when either queue's dirty-marker bytes (+0x10 QueueID, +0x18 UpdateID, +0x119 OwnerID, +0x52b Curated) are set. Mutations write those bytes synchronously on the live queue records: f_1014d738 bumps UpdateID (rec+0x14 = q+0x70), marks +0x18 (q+0x74) and re-evaluates Curated through f_1014d5c0 (marks +0x52b on change); the field setters mark +0x10 (f_1014d30c writes rec+0 and sets the byte), +0x119 (f_1014d448 writes rec+0x19; the session updater f_1028347c also sets +0x119 at 0x10283714 after matching a queue's id string) and +0x52b (f_1014d5c4). On send, f_10683da0 clears +0x110 and calls iface->vtable+0x18 (0x10684060) which reaches vtable+0x14 = f_10465f74, a this-8 thunk to the generator f_10465e28(qm, chan0, chan1, wake): it re-runs the same snapshot with flag 1, and f_10146cc0 then copies each 0x2574 record and clears the four marker bytes on the live queue (0x10146cf4..0x10146d04), so markers accumulate between sends and reset on send. f_10465e28 emits the full form into chan0 via f_10465b54(r4=1) and the marker-gated incremental form into chan1 via f_10465b54(r4=0), only when the drained slot0 record was dirty (0x10465ec8..0x10465f08). In plain terms: queue edits mark per-field dirty bytes on the queue records themselves, and the eventing thread's per-interface due check polls those bytes for the Queue service through a dedicated virtual override instead of the shared mark-changed function, which is why no mark-changed call targets the Queue interface.",
+       "Resolved (wake-time datum): the .bss 8-byte value at 0x1109b010 is the exported dynamic symbol 'timevalZero' (.dynsym entry 0x10010bb8, size 8, shndx .bss). Every .text reference takes its address with lis+addi/addis+lwz pairs and only reads it: the runOnce accumulator seed at 0x10679c6c..0x10679c88 and the generators' next-wake outputs (Queue f_10465e28 at 0x10465f08..0x10465f1c, AVTransport f_102e6048 at 0x102e6250..0x102e6264). No stw/stb/sth immediate store, no indexed store and no r2-relative access targets it, so within this binary it holds {0,0}: the canonical zero-timeval meaning 'no scheduled wake time'. Its .got2 slot 0x1108d4a0 exists for the dynamic linker/export only."
       ]
      },
      "state_transitions": {
@@ -92422,11 +92721,68 @@
         "function": "0x1067c700",
         "address": "0x1067c860",
         "notes": "f_1067c700 sets pending via f_1067c46c (SUBSCRIBE path)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1067d028",
+        "address": "0x1067d0cc",
+        "notes": "isDue: iface->vptr+0x1c compared against base f_100e4ef4; non-default slot invoked via mtctr/bctrl at 0x1067d1c0..0x1067d1c8 when +0x110 clear"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10ed1c2c",
+        "notes": "Queue iface vtable 0x10ed1c10 slot +0x1c = f_10465b4c: addi r3,-8; b f_10465aa4 (Queue-manager isDue override)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10465aa4",
+        "address": "0x10465afc",
+        "notes": "f_102b0908(*(qm+0x128),arr,6,flag 0) -> f_1025bfd4(*(impl+0x580)) peek of session queue records"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025bfd4",
+        "address": "0x1025c108",
+        "notes": "returns isel-OR of f_1014d540 on slot records session+0x2d890+0x5c and session+0x2ff98+0x5c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1014d540",
+        "notes": "dirty test: returns first nonzero of rec+0x10,+0x18,+0x119,+0x52b"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10146cc0",
+        "address": "0x10146cf4",
+        "notes": "flag!=0 clears rec+0x10/+0x18/+0x119/+0x52b on the source after the 0x2574 copy (send-time drain)"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10683da0",
+        "address": "0x10684060",
+        "notes": "send path calls iface->vtable+0x18 -> +0x14 = f_10465f74 thunk -> generator f_10465e28"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x1109b010",
+        "notes": "dynsym 'timevalZero' (8 bytes, .bss); all .text refs are reads; statically {0,0}"
        }
-      ],
-      "todo": [
-       "Established: the action path emits no event itself.",
-       "Residual: no call that sets the Queue interface's pending byte (qm+8+0x110) after a Queue mutation has been found. The direct-call closure of the mutation hook f_1014d738, four levels deep (239 functions, including the in-process dispatcher f_10117654), contains no call to f_1067c6ec, f_1067c46c or f_1067c700. The session consumer's mark-changed call targets AVTransport, and the subscription paths (f_1068faa4, f_1068e65c) only cover new subscribers. No data word in any non-.text section points at f_1067c6ec, f_1067c46c or f_1067c700, so these setters are reached only by direct calls. An indirect call from a Queue mutation would therefore have to land in one of their direct callers. No call to f_1067c6ec lies in the queue engine (0x10144000..0x10156000) or in the Queue manager (0x10460000..0x10468000). The session code calls it at 0x102648c4 and 0x10265a08 (AVTransport, per S01). The AVTransport implementation (0x102b0000..0x102f8000) calls it at 59 sites. 54 of them pass an object's +0x10 address, which is the AVTransport interface pattern that S01 traced at 0x103fbb78. The other 5 sites pass a saved register, and each register is also set to an object's +0x10 address: r29 = r30+0x10 at 0x102b7f84 (call 0x102b7fbc), r30 = r28+0x10 at 0x102bc3f0 (0x102bc484), r27 = r29+0x10 at 0x102c3548 (0x102c3588), r29 = r30+0x10 at 0x102b79b8 (0x102b7ab4) and r25 = r30+0x10 at 0x102e30f8 (0x102e32e8). At the last two sites the only later definitions are epilogue reloads (0x102b7a90, 0x102e3294) on paths that leave before the call (0x102b7aa0; 0x102e32b4, 0x102e32c8). This is a register-definition scan, not a full path proof. None of the 59 sites uses an object's +0x8 address, which is where the Queue interface sits in the Queue manager. Across the whole binary there are 213 calls to f_1067c6ec or f_1067c46c. 111 of them pass some object's +0x8 address, the same shape as the Queue interface at qm+8. None of those 111 calls is in a slot function of the Queue manager vtables 0x10ed1bcc or 0x10ed1c10. None of them loads the Queue manager pointer (main+0x193c) within 40 instructions before the call, or its holder (main+0x1940) earlier in the same function. This scan matches instruction patterns. It does not prove the base object of each +0x8 call, so whether a Queue mutation reaches the pending byte through some other path stays open. On timing: for each interface the eventing pass f_10679b14 ('runOnce starting') calls f_1067d028 (0x10679da8). f_1067d028 returns 1 at once when the pending byte +0x110 is set. Otherwise it walks the subscriber list (count +0xa0, list +0x1c) and checks each subscriber's byte +0x170 and times +0x18c/+0x190. For a due interface the pass reads the timeval that slot +0x10 returns (the Queue's slot is the shared base function f_1067ab74, which returns this+0xc4) and tests it with timevalIsZero (0x10679df0). A nonzero timeval branches to a separate path at 0x10679ffc. A zero timeval goes on to send through f_10683da0 (0x10679e54) and folds the 8-byte timeval at 0x1109b010 into the next wake time with timevalMinimize (0x10679e64). 0x1109b010 is in .bss and its address is taken in many functions (f_100c71d0, f_100e323c, f_100fd44c and others), so its value is set at runtime and the wake interval is not a constant in the image. Which value it holds is not established."
       ],
       "resolved_findings": [
        "Resolved (negative within the action): no notify call exists in f_10465090, f_10465970, f_102bd4f0, f_102f7bd0, f_102f7634, f_102f7798 or f_102f7a50.",
@@ -92434,7 +92790,9 @@
        "Established (who calls the LastChange generator): the Queue manager is allocated in f_103fa434 (new(0x130) at 0x103fb6b4, constructor f_10465fac at 0x103fb6e8) and stored at main+0x193c, with its shared-pointer holder at main+0x1940 (0x103fb720). The constructor installs a second vtable 0x10ed1c10 at qm+8 (0x104660d8). In that vtable, slot +0x14 is f_10465f74, a this-8 thunk to f_10465e28 (Queue-manager slot +0x34, the only direct caller of f_10465e28 at 0x10465f78), and slot +0x18 is f_1067ab54, which tail-calls this->vtable+0x14. The upnpeventing loop f_10679b14 walks an array of 8-byte shared-pointer elements ending at registry+0x114, filled by f_1067938c (11 callers). For each interface it calls f_1067a9f0 (0x10679cec) to look it up in a separate vector at registry+0x128, and skips the interface when it is found there. Otherwise it calls f_1067d028 (0x10679da8), and when that returns nonzero and the interface's +0x10 timeval (this+0xc4, timevalIsZero at 0x10679df0) is nonzero, it calls f_10683da0 (0x10679e54). f_10683da0 calls interface->vtable+0x18 at 0x10684060, which for the Queue interface reaches f_1067ab54 -> f_10465f74 -> f_10465e28. f_103f6a48 adds qm+8 (0x103f6b18) to the registry+0x128 vector through f_106794f0 (0x103f6b24, push_back at 0x10679570), registry = *(*(main+0x228)+4), as one of 14 such calls. In plain terms: the Queue's LastChange text is built by the shared UPnP eventing thread, which asks each registered service interface for its event body, not by the Queue actions themselves.",
        "Established (when the Queue interface is in the eventing loop): registering a MediaPlayer (f_1040fc34, log 'MediaPlayer [%s] registered. [%zu]', at 0x1040fdd4; also f_1040fffc at 0x10410d60) calls f_103fd65c, which calls f_103f8924 (0x103fdde4). At 0x103f8b60..0x103f8bb8, f_103f8924 builds a shared pointer {qm+8, holder main+0x1940} (isel at 0x103f8b78, reference count raised) and passes it to f_104017c8, which calls f_1067938c(registry = *(*(main+0x228)+4), &pointer) at 0x10401830. This adds the Queue interface to the array that f_10679b14 walks. Shutting down a MediaPlayer (f_1040e944, log 'Request to shutdown MediaPlayer [%s]', at 0x1040ea8c) calls f_103fe5c4, which calls f_103f6a48 (0x103fe918). That adds the same interfaces to the registry+0x128 vector through f_106794f0, and the loop skips every interface in that vector. In plain terms: Queue events start once the MediaPlayer that owns the Queue service is registered, and stop as soon as its shutdown is requested.",
        "Established (what gates each send): f_1067d028 (0x10679da8) atomically reads the interface's pending byte +0x110 and returns 1 when it is set. The evented-interface base constructor f_1067aec4, which the Queue manager constructor calls at 0x1046607c, sets +0x110 to 1 (0x1067b06c) and stamps sonosClockGetTime into +0xcc, so the first LastChange goes out after registration. The shared mark-changed function f_1067c6ec (232 callers) sets +0x110 again through f_1067c46c (0x1067c4c8), and f_10683da0 clears it after a send (0x10683fdc). The session request consumer f_1026571c calls f_1067c6ec at 0x10265a08 only on session+0x2578, which f_1025f19c (0x1025f540) fills from main+0x1934 (0x103fbb78), a different service than the Queue manager at main+0x193c. In plain terms: an event is sent when an interface's pending flag is set, and the flag is set at startup and by explicit mark-changed calls.",
-       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass."
+       "Established (subscription trigger): the other caller of f_1067c46c is f_1067c700 (0x1067c860), whose callers are f_1068e65c and f_1068faa4. f_1068faa4 is the UPnP SUBSCRIBE handler, which logs 'UPnP Eventing denied. 403 Forbidden' on refusal. So an accepted subscription sets the service's pending byte +0x110, and the eventing loop sends a LastChange on its next pass that finds the byte set (when that pass runs depends on the loop timer, which is not traced). In plain terms: an accepted subscription queues a LastChange for the next eventing pass.",
+       "Resolved (why the Queue interface is due after a mutation): the shared pending byte is not the mutation path at all. When iface+0x110 is clear, f_1067d028 dispatches iface->vtable+0x1c whenever that slot differs from the base f_100e4ef4 (0x1067d0cc..0x1067d0e0, mtctr/bctrl at 0x1067d1c0..0x1067d1c8). The Queue interface overrides it: secondary vtable 0x10ed1c10 (offset-to-top -8) has slot +0x1c = f_10465b4c, a this-8 thunk into f_10465aa4 on the Queue manager, which calls f_102b0908(*(qm+0x128) = the AVTransport impl, arr, 6, flag 0) at 0x10465afc..0x10465b0c. f_102b0908 locks impl+0x458 and delegates to f_1025bfd4(*(impl+0x580) = the session object, lock session+0x208), which snapshots the two embedded queue records (session+0x2d890+0x5c and session+0x2ff98+0x5c) through f_10146cc0 with flag 0, a peek that does not clear markers, and returns f_1014d540(slot0) isel-ORed with f_1014d540(slot1) at 0x1025c108: the interface is due exactly when either queue's dirty-marker bytes (+0x10 QueueID, +0x18 UpdateID, +0x119 OwnerID, +0x52b Curated) are set. Mutations write those bytes synchronously on the live queue records: f_1014d738 bumps UpdateID (rec+0x14 = q+0x70), marks +0x18 (q+0x74) and re-evaluates Curated through f_1014d5c0 (marks +0x52b on change); the field setters mark +0x10 (f_1014d30c writes rec+0 and sets the byte), +0x119 (f_1014d448 writes rec+0x19; the session updater f_1028347c also sets +0x119 at 0x10283714 after matching a queue's id string) and +0x52b (f_1014d5c4). On send, f_10683da0 clears +0x110 and calls iface->vtable+0x18 (0x10684060) which reaches vtable+0x14 = f_10465f74, a this-8 thunk to the generator f_10465e28(qm, chan0, chan1, wake): it re-runs the same snapshot with flag 1, and f_10146cc0 then copies each 0x2574 record and clears the four marker bytes on the live queue (0x10146cf4..0x10146d04), so markers accumulate between sends and reset on send. f_10465e28 emits the full form into chan0 via f_10465b54(r4=1) and the marker-gated incremental form into chan1 via f_10465b54(r4=0), only when the drained slot0 record was dirty (0x10465ec8..0x10465f08). In plain terms: queue edits mark per-field dirty bytes on the queue records themselves, and the eventing thread's per-interface due check polls those bytes for the Queue service through a dedicated virtual override instead of the shared mark-changed function, which is why no mark-changed call targets the Queue interface.",
+       "Resolved (wake-time datum): the .bss 8-byte value at 0x1109b010 is the exported dynamic symbol 'timevalZero' (.dynsym entry 0x10010bb8, size 8, shndx .bss). Every .text reference takes its address with lis+addi/addis+lwz pairs and only reads it: the runOnce accumulator seed at 0x10679c6c..0x10679c88 and the generators' next-wake outputs (Queue f_10465e28 at 0x10465f08..0x10465f1c, AVTransport f_102e6048 at 0x102e6250..0x102e6264). No stw/stb/sth immediate store, no indexed store and no r2-relative access targets it, so within this binary it holds {0,0}: the canonical zero-timeval meaning 'no scheduled wake time'. Its .got2 slot 0x1108d4a0 exists for the dynamic linker/export only."
       ]
      },
      "state_transitions": {
@@ -215039,7 +215397,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
