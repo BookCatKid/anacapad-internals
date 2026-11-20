@@ -210458,21 +210458,68 @@
      "build": "86.10-80260",
      "address": "0x107d89f0",
      "notes": "Shared producer narrows the shifted payload size to sixteen bits, consistently with audio_tap."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107ea290",
+     "address": "0x107ea3c4",
+     "notes": "Clock-provider provenance: engine sub-object +0x10 handed to tv processor ctor; same instance feeds audio rate ctrl +0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fbe84",
+     "address": "0x107fbf74",
+     "notes": "ARC drift loop samples the shared provider virtual+0xc twice as a u64 local-tick read bracketing the remote/canonical timestamp."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d88c8",
+     "notes": "Burst arm queries the input device databurst/channel-status state via f_10d59c68 into a 24-byte stack buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107de37c",
+     "address": "0x107de3a4",
+     "notes": "Channel-status capture object: memcmp gate then verbatim 24-byte store, +0x80 validity flag, +0x18 word 9; 'CSB changed to: %s [%s]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d89cc",
+     "notes": "Commit path byte-copies the 24-byte channel-status capture into metadata +0x0f before rate/count writes and the packet write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f26648",
+     "notes": "'CSB changed to: %s [%s]' - the 24-byte block is the channel-status block."
     }
    ],
    "endpoints": "/audio_tap, /spdiftap, /snapshotspdiftap, /downloadspdiftap; request errors 'AudioTap: no tap specified', 'syntax error', 'invalid request', 'permission denied'",
-   "file_format": "The uncompressed SPDIF replay stream repeats [48-byte metadata][u16LE frame count * 8 audio bytes]. Metadata: byte 0 version 1; u32LE words at 1 and 5 from an eight-byte clock-provider result; u16LE frame count at 9; u32LE sample rate at 0x0b; cached 24-byte status block at 0x0f..0x26; byte 0x27 bit 0x80 signal loss. Remaining bytes are initially zero on the traced producer path; other semantics are not established. The writer reverses each 32-bit audio word for file output, and the reader reverses it back on the big-endian target. Zero-audio signal-loss packets contain metadata only. Validation retains a complete valid prefix and closes an invalid/empty first packet stream. Compression is a zlib wrapper around the stream; XML/base64 is a separate export envelope.",
+   "file_format": "The uncompressed SPDIF replay stream repeats [48-byte metadata][u16LE frame count * 8 audio bytes]. Metadata: byte 0 version 1; a u64 local-tick timestamp (the timesync tick domain shared with audio_rate_ctrl) as two u32LE words at 1 and 5; u16LE frame count at 9; u32LE sample rate at 0x0b; a verbatim 24-byte copy of the captured IEC 60958/61937 channel-status block (CSB) at 0x0f..0x26; byte 0x27 bit 0x80 signal loss. Remaining bytes are initially zero on the traced producer path; other semantics are not established. The writer reverses each 32-bit audio word for file output, and the reader reverses it back on the big-endian target. Zero-audio signal-loss packets contain metadata only. Validation retains a complete valid prefix and closes an invalid/empty first packet stream. Compression is a zlib wrapper around the stream; XML/base64 is a separate export envelope.",
    "tv_sync": "'Synchronize SPDIF tap playback with output tap (%s)', 'TV input sample rate mismatch with audio tap (tv:%u tap:%u)', 'TV input read error during audio tap playback': the SPDIF tap doubles as the TV-input capture path for lip-sync",
-   "todo": [
-    "Residual shared with audio_tap: identify the clock provider/domain for metadata u32 words at offsets 1 and 5, and decode the cached 24-byte status block at 0x0f..0x26 and any remaining flag semantics. Packet writer, sample-rate word, signal-loss producer, compression and framing are traced; the opaque metadata semantics are not fully resolved."
-   ],
    "resolved_findings": [
     "Reader0x107e1264 reads48-byte metadata BEFORE each audio packet, not a single file trailer. Version byte0 must be1 during validation0x107e1e44. Byte reversal on this big-endian target decodes u32LE at1 and5, u16LE sample-frame count at9, u32LE at0xb; sample count*8 gives the following8-byte-frame audio size, stored reader+0x40. Signal-loss is byte0x27 bit0x80, not any nonzero flag value. Remaining metadata bytes are copied unchanged. Validation walks [48-byte metadata][count*8 audio] repeatedly and retains the valid prefix if at least one complete packet exists; it logs trailing audio/metadata truncation and rewinds to that valid size. Invalid first packet closes the file.",
     "DSP manager and rolling snapshot mechanics, fixed zlib compression and consumptive XML/base64 export are fully documented under shared_primitives/audiotap. The16384-byte buffer in0x1034308c is a general file-reader buffer, not a metadata head section. The base64 stream contains the whole compressed snapshot.",
     "DSP capacity is three physical descriptors with default capacity2 and setter domain0..3 inclusive. Tappability is source vtable+0xc; manager+0xb8 stores the source pointer.",
     "Producer/consumer reconciliation with audio_tap: f_107d8624 initializes 48 zero bytes and version 1 at 0x107d8730-0x107d8740. Object +0x8d0 vtable +0x0c returns eight bytes at stack+0x2c, copied into metadata offsets 1/5 and the caller timestamp output at 0x107d8758-0x107d87a4. This proves common provenance but does not establish clock units or domain. Normal output sets frame count from (payload_bytes>>3)&0xffff and sample rate from processor+0xf1c at 0x107d89e0-0x107d8a20. Playback at 0x107d87f0-0x107d8858 compares metadata+0x0b against +0xf1c and logs TV input sample rate mismatch with audio tap, establishing the word meaning. f_107dede8 copies 24 cached bytes at processor+0x1a68 into metadata+0x0f. Error output ORs bit 0x80 into metadata+0x27 and calls f_107e1720 with null audio/zero size at 0x107d8bd8-0x107d8bf8. Therefore the writer is present in this ELF, not an unlocated external producer.",
     "Writer f_107e1720 copies the 48-byte metadata, byte-reverses the packed scalar fields and emits it through object+0x678 sink virtual+8 at 0x107e1894-0x107e18ac. Non-null/nonzero audio is byte-reversed one word at a time and emitted through the same sink at 0x107e19c8-0x107e1a2c; null/zero skips the payload. Reader f_107e1264 returns 2 on short metadata fread, stores count*8 at +0x40, and returns 4 for byte 0x27 bit 0x80 while retaining the metadata copy. f_107e1a44 returns the cached metadata when a packet still has audio remaining, otherwise invokes f_107e1264. f_107e1a88 clamps requested audio to remaining packet/file bytes, reports short-read error 2 and converts word byte order at 0x107e1b6c-0x107e1b90. A zero-count metadata packet still advances validation by 48 bytes through f_107e1e44; zero count is not by itself an invalid-file rule. The status-byte interpretation is still unresolved, so neither record claims a complete semantic schema.",
-    "Bit-field audit agrees with audio_tap: GNU e500 and the fixed repository listing decode 0x107d89f0 as rlwinm r10,r5,29,16,31, computing (payload_bytes>>3)&0xffff. The paired byte stores at 0x107d8a18/0x107d8a1c prove a sixteen-bit count; the previous unqualified payload_bytes>>3 expression omitted that narrowing. Reader 0x107e1420 multiplies the reconstructed count by eight, and 0x107e147c tests status mask 0x80 with andi. This is not a second format or a right-shift-alias reinterpretation of the status byte."
+    "Bit-field audit agrees with audio_tap: GNU e500 and the fixed repository listing decode 0x107d89f0 as rlwinm r10,r5,29,16,31, computing (payload_bytes>>3)&0xffff. The paired byte stores at 0x107d8a18/0x107d8a1c prove a sixteen-bit count; the previous unqualified payload_bytes>>3 expression omitted that narrowing. Reader 0x107e1420 multiplies the reconstructed count by eight, and 0x107e147c tests status mask 0x80 with andi. This is not a second format or a right-shift-alias reinterpretation of the status byte.",
+    "Clock domain established: producer f_107d8624 calls provider object +0x8d0 virtual +0xc, which fills an eight-byte buffer copied verbatim into metadata offsets 1 and 5 and into the caller timestamp output. Provenance: the tv-proc-as factory f_102a4890 passes *(factory+0x34)+0xd0 to f_107ea290, which forwards +0x10 of it (engine sub-object +0xe0) to tv processor constructor f_107d6ea4 at 0x107d7170. The identical instance is passed to audio rate controller constructor f_107fb414 as +0x1c, and the ARC drift loop samples the same virtual +0xc twice as a u64 local-clock read bracketing the remote/canonical timestamp read (0x107fbf74-0x107fbfbc). Established: the two metadata words are the two 32-bit halves of one u64 local-tick timestamp in the timesync tick domain shared with the SPDIF rate servo (implied tick clock ~14.49MHz per the ARC divisor in audio_rate_ctrl). Inferred: the first word is the u64 high half in native big-endian order. The concrete provider class is bound at runtime as an engine sub-object, a proven boundary, but the domain and word semantics are established.",
+    "Cached 24-byte block decoded: it is a verbatim copy of the tv processor channel-status capture object at +0x1a68[0..0x17], the IEC 60958/61937 channel-status block (CSB). On the burst-capable arm the producer queries the input device via f_10d59c68 into a 24-byte stack buffer, and f_107d2dc8 -> f_107de37c stores it into the capture object only when it differs (memcmp gate at 0x107de3a4-0x107de3c0; validity flag at object +0x80; reset f_107de4b4 zeroes the block and stamps word 9 at +0x18). A change is logged as 'CSB changed to: %s [%s]' (0x10f26640/0x10f26648, e.g. 'Encoded'). The commit path then byte-copies the capture into metadata +0x0f at 0x107d89cc-0x107d89dc. Packets written before the first capture carry a zeroed block; no other writer exists, so no second schema is possible.",
+    "Remaining flag semantics closed: on every traced producer path the only flag write is OR 0x80 into metadata+0x27 on the signal-loss arm (0x107d8bd8-0x107d8bf8); bytes 0x28..0x2f and the rest of +0x27 stay memset-zero. Hardware-invalid transitions are tracked on tv processor +0xc69 and only gate whether a loss-flag packet is emitted ('Invalid signal provided by hardware'/'Hardware no longer providing invalid signal' at 0x10f26f44/0x10f26f18)."
    ],
    "file_format_correction": "No XML queue or separate XML metadata header is written into the compressed snapshot. The XML wrapper is the export envelope only. Earlier claims of gzip, a trailing metadata block, big-endian packed fields, and a three-tap default are superseded by the concrete reader and compression paths."
   },
@@ -221528,12 +221575,56 @@
      "build": "86.10-80260",
      "address": "0x107d89f0",
      "notes": "Rotate/mask computes the low sixteen bits of payload_bytes shifted right three."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107ea290",
+     "address": "0x107ea3c4",
+     "notes": "Clock-provider provenance: engine sub-object +0x10 handed to tv processor ctor; same instance feeds audio rate ctrl +0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fbe84",
+     "address": "0x107fbf74",
+     "notes": "ARC drift loop samples the shared provider virtual+0xc twice as a u64 local-tick read bracketing the remote/canonical timestamp."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d88c8",
+     "notes": "Burst arm queries the input device databurst/channel-status state via f_10d59c68 into a 24-byte stack buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107de37c",
+     "address": "0x107de3a4",
+     "notes": "Channel-status capture object: memcmp gate then verbatim 24-byte store, +0x80 validity flag, +0x18 word 9; 'CSB changed to: %s [%s]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d89cc",
+     "notes": "Commit path byte-copies the 24-byte channel-status capture into metadata +0x0f before rate/count writes and the packet write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f26648",
+     "notes": "'CSB changed to: %s [%s]' - the 24-byte block is the channel-status block."
     }
    ],
    "manager": "audiotap_manager + trueplay_manager; \"number of max taps exceeds the avaialable capacity\"; \"Active Tap %s\"/\"Closing Tap %s\"/\"No Active Taps to check if already tapped\"; guards {\"Location is not tappable\",\"Location is already being tapped\",\"Max number of blocks already being tapped\"}; vars {channelname,vartype,VAR_FLOAT,VAR_STRING,VAR_INT} fmt %.04f; \"number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE\"; \"unknown channel type\"; sonarEQ.xml + \"found legacy tuning\"; status \"<b>--------Trueplay-------</b>\" + \"Minimum Trueplay version\" + {Small,Large} classes",
-   "todo": [
-    "Residual shared with audio_taps: identify the clock provider/domain for metadata u32 words at offsets 1 and 5, and decode the cached 24-byte status block at 0x0f..0x26 and any remaining flag semantics. Packet writer, sample-rate word, signal-loss producer, compression and framing are traced; the opaque metadata semantics are not fully resolved."
-   ],
    "resolved_findings": [
     "SPDIF file grammar replaces the earlier rolling-buffer-plus-XML-metadata claim: the uncompressed replay file is repeated 48-byte binary metadata followed by sample_count*8 audio bytes. XML <SPDIFTap> is an export envelope, not an on-disk metadata header or trailer. The generic /audio_tap WAV/debug surface is not proof that every tap uses the SPDIF packet format.",
     "Client delivery proven: tap data reaches the requester as a file download - /snapshotspdiftap captures the live tap and /downloadspdiftap serves it; snapshotted taps are compressed (spdiftap.compressed artifact suffix; Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!). The audiotap_manager guards capacity (number of max taps exceeds the avaialable capacity, Max number of blocks already being tapped, Location is already being tapped, Location is not tappable) and tracks Active Tap %s / Closing Tap %s. Signal integrity monitored (Encountered signal loss in the audio tap). Poll cadence via audiotap.poll param on /audio_tap.",
@@ -221541,7 +221632,10 @@
     "Reader and validation independently checked: f_107e1264 reads one 48-byte metadata item with fread and returns 2 on failure. It byte-reverses packed words at offsets 1,5,0x0b and u16 sample count at 9; the file values are little-endian. The count shifted left three is stored at reader+0x40. Flag byte 0x27 bit 0x80 selects the signal-loss log/return-4 path; metadata is still copied to reader+0x10. f_107e1e44 checks version byte 1 and walks complete metadata/audio records, retaining a valid prefix if its size exceeds 47 bytes. Empty input or an invalid first packet closes the file; truncated audio or metadata after a complete prefix stops validation at that prefix. f_107e1a88 bounds reads by remaining packet/file bytes, returns 2 on short fread, and reverses audio word byte order on this big-endian target. These details match audio_taps, not a separate compressed-block grammar.",
     "Producer traced: f_107d8624 zeroes 48 bytes at stack+0x4c and writes version 1 at 0x107d8730-0x107d8740. Its clock-provider object +0x8d0 vtable+0x0c fills an eight-byte result copied into metadata offsets 1 and 5; the same pair is returned through the caller timestamp output. At 0x107d89e0-0x107d8a20 it sets sample count to (payload_bytes>>3)&0xffff and metadata+0x0b to TV processor +0xf1c. Playback compares that word with the current TV rate and logs the explicit sample-rate-mismatch diagnostic at 0x107d8838, proving it is sample rate rather than an unnamed counter. f_107dede8 copies the cached 24-byte block at processor+0x1a68 to metadata+0x0f. The error path ORs 0x80 into metadata+0x27 and invokes the writer with null audio and zero bytes at 0x107d8bd8-0x107d8bf8. Writer f_107e1720 copies and byte-reverses the scalar fields, writes exactly 48 metadata bytes via sink virtual+8, then, for non-null/nonzero audio, writes the word-byte-reversed payload through the same sink (0x107e1894-0x107e1a2c). Clock units/domain and cached status-byte meanings remain unresolved.",
     "Compression boundary checked in f_103d1ca8: deflateInit2_ receives default level -1, method 8, windowBits 12, memLevel 5 and strategy 0, using zlib version 1.2.11. This is a zlib-wrapped DEFLATE stream, not gzip or an additional per-packet block schema. f_1034308c emits the <SPDIFTap> export wrapper and opens the file before using a 0x4000-byte file-reader buffer. That buffer size is not a fixed metadata section.",
-    "Bit-field audit with GNU e500 and the fixed repository listing: 0x107d89f0 is rlwinm r10,r5,29,16,31, equivalent to (payload_bytes>>3)&0xffff, not an unlimited-width quotient. Two byte stores at 0x107d8a18/0x107d8a1c serialize that sixteen-bit count. Reader 0x107e1420 shifts the reconstructed count left three and stores audio bytes remaining at +0x40; 0x107e147c tests metadata byte 0x27 with andi. 0x80. The count narrowing is explicit and shared with audio_taps; no oversized-payload acceptance or saturation is implied."
+    "Bit-field audit with GNU e500 and the fixed repository listing: 0x107d89f0 is rlwinm r10,r5,29,16,31, equivalent to (payload_bytes>>3)&0xffff, not an unlimited-width quotient. Two byte stores at 0x107d8a18/0x107d8a1c serialize that sixteen-bit count. Reader 0x107e1420 shifts the reconstructed count left three and stores audio bytes remaining at +0x40; 0x107e147c tests metadata byte 0x27 with andi. 0x80. The count narrowing is explicit and shared with audio_taps; no oversized-payload acceptance or saturation is implied.",
+    "Clock domain established: producer f_107d8624 calls provider object +0x8d0 virtual +0xc, which fills an eight-byte buffer copied verbatim into metadata offsets 1 and 5 and into the caller timestamp output. Provenance: the tv-proc-as factory f_102a4890 passes *(factory+0x34)+0xd0 to f_107ea290, which forwards +0x10 of it (engine sub-object +0xe0) to tv processor constructor f_107d6ea4 at 0x107d7170. The identical instance is passed to audio rate controller constructor f_107fb414 as +0x1c, and the ARC drift loop samples the same virtual +0xc twice as a u64 local-clock read bracketing the remote/canonical timestamp read (0x107fbf74-0x107fbfbc). Established: the two metadata words are the two 32-bit halves of one u64 local-tick timestamp in the timesync tick domain shared with the SPDIF rate servo (implied tick clock ~14.49MHz per the ARC divisor in audio_rate_ctrl). Inferred: the first word is the u64 high half in native big-endian order. The concrete provider class is bound at runtime as an engine sub-object, a proven boundary, but the domain and word semantics are established.",
+    "Cached 24-byte block decoded: it is a verbatim copy of the tv processor channel-status capture object at +0x1a68[0..0x17], the IEC 60958/61937 channel-status block (CSB). On the burst-capable arm the producer queries the input device via f_10d59c68 into a 24-byte stack buffer, and f_107d2dc8 -> f_107de37c stores it into the capture object only when it differs (memcmp gate at 0x107de3a4-0x107de3c0; validity flag at object +0x80; reset f_107de4b4 zeroes the block and stamps word 9 at +0x18). A change is logged as 'CSB changed to: %s [%s]' (0x10f26640/0x10f26648, e.g. 'Encoded'). The commit path then byte-copies the capture into metadata +0x0f at 0x107d89cc-0x107d89dc. Packets written before the first capture carry a zeroed block; no other writer exists, so no second schema is possible.",
+    "Remaining flag semantics closed: on every traced producer path the only flag write is OR 0x80 into metadata+0x27 on the signal-loss arm (0x107d8bd8-0x107d8bf8); bytes 0x28..0x2f and the rest of +0x27 stay memset-zero. Hardware-invalid transitions are tracked on tv processor +0xc69 and only gate whether a loss-flag packet is emitted ('Invalid signal provided by hardware'/'Hardware no longer providing invalid signal' at 0x10f26f44/0x10f26f18)."
    ]
   },
   "dsp_files": {
