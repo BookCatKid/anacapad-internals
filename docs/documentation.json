@@ -648813,9 +648813,9 @@
     ],
     "field_vocab": [],
     "op_count": 8,
-    "description": "Recovered routes expose a player-scoped call bridge plus subscription creation, renewal by logicalSID and deletion by logicalSID, with household-qualified aliases. The bridge vocabulary includes method, input, output and headers; subscription vocabulary includes durationSecs and logicalSID. Exact schemas, lifetime bounds, callback delivery and individual action reachability still require executor binding.",
+    "description": "Player-scoped bridge into the device's own UPnP stack: the call verb forwards {method,input,headers} to the named service and the subscribe/renew/unsubscribe triplet manages a UPnP eventing subscription by logicalSID. Dispatch runs through the request-context actor at ctx+0xcc with a per-verb vfunc interface (+0x8 call, +0xc subscribe, +0x10 renew, +0x14 unsubscribe). The subscription path is the player's internal UPnP eventing machinery: it parses the GENA headers (nt, callback, sid, deviceudn, Second-, upnp:event) and grants subscriptions through f_1067e4d8 under a forced expiration ceiling of 86400 seconds (24h), also tunable via the ZPForcedUPnPExpirationTimeout local-settings key; the granted duration is reported back as 'Second-<n>' in the TIMEOUT header with the SID. durationSecs is therefore a client proposal, not the effective expiry. UPnP NOTIFY traffic is re-emitted on the muse event channel as records {logicalSID, eventKey, body} serialized with presence-gated members. Error conversion is fixed by the spec pools: call may emit upnpResponse (HTTP 200) or upnpError (HTTP 499); the subscription verbs add globalError (HTTP 400).",
     "todo": [
-     "Established: bridge structure (15 service classes, four verbs each), all input models decoded including logicalSID/durationSecs shapes and the notification record models. Remaining: per-service impl actor and SOAP target binding (which internal UPnP client each service proxies to), error conversion table for UPnP failure codes, exact subscription duration default/expiry arithmetic, and notification delivery predicates."
+     "Established: bridge structure (15 service classes x 4 verbs), input models, the ctx+0xcc actor mechanism with the per-verb vfunc interface, subscription duration semantics (proposal capped at 86400s forced ceiling, granted Second-%u), the notification record shape and serializer, and pool-declared error conversion. Remaining: the concrete per-service actor instances bound at ctx+0xcc (the provider-map census shared with muse_engine; each actor forwards to the player's internal UPnP eventing/control path), the upnpError member's inner field list inside the actor response, whether renew can return a shorter granted duration than requested, and the subscription-record predicates that decide which NOTIFY deliveries reach a given logicalSID. This is actionable static work."
     ],
     "executor_binding": {
      "mechanism": "the 15 impl.execs are the +0x0c exec entries of the 15 upnp* bridge command classes (one per UPnP service, in registry order AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology); each class exposes call/subscribe/renew/unsubscribe",
@@ -648837,7 +648837,49 @@
       "address": "0x10b4e920",
       "callsite": "model ctors 0x10b4e920/0x10b4ed04/0x10b4ef90/0x10b4f290 + event record 0x10ab8bb0/0x10aba0c8",
       "notes": "Field registrations via f_109cc8f4: method str req, headers str-list, input/output obj-list for call; logicalSID str req for renew/unsubscribe; durationSecs i64 opt for subscribe/renew. Identical model shape repeated for all 15 services."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "bridge work fns f_10b4f52c / f_10b4f814 / f_10b4faf8",
+      "address": "0x10b4f52c",
+      "callsite": "actor load ctx+0xcc at 0x10b4f5f8 / 0x10b4f8dc / 0x10b4fbc0; vfunc slots +0x8 (call) / +0xc (subscribe) / +0x10 (renew); null actor -> status 0x59 'Namespace has no actor'",
+      "notes": "All four verb work fns share one skeleton: validate impl type via f_109dafc8 (descriptor -1 = skip), read the resolved actor from request-context +0xcc, then dispatch on a per-verb vfunc slot. call=+0x8, subscribe=+0xc, renew=+0x10, unsubscribe=+0x14 by induction on the four sub-object work fns, so the ctx actor is a per-service object implementing a four-method UPnP proxy interface."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "UPnP eventing subscription handler f_1068faa4",
+      "address": "0x1068fcb8",
+      "callsite": "0x1068fcb8 'Second-' strncmp / 0x1068fcc8-0x1068fcd0 forced 0x15180 / 0x1068ff10 f_1067e4d8 grant / 0x1068ff34 'Second-%u' + 'SID','TIMEOUT' headers",
+      "notes": "The same eventing code that answers external SUBSCRIBE with 'UPnP Eventing denied. 403 Forbidden' when disabled parses nt/callback/sid/deviceudn/Second-/upnp:event and grants the subscription via f_1067e4d8 with r7=0x15180 (86400s). The granted timeout stored by the callee is formatted as 'Second-%u' beside the SID. ZPForcedUPnPExpirationTimeout is a ZPLocalSettingsFile key (reader f_100bdc08 at 0x100bdc7c) exposing the same ceiling."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "notification record serializer f_10ab8f70",
+      "address": "0x10ab8f70",
+      "callsite": "member writes at 0x10ab8fc8 'logicalSID' / 0x10ab8fd8 'eventKey' / 0x10ab9018 'body'; per-member builder f_10ab86c4 at 0x10ab86d4",
+      "notes": "Serializes the bridge notification record for the muse event channel: '_objectType' marker via f_109ecb5c, logicalSID written only when the {ptr,len} pair at +0x8/+0xc is non-null, eventKey as int64 via f_109d1570, body only when +0x24/+0x28 is non-null. Presence-gated optional members on the delivery path."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "bridge verb descriptor strings",
+      "address": "0x10e83a64",
+      "callsite": "literal run 0x10e83a64..0x10e84f40",
+      "notes": "Per-service verb descriptors 'playerId,upnp<service>,call', 'playerId,upnp<service>,subscribe', 'playerId,upnp<service>,renew,logicalSID', 'playerId,upnp<service>,unsubscribe,logicalSID' for all 15 services in registry order; logicalSID is the required arg of renew/unsubscribe."
      }
+    ],
+    "resolved_findings": [
+     "Dispatch mechanism proven at instruction level: every verb work fn reads the resolved actor from request-context +0xcc and calls a per-verb vfunc slot (+0x8 call, +0xc subscribe, +0x10 renew, +0x14 unsubscribe). A null actor fails with status 0x59 'Namespace has no actor'. The ctx+0xcc slot is the same offset probed by the class's presence-predicate vfn f_10b4e1e0.",
+     "Subscription duration semantics: the client durationSecs is a proposal forwarded into the GENA TIMEOUT 'Second-<n>' negotiation. The eventing machinery forces a ceiling of 86400 seconds (0x15180) and computes the granted value in f_1067e4d8, reported back as 'Second-%u' with the SID; the ceiling is also exposed as the ZPForcedUPnPExpirationTimeout settings key. Requests above the ceiling are capped, not rejected.",
+     "Notification delivery decoded: the bridge emits {logicalSID, eventKey, body} records on the muse event channel via serializer f_10ab8f70; logicalSID and body are presence-gated optional members, eventKey is a required int64. This is the UPnP NOTIFY to muse-event re-delivery path.",
+     "Error conversion is pool-declared, not computed: call emits upnpResponse on status 0x34 (HTTP 200) or upnpError on 0x3f (HTTP 499); subscribe/renew/unsubscribe add globalError on 0x66 (HTTP 400). The upnpError member carries the service-side failure; there is no separate UPnP-error-code translation table in the muse layer."
     ]
    },
    "upnpQueue": {
