@@ -220372,7 +220372,7 @@
    "todo": "Established: static catalog bindings, complete outer status ladder, known-length/gzip gate, stream-to-XML temporary conversion, revision acceptance, rename, cache reload, trial-setting write and GENA sender wakeup are instruction-traced. Remaining: exhaust SAX descriptor callbacks and projection grammar; trace underlying HTTP execution/read/redirect behavior, exact file writer ABI/exception handling, replication and reconciliation callees, sender-thread delivery, polling schedule and WSS producers. Follow the functions named in catalog_update_details; these paths are statically recoverable.",
    "catalog_update_details": {
     "response_length": {
-     "description": "The f_10541e00 helper reports response-length availability, not body availability. It returns false when byte +0x44b4 is clear or gzip flag +0x4a8 is set; otherwise it writes the unsigned total at +0x44b8 to the caller and returns the availability byte. The HTTP header parser fills that total from Content-Length or supported Content-Range forms. Content-Encoding:gzip sets +0x4a8. Therefore a modified catalog with no usable advertised length, including the gzip path, selects 801 before body streaming; a reported total >=0x20000 selects 804. The gate is not a measurement of actual streamed or normalized XML size.",
+     "description": "The f_10541e00 helper reports response-length availability, not body availability. It returns false when byte +0x44b4 is clear or gzip flag +0x4a8 is set; otherwise it writes the unsigned total at +0x44b8 to the caller and returns the availability byte. Header parser f_10543698 is the only producer of these fields besides reset helper f_10540aa8. Content-Length is parsed by strtol into +0x44b8. Content-Range is parsed by the sscanf forms 'bytes %zu-%zu/%zu' and 'bytes %zu-/%zu'; the advertised total is validated against the end-of-range value at +0x44bc and mismatches log 'BAD HTTP Header EOR'. A range-start marker at +0x44b0 suppresses the plain Content-Length result. Content-Encoding matched by strncmp 'gzip' (4 bytes) sets +0x4a8 and installs inflate state via f_10542284 with the z_stream at +0x44fc. Transfer-Encoding 'chunked' sets +0x4aa and initializes a decoder at +0x4a0; 'identity' is ignored. 'HTTP/1.1 1' informational responses are skipped wholesale. Parse failures return 0x80000002, 0x80000007 or 0x80000025 and log 'Bad HTTP Header: %s'; the completion status is delivered through object vtable slot +0x40. f_10540aa8 zeroes all of +0x44b0/+0x44b4/+0x44b8/+0x4a8 and calls inflateEnd when the gzip flag was set. Therefore a modified catalog with no usable advertised length, including the gzip path, selects 801 before body streaming; a reported total >=0x20000 selects 804. The gate is not a measurement of actual streamed or normalized XML size.",
      "evidence": [
       {
        "type": "firmware",
@@ -220380,9 +220380,22 @@
        "build": "86.10-80260",
        "address": "0x10541e00",
        "notes": "Full leaf getter; header parse stores at 0x10543c6c/70, Content-Range stores at 0x10543a88 and gzip flag at 0x105439e0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10543698",
+       "notes": "Entire header parser: +0x44b0 range suppression, +0x44b4 advertised-total-valid, +0x44b8 total, +0x4a8 gzip via strncmp and f_10542284, +0x4aa chunked via f_10542aac, informational skip, error constants 0x80000002/0x80000007/0x80000025."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10540aa8",
+       "notes": "Reset helper: inflateEnd when +0x4a8 set, zeroes all length and encoding fields; the only other writer of +0x44b4/+0x44b8/+0x4a8."
       }
-     ],
-     "todo": "Established: The f_10541e00 helper reports response-length availability, not body availability. It returns false when byte +0x44b4 is clear or gzip flag +0x4a8 is set; otherwise it writes the unsigned total at +0x44b8 to the caller and returns the availability byte. The HTTP header parser fills that total from Content-Length or supported Content-Range forms. Content-Encoding:gzip sets +0x4a8. Therefore a modified catalog with no usable advertised length, including the gzip path, selects 801 before body streaming; a reported total >=0x20000 selects 804. The gate is not a measurement of actual streamed or normalized XML size. Remaining: Trace any alternate header setters and transport decoder configuration to exhaust all accepted response forms."
+     ]
     },
     "stream_processing": {
      "description": "f_100cc4f4 creates a bounded temporary XML writer, writes a Services root with local source/version, SchemaVersion=5 and optional ETag, then reads the HTTP stream in chunks of at most 4096 bytes through HTTP slot +8 and feeds each chunk to f_10c3fc68. It checks the XML completion byte and its callback/write-error flag, appends supplied descriptors that have nonempty name and secure endpoint, then writes </Services>. Explicit write or parse failure unlinks the temporary file and returns false. Writer creation failure also unlinks. The final flush/fsync/close helper f_1054b8e0 is called but its result is ignored; fsync status is itself ignored by that helper. A later candidate reparse can catch damaged XML, but no 803 flush/sync-specific error ladder exists here.",
