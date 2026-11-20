@@ -201846,15 +201846,57 @@
    "hal": "hal_detect_{open,close,get_cable_states} cable-detect HAL + 'cable detect token' open/close",
    "logs": "/opt/log/anacapa.hdmi.log",
    "arch": "'Arch: limelight' platform identifier",
-   "todo": [
-    "Established: HDMI ops behind a registered ioctl-callback driver interface; hdmi.log diagnostics; no sysfs/i2c literals.",
-    "Residual: which ioctl command numbers and CEC frame content - driver-call boundary, kernel module side"
-   ],
-   "hal_boundary": "The HDMI hardware boundary is now pinned: hal_detect_open, hal_detect_close and hal_detect_get_cable_states resolve to .dynstr IMPORTS (0x1006216f/21eb/2223), i.e. anacapa calls an external HAL shared library for cable detection - the .text never builds CEC frames or EDID transactions itself (no 'cec'/CEC_* opcode literals exist in the binary). The SMAPI routes v1/players/{playerId}/hdmi/{status,edid,powercycle} (+household variants) therefore terminate in thin wrappers: status -> hal_detect_get_cable_states, edid -> the 'edidStatus' property surface (0x10f97a08), powercycle -> a HAL call. The only in-binary HDMI driver evidence is DDPI user-space completion plumbing ('ddpi_udc_timeslicecomplete returned %d'), i.e. anacapa waits on the display-driver's timeslice completions while the actual CEC/EDID I2C traffic is generated inside the HAL lib/DDPI driver stack. So: CEC commands ARE sent for powercycle, but from the external HAL, not from anacapa code.",
+   "hal_boundary": "The HDMI hardware boundary is now pinned: hal_detect_open, hal_detect_close and hal_detect_get_cable_states resolve to .dynstr IMPORTS (0x1006216f/21eb/2223), i.e. anacapa calls an external HAL shared library for cable detection - the .text never builds CEC frames or EDID transactions itself (no 'cec'/CEC_* opcode literals exist in the binary). The SMAPI routes v1/players/{playerId}/hdmi/{status,edid,powercycle} (+household variants) therefore terminate in thin wrappers: status -> hal_detect_get_cable_states, edid -> the 'edidStatus' property surface (0x10f97a08), powercycle -> a HAL call. The only in-binary HDMI driver evidence is DDPI user-space completion plumbing ('ddpi_udc_timeslicecomplete returned %d'), i.e. anacapa waits on the display-driver's timeslice completions while the actual CEC/EDID I2C traffic is generated inside the HAL lib/DDPI driver stack. So: CEC commands ARE sent for powercycle, but from the external HAL, not from anacapa code. Kernel side recovered in shipped audiodev.ko: /dev/audioctl is its registered cdev; audioctl_device_ioctl is an old-style 4-arg .ioctl(inode,file,cmd,arg) that bounds _IOC_NR(cmd)-6 <= 0x96 and dispatches through a .rodata jump table at .rodata+0x1b4. nr 0x2c (the 0x4004fc2c status read shared by the hal_detect/thermal/inputs callers) -> case .text+0x4c0c which ORs the driver's cached status words priv+0x128|+0x12c|+0xc4 into the output; nr 0x18 -> case .text+0x4c98 which calls fpga_ReadRegCmd into a kernel buffer and copies the result out for _IOC_READ commands; nr 0x1e -> an inline block filling defaults then reading the temperature list.",
    "resolved_findings": [
     "Resolved: all three ops terminate in imported hal_detect_* dynsyms - CEC/EDID generation lives in the external HAL lib + DDPI driver; anacapa only polls cable states, surfaces edidStatus, and waits on ddpi timeslice completions. No CEC frame construction exists in-binary.",
     "Resolved (partial): HDMI surface = ARC/eARC audio-in (HDMI_ARC/HDMI_EARC modes) + status telemetry {edidStatus, stateCEC, tvCECStatus, deviceCEC} + capability bit HdmiCecAvailable emitted in status XML (' HdmiCecAvailable='). Cloud API exposes v1 hdmi endpoints {status, edid, powercycle} per player and household. CEC command sending is conditional - 'target does not support HDMI CEC' reject path exists; powercycle IS an exposed cloud action. EDID is read and reported via the edid endpoint. Product log /opt/log/anacapa.hdmi.log.",
-    "Resolved (partial): no sysfs/i2c device path literals exist for HDMI - the only /sys path in the image is /sys/class/net/eth0 (ethernet stats). HDMI edid read and powercycle ride the generic driver dispatch: literal \"ioctl_func -> %d\" / \"ioctl callback returned error %d\" (0x10f7eee2/0x10f7eef4) show a registered ioctl-callback interface, plus hdmi.log diagnostics output. So the mechanism is a driver ioctl callback, not userspace i2c/sysfs."
+    "Resolved (partial): no sysfs/i2c device path literals exist for HDMI - the only /sys path in the image is /sys/class/net/eth0 (ethernet stats). HDMI edid read and powercycle ride the generic driver dispatch: literal \"ioctl_func -> %d\" / \"ioctl callback returned error %d\" (0x10f7eee2/0x10f7eef4) show a registered ioctl-callback interface, plus hdmi.log diagnostics output. So the mechanism is a driver ioctl callback, not userspace i2c/sysfs.",
+    "Ioctl command numbers proven in libsyslib_hal.so.1: cable states hal_detect_get_cable_states (0x1d08) issues ioctl(fd,0x4004fc2c,&u32) on the /dev/audioctl fd opened by hal_audiodev_open (kind-12 handle), tests result bit 0x800, writes the raw word to out[0] and a small count to out[0x10]. The SAME 0x4004fc2c word is used by hal_thermal_get_status (kind-13 handle, masks result 0x2c070000) and by hal_inputs_get_status (0x1554, on a global static fd, result masked 0x3dff000f in the caller) - one shared board status read whose fields are partitioned in userspace. hal_thermal_get_temps uses a different command, ioctl 0x400cfc1e (nr 0x1e), pre-filling the output array with -44 (0xffffffd4) before the call.",
+    "Kernel module side: audiodev.ko (description 'TDM Driver For MPC8xxx') registers the 'audioctl' char node backing /dev/audioctl. audioctl_device_ioctl (.text+0x4924) reads r6=arg (old-style .ioctl signature), dispatches on _IOC_NR(cmd) via jump table (index = nr-6, bound 0x96) at .rodata+0x1b4 whose entries are R_PPC_REL32 relocations into .text; the dispatcher loads entries with lwzx (XO23, base preserved) and adds the stored value to the table base, so the effective case address is reloc addend - index*4. nr 0x2c (44) -> .text+0x4c0c which writes *out = priv+0x128 | priv+0x12c | priv+0xc4, the driver's composite cached status word (amp status, thermal status, latched fault accumulator) that the shared 0x4004fc2c HAL read returns to userspace; its arg is unused. nr 0x18 (24) -> .text+0x4c98 calls fpga_ReadRegCmd(sp+8) (arg = FPGA register index <0x30) and falls into the shared tail at 0x4be8 that validates the getter result, tests cmd & 0x40000000 (_IOC_READ via andis.) and __copy_tofrom_user's the buffer to user arg. Neighboring cases bind fpga_get_ir_runt_threshold, fpga_set_ir_runt_threshold, audioctl_ir_repeater, fpga_WriteRegCmd, fpga_GetSpdifMinPulse, tas5708_init_amps and a counter bump at priv+0x124.",
+    "CEC frame content resolved as a proven absence: no CEC opcodes or frame literals exist in anacapad (only 'target does not support HDMI CEC' and the status field names stateCEC/tvCECStatus/deviceCEC serialized by f_10aeb5dc alongside eARCActive, testAudio, testVideo, errorTV, errorARC); libsyslib_hal.so.1 exports no hal_cec_* symbol (full 53-entry dynsym enumerated); the shipped kernel modules audiodev.ko, sonos_device.ko, hwevent_queue.ko, ir_rcvr.ko and chk.ko contain no CEC symbols or strings (hwevent_queue's 'HDMI' is an event-source enum label in its name table). Powercycle reaches the platform through the 'tvPowerState' property on an injected interface (f_101866c0 reads it via vfunc+8 and builds the 'target does not support HDMI CEC' error object, code 0x5a), so CEC frames are generated entirely outside the shipped image (DDPI/display driver + TV hardware stack).",
+    "Correction: an earlier draft of this record attributed the 0x4004fc2c shared status read to fpga_ReadRegCmd at 0x4c98; with the jump table's REL32/lwzx indexing applied correctly, nr 0x2c maps to 0x4c0c (composite priv+0x128|+0x12c|+0xc4 status word) and 0x4c98 is nr 0x18 (fpga_ReadRegCmd, arg = register index). The HAL-side claims that cable-states, inputs-status and thermal-status callers all issue ioctl 0x4004fc2c remain correct."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_detect_get_cable_states",
+     "address": "0x1da0",
+     "notes": "ioctl fd=handle+0, cmd 0x4004fc2c, arg=&u32(handle+4); result bit 0x800 gates count select; raw word -> out[0], count -> out[0x10]."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_inputs_get_status",
+     "address": "0x15b4",
+     "notes": "Same cmd word 0x4004fc2c on global static fd; arg buffer zeroed before call; result stored verbatim."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsyslib_hal.so.1",
+     "build": "86.10-80260",
+     "function": "hal_thermal_get_temps",
+     "address": "0x1f68",
+     "notes": "ioctl 0x400cfc1e (nr 30); output u32 array pre-filled with -44 (0xffffffd4) elements before call."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "audioctl_device_ioctl",
+     "address": "0x4c98",
+     "notes": "nr 0x18 (24) case calls fpga_ReadRegCmd into sp+8; shared tail 0x4be8 tests _IOC_READ bit and copy_to_user. nr 0x2c (44) instead reaches 0x4c0c composite status OR. Jump table at .rodata+0x1b4 uses R_PPC_REL32 entries indexed by lwzx, so effective case = addend - (nr-6)*4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x101866c0",
+     "address": "0x1018670c",
+     "notes": "tvPowerState property read through interface vfunc+8; 'target does not support HDMI CEC' fallback error object code 0x5a. No CEC frame bytes."
+    }
    ]
   },
   "toml_config": {
@@ -204621,6 +204663,38 @@
      "build": "86.10-80260",
      "address": "0x10299e5c",
      "notes": "worker thread: 32-slot ring + TCP_INFO abort check"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10421e70",
+     "address": "0x10421f70",
+     "notes": "snprintf_chk vararg order: r8=sp+0x19b4c dir-prefix buffer supplies %s; r9=record+0x140 supplies %08X. GUID occupies +0x140..+0x14f; +0x150 flag byte."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10421e70",
+     "address": "0x10421ed8",
+     "notes": "strrchr(arg2,'/') + memcpy_chk builds the directory portion of the item URI into the %s buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x104227c8",
+     "address": "0x10422944",
+     "notes": "Art-write block gated on f_103870d0 x-file-cifs scheme decode, global 0x1109725c nonnull and f_10426ae4 record lookup; +0x150 flag picks GUID vs folder.jpg emit."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1041c9e4",
+     "address": "0x1041cb60",
+     "notes": "f_10502f5c fills the +0x3ac record (GUID +0x140, flags +0x150/+0x151, +0xe7, +0x4c/+0x4d) via field-descriptor table 0x10ede378."
     }
    ],
    "request_grammar": "GET /getaa?{m|s|vli}...&u=<url>[&v=<n>] (query parsed by f_10c3b72c: param names <=32 chars, values <=1024 chars, '&'-separated. Recognized params (compared in order m,s,vli,u via strcmp at 0x100c35cc-0x100c3618): 'm' medium-variant flag, 's' small-variant flag, 'vli' virtual-line-in image flag, 'u' upstream image URL. IMPORTANT: 'u' is the TERMINATOR) when encountered, parsing stops and the request proceeds; any params AFTER u= are never read. 'v' is NOT parsed by the handler at all: it appears in emitted URIs (/getaa?u=%s&v=%u) purely as a client-side cache-buster/etag. Unknown params are skipped silently",
@@ -204628,16 +204702,15 @@
    "async_model": "handler f_100b8c2c is async: logs 'queueing album art request %s %u %u %u', lazily creates the mod_zp_aa server singleton (new 0x428a0, ctor f_10299a48) at 0x11096c98, enqueues the request into a 32-slot ring of 0x2134-byte entries (f_10299c34) and returns. Worker thread f_10299e5c blocks on a condvar, pops slots, probes the client socket with getsockopt(TCP_INFO) and takes an abort path (f_100c34fc slot-discard) when the peer is already in CLOSE/CLOSE_WAIT/CLOSING: clients that give up early are never served",
    "param_semantics": "m/s/vli select the image path BEFORE the request object is built: no flags -> default fetch (u URL streamed direct); m -> f_100c2f94 variant; s -> f_100c31c8 variant; vli -> direct vli-image fetch f_100be6ec. The three u16 fields carried on the request (+0x180/+0x182/+0x184) ride through to the vliStreamImage call - request dimensions/ids, not user params",
    "arturi_cap": "albumArtURI emission capped at 1024 bytes (buffer obj+0x54, len at +0x458, f_10381528); overflow logs 'AlbumArtURI longer than expected.' in the favorites log domain",
-   "todo": [
-    "Residual: the concrete prefix value - it is stored config on the +0x3ac sub-object member +0x140 (likely /jffs or /var cache root set at init); the member chain is proven, the seeding site is init-config data."
-   ],
-   "fetch_path": "Wire grammar '/getaa?u=%s&v=%u' (u = source art URI, v = version); five sites rewrite upnp:albumArtURI values into this form (f_102a1130, f_1034a3e8, f_1034b4f4, f_10425f64, f_1047b7b8). Queuer f_100b8c2c 'queueing album art request %s %u %u %u' (uri + 3 numeric params); fetcher f_100c34fc 'Fetching album art for %s: %s'. Upstream schemes resolved: x-sonos-http: prefixed URIs, old Rhapsody direct-ns.rhapsody.com imageserver '/imageserver/images/%s/300x300' ('Unknown old Rhapsody album art URI type: %s' fallback), rdradio/RDCPA art namespaces ('rdradio:artist:Art.', 'RDCPA:ARTALBUM:', 'RDCPA:ARTCOM...', 'explore:artist:mainreleases::art.%s'). Generated-art filename pattern '%s/AlbumArt_{%08X-...}_Large.jpg'. Metadata serializer f_104387f4 applies 'audiobook'/'podcast' content-type special-casing to art handling; 'omit missing metadata album art: %s' is a user setting; 'AlbumArtURI longer than expected.' is the length guard.",
+   "fetch_path": "Wire grammar '/getaa?u=%s&v=%u' (u = source art URI, v = version); five sites rewrite upnp:albumArtURI values into this form (f_102a1130, f_1034a3e8, f_1034b4f4, f_10425f64, f_1047b7b8). Queuer f_100b8c2c 'queueing album art request %s %u %u %u' (uri + 3 numeric params); fetcher f_100c34fc 'Fetching album art for %s: %s'. Upstream schemes resolved: x-sonos-http: prefixed URIs, old Rhapsody direct-ns.rhapsody.com imageserver '/imageserver/images/%s/300x300' ('Unknown old Rhapsody album art URI type: %s' fallback), rdradio/RDCPA art namespaces ('rdradio:artist:Art.', 'RDCPA:ARTALBUM:', 'RDCPA:ARTCOM...', 'explore:artist:mainreleases::art.%s'). Generated-art filename pattern '%s/AlbumArt_{%08X-...}_Large.jpg' is emitted only inside f_10421e70, where %s is the directory portion of the item URI (x-file-cifs:// tracks) and the GUID comes from the per-item +0x3ac record (+0x140..+0x14f); the alternate branch f_104222e0 emits '<dir>/folder.jpg' when record flag +0x150 is clear. Metadata serializer f_104387f4 applies 'audiobook'/'podcast' content-type special-casing to art handling; 'omit missing metadata album art: %s' is a user setting; 'AlbumArtURI longer than expected.' is the length guard.",
    "resolved_findings": [
     "Resolved: /getaa?u=&v= wire grammar, 5 rewrite sites, queue+fetch functions, upstream scheme map (x-sonos-http/rhapsody-imageserver/rdradio/RDCPA/explore), Large.jpg naming, audiobook/podcast special-casing, omit-missing setting, length guard.",
     "Resolved (partial): the local proxy scheme is '{base}/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg' - art is served by GUID with a '_Large' variant suffix (emit site 0x10421f90). Upstream fetch appends '?albumArt=true' to the item URI (0x10711578); getAlbumArtURI resolves per-item art ('AlbumArtURI longer than expected' bound check). Household feature flag 'enableSecureAlbumArt' (settings table 0x10a5850c) switches to secure/signed art URIs.",
     "Resolved: art cache filename grammar \"%s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg\" @0x10ecd458 - a UUID-braced file under a config-supplied cache dir (%s arg); only the _Large variant is literal, sibling {folder.jpg, Folder.jpg, folder.gif, Folder.gif} names are the local-folder cover fallbacks; MIME map {image/jpg, image/gif}.",
     "Resolved: the full emit grammar is \"%s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg\" (0x10ecd458) - GUID-keyed (uuid fields), and _Large.jpg is the ONLY size suffix in the image (no _Medium/_Small literals exist). Sibling embedded/local-art candidates proven in the same table run: {folder.jpg, Folder.jpg, folder.gif, Folder.gif} with mime {image/jpg, image/gif}.",
-    "Cache-dir prefix source bound: at the emit site f_10421e70 the %s arg is loaded as member[+0x3ac].member[+0x140] (lwz r11,0x3ac(obj); lwz r9,0x140(r11) @0x10421f4c-0x10421f70) - the prefix is a stored config string on a sub-object, not a literal; filename cap 0x43c bytes."
+    "Prefix correction at the sole emit site f_10421e70 (fmt 0x10ecd458 used only at 0x10421f90): __snprintf_chk takes 4 fixed args, so the %s arg is r8 = stack buffer sp+0x19b4c, not member +0x140. That buffer holds the leading bytes of the item URI up to its last '/' (strrchr at 0x10421ed8, __memcpy_chk at 0x10421f40, NUL store at 0x10421f64), i.e. the directory portion of the item URI. Member +0x140 loads r9 = the %08X argument = GUID time_low; with lhz +0x144/+0x146 and lbz +0x148..+0x14f it forms a 16-byte GUID embedded in the +0x3ac record, not a stored config string.",
+    "Record +0x3ac is a per-item stack record built in caller f_104227c8 at sp+0x18 (not a persistent config sub-object): fields +0x134/+0x135(=0x81)/+0x136/+0x138/+0x13c are seeded inline at 0x10422838-0x1042288c, and f_1041c9e4 populates the record through f_10502f5c with field-descriptor table 0x10ede378, including GUID at +0x140 and flags +0x150/+0x151 passed at 0x1041cb60-0x1041cbec. Byte +0x150 selects between two emitters: nonzero -> f_10421e70 writes '<item-dir>/AlbumArt_{GUID}_Large.jpg'; zero -> f_104222e0 writes '<item-dir>/folder.jpg' (literal 0x10ecd4b0). Both prefixes are the item URI dirname computed per call.",
+    "Emission is scheme-gated: caller f_104227c8 runs the art-write block only when f_103870d0 (strncasecmp 'x-file-cifs://' len 14 at 0x103870f0-0x1042294c) decodes the item URI successfully, global store 0x1109725c is nonnull and f_10426ae4 lookup succeeds (0x10422950-0x10422970). Therefore the concrete prefix is the directory of the track's x-file-cifs:// share URI (the generated art file is addressed alongside the media item on the share); no /jffs, /var or init-config cache root participates in this emit. The prior 'stored config on +0x3ac +0x140' claim and the 'seeding site is init-config data' boundary are withdrawn."
    ]
   },
   "muse_route_verbs": {
@@ -214015,21 +214088,68 @@
      "build": "86.10-80260",
      "address": "0x107d89f0",
      "notes": "Shared producer narrows the shifted payload size to sixteen bits, consistently with audio_tap."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107ea290",
+     "address": "0x107ea3c4",
+     "notes": "Clock-provider provenance: engine sub-object +0x10 handed to tv processor ctor; same instance feeds audio rate ctrl +0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fbe84",
+     "address": "0x107fbf74",
+     "notes": "ARC drift loop samples the shared provider virtual+0xc twice as a u64 local-tick read bracketing the remote/canonical timestamp."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d88c8",
+     "notes": "Burst arm queries the input device databurst/channel-status state via f_10d59c68 into a 24-byte stack buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107de37c",
+     "address": "0x107de3a4",
+     "notes": "Channel-status capture object: memcmp gate then verbatim 24-byte store, +0x80 validity flag, +0x18 word 9; 'CSB changed to: %s [%s]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d89cc",
+     "notes": "Commit path byte-copies the 24-byte channel-status capture into metadata +0x0f before rate/count writes and the packet write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f26648",
+     "notes": "'CSB changed to: %s [%s]' - the 24-byte block is the channel-status block."
     }
    ],
    "endpoints": "/audio_tap, /spdiftap, /snapshotspdiftap, /downloadspdiftap; request errors 'AudioTap: no tap specified', 'syntax error', 'invalid request', 'permission denied'",
-   "file_format": "The uncompressed SPDIF replay stream repeats [48-byte metadata][u16LE frame count * 8 audio bytes]. Metadata: byte 0 version 1; u32LE words at 1 and 5 from an eight-byte clock-provider result; u16LE frame count at 9; u32LE sample rate at 0x0b; cached 24-byte status block at 0x0f..0x26; byte 0x27 bit 0x80 signal loss. Remaining bytes are initially zero on the traced producer path; other semantics are not established. The writer reverses each 32-bit audio word for file output, and the reader reverses it back on the big-endian target. Zero-audio signal-loss packets contain metadata only. Validation retains a complete valid prefix and closes an invalid/empty first packet stream. Compression is a zlib wrapper around the stream; XML/base64 is a separate export envelope.",
+   "file_format": "The uncompressed SPDIF replay stream repeats [48-byte metadata][u16LE frame count * 8 audio bytes]. Metadata: byte 0 version 1; a u64 local-tick timestamp (the timesync tick domain shared with audio_rate_ctrl) as two u32LE words at 1 and 5; u16LE frame count at 9; u32LE sample rate at 0x0b; a verbatim 24-byte copy of the captured IEC 60958/61937 channel-status block (CSB) at 0x0f..0x26; byte 0x27 bit 0x80 signal loss. Remaining bytes are initially zero on the traced producer path; other semantics are not established. The writer reverses each 32-bit audio word for file output, and the reader reverses it back on the big-endian target. Zero-audio signal-loss packets contain metadata only. Validation retains a complete valid prefix and closes an invalid/empty first packet stream. Compression is a zlib wrapper around the stream; XML/base64 is a separate export envelope.",
    "tv_sync": "'Synchronize SPDIF tap playback with output tap (%s)', 'TV input sample rate mismatch with audio tap (tv:%u tap:%u)', 'TV input read error during audio tap playback': the SPDIF tap doubles as the TV-input capture path for lip-sync",
-   "todo": [
-    "Residual shared with audio_tap: identify the clock provider/domain for metadata u32 words at offsets 1 and 5, and decode the cached 24-byte status block at 0x0f..0x26 and any remaining flag semantics. Packet writer, sample-rate word, signal-loss producer, compression and framing are traced; the opaque metadata semantics are not fully resolved."
-   ],
    "resolved_findings": [
     "Reader0x107e1264 reads48-byte metadata BEFORE each audio packet, not a single file trailer. Version byte0 must be1 during validation0x107e1e44. Byte reversal on this big-endian target decodes u32LE at1 and5, u16LE sample-frame count at9, u32LE at0xb; sample count*8 gives the following8-byte-frame audio size, stored reader+0x40. Signal-loss is byte0x27 bit0x80, not any nonzero flag value. Remaining metadata bytes are copied unchanged. Validation walks [48-byte metadata][count*8 audio] repeatedly and retains the valid prefix if at least one complete packet exists; it logs trailing audio/metadata truncation and rewinds to that valid size. Invalid first packet closes the file.",
     "DSP manager and rolling snapshot mechanics, fixed zlib compression and consumptive XML/base64 export are fully documented under shared_primitives/audiotap. The16384-byte buffer in0x1034308c is a general file-reader buffer, not a metadata head section. The base64 stream contains the whole compressed snapshot.",
     "DSP capacity is three physical descriptors with default capacity2 and setter domain0..3 inclusive. Tappability is source vtable+0xc; manager+0xb8 stores the source pointer.",
     "Producer/consumer reconciliation with audio_tap: f_107d8624 initializes 48 zero bytes and version 1 at 0x107d8730-0x107d8740. Object +0x8d0 vtable +0x0c returns eight bytes at stack+0x2c, copied into metadata offsets 1/5 and the caller timestamp output at 0x107d8758-0x107d87a4. This proves common provenance but does not establish clock units or domain. Normal output sets frame count from (payload_bytes>>3)&0xffff and sample rate from processor+0xf1c at 0x107d89e0-0x107d8a20. Playback at 0x107d87f0-0x107d8858 compares metadata+0x0b against +0xf1c and logs TV input sample rate mismatch with audio tap, establishing the word meaning. f_107dede8 copies 24 cached bytes at processor+0x1a68 into metadata+0x0f. Error output ORs bit 0x80 into metadata+0x27 and calls f_107e1720 with null audio/zero size at 0x107d8bd8-0x107d8bf8. Therefore the writer is present in this ELF, not an unlocated external producer.",
     "Writer f_107e1720 copies the 48-byte metadata, byte-reverses the packed scalar fields and emits it through object+0x678 sink virtual+8 at 0x107e1894-0x107e18ac. Non-null/nonzero audio is byte-reversed one word at a time and emitted through the same sink at 0x107e19c8-0x107e1a2c; null/zero skips the payload. Reader f_107e1264 returns 2 on short metadata fread, stores count*8 at +0x40, and returns 4 for byte 0x27 bit 0x80 while retaining the metadata copy. f_107e1a44 returns the cached metadata when a packet still has audio remaining, otherwise invokes f_107e1264. f_107e1a88 clamps requested audio to remaining packet/file bytes, reports short-read error 2 and converts word byte order at 0x107e1b6c-0x107e1b90. A zero-count metadata packet still advances validation by 48 bytes through f_107e1e44; zero count is not by itself an invalid-file rule. The status-byte interpretation is still unresolved, so neither record claims a complete semantic schema.",
-    "Bit-field audit agrees with audio_tap: GNU e500 and the fixed repository listing decode 0x107d89f0 as rlwinm r10,r5,29,16,31, computing (payload_bytes>>3)&0xffff. The paired byte stores at 0x107d8a18/0x107d8a1c prove a sixteen-bit count; the previous unqualified payload_bytes>>3 expression omitted that narrowing. Reader 0x107e1420 multiplies the reconstructed count by eight, and 0x107e147c tests status mask 0x80 with andi. This is not a second format or a right-shift-alias reinterpretation of the status byte."
+    "Bit-field audit agrees with audio_tap: GNU e500 and the fixed repository listing decode 0x107d89f0 as rlwinm r10,r5,29,16,31, computing (payload_bytes>>3)&0xffff. The paired byte stores at 0x107d8a18/0x107d8a1c prove a sixteen-bit count; the previous unqualified payload_bytes>>3 expression omitted that narrowing. Reader 0x107e1420 multiplies the reconstructed count by eight, and 0x107e147c tests status mask 0x80 with andi. This is not a second format or a right-shift-alias reinterpretation of the status byte.",
+    "Clock domain established: producer f_107d8624 calls provider object +0x8d0 virtual +0xc, which fills an eight-byte buffer copied verbatim into metadata offsets 1 and 5 and into the caller timestamp output. Provenance: the tv-proc-as factory f_102a4890 passes *(factory+0x34)+0xd0 to f_107ea290, which forwards +0x10 of it (engine sub-object +0xe0) to tv processor constructor f_107d6ea4 at 0x107d7170. The identical instance is passed to audio rate controller constructor f_107fb414 as +0x1c, and the ARC drift loop samples the same virtual +0xc twice as a u64 local-clock read bracketing the remote/canonical timestamp read (0x107fbf74-0x107fbfbc). Established: the two metadata words are the two 32-bit halves of one u64 local-tick timestamp in the timesync tick domain shared with the SPDIF rate servo (implied tick clock ~14.49MHz per the ARC divisor in audio_rate_ctrl). Inferred: the first word is the u64 high half in native big-endian order. The concrete provider class is bound at runtime as an engine sub-object, a proven boundary, but the domain and word semantics are established.",
+    "Cached 24-byte block decoded: it is a verbatim copy of the tv processor channel-status capture object at +0x1a68[0..0x17], the IEC 60958/61937 channel-status block (CSB). On the burst-capable arm the producer queries the input device via f_10d59c68 into a 24-byte stack buffer, and f_107d2dc8 -> f_107de37c stores it into the capture object only when it differs (memcmp gate at 0x107de3a4-0x107de3c0; validity flag at object +0x80; reset f_107de4b4 zeroes the block and stamps word 9 at +0x18). A change is logged as 'CSB changed to: %s [%s]' (0x10f26640/0x10f26648, e.g. 'Encoded'). The commit path then byte-copies the capture into metadata +0x0f at 0x107d89cc-0x107d89dc. Packets written before the first capture carry a zeroed block; no other writer exists, so no second schema is possible.",
+    "Remaining flag semantics closed: on every traced producer path the only flag write is OR 0x80 into metadata+0x27 on the signal-loss arm (0x107d8bd8-0x107d8bf8); bytes 0x28..0x2f and the rest of +0x27 stay memset-zero. Hardware-invalid transitions are tracked on tv processor +0xc69 and only gate whether a loss-flag packet is emitted ('Invalid signal provided by hardware'/'Hardware no longer providing invalid signal' at 0x10f26f44/0x10f26f18)."
    ],
    "file_format_correction": "No XML queue or separate XML metadata header is written into the compressed snapshot. The XML wrapper is the export envelope only. Earlier claims of gzip, a trailing metadata block, big-endian packed fields, and a three-tap default are superseded by the concrete reader and compression paths."
   },
@@ -222071,16 +222191,15 @@
    ]
   },
   "audio_in": {
-   "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; artfetch thread",
-   "todo": [
-    "Residual: identify the concrete capture-side driver/DSP implementation below ai_impl_base and trace the selected encoder configuration to its bitrate parameters. Encoding selection is proven, but neither the hardware-side chain nor the claim that its constants are external driver data is established."
-   ],
+   "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; concrete impls {htaudio factory f_1023b388 vtable 0x10ea616c, audioin aggregate vtable 0x10ea10a8 no-op ops}; lla device layer over /dev/dsp; encode selector write-only (+0x834/+0x838); artfetch thread",
    "resolved_findings": [
     "Resolved: ai_impl contents = group model {addGroup coord, demoMode, no room available for coordinator, StopTransmissionToGroup by coord, number of groups %zu remote %zu}; line-in activation enters vli_transport through the source-manager group hooks.",
     "Session model decoded (ai_impl_base.cxx literals 0x10eacdxx): the input session is a transmission group registry keyed by coordinator - Adding group with coord %s demoMode %d / addGroup: coordinator %s already added / addGroup: no room available for coordinator %s / added %s number of groups %zu remote %zu / removed %s remaining number of groups %zu remote %zu / Removing group with coord %s / StopTransmissionToGroup: couldn't find coordinator %s. Each group receives the input as an x-rincon-stream: URI (the member-side stream scheme); encoding modes proven {WAV,UNCOMPRESSED,COMPRESSED,WMA,v-spdif} where Running demo mode forcing uncompressed overrides for demo playback and v-spdif marks the SPDIF-sourced virtual input. A test mode literal exists for self-test streaming.",
-    "Encoding selection traced in f_102934f4: a null or empty encoding argument queries R_AudioInEncodeType through object +0x1e0 vtable +0x4c (including its specialized fast path) at 0x10293608-0x1029368c. Failed lookup falls back to the default path for a null argument; a non-null argument returns to string parsing. AUTO, WAV and unrecognized strings reach vtable +0x38 with r4=0,r5=1 at 0x102935b4; UNCOMPRESSED reaches that call with r4=0,r5=0; COMPRESSED and WMA reach it with r4=1,r5=0 at 0x10293690. These are selection operands, not bitrate literals. f_102933b4 asks f_100b7910 on object +0x1dc; result 3 overrides selection by clearing +0x838 and +0x834, with the demo-mode log. Otherwise it stores r5 into +0x838 and stores r4 into +0x834 only when r5 is zero. Thus AUTO/WAV/default preserve the previous +0x834 value rather than explicitly selecting a codec. The source URI and encoding vocabulary do not establish a capture driver, sample rate, bitrate, or ADC DSP chain. The earlier assertion that hardware-side constants are driver data is withdrawn pending that trace."
+    "Encoding selection traced in f_102934f4: a null or empty encoding argument queries R_AudioInEncodeType through object +0x1e0 vtable +0x4c (including its specialized fast path) at 0x10293608-0x1029368c. Failed lookup falls back to the default path for a null argument; a non-null argument returns to string parsing. AUTO, WAV and unrecognized strings reach vtable +0x38 with r4=0,r5=1 at 0x102935b4; UNCOMPRESSED reaches that call with r4=0,r5=0; COMPRESSED and WMA reach it with r4=1,r5=0 at 0x10293690. These are selection operands, not bitrate literals. f_102933b4 asks f_100b7910 on object +0x1dc; result 3 overrides selection by clearing +0x838 and +0x834, with the demo-mode log. Otherwise it stores r5 into +0x838 and stores r4 into +0x834 only when r5 is zero. Thus AUTO/WAV/default preserve the previous +0x834 value rather than explicitly selecting a codec. The source URI and encoding vocabulary do not establish a capture driver, sample rate, bitrate, or ADC DSP chain. The earlier assertion that hardware-side constants are driver data is withdrawn pending that trace.",
+    "Resolved: the concrete layer below ai_impl_base is censused to its binding boundary. The encode-selector vfunc (f_10293474, a mutex-guarded wrapper calling f_102933b4 which stores selector word impl+0x834 only when its flag arg is 0 and flag byte impl+0x838; demo-mode result 3 from f_100b7910 on obj+0x1dc clears both with 'Running demo mode forcing uncompressed') occurs in exactly three vtable layouts: ai_impl_base (ptr at 0x10eacd5c), the concrete htaudio impl (ptr at 0x10ea61a4 inside primary vtable 0x10ea616c; ctor f_10241d10 chains to base ctor f_102921b8; factory f_1023b388 invoked from manager code at 0x103fdb78 and 0x103fe46c), and the large audioin aggregate (ptr at 0x10ea10e0 inside primary vtable 0x10ea10a8; ctor f_10209df4 installs ~11 interface sub-vtables at obj+0x4..0x9a8; its operation thunks f_10208af8-f_10208b24 adjust this and fall into no-op f_10208aec). The capture hardware boundary inside anacapad is the lla (low latency audio) device pair in module 0x10d5xxxx: an input device class (vtables 0x10fe5eb4/0x10fe5f98) that opens /dev/dsp via f_10e6f6d4 (open64 flags 0x80002, ioctl 0x2000fd01, two mmap64'd 0x2000-byte ring buffers), runs the 'lla.in.poll' select loop at 0x10d5a498 and delivers samples through callback f_10d5abec (errors 'Failed to open the input device:%d', 'id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu', 'closed input device fd:%d'), and an output device class (vtable 0x10fe5a84, 'opening lla output device', 'Setting tx latency %u', states WOULD_BLOCK/EIO/UNDERFLOW_OVERFLOW/NO_CSB/INVALID_DATA/SUSPENDED, tag 'liblla'). Established by absence: no direct call edge leads from impl code (0x1024xxxx/0x1029xxxx regions) into 0x10d5xxxx and the lla ctors/ops have no bl callers, so impl-to-device binding is runtime registration through the shared device layer (the lla output table embeds sounddev.cxx ops 0x107f089c, 0x107fa268, 0x107fa298, 0x107fa2a8).",
+    "Resolved: the selected encoder configuration ends in write-only state plus a proven constants boundary. Established: the only stores of impl+0x834/+0x838 on impl-typed objects are the dif vfunc path (f_102933b4/f_10293454) and ctor init at 0x10292338; a full .text scan finds no load of impl+0x834/+0x838 on any impl-typed object (surviving +0x834/+0x838 accesses are stack-frame reloads or other classes' destructor sweeps), so no code in this binary consumes the stored selector. The full string-vocabulary mapper f_102934f4 (AUTO/WAV to sel0 flag1, UNCOMPRESSED to sel0 flag0, COMPRESSED/WMA to sel1 flag0 via vfunc slot +0x38) has no callers and no vtable slot: dead code. The live R_AudioInEncodeType path is validator vfunc f_10669aac installed at a fixed slot of three settings-descriptor tables (0x10efe8d8, 0x10efe934, 0x10efe990) with default-AUTO registration record f_101981f0 (0x10e97e10), canonicalizing WAV to AUTO and forcing unrecognized values to COMPRESSED. The wire-visible compressed/uncompressed choice is logged by vli_sink.cxx f_106cadf8 ('NodeTx configured to handle %s audio (qos: %d)', 'compressed'|'uncompressed' labels) and mirrored by the chsnk m_bCompressed flag byte at obj+0x518 (f_1030f8ac, cleared by track_pipeline records f_10d22ebc/f_10d23018); neither reads impl+0x834. No line-in bitrate constants or encoder parameter tables exist in this binary: the only compression encoder present is SBC (libsbc.so.1, sbc_encode via f_104eeb3c in htmesh_tx, the home-theater satellite path) and every bitrate literal belongs to service/adaptive-bitrate code. The encoder parameters therefore travel in runtime session/transport descriptors; this replaces the earlier unresolved claim that they are external driver data."
    ],
-   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed; a parallel artfetch thread supplies album art",
+   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; the impl classes carrying the encode-selector vfunc are the concrete htaudio impl (factory f_1023b388, primary vtable 0x10ea616c) and the large audioin aggregate (vtable 0x10ea10a8, ~11 interface sub-vtables whose operation thunks are no-ops on this build); capture hardware sits in the lla low-latency device pair (input vtables 0x10fe5eb4/0x10fe5f98 over /dev/dsp ring buffers, 'lla.in.poll' select loop, output vtable 0x10fe5a84) reached only through vtable registration, not direct calls; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed, where the stored encode selector is write-only state and the wire compressed/uncompressed choice is carried by the vli_sink/chsnk transport flag (chsnk +0x518); a parallel artfetch thread supplies album art",
    "evidence": [
     {
      "type": "firmware",
@@ -222097,6 +222216,57 @@
      "function": "0x102933b4",
      "address": "0x10293448",
      "notes": "Demo override clears stored selector and automatic-selection flag; non-demo path conditionally preserves selector."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea61a4",
+     "notes": "Encode-selector vfunc f_10293474 pointer inside htaudio impl primary vtable 0x10ea616c; same function at 0x10eacd5c (ai_impl_base) and 0x10ea10e0 (audioin aggregate)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fdb78",
+     "notes": "Manager callsite invoking htaudio impl factory f_1023b388; second callsite at 0x103fe46c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10e6f6d4",
+     "address": "0x10e6f6d4",
+     "notes": "LLA device open: open64('/dev/dsp',0x80002), ioctl 0x2000fd01, two mmap64 0x2000-byte ring buffers (prot1 then prot3); called from lla input path f_10d59f08/f_10d5886c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe5eb4",
+     "notes": "lla input device vtable (secondary at 0x10fe5f98); poll loop 'lla.in.poll' at 0x10d5a498, sample callback f_10d5abec; output device vtable at 0x10fe5a84 embeds sounddev.cxx ops."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10efe8d8",
+     "notes": "R_AudioInEncodeType validator vfunc f_10669aac at fixed slot of three settings-descriptor tables (0x10efe8d8, 0x10efe934, 0x10efe990); default-AUTO registration f_101981f0 at 0x10e97e10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106cadf8",
+     "address": "0x106caed4",
+     "notes": "vli_sink.cxx wire format branch: 'compressed' vs 'uncompressed' label for 'NodeTx configured to handle %s audio (qos: %d)'; chsnk m_bCompressed flag byte at obj+0x518 in f_1030f8ac."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102934f4",
+     "notes": "Dead code: full encode vocabulary mapper has no callers and no vtable slot; selector fields impl+0x834/+0x838 have no impl-typed readers in .text."
     }
    ]
   },
@@ -222449,7 +222619,7 @@
      "function": "f_107f675c formatter / f_107f6574 input reader",
      "address": "0x107f676c",
      "callsite": "0x107f6898 / 0x107f69d4 / 0x107f65b0 / 0x107f65c8",
-     "notes": "Explicit low/high status masks select strings. No model selector in formatter; concrete caller registration not certified. Input success mask3dff000f is separate from printed vocabulary."
+     "notes": "Explicit low/high status masks select strings. No model selector in formatter. Input success mask3dff000f is separate from printed vocabulary."
     },
     {
      "type": "firmware",
@@ -222458,17 +222628,101 @@
      "function": "hal_thermal_get_status",
      "address": "0x1fa4",
      "callsite": "0x1fdc / 0x203c / 0x2050",
-     "notes": "Export bounds and raw PPC objdump: kind13/state0, ioctl4004fc2c, andis2c07 gives mask2c070000, success-only output write. Driver/board producer join remains open."
+     "notes": "Export bounds and raw PPC objdump: kind13/state0, ioctl4004fc2c, andis2c07 gives mask2c070000, success-only output write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10185398 evaluator entry / f_101850d4 evaluator / f_102a4f14 member thunk",
+     "address": "0x10185398",
+     "callsite": "0x1018517c",
+     "notes": "f_10185398 is zp vtable0x10e97d80 slot+0x5c; it takes the scoped lock at zp+0x3f710 and calls f_101850d4, which calls formatter f_107f675c through member thunk f_102a4f14 (this=*(obj+0x34)+0xe0). Sibling slot+0x58 f_10184eac reaches clearer f_10184d44. This binds the previously uncertified formatter registration/call chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10184fac warn-test / f_10184fd4 fault-test",
+     "address": "0x10184fb4",
+     "notes": "Both load lwz -0x860(r3+0x40000) (zp+0x3f7a0 accumulator word0) and AND-test: warn mask 0x290a000a (addis0x290a/ori0xa), fault mask 0x14f50005 (addis0x14f5/ori0x5). Union equals 0x3dff000f exactly, the input-reader mask; warn bits {1,3,17,19,24,27,29}, fault bits {0,2,16,18,20,21,22,23,26,28}. Accumulator ops: f_10184f30 andc-clear, f_10184f58 or-set, f_10184f80 mask-test, f_10184ffc notifier posting {0x49|0xf,3|4} via f_1040e4cc+f_10181298."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_101850d4 evaluator",
+     "address": "0x101850d4",
+     "notes": "Dedups (new&stored)==0, merges into u64 at -0x860/-0x85c and emits '0x%08x' 'status' 'hw:st' 'hardware' event via emitter vfunc+0x20; always formats stored u64 via f_107f675c and logs 'Warning/Fault Code(s):%s'; warn latch -0xd20 emits param0x40 'Entering hardware warning state', fault latch -0xd1f emits param0x80 'Entering hardware fault state'; clearer f_10184d44 unlatches and emits 'Leaving hardware warning/fault state' via *(zp+0x57f0) vfunc+0xc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107f6574 input reader",
+     "address": "0x107f65b0",
+     "callsite": "0x10186e20",
+     "notes": "Calls hal_inputs_get_status, applies mask0x3dff000f in caller, then opens hal_detect and calls hal_detect_get_cable_states; flag_out = (cable word==4), forced 1 on any syslib error; status_out = masked word. Only caller is f_10186e20 (linein/demo task, this=*(zp+0x5738)) via member thunk f_102a5948 (+0x34/+0xe0); f_10186e20 reached through trampoline f_100b93c0 loading zp singleton 0x11095f88."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "audioctl_device_ioctl jump table",
+     "address": "0x4c0c",
+     "callsite": "0x4924",
+     "notes": "Jump table .rodata+0x1b4 holds R_PPC_REL32 entries; dispatcher indexes with lwzx (XO23) on table base then adds stored+table_base, so effective target = reloc addend - idx*4, idx=(cmd&0xff)-6. nr44 (ioctl0x4004fc2c) -> 0x4c0c: *out = priv+0x128 | priv+0x12c | priv+0xc4 composite cached status; nr44 arg unused. nr30 -> 0x4994 two thermalSensor_GetTemperature reads; nr24 -> fpga_ReadRegCmd (arg = register index <0x30); nr25 fpga_WriteRegCmd."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "audioctl_PollThread / audioctl_process_fault",
+     "address": "0x428c",
+     "callsite": "0x4504 / 0x450c / 0x452c",
+     "notes": "Poll thread periodically stores tas5708_ReadStatus()->priv+0x128 (0x4508) and thermalsensor_GetStatus()->priv+0x12c (0x4514); when either is nonzero calls audioctl_process_fault which latches priv+0xc4 |= arg & 0x50004 (fault-class bits only), cleared at 0x3ea0 on amp power init. Same loop runs mma8453_orient_poll, fpga_HandleInterrupt (FPGA reg40 interrupt cause), fpga_CheckSpdif, fpga_PostDebounceEvents, fpga_SetIrLed."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "tas5708_ReadStatus",
+     "address": "0xb39c",
+     "callsite": "0x4504",
+     "notes": "Iterates five 64-byte amp records at .bss+0x8f4 only when tas5708_amp_power is 3 or 4; per record issues tas5708_readReg(reg2 error status, 1 byte), merges sticky status byte at record+12, counts per-bit hits into record+36..+60, calls tas5708_LogErrors, and ORs emitted amp condition bits (at least 0x4, folded from reg2 bit tests via rlwinm) into the return word accumulated across amps."
+    },
+    {
+     "type": "firmware",
+     "binary": "audiodev.ko",
+     "build": "86.10-80260",
+     "function": "thermalsensor_GetStatus / LimelightThermalSensors",
+     "address": "0x8ea4",
+     "callsite": "0x450c",
+     "notes": "Walks a runtime table of 88-byte sensor descriptors, calls thermalSensor_GetTemperature and compares against warn(+32)/fault(+28) thresholds, emitting the descriptor's assigned warn(+44)/fault(+40) bits. Shipped .data+0x400 LimelightThermalSensors names 'AMP Thermal Sensor' (warn95/fault99C -> 0x80000/0x40000) and 'CPU Thermal Sensor' (warn98/fault105C -> 0x20000/0x10000): in-image board setup data."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103cacec hwmsg conn poller / f_1018261c temps reader",
+     "address": "0x103cacec",
+     "callsite": "0x101981f0",
+     "notes": "f_103cacec (this=*(zp+0xaa30), reached from f_101981f0 via secondary-base thunk f_1019d06c this-0x3a8) opens hal_orient and hal_thermal, delivers hal_thermal_get_status word to owner *(conn+0x9c) vfunc+0x80. f_1018261c reads hal_thermal_get_temps into the sounddev member via f_102a5704 and logs 'cpu:%d, amp:%d, soc:%d' via f_101823b0/f_10182310."
     }
-   ],
-   "todo": [
-    "Established: concrete status-bit-to-name formatter, successful input-reader mask0x3dff000f and shipped thermal ioctl/mask0x2c070000 boundary. Remaining: bind f_107f675c registration/callers, trace every status producer including thermal/input ioctls into shipped driver implementations and board/model setup, and distinguish supported bits from asserted faults on S9. Start at f_107f6574, libsyslib_hal hal_inputs_get_status/hal_thermal_get_status and ioctl0x4004fc2c. Do not derive sensor presence or absence from the shared enum, unrelated capability rows or MOTION spelling. The outside-image/model-9 limitation is withdrawn; this is actionable static work."
    ],
    "resolved_findings": [
     "The old model-9 live-flag/capability assertion is withdrawn. S9 identity has previously been corrected to ordinal10 in model_sku_vocabulary; neither that ordinal nor soundbar feature names prove individual health sensors. Per-board health producers still need actual driver joins.",
     "f_107f675c formats bits from its incoming status word, not a model selector: low0x2 AMP_CURRENT_WARN,0x8 AMP_FAULT_WARN,0x1 AMP_CURRENT_FAULT and0x4 AMP_FAULT; high0x00020000 AUDIO_WARN_TEMPERATURE,0x00080000 CPU_WARN_TEMPERATURE,0x00100000 PS36_FAULT,0x00200000 UV36_FAULT and0x00400000 UV14_FAULT. Motion temperature strings are real compiled branches on0x40000000/0x80000000, not proof of portable-motion detection or sensor absence on S9. No model gate occurs in this formatter; its concrete registration/call reachability remains to be bound.",
     "A separate actual input-status reader f_107f6574 invokes imported hal_inputs_get_status at0x107f65b0, tests its return value, and masks successful output with0x3dff000f before storing it to its output argument. Error branches do not use that successful status value. The shared string vocabulary is therefore not interchangeable with every reader mask; the complete health producer path is not certified by this one input method.",
-    "Shipped libsyslib_hal.so.1 hal_thermal_get_status at0x1fa4 checks for a nonnull handle, handle kind13 and state0. Its successful path issues ioctl0x4004fc2c with a4-byte buffer and masks the returned word with0x2c070000 before storing it. Invalid handle/kind/state or ioctl failure returns a nonzero code without the success store. This provides an in-corpus driver boundary to trace, disproving the old assertion that all per-model health information is necessarily outside the image. This thermal method is not yet joined to the formatter."
+    "Shipped libsyslib_hal.so.1 hal_thermal_get_status at0x1fa4 checks for a nonnull handle, handle kind13 and state0. Its successful path issues ioctl0x4004fc2c with a4-byte buffer and masks the returned word with0x2c070000 before storing it. Invalid handle/kind/state or ioctl failure returns a nonzero code without the success store. This provides an in-corpus driver boundary to trace, disproving the old assertion that all per-model health information is necessarily outside the image. This thermal method is not yet joined to the formatter.",
+    "Formatter registration/call chain bound: f_107f675c is invoked through sound_device member thunk f_102a4f14 (this=*(obj+0x34)+0xe0) by evaluator f_101850d4, entered as slot+0x5c (f_10185398) of the zp vtable 0x10e97d80 under the scoped lock at zp+0x3f710; sibling slot+0x58 (f_10184eac) reaches clearer f_10184d44.",
+    "The health accumulator is a u64 at zp+0x3f7a0/+0x3f7a4 with explicit ops (f_10184f30 andc-clear, f_10184f58 or-set, f_10184f80 mask-test, f_10184ffc notifier posting {0x49|0xf,3|4}); warn-class test mask 0x290a000a (bits 1,3,17,19,24,27,29) and fault-class mask 0x14f50005 (bits 0,2,16,18,20,21,22,23,26,28) union to exactly 0x3dff000f, the input-reader mask, so the reader admits precisely the classifier-visible vocabulary.",
+    "Evaluator f_101850d4 dedups new bits, merges them into the accumulator, emits a 'hw:st'/'hardware' 'status' event ('0x%08x') via emitter vfunc+0x20, formats the stored u64 for the 'Warning/Fault Code(s):%s' log, and latches warn (-0xd20)/fault (-0xd1f) states that emit 'Entering hardware warning state' (param 0x40) and 'Entering hardware fault state' (param 0x80); clearer f_10184d44 unlatches and emits the matching 'Leaving' events via *(zp+0x57f0) vfunc+0xc.",
+    "Reader f_107f6574 semantics: hal_inputs_get_status word masked 0x3dff000f into status_out, then hal_detect_get_cable_states with flag_out = (raw cable word == 4), forced 1 on any syslib error; its only caller is f_10186e20 (linein/demo task on sound_device member zp+0x5738), reached via trampoline f_100b93c0 on zp singleton 0x11095f88.",
+    "Kernel producer boundary resolved: audiodev.ko ioctl 0x4004fc2c is nr44 and its case at 0x4c0c returns the composite cached status priv+0x128 | priv+0x12c | priv+0xc4 (jump-table entries are R_PPC_REL32 indexed by lwzx, effective target = addend - idx*4; fpga_ReadRegCmd is nr24, not nr44). audioctl_PollThread fills priv+0x128 from tas5708_ReadStatus (per-amp TAS5708 reg2 reads over i2c, gated on amp_power 3/4, sticky per-amp byte plus per-bit hit counters) and priv+0x12c from thermalsensor_GetStatus (descriptor-table threshold comparison), and latches fault-class bits priv+0xc4 |= arg & 0x50004 via audioctl_process_fault.",
+    "Board setup is shipped in-image: LimelightThermalSensors at audiodev.ko .data+0x400 carries 88-byte descriptors naming 'AMP Thermal Sensor' (warn 95C / fault 99C -> bits 0x80000/0x40000) and 'CPU Thermal Sensor' (warn 98C / fault 105C -> bits 0x20000/0x10000), so thermal emit bits {16,17,18,19} are produced by this board's driver.",
+    "Supported vs asserted on this build: producers that feed the composite word emit amp bits (tas5708), thermal bits {16,17,18,19} (sensors), and latched fault bits {2,16,18} (process_fault); the formatter's MOTION branches (bits 30/31) and the power-named bits (20,21,22) have no producer anywhere in the shipped userspace/kernel chain, so they are compiled vocabulary that shipped paths cannot assert. Other board builds may ship different sensor tables; that is a build-data boundary, not a userspace gap.",
+    "Additional producers: hwmsg connection poller f_103cacec (zp+0xaa30) opens hal_orient and hal_thermal and pushes the hal_thermal_get_status word to owner vfunc+0x80; f_1018261c reads hal_thermal_get_temps into the sound_device member and logs 'cpu:%d, amp:%d, soc:%d'."
    ]
   },
   "rendering_control": {
@@ -222540,7 +222794,7 @@
   },
   "audio_rate_ctrl": {
    "name": "Audio Rate Controller (ASRC) + timesync drift",
-   "summary": "ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, \"Rate Maxed\"/\"Rate Inv Maxed\" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; \"time went back; try again\"; \"Thread descheduled for %uus. Limit %uus\"; SRC mute on |drift| \"(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u\"; \"Out of bounds. drift: %f mute count: %d\"",
+   "summary": "ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, \"Rate Maxed\"/\"Rate Inv Maxed\" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; \"time went back; try again\"; \"Thread descheduled for %uus. Limit %uus\"; SRC mute on |drift| \"(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u\"; \"Out of bounds. drift: %f mute count: %d\"; upstream filtered error = 2nd-order lowpass IIR in f_107fbd54 (delay lines +0x140..+0x168, y[n]=x[n]+2x[n-1]+x[n-2]+1.8059334142y[n-1]-0.8181059933y[n-2], x[n]=int64 tick delta/328.6074362) feeding +0x120; R divisor +0x10 fixed 44100.0; output railed [0.9524,1.05] unlocked, bang-bang +-1000 biases",
    "evidence": [
     {
      "type": "firmware",
@@ -222575,17 +222829,64 @@
      "build": "86.10-80260",
      "address": "0x107fc734",
      "notes": "SPE output consumer multiplies integer rate by +0x130 and converts to float."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fbd54",
+     "address": "0x107fbd80",
+     "notes": "Filter delay-line shift + IIR: evlddx/evstddx taps +0x140..+0x168; int64 +0x110 -> /328.6074362; y[n]=x[n]+2x[n-1]+x[n-2]+1.8059334142y[n-1]-0.8181059933y[n-2] -> +0x120."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fc2f8",
+     "address": "0x107fc400",
+     "notes": "measureDrift: 64-bit tick deltas stored +0x100/+0x104 and +0x110/+0x114; calls f_107fbd54 then f_107fba34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fb414",
+     "address": "0x107fb488",
+     "notes": "ctor: +0x10 = 44100.0 (0x10eb4830); +0x118/+0x120 = 0.0; +0x128/+0x130 = 1.0; +0x80 = 2116.5; +0x88 = 2304.0; +0x190 halfword 2400; +4/+8 = -1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fb8a4",
+     "address": "0x107fb8d0",
+     "notes": "applyRails: clamps +0x130 to [0.9523809523809523,1.05] when lock state +0 != 2; locked rail excursions log 'Rate Maxed!!!'/'Rate Inv Maxed!!!' gated by +0x174 counter."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fc6b0",
+     "address": "0x107fc798",
+     "notes": "Out-of-bounds accounting: |e| > global 0x110927f8 (100.0; 200.0 on 32000 path) increments +0x174 and sets latch +0x170 (1.016->1.011); count 500 or log paths set mute byte +0x18."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f2b8e8",
+     "notes": "Filter constants: 328.6074362 tick divisor; -0.8181059933 / 1.8059334142 IIR feedback; bias constants +1000.0 (0x10ea2398), -1000.0 (0x10f2b918), thresholds +-1e6 (0x10eb4858, 0x10f2b940)."
     }
-   ],
-   "todo": [
-    "Residual: establish the upstream filtered-error update producing double +0x120 and the units of +0x10/+0x120, including why the decoded piecewise bias uses -1000 in its middle branch. The local SPE recurrence, cubic/difference terms, clamp limits and output consumption are now decoded. Do not infer a standard PI controller from telemetry names."
    ],
    "resolved_findings": [
     "Servo decoded: a timesync DPLL (TimeSync Reset with TS_DPLL_STATE_NO_LOCK) drives the ASRC - m_dOverallRate is the proportional term, m_dIntegratedRate the integral accumulator, dAbsoluteError the measured drift, current canonical rate = %u the group canonical rate (the coordinator's audio clock is canonical; members servo to it via remoteToLocal regression). Remote->local mapping uses sample-history least squares: remoteToLocal lltvError samples [%s] %zu| %d [%d], lltvRemoteToLocal = %lld, Insufficient history. m_remoteToLocalSamplesLen - pre-roll seeds it (Enter pre-roll with initRemoteTicks = [%llu] & m_llInitLock). Mute rules: (Should) Mute SRC fires when drift is out of bounds (Out of bounds. drift: %f mute count: %d) or error exceeds threshold (mute adj.), (Should) Un-Mute SRC. Counter was %d on re-lock - the SRC-mute-on-drift rule. Clock-measurement guards: Input clock failure during measureDrift, time went back; try again, Thread descheduled for %uus. Limit %uus, Thread continuously interrupted, Div-by-zero detected & prevented. Line Rate = %u & Audio Rate = %u. Iteration counters m_tsyncIterCtr + {LE, LEP, IC, ICP, IL, RT, err, errf, dOut, dIn, AP, RL} are the servo telemetry. TV Locktime [%i].[%i] tracks HT databurst lock.",
     "Coefficient-address correction from GNU e500 disassembly: 0x107fc508 materializes 0x10f2b918, not 0x10f2b8e8, because signed addi -18152 is added to lis 0x10f3. That literal is -1000.0, not 328.6074362. Likewise lis 0x10ec plus signed addi 0x9ee0 is 0x10eb9ee0 (1.0), not 0x10ec9ee0. Prior named gain attribution based on the linear listing is superseded by the explicit recurrence below. The 32000-rate branch writes gains 2e-8 and 1e-5 to globals 0x110927e8/+8, and bias multiplier 35 to 0x110b6830; other rates retain the global gains (image initializers 4e-8 and 0.0001) and set bias multiplier 30. This proves writable globals, not a user-facing tuning interface.",
     "Initialization and mute-path scope corrected: constructor starts 0x107fb414, with 0x107fb418 only its stack setup. It stores r7 to +0x118/+0x120 but r8, not a copy from +0x118, to +0x128/+0x130 at 0x107fb4f4-0x107fb50c. f_107fc6b0 calls update f_107fc46c at 0x107fc6d0; non-32000 paths select the literal 1.016 (0x10f2b948) or 1.011 (0x10f2b950) depending on byte +0x170, before calling f_107fb8a4. The 32000 path loads 200.0 from 0x10f2b928 at 0x107fc870. Therefore 1.016/1.011 cannot be described as universal thresholds for every input rate. The counter +0x174 and latch +0x170 are updated at 0x107fc798-0x107fc7a8 on the out-of-bounds path. The earlier exact PI/member-binding interpretation is withdrawn; the telemetry names alone do not establish those equations.",
     "Local SPE recurrence in f_107fc46c decoded with GNU objdump -WN -M e500, including branch polarity: let e be double +0x120, p previous e at +0x118, I prior +0x128, R double +0x10, and K1/K2 globals 0x110927e8/+8. Form q=(e>0 ? 1 : -1)*e*e. Bias b is 1000 if q>1000000, q/1000 if q<-1000000, otherwise -1000, as the actual loads and branches at 0x107fc4c0-0x107fc510, 0x107fc5e0 and 0x107fc69c specify. Compute u=clamp(e*e*e,-100,100), v=clamp(e-p,-200,200), store e to +0x118, then Inew=clamp(I+K1*u+K2*v,0.9746588693957114,1.026) and store +0x128. Store output +0x130=Inew+M*b/R, where M is 30 or 35 as above. These are equations from instructions, not a claim about physical units or intended control theory. The ordinary-input middle bias is explicitly negative, rather than silently substituting a conventional symmetric cubic law. The lower and upper I clamp paths and no-clamp path all store +0x128 before adding the bias.",
-    "Output-consumer check: f_107fc6b0 unconditionally invokes f_107fc46c at 0x107fc6d0; its normal return at 0x107fc710-0x107fc734 multiplies integer member +8 by double +0x130 and converts that double to single with efscfd. This establishes +0x130 as the multiplicative rate output, but does not itself establish the units or upstream definition of e. It also prevents describing +0x130 simply as the integrator: the bounded I term is +0x128 and output includes a separate bias. No error/null-input branch is implied for this object method; zero R would reach division without a guard here."
+    "Output-consumer check: f_107fc6b0 unconditionally invokes f_107fc46c at 0x107fc6d0; its normal return at 0x107fc710-0x107fc734 multiplies integer member +8 by double +0x130 and converts that double to single with efscfd. This establishes +0x130 as the multiplicative rate output, but does not itself establish the units or upstream definition of e. It also prevents describing +0x130 simply as the integrator: the bounded I term is +0x128 and output includes a separate bias. No error/null-input branch is implied for this object method; zero R would reach division without a guard here.",
+    "Established (GNU e500 SPE decode): the upstream filtered-error update producing double +0x120 is f_107fbd54, invoked at 0x107fc424 as the last step of measureDrift f_107fc2f8. measureDrift keeps signed 64-bit drift state at +0xd0..+0x114: each call it forms the newest tick delta into +0x110/+0x114 and a second delta into +0x100/+0x104 from the timestamp arguments (r5-r8) against the prior reference at +0xf0/+0xf4, with the 'Input clock failure during measureDrift' guard. f_107fbd54 maintains two 3-tap double delay lines - input taps {+0x140,+0x148,+0x150} and output taps {+0x158,+0x160,+0x168} - shifts both, normalizes the +0x110 int64 delta by literal 328.6074362 (0x10f2b8e8, ticks per canonical sample) into x[n], and computes the second-order lowpass y[n] = x[n] + 2*x[n-1] + x[n-2] + 1.8059334142*y[n-1] - 0.8181059933*y[n-2] (feedback constants 0x10f2b8f0, 0x10f2b8f8), storing y[n] to +0x168 and to the servo error +0x120. The filter is a biquad with numerator (1+z^-1)^2 (double zero at Nyquist) and complex poles of magnitude sqrt(0.8181059933) = 0.9045.",
+    "Established: units of the servo inputs are now fixed by the constants. +0x10 is the canonical rate divisor 44100.0 (double at 0x10eb4830), stored only by the ctor at 0x107fb488 and never rewritten elsewhere in .text, so the R in output = I' + M*b/R is 44100.0 samples/sec. +0x120 is filtered clock drift in normalized sample units: the raw input is a signed 64-bit timestamp-tick delta at +0x110 (the 'diff in sample unit time %llu' measure), scaled by the fixed 328.6074362 ticks-per-canonical-sample divisor (implied tick clock 328.6074362 x 44100 = 14.4916 MHz), so e expresses drift in sample-period units and the e^3 / Delta-e update clamps of +-100 and +-200 bound those same units. Related members from the ctor: +8 integer input rate (32000-specialized), +0x80 = 2116.5 and +0x88 = 2304.0 (0x10f2b8a0/0x10f2b8a8), +0x190 halfword 2400, +0x18 SRC-mute flag byte, +0x170 rail-select latch, +0x174 out-of-bounds counter.",
+    "Established + Inferred: the piecewise bias is now explainable from the rail structure. Output +0x130 = clamp(I + K1*clamp(e^3,-100,100) + K2*clamp(e-prev,-200,200), 0.9746588693957114, 1.026) + M*b/44100.0, where K1/K2/M are 4e-8/1e-4/30 by default and 2e-8/1e-5/35 on the 32000 path (written to globals 0x110927e8, 0x110927f0, 0x110b6830 every call), and b = +1000.0 when sign(e)*e^2 > 1e6, sign(e)*e^2/1000.0 when < -1e6, else -1000.0 (constants 0x10ea2398, 0x10f2b918; thresholds 0x10eb4858, 0x10f2b940; sign const -1.0 at 0x10ec5760). f_107fb8a4 then clamps +0x130 to [0.9523809523809523, 1.05] (0x10f2b8d8, 0x10f2b600) whenever lock state +0 is not 2, and when locked only logs 'Rate Maxed!!!'/'Rate Inv Maxed!!!' (0x10f2b9dc, 0x10f2ba2c) on rail excursions while +0x174 != 0. The +-1000 biases are ~14x wider than the +-4.8% rail half-band: with b=-1000 the dead-band output I' - 0.680 always lands below the low rail, with b=+1000 it lands above the high rail, and q/1000 scales the deep-negative regime. Inferred consequence: the correction is a two-level (bang-bang) drive that dwells at the rails and lets the sign of the filtered drift pick the rail, while the I' accumulator (clamped [0.9747,1.026]) and the cubic/difference terms set the dwell balance; +0x174 counts consecutive out-of-bounds iterations (|e| > global 0x110927f8, 100.0 default, forced 200.0 for 32000) with the latch +0x170 tightening the detection threshold 1.016->1.011 once counting, and a count of 500 or the log paths raising the +0x18 mute byte ('(Should) Mute SRC', '(Should) Un-Mute SRC' on return to bounds). The float product rate_int(+8) x +0x130 returned by f_107fc6b0 is computed at 0x107fc734 but dropped by the sole callsite at 0x107faa38, so +0x130 is the applied ratio consumed outside this call (the SRC engine receives the drift double via f_107c72c4 when lock state is 2)."
    ]
   },
   "amp_manager": {
@@ -227513,12 +227814,56 @@
      "build": "86.10-80260",
      "address": "0x107d89f0",
      "notes": "Rotate/mask computes the low sixteen bits of payload_bytes shifted right three."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107ea290",
+     "address": "0x107ea3c4",
+     "notes": "Clock-provider provenance: engine sub-object +0x10 handed to tv processor ctor; same instance feeds audio rate ctrl +0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fbe84",
+     "address": "0x107fbf74",
+     "notes": "ARC drift loop samples the shared provider virtual+0xc twice as a u64 local-tick read bracketing the remote/canonical timestamp."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d88c8",
+     "notes": "Burst arm queries the input device databurst/channel-status state via f_10d59c68 into a 24-byte stack buffer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107de37c",
+     "address": "0x107de3a4",
+     "notes": "Channel-status capture object: memcmp gate then verbatim 24-byte store, +0x80 validity flag, +0x18 word 9; 'CSB changed to: %s [%s]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107d8624",
+     "address": "0x107d89cc",
+     "notes": "Commit path byte-copies the 24-byte channel-status capture into metadata +0x0f before rate/count writes and the packet write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f26648",
+     "notes": "'CSB changed to: %s [%s]' - the 24-byte block is the channel-status block."
     }
    ],
    "manager": "audiotap_manager + trueplay_manager; \"number of max taps exceeds the avaialable capacity\"; \"Active Tap %s\"/\"Closing Tap %s\"/\"No Active Taps to check if already tapped\"; guards {\"Location is not tappable\",\"Location is already being tapped\",\"Max number of blocks already being tapped\"}; vars {channelname,vartype,VAR_FLOAT,VAR_STRING,VAR_INT} fmt %.04f; \"number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE\"; \"unknown channel type\"; sonarEQ.xml + \"found legacy tuning\"; status \"<b>--------Trueplay-------</b>\" + \"Minimum Trueplay version\" + {Small,Large} classes",
-   "todo": [
-    "Residual shared with audio_taps: identify the clock provider/domain for metadata u32 words at offsets 1 and 5, and decode the cached 24-byte status block at 0x0f..0x26 and any remaining flag semantics. Packet writer, sample-rate word, signal-loss producer, compression and framing are traced; the opaque metadata semantics are not fully resolved."
-   ],
    "resolved_findings": [
     "SPDIF file grammar replaces the earlier rolling-buffer-plus-XML-metadata claim: the uncompressed replay file is repeated 48-byte binary metadata followed by sample_count*8 audio bytes. XML <SPDIFTap> is an export envelope, not an on-disk metadata header or trailer. The generic /audio_tap WAV/debug surface is not proof that every tap uses the SPDIF packet format.",
     "Client delivery proven: tap data reaches the requester as a file download - /snapshotspdiftap captures the live tap and /downloadspdiftap serves it; snapshotted taps are compressed (spdiftap.compressed artifact suffix; Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!). The audiotap_manager guards capacity (number of max taps exceeds the avaialable capacity, Max number of blocks already being tapped, Location is already being tapped, Location is not tappable) and tracks Active Tap %s / Closing Tap %s. Signal integrity monitored (Encountered signal loss in the audio tap). Poll cadence via audiotap.poll param on /audio_tap.",
@@ -227526,7 +227871,10 @@
     "Reader and validation independently checked: f_107e1264 reads one 48-byte metadata item with fread and returns 2 on failure. It byte-reverses packed words at offsets 1,5,0x0b and u16 sample count at 9; the file values are little-endian. The count shifted left three is stored at reader+0x40. Flag byte 0x27 bit 0x80 selects the signal-loss log/return-4 path; metadata is still copied to reader+0x10. f_107e1e44 checks version byte 1 and walks complete metadata/audio records, retaining a valid prefix if its size exceeds 47 bytes. Empty input or an invalid first packet closes the file; truncated audio or metadata after a complete prefix stops validation at that prefix. f_107e1a88 bounds reads by remaining packet/file bytes, returns 2 on short fread, and reverses audio word byte order on this big-endian target. These details match audio_taps, not a separate compressed-block grammar.",
     "Producer traced: f_107d8624 zeroes 48 bytes at stack+0x4c and writes version 1 at 0x107d8730-0x107d8740. Its clock-provider object +0x8d0 vtable+0x0c fills an eight-byte result copied into metadata offsets 1 and 5; the same pair is returned through the caller timestamp output. At 0x107d89e0-0x107d8a20 it sets sample count to (payload_bytes>>3)&0xffff and metadata+0x0b to TV processor +0xf1c. Playback compares that word with the current TV rate and logs the explicit sample-rate-mismatch diagnostic at 0x107d8838, proving it is sample rate rather than an unnamed counter. f_107dede8 copies the cached 24-byte block at processor+0x1a68 to metadata+0x0f. The error path ORs 0x80 into metadata+0x27 and invokes the writer with null audio and zero bytes at 0x107d8bd8-0x107d8bf8. Writer f_107e1720 copies and byte-reverses the scalar fields, writes exactly 48 metadata bytes via sink virtual+8, then, for non-null/nonzero audio, writes the word-byte-reversed payload through the same sink (0x107e1894-0x107e1a2c). Clock units/domain and cached status-byte meanings remain unresolved.",
     "Compression boundary checked in f_103d1ca8: deflateInit2_ receives default level -1, method 8, windowBits 12, memLevel 5 and strategy 0, using zlib version 1.2.11. This is a zlib-wrapped DEFLATE stream, not gzip or an additional per-packet block schema. f_1034308c emits the <SPDIFTap> export wrapper and opens the file before using a 0x4000-byte file-reader buffer. That buffer size is not a fixed metadata section.",
-    "Bit-field audit with GNU e500 and the fixed repository listing: 0x107d89f0 is rlwinm r10,r5,29,16,31, equivalent to (payload_bytes>>3)&0xffff, not an unlimited-width quotient. Two byte stores at 0x107d8a18/0x107d8a1c serialize that sixteen-bit count. Reader 0x107e1420 shifts the reconstructed count left three and stores audio bytes remaining at +0x40; 0x107e147c tests metadata byte 0x27 with andi. 0x80. The count narrowing is explicit and shared with audio_taps; no oversized-payload acceptance or saturation is implied."
+    "Bit-field audit with GNU e500 and the fixed repository listing: 0x107d89f0 is rlwinm r10,r5,29,16,31, equivalent to (payload_bytes>>3)&0xffff, not an unlimited-width quotient. Two byte stores at 0x107d8a18/0x107d8a1c serialize that sixteen-bit count. Reader 0x107e1420 shifts the reconstructed count left three and stores audio bytes remaining at +0x40; 0x107e147c tests metadata byte 0x27 with andi. 0x80. The count narrowing is explicit and shared with audio_taps; no oversized-payload acceptance or saturation is implied.",
+    "Clock domain established: producer f_107d8624 calls provider object +0x8d0 virtual +0xc, which fills an eight-byte buffer copied verbatim into metadata offsets 1 and 5 and into the caller timestamp output. Provenance: the tv-proc-as factory f_102a4890 passes *(factory+0x34)+0xd0 to f_107ea290, which forwards +0x10 of it (engine sub-object +0xe0) to tv processor constructor f_107d6ea4 at 0x107d7170. The identical instance is passed to audio rate controller constructor f_107fb414 as +0x1c, and the ARC drift loop samples the same virtual +0xc twice as a u64 local-clock read bracketing the remote/canonical timestamp read (0x107fbf74-0x107fbfbc). Established: the two metadata words are the two 32-bit halves of one u64 local-tick timestamp in the timesync tick domain shared with the SPDIF rate servo (implied tick clock ~14.49MHz per the ARC divisor in audio_rate_ctrl). Inferred: the first word is the u64 high half in native big-endian order. The concrete provider class is bound at runtime as an engine sub-object, a proven boundary, but the domain and word semantics are established.",
+    "Cached 24-byte block decoded: it is a verbatim copy of the tv processor channel-status capture object at +0x1a68[0..0x17], the IEC 60958/61937 channel-status block (CSB). On the burst-capable arm the producer queries the input device via f_10d59c68 into a 24-byte stack buffer, and f_107d2dc8 -> f_107de37c stores it into the capture object only when it differs (memcmp gate at 0x107de3a4-0x107de3c0; validity flag at object +0x80; reset f_107de4b4 zeroes the block and stamps word 9 at +0x18). A change is logged as 'CSB changed to: %s [%s]' (0x10f26640/0x10f26648, e.g. 'Encoded'). The commit path then byte-copies the capture into metadata +0x0f at 0x107d89cc-0x107d89dc. Packets written before the first capture carry a zeroed block; no other writer exists, so no second schema is possible.",
+    "Remaining flag semantics closed: on every traced producer path the only flag write is OR 0x80 into metadata+0x27 on the signal-loss arm (0x107d8bd8-0x107d8bf8); bytes 0x28..0x2f and the rest of +0x27 stay memset-zero. Hardware-invalid transitions are tracked on tv processor +0xc69 and only gate whether a loss-flag packet is emitted ('Invalid signal provided by hardware'/'Hardware no longer providing invalid signal' at 0x10f26f44/0x10f26f18)."
    ]
   },
   "dsp_files": {
@@ -231627,13 +231975,74 @@
      "function": "0x1042e40c",
      "address": "0x1042e740",
      "notes": "Raw andi immediate 0xe6 and compare 0xe2 verified against the loop mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c96348",
+     "address": "0x10c96518",
+     "notes": "read_metadata_ SEEKTABLE branch (type==3): private_+0xfc has_seek_table cleared first, num_points=length/18 via mulhwu 0x38e38e39 >>2 into private_+0x1c0; header {type@+0x1b0, is_last@+0x1b4, length@+0x1b8}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c96348",
+     "address": "0x10c9655c",
+     "notes": "num_points > 0x0AAAAAAA reject (n*24 u32-overflow guard) -> error path; realloc(points, n*24) into private_+0x1c4; fail frees old ptr, zeroes slot, MEMORY_ALLOCATION_ERROR."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c96348",
+     "address": "0x10c965e4",
+     "notes": "per-point read loop: f_10c992e0 u64 x2 = sample_number@+0 / stream_offset@+8, f_10c9921c 16 bits = frame_samples@+0x10, stride 0x18; partial tail length-n*18 skipped via bitreader skip (f_10c994c4); has_seek_table=1 at 0x10c97128; metadata_callback gated on !is_seeking + filter[3]."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x104ff4e0",
+     "address": "0x104ff6fc",
+     "notes": "sonos flac seek wrapper: target = tvResume.tv_sec * wrapper+0x1c (mullw); +0x1c = sample rate stored by metadata callback f_105012d8 from STREAMINFO block +0x20; cap target to total_samples-1 ('capping aboslute seek position'); call seek_absolute f_10c97eb0 then process_single f_10c97df4 ('seek frame invalid')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c97fec",
+     "notes": "seek_to_absolute_sample_: seek_table = has_seek_table(+0xfc) ? private_+0x1c0 : 0 via isel XO975 (r17); placeholder const UINT64_MAX at 0x11095ad0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c98054",
+     "notes": "backward scan r9 = points+(n-1)*24 decrementing: accept last point with sample_number != PLACEHOLDER, frame_samples(+0x10)>0, sample < total_samples (guard skipped when total==0), sample <= target -> new_lower_bound = first_frame_offset + stream_offset."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c98128",
+     "notes": "forward scan for first point > target_sample under same guards -> new_upper_bound; commit only if new_upper >= new_lower (0x10c98194-0x10c981c0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10c97eb0",
+     "address": "0x10c981fc",
+     "notes": "binary-search loop: pos = lower + (target-lb_sample)/(ub_sample-lb_sample)*(ub-lb) - approx_bytes_per_frame via f_109822f4 (u64->double) and f_10982080; clamp pos to [lower, upper-1]; seek_callback private_+0x8 -> flush -> process_single f_10c97b6c; state ABORTED(7)/fail -> protected_->state=SEEK_ERROR(6); approx_bytes_per_frame doubles on insufficient backward move."
     }
    ],
    "detail": "ogg/vorbis {nullaudio \"starting null audio play\"+\"dropping %zu bytes\",\"oob, num samples larger than max vorbis packet size\",\"we have gapless ogg, %d samples, %zu frame size\",\"gapless requested %d samples > decoded frame size\",\"ogg eof\",\"ogg only header byte found\",\"ogg hard stop requested\"}; SBC {\"Invalid packet header\",\"params: freq=%u blks=%u sb=%u mode=%u alloc=%u bitpool=%u end=%u fin=%zu fout=%zu frames=%zu\",\"Truncated packet. Lost %zu of %zu frames\",\"frame size changed %zu->%zu\",\"decoder error %zd on frame %zu\",\"Bad SBC frame %zu. read %zd/%zd, decoded %zu/%zu\",\"unexpected NOTIFYFRAME_ERR_BUFFERING\",\"unknown frame status %d\"}; WMA {\"oob, num samples larger than max wma packet size (%zu * %zu == %zu) > %zu\",\"wma player end of file\",\"notify frame stop/do not decode\",\"skipping wma frame\",\"wma decoder error, resetting/no reset/hard stopping\",\"number of channels encoded %d, will not decode > stereo\"}; ALAC {\"alac decoder status: %d\",\"producing zeros only\",\"alac out-of-bounds read prevented\",\"error initializing ALAC\",\"created alac for %u-bit samples, %d sample freq, %d-channel\",\"unexpected sample bit depth: %u\"}",
    "adts_aiff_framer": "ADTS framer (domain suffix formats '%sadts-?'/'%sadts-%s'): sync scan 'found sync'/'skipped %zu', 'unexpected layer %d', 'incomplete header r:%zu'/'(missing CRC r:%zu)', 'unsupported sampling frequency %u', 'unexpected change of format: prev %d', 'Number of audio channels is too high: %u', 'buffer size too small, need %zu bytes', 'incomplete audio data r:%zu l:%zu', 'At Offset:%zu want:%zu dropping frame', 'buffering error, goto cleanup'. AIFF checks: 'exceeded max AIFF audio channels (%d) found %d channels', 'less than min AIFF audio channels (%d) found %d channels', 'File bit-depth unsupported. Found %d', emitted labels '%u-channels'/'%u-bit'. Audiotap record framing: 'j,%zu:%s' tagged-length records and 'i0'-prefixed integer fields on the audiotap.poll stream.",
-   "todo": [
-    "Residual: trace FLAC seek-table metadata parsing and the seek consumer, including behavior with no seek table. The native MP3 framing sync search is now reversed; do not treat it as entirely hidden in the vendored decoder."
-   ],
    "resolved_findings": [
     "Resolved: decoder-selection = the codec factory keyed by accepted_mimes id; AAC param parsing = the adts_aiff_framer path; vorbis error set + detail sub-block documented.",
     "AAC layer proven (AOSP-AAC): DisableAacPlus gates SBR - [SUCCESS] DisableAacPlus StreamType=%d, aacPlusUpsamplingFactor=%d sets the AAC+ upsampling factor (SBR off = factor reset). Status XML <DEC_AACDecoder> exposes {DEC_InputChanCount, DEC_OutputChanCount, DEC_BitRate, DEC_FrameSize, DEC_AudioObjectType} with the AOT name set {AAC-LC, HE-AAC, ER-AAC-LC, ER-AAC-SCAL - Decoding base layer only, ER-BSAC, ER-AAC-LD, HE-AAC v2, ER_AAC_ELD, xHE-AAC}. mp4_header_parser feeds init: Invalid sample rate idx, Frame Paddling Len = %d numChannels = %d sampleRateIx %d obj %d, Explicitly expressed samplerate not supported, Failed to get the extension sampling freq idx. Decode errors: cant initialize decoder library, Unable to decode init frame, unknown AAC format, ERROR DECODE %d, (%d) only used %d bytes from a buffer containing %d. Adjacent Vorbis decoder emits {no samples produced, insufficient bytes, decoding failed, vorbis_synthesis_read failed} with <SampleRate>/<FrameSize>/<NumChannels>/<ChanMap %s (%s)> status XML. Decoder selection itself rides the per-codec init frames plus the tv_processor ActiveDecoder ladder for SPDIF sources.",
@@ -231644,7 +232053,7 @@
     "FLAC decoder state enums recovered (vendored libFLAC): decoder states at 0x10fbb860 {SEARCH_FOR_METADATA, READ_METADATA, SEARCH_FOR_FRAME_SYNC, READ_FRAME, END_OF_STREAM, OGG_ERROR, SEEK_ERROR, ABORTED, MEMORY_ALLOCATION_ERROR, UNINITIALIZED} plus error/length/tell/seek/read/init status tables at 0x10fbb89c.",
     "MIME->format-class map at 0x10ecc61c: {audio/x-wav, audio/vnd.wave, audio/wma}=1, {audio/x-ms-wma, audio/x-mpegurl}=2, audio/mpegurl=8, {application/x-mpegurl, application/vnd.apple.mpegurl, audio/L16}=9 - the mime-to-decoder-class binding.",
     "ALAC cookie consumption bounded exactly (init f_10534ca4): the decoder pulls the cookie via descriptor vfuncs and reads u16 fields at stack +0x44/+0x46/+0x48/+0x4a -> {bitDepth, sampleRate, channels} ONLY - no further atom fields are consumed in-image. Validation: bitDepth must be 16 or 24 (cmplwi 0x10/0x18 gates), channel count is range-checked (cmplwi 1/2/3 ladder) with reject strings 'unexpected sample bit depth: %u'/'not supporting channels in sub alac: %u'. The rest of the ALACSpecificConfig (frameLength, pb/mb/kb, maxRun, avgBitRate...) is not parsed by this consumer.",
-    "Native MP3 framing search resolved in f_1042e40c: it requests four bytes through f_1042e214 at 0x1042e484 and treats a short header read as terminal for this attempt, setting the caller output byte at r22 to 1 and returning zero at 0x1042e4dc. A candidate requires first byte 0xff and (second byte & 0xe6)==0xe2 (0x1042e534-0x1042e53c plus 0x1042e73c-0x1042e748). The raw mask is unsigned 0xe6; the subsequent loop materializes -26 = 0xffffffe6 but ANDs a zero-extended byte, giving the same predicate. On mismatch the scanner marks the other output byte, shifts the last three bytes down with memmove, requests one new byte, and repeats (0x1042e57c-0x1042e5ac). A short one-byte refill follows the read-frame-sync-failed path and the same terminal return. This is a candidate-sync test, not proof that every candidate is a fully valid MPEG audio frame; header decoding follows it. The MP3 wrapper f_108044c0 separately constructs f_10804804, and the ELF imports mpg123_new/open_feed/decode/getformat/info2, distinguishing the native framer from the decoder implementation. FLAC SEEKTABLE vocabulary at 0x10fbd600 alone is not evidence of seek-table consumption."
+    "FLAC SEEKTABLE parsing and consumption fully traced in the vendored libFLAC 1.3.4 (build string 'reference libFLAC 1.3.4 20220220' at 0x10fbd6e4): read_metadata_ f_10c96348 reads the 1/7/24-bit block header (bit-width globals 0x11095a64/0x11095a60/0x11095a5c) and on type==3 clears private_+0xfc then parses num_points = block_length/18 (0x10c9651c), stores each 18-byte wire point into a 24-byte record {u64 sample_number@0, u64 stream_offset@8, u32 frame_samples@0x10} at private_+0x1c4 (realloc, 0x10c9657c), skips a trailing partial point, and sets has_seek_table=1 only on success (0x10c97128). The consumer is the sonos file-decoder 'seek' op f_104ff4e0 in the flac log domain: it scales tvResume.tv_sec by wrapper+0x1c (the STREAMINFO sample rate latched by metadata callback f_105012d8), caps the target at total_samples-1, and calls FLAC__stream_decoder_seek_absolute f_10c97eb0 followed by process_single f_10c97df4 as a frame-validity check ('seek invalid'/'seek frame invalid' on failure). Inside seek_absolute, seek_to_absolute_sample_ (inlined) uses the table only when has_seek_table is set: a backward scan picks the last valid point <= target and a forward scan the first point > target, rejecting placeholder points (sample_number == 0xFFFFFFFFFFFFFFFF), zero frame_samples and points >= total_samples; the resulting byte bounds (first_frame_offset + stream_offset) refine the initial {first_frame_offset, stream_length} window before the interpolation/binary-search loop. With no seek table the same loop runs on the unrefined window, so seeking still works but needs more probe reads. target_sample is recorded at private_+0x1800 and the loop exits when the write callback clears is_seeking (+0xe30)."
    ]
   },
   "product_models": {
