@@ -195750,16 +195750,14 @@
    "retry": "The scheduler counter at +0x64 is reset to zero for a new update at 0x102aa268. f_102a9654 increments it before launching the manager. In f_102a9764, unsigned values 0-4 enter the retry-launch branch, whose log prints count+1 out of 5; larger values give up. Thus the normal zero-initialized flow permits five launch attempts including the initial one, not five additional retries. f_102a9654 schedules now+600 seconds after a launch failure; after a successful launch it stores the start time, changes state and schedules a now+900-second status check. Completion/failure exits clear the counter. This is scheduler launch/status behavior, not an exponential network-download backoff.",
    "reporting": "upgrade_mgr{,_user}_report.json, /tmp/upgrade_mgr_info.txt, /jffs/upgrade*.log, upgrade_sys_report*.log; reportFirmwareDownload telemetry; 'Upgrade report has more devices than the maximum supported' household cap; 'Unable to report firmware update; muse error'",
    "files": "/jffs/{upgrade.log,upgrade_prev.log,upgrade_tmp_prev.log,app/log/upgrade_mgr.log}",
-   "todo": [
-    "Established: the manager/device TCP dispatch and startup-script installer launch, final accepted-signature enforcement, root selection/RSA verification, device-derived private-key loading, allowed envelope ciphers, inactive partition selection, block erase/write/error paths and kernel last-block metadata are traced with evidence. Remaining: the bootloader-side interpretation of the written generation/last-block metadata, including exact next-boot selection and power-loss/rollback policy, and whether a deployed redundant-rootfs layout supplies support for ioctl 0x20004d20. The supplied userspace does not set a boot-section flag; the included kernel rejects 0x20004d20 in its generic MTD dispatcher, so library intent cannot establish a successful runtime commit on that conditional path. The extracted-file inventory contains the kernel image but no bootloader image or live flash/partition-table snapshot. Concrete next RE requires the device bootloader/boot-flash dump and the deployed partition table/MTD implementation: trace boot image selection against generation/last-block markers and compare its ioctl dispatcher with the packaged kernel. Re-disassembling the same present installer or libraries cannot supply those absent bootloader and runtime artifacts."
-   ],
    "handshake": "anacapad f_102a7c90 performs manifest work and passes upgrade_mgr_report.json to its report path. f_10675a5c invokes the local-device BeginSoftwareUpdate operation and spawns /bin/upgrade_mgr through f_1076a8ec. The manager is a TCP controller, not the demonstrated parent of /bin/upgrade: its per-device connection uses port 4444 and sends HELLO, DOWNLOAD, FLASHWRITE, PING and REBOOT commands. The installer server listens on 4444 and dispatches those commands with phase/state gates. Independently, etc/runanacapa lines 7-16 starts /bin/upgrade when /var/run/upgradeinfo exists, captures/logs its exit status, removes that file and returns the same status. The installer main reads upgradeinfo for its configuration and client/server mode. Report-file polling by anacapad and the live manager/device TCP protocol are separate coordination mechanisms; neither file-only IPC nor a direct upgrade_mgr exec of upgrade is supported.",
    "resolved_findings": [
     "Both /bin/upgrade and /bin/upgrade_mgr are present as stripped 32-bit big-endian PowerPC ELFs in reference/public/files/bin. The upgrade executable, rather than strings attributed to an unavailable binary, was disassembled for the findings below.",
     "/bin/upgrade f_1000a300 builds either the .upd URL \"%s%s-%u-%u.upd?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\" or \"%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\". An absent/empty payload selector falls back to \"default\". Both branches can append &sonosid=%s&householdid=%s, and a separate flag gates &au=1; these suffixes are not unconditional payload-only behavior. f_10007438 forks and execl's /usr/bin/wget with -qC, -T 300 and -O -, with an optional -L 4445 argument pair. The custom wget option meanings have not been inferred from their spelling.",
     "Certificate-bundle path corrected: f_100065d8 parses an embedded bundle with sonosRcbParseHeader and sonosRcbVerifySig, and saves a successfully parsed bundle under /jffs/sys/run/rcb/%s-%s.rcb. /jffs/sys/run/rcb/upd_cert_bundle.rcb is the parse-failure fallback save path, not a proven universal input trust-bundle path.",
     "The section signature/decryption call chains, final acceptance gate, supported envelope ciphers and key-selection paths are decoded in signature_acceptance, signer_selection, key_and_cipher_selection and envelope_contract. These are library-backed algorithms, not EVP inferred from diagnostics.",
-    "Optional product partition gates, package-script execution and flash delegation are decoded through the library and the packaged kernel in flash_contract and erase_write_verify. FLASHWRITE and FLASHWRITE_DONE remain protocol state names, not a readback-verification guarantee."
+    "Optional product partition gates, package-script execution and flash delegation are decoded through the library and the packaged kernel in flash_contract and erase_write_verify. FLASHWRITE and FLASHWRITE_DONE remain protocol state names, not a readback-verification guarantee.",
+    "Boundary (absent artifacts): the residual asks for bootloader-side interpretation of the written generation/last-block metadata, next-boot selection, power-loss/rollback policy and whether a deployed redundant-rootfs layout supports ioctl 0x20004d20. The extract contains no bootloader/boot-flash image or live partition table, so next-boot selection and rollback policy are undecidable from the present files. Within the packaged kernel the MTD dispatch ladder handles the last-block marker ioctl 0x20004d26 but contains no 0x20004d20 comparison anywhere in the image, so the commit-path ioctl that libflash forms at 0x3b04 has no compare-based handler in this build; the conditional call cannot be established as a successful runtime commit. Userspace also supplies no boot-section writer: only proc-backed getters exist. Concrete progress requires the device bootloader/boot-flash dump and the deployed MTD implementation; re-disassembling the present installer, libraries or kernel cannot supply them."
    ],
    "evidence": [
     {
@@ -195959,6 +195957,35 @@
      "address": "decompressed+0x1ae9e8",
      "callsite": "decompressed+0x1aed18-0x1aed2c, +0x1af070-0x1af078, +0x1af31c, +0x1af57c-0x1af594, +0x1ac488-0x1ac4d8, +0x1bc140-0x1bc148, +0x1ba048-0x1ba09c, +0x1bb0d4-0x1bb130",
      "notes": "Addresses are offsets into the gzip-decompressed U-Boot payload, not ELF VAs. 0x20004d26 dispatches file position through MTD+0x194; partition wrapper adjusts offset; VNB callback installation points to vnb_set_last_block (name at decompressed+0x289eb0), which stores last-block offset and write metadata compares it. 0x20004d20 follows generic dispatcher default -25 ENOTTY. This conditional userspace request is not a demonstrated successful boot-slot commit; runtime layout and absent bootloader policy are not inferred."
+    },
+    {
+     "type": "firmware",
+     "binary": "package inventory",
+     "build": "86.10-80260",
+     "address": "reference/public/files/package/",
+     "notes": "Established: the extract contains device-payload.bin, kernel.uImage, preinstall.sh, rootfs.squashfs and the .upd manifest only; no bootloader or boot-flash image and no deployed MTD partition-table snapshot exists in the supplied files."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x3b04",
+     "callsite": "0x3afc-0x3b34",
+     "notes": "Established: the commit-path ioctl is formed at libflash 0x3b04-0x3b0c (lis r4,0x2000; ori r4,r4,0x4d20; arg 0) and issued on a conditional path (bc 13,0 -> 0x394c skips it); a nonzero return maps to error code 0xf at 0x3b28."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "decompressed+0x1ae9e8",
+     "notes": "Established: the kernel MTD ioctl ladder compares handled commands literally (0x80084d06, 0x40104d12, 0x20004d26 -> last-block case 0x1af57c, 0x80084d0c, 0x800c4d27, 0x40044d13); the constant 0x20004d20 occurs zero times in the decompressed image, so no compare-based kernel dispatch accepts the libflash commit ioctl; only an unproven computed dispatch could service it."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "address": "exports",
+     "notes": "Established: libflash exposes only hal_flash_get_bootsection and hal_flash_get_bootgeneration, both reading /proc/sys/kernel/bootsection and /proc/sys/kernel/bootgeneration; no userspace boot-section writer exists for the installer to call."
     }
    ],
    "protocol_contract": "upgrade_mgr f_10001c8c opens a nonblocking AF_INET/SOCK_STREAM connection to the per-device address on TCP 4444; immediate success or EINPROGRESS is accepted. f_10001424 sends newline-terminated commands and handles partial sends. f_10001684/f_10001728 collect replies and parse HELLO, STATUS, COMPLETE and ERROR, including phase and percent-complete. ERROR parses phase, error-code, internal-data and extra-data, stores the result at device +0x270 and returns -3; receive/protocol failures use internal error 1012. f_1000331c propagates per-device COMPLETE or ERROR with phase/error-code to its controlling client. In upgrade, f_1000924c starts the server with port 4444 through f_10008270; f_100085dc accepts a connection and the poll loop invokes f_10009024. Its vtable dispatch runs HELLO f_10008090, DOWNLOAD f_10008ef0, FLASHWRITE f_10008f8c and REBOOT f_100095ec; PING reports progress and QUIT terminates the connection. f_10007a94 gates operations: HELLO requires initial state 0, DOWNLOAD state 2 or 4 and a zero previous result, FLASHWRITE state 4 and zero result, REBOOT state 6 and zero result. Completion f_10007bb4 moves the corresponding in-progress states 1/3/5/7 to 2/4/6/8 and stores the result. Invalid transitions do not blindly advance: they produce error replies. f_10008d18/f_10008e30 emit COMPLETE?phase=... on success or ERROR?phase=...;error-code=...;internal-data=...;extra-data=... on failure. Download and flash workers reach f_100052bc and f_100065d8 respectively; an installer flash error is propagated as a phase failure.",
