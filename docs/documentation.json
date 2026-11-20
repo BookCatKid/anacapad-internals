@@ -166115,15 +166115,60 @@
      "build": "86.10-80260",
      "address": "0x104454dc",
      "notes": "The base register is r1 (stack), not an instance pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x101f0c98",
+     "address": "0x101f0d40",
+     "notes": "SMAPI object serializer emits '_objectType','playback'(this+8,f_101e7c34),'playbackError'(this+0xcc,f_101e885c),'metadata'(this+0x1a0,f_10a6d518); presence predicates f_101e7c24/f_101e8850/f_10a6d508 gate each member"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10a6d518",
+     "address": "0x10a6d564",
+     "notes": "metadata member map: container +8 (f_10a35350/f_10a35360), currentItem +0x600, nextItem +0xfe0 (f_10a8d250/f_10a8d25c), currentShow +0x19c0, currentVideo +0x1b28, streamInfo +0x1c60, playbackSession +0x1c78; SMAPI+0xcd8 = metadata+0xb38 inside item span"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10a8d25c",
+     "address": "0x10a8d2a8",
+     "notes": "item serializer: id +8/+0x10, track +0x28 (f_10aafbe0/f_10aafbf0), deleted +0x970, policies +0x9c8, rating (f_10a95fe4); item+0x538 = track+0x510"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10aafbf0",
+     "address": "0x10aafc50",
+     "notes": "track serializer member offsets +8/+0x10,+0x24/+0x2c,+0x40,+0x58,+0x70,+0x88,+0x8c..+0x14c,+0x150,+0x164,+0x27c,+0x308,+0x394,+0x52c,+0x5b8,+0x6bc..+0x6cc,+0x758,+0x760,+0x7b8,+0x8d4..+0x900,+0x938,+0xc,+0x28; offset +0x510 absent from presence checks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101f3034",
+     "notes": "whole-.text scan: no stb/stw writes the SMAPI presence byte +0xcd8 or ptr +0xcdc outside ctor/reset paths; write path is via shared helpers only"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1033e2e8",
+     "notes": "whole-.text scan: chsnk flag +0xcdc is only lbz-read in dtors f_1033e00c/f_1033e640/f_1033a6c4 (also sibling flag +0xcd4 in f_1033a6c4); no store site exists in .text"
     }
    ],
    "notes": null,
-   "todo": [
-    "Residual: identify the source-level data associated with the optional chsnk subobject at +0xcdc and with the owned buffer in the SMAPI object at +0xcdc. Their cleanup roles are known; the load-site labels alone do not identify their contents."
-   ],
    "resolved_findings": [
     "The recorded libcurl instructions load +0x8a0 rather than +0xcdc. 0x104454dc stores to sp+0xcdc, a stack slot rather than an object member. Neither is evidence about the +0xcdc member offset.",
-    "systemstate +0xcdc word resolved: in the boot-init path (netsettings/systemtimeoffset module, f_101981f0) the word is seeded to 0x2000 then conditionally overwritten by env-option index 0x33 parsed as hex (strtol base 16 at 0x10199afc). So on this class +0xcdc is a numeric tunable with compiled default 8192, not a bitmask bit. The env-name table is runtime-built in .bss (0x110a53e0, stride 0x14) so the option name for selector 0x33 is registration data."
+    "systemstate +0xcdc word resolved: in the boot-init path (netsettings/systemtimeoffset module, f_101981f0) the word is seeded to 0x2000 then conditionally overwritten by env-option index 0x33 parsed as hex (strtol base 16 at 0x10199afc). So on this class +0xcdc is a numeric tunable with compiled default 8192, not a bitmask bit. The env-name table is runtime-built in .bss (0x110a53e0, stride 0x14) so the option name for selector 0x33 is registration data.",
+    "SMAPI +0xcdc member placed: it is the payload string of an optional-string record {flag +0xcd8, ptr +0xcdc, inline buf +0xce4} located at metadata.currentItem.track+0x510 inside the SMAPI playback-state model; the track serializer f_10aafbf0 proves it is not part of the emitted JSON grammar, and the absence of any direct store site in .text shows it is filled only by generated copy/deserialize machinery.",
+    "chsnk +0xcdc member bounded: an identical optional byte-buffer record {flag +0xcdc, ptr +0xce0, inline +0xce8} inside the runtime channel-state object (vtable 0x10eb9e54), one of ~8 sibling optional strings freed by the three destructor variants f_1033e00c/f_1033e640/f_1033a6c4. The flag and pointer have no direct store anywhere in .text; only helper-level writes can set them, so the source-level field name is not recoverable from this image. The record is internal engine bookkeeping, not a device capability."
    ],
    "per_class": [
     {
@@ -166134,7 +166179,7 @@
     {
      "owner": "chsnk crossfade engine",
      "evidence": "f_1033e00c/f_1033e640: 'chsnk' log + 'crossfade %zu samples'/'crossfaded %zu bytes' literals",
-     "field": "One-byte presence flag for the adjacent buffer record: f_1033e00c at 0x1033e2e8 and f_1033e640 at 0x1033e91c read it with lbz; when nonzero, each loads +0xce0 and frees it unless it points at inline storage at +0xce8."
+     "field": "One-byte presence flag of an optional byte-buffer record {flag +0xcdc, heap ptr +0xce0, inline storage +0xce8} inside the large chsnk/zone-state object (vtable 0x10eb9e54; same record family as +0xd10, +0xcf8, +0xca4, +0xc70, +0xc18, +0xbe4 freed by dtors f_1033e00c/f_1033e640/f_1033a6c4). No byte store to +0xcdc and no pointer store to +0xce0 exists anywhere in .text: the record is populated only through shared member-init/copy helpers, so its contents cannot be bound to a named source-level field from this image."
     },
     {
      "owner": "gm_impl (GroupManagement impl)",
@@ -166154,7 +166199,7 @@
     {
      "owner": "SMAPI subscription/playback object",
      "evidence": "f_101f2328 and f_101f3a80 are adjacent vtable slots at 0x10e9f6e8/0x10e9f6ec; sibling vfuncs reference 'subscription/{logicalSID}', 'subscribe'/'unsubscribe', 'playbackError', 'playbackExtended', 'metadata', '_objectType'",
-     "field": "Buffer pointer freed at 0x101f3034 and 0x101f478c only when presence byte +0xcd8 is nonzero and the pointer does not equal inline storage at +0xce4."
+     "field": "Optional string member {presence byte +0xcd8, ptr +0xcdc, inline storage +0xce4} of the SMAPI playback-state model (vtable 0x10e9f6e8; serializer f_101f0c98 emits {_objectType, playback, playbackError, metadata}). Offset resolves inside 'metadata' (this+0x1a0) at sub-offset +0xb38, which falls inside the 'currentItem'/'nextItem' item record (+0x600..+0xfe0) at item+0x538, i.e. inside the 'track' sub-record (item+0x28) at track+0x510. The generated track serializer f_10aafbf0 enumerates every serialized member (mediaUrl, linkUrl, imageUrl, images, contentType, releaseDate, episodeNumber, durationMillis, trackNumber, chapterNumber, type, name, tags, explicit, advertisement, quality, replayGain, album, artist, author, book) and never touches +0x510; no store site for +0xcd8/+0xcdc exists in .text. It is an unserialized optional string field of the generated track model, populated only via the model copy/deserialize helpers."
     },
     {
      "owner": "lastUpdateDevice-related object",
