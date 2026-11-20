@@ -217222,16 +217222,15 @@
    ]
   },
   "audio_in": {
-   "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; artfetch thread",
-   "todo": [
-    "Residual: identify the concrete capture-side driver/DSP implementation below ai_impl_base and trace the selected encoder configuration to its bitrate parameters. Encoding selection is proven, but neither the hardware-side chain nor the claim that its constants are external driver data is established."
-   ],
+   "ai_impl": "group model {addGroup coord,demoMode; \"no room available for coordinator\"; StopTransmissionToGroup by coord; \"number of groups %zu remote %zu\"}; URI x-rincon-stream:; encoding modes {UNCOMPRESSED,COMPRESSED,v-spdif} + \"Running demo mode forcing uncompressed\"; concrete impls {htaudio factory f_1023b388 vtable 0x10ea616c, audioin aggregate vtable 0x10ea10a8 no-op ops}; lla device layer over /dev/dsp; encode selector write-only (+0x834/+0x838); artfetch thread",
    "resolved_findings": [
     "Resolved: ai_impl contents = group model {addGroup coord, demoMode, no room available for coordinator, StopTransmissionToGroup by coord, number of groups %zu remote %zu}; line-in activation enters vli_transport through the source-manager group hooks.",
     "Session model decoded (ai_impl_base.cxx literals 0x10eacdxx): the input session is a transmission group registry keyed by coordinator - Adding group with coord %s demoMode %d / addGroup: coordinator %s already added / addGroup: no room available for coordinator %s / added %s number of groups %zu remote %zu / removed %s remaining number of groups %zu remote %zu / Removing group with coord %s / StopTransmissionToGroup: couldn't find coordinator %s. Each group receives the input as an x-rincon-stream: URI (the member-side stream scheme); encoding modes proven {WAV,UNCOMPRESSED,COMPRESSED,WMA,v-spdif} where Running demo mode forcing uncompressed overrides for demo playback and v-spdif marks the SPDIF-sourced virtual input. A test mode literal exists for self-test streaming.",
-    "Encoding selection traced in f_102934f4: a null or empty encoding argument queries R_AudioInEncodeType through object +0x1e0 vtable +0x4c (including its specialized fast path) at 0x10293608-0x1029368c. Failed lookup falls back to the default path for a null argument; a non-null argument returns to string parsing. AUTO, WAV and unrecognized strings reach vtable +0x38 with r4=0,r5=1 at 0x102935b4; UNCOMPRESSED reaches that call with r4=0,r5=0; COMPRESSED and WMA reach it with r4=1,r5=0 at 0x10293690. These are selection operands, not bitrate literals. f_102933b4 asks f_100b7910 on object +0x1dc; result 3 overrides selection by clearing +0x838 and +0x834, with the demo-mode log. Otherwise it stores r5 into +0x838 and stores r4 into +0x834 only when r5 is zero. Thus AUTO/WAV/default preserve the previous +0x834 value rather than explicitly selecting a codec. The source URI and encoding vocabulary do not establish a capture driver, sample rate, bitrate, or ADC DSP chain. The earlier assertion that hardware-side constants are driver data is withdrawn pending that trace."
+    "Encoding selection traced in f_102934f4: a null or empty encoding argument queries R_AudioInEncodeType through object +0x1e0 vtable +0x4c (including its specialized fast path) at 0x10293608-0x1029368c. Failed lookup falls back to the default path for a null argument; a non-null argument returns to string parsing. AUTO, WAV and unrecognized strings reach vtable +0x38 with r4=0,r5=1 at 0x102935b4; UNCOMPRESSED reaches that call with r4=0,r5=0; COMPRESSED and WMA reach it with r4=1,r5=0 at 0x10293690. These are selection operands, not bitrate literals. f_102933b4 asks f_100b7910 on object +0x1dc; result 3 overrides selection by clearing +0x838 and +0x834, with the demo-mode log. Otherwise it stores r5 into +0x838 and stores r4 into +0x834 only when r5 is zero. Thus AUTO/WAV/default preserve the previous +0x834 value rather than explicitly selecting a codec. The source URI and encoding vocabulary do not establish a capture driver, sample rate, bitrate, or ADC DSP chain. The earlier assertion that hardware-side constants are driver data is withdrawn pending that trace.",
+    "Resolved: the concrete layer below ai_impl_base is censused to its binding boundary. The encode-selector vfunc (f_10293474, a mutex-guarded wrapper calling f_102933b4 which stores selector word impl+0x834 only when its flag arg is 0 and flag byte impl+0x838; demo-mode result 3 from f_100b7910 on obj+0x1dc clears both with 'Running demo mode forcing uncompressed') occurs in exactly three vtable layouts: ai_impl_base (ptr at 0x10eacd5c), the concrete htaudio impl (ptr at 0x10ea61a4 inside primary vtable 0x10ea616c; ctor f_10241d10 chains to base ctor f_102921b8; factory f_1023b388 invoked from manager code at 0x103fdb78 and 0x103fe46c), and the large audioin aggregate (ptr at 0x10ea10e0 inside primary vtable 0x10ea10a8; ctor f_10209df4 installs ~11 interface sub-vtables at obj+0x4..0x9a8; its operation thunks f_10208af8-f_10208b24 adjust this and fall into no-op f_10208aec). The capture hardware boundary inside anacapad is the lla (low latency audio) device pair in module 0x10d5xxxx: an input device class (vtables 0x10fe5eb4/0x10fe5f98) that opens /dev/dsp via f_10e6f6d4 (open64 flags 0x80002, ioctl 0x2000fd01, two mmap64'd 0x2000-byte ring buffers), runs the 'lla.in.poll' select loop at 0x10d5a498 and delivers samples through callback f_10d5abec (errors 'Failed to open the input device:%d', 'id:%d fd:%d min:%u max:%u dflt:%u bufs:%u channels:%u frame:%u jitter:%zu', 'closed input device fd:%d'), and an output device class (vtable 0x10fe5a84, 'opening lla output device', 'Setting tx latency %u', states WOULD_BLOCK/EIO/UNDERFLOW_OVERFLOW/NO_CSB/INVALID_DATA/SUSPENDED, tag 'liblla'). Established by absence: no direct call edge leads from impl code (0x1024xxxx/0x1029xxxx regions) into 0x10d5xxxx and the lla ctors/ops have no bl callers, so impl-to-device binding is runtime registration through the shared device layer (the lla output table embeds sounddev.cxx ops 0x107f089c, 0x107fa268, 0x107fa298, 0x107fa2a8).",
+    "Resolved: the selected encoder configuration ends in write-only state plus a proven constants boundary. Established: the only stores of impl+0x834/+0x838 on impl-typed objects are the dif vfunc path (f_102933b4/f_10293454) and ctor init at 0x10292338; a full .text scan finds no load of impl+0x834/+0x838 on any impl-typed object (surviving +0x834/+0x838 accesses are stack-frame reloads or other classes' destructor sweeps), so no code in this binary consumes the stored selector. The full string-vocabulary mapper f_102934f4 (AUTO/WAV to sel0 flag1, UNCOMPRESSED to sel0 flag0, COMPRESSED/WMA to sel1 flag0 via vfunc slot +0x38) has no callers and no vtable slot: dead code. The live R_AudioInEncodeType path is validator vfunc f_10669aac installed at a fixed slot of three settings-descriptor tables (0x10efe8d8, 0x10efe934, 0x10efe990) with default-AUTO registration record f_101981f0 (0x10e97e10), canonicalizing WAV to AUTO and forcing unrecognized values to COMPRESSED. The wire-visible compressed/uncompressed choice is logged by vli_sink.cxx f_106cadf8 ('NodeTx configured to handle %s audio (qos: %d)', 'compressed'|'uncompressed' labels) and mirrored by the chsnk m_bCompressed flag byte at obj+0x518 (f_1030f8ac, cleared by track_pipeline records f_10d22ebc/f_10d23018); neither reads impl+0x834. No line-in bitrate constants or encoder parameter tables exist in this binary: the only compression encoder present is SBC (libsbc.so.1, sbc_encode via f_104eeb3c in htmesh_tx, the home-theater satellite path) and every bitrate literal belongs to service/adaptive-bitrate code. The encoder parameters therefore travel in runtime session/transport descriptors; this replaces the earlier unresolved claim that they are external driver data."
    ],
-   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed; a parallel artfetch thread supplies album art",
+   "summary": "line-in/audio-input pipeline (ai_impl_base.cxx, ai_impl/audioin tags): the capture player maintains a bounded per-coordinator group table (addGroup with demoMode, no room available for coordinator, StopTransmissionToGroup) and transmits the input to each group as an x-rincon-stream: source; the impl classes carrying the encode-selector vfunc are the concrete htaudio impl (factory f_1023b388, primary vtable 0x10ea616c) and the large audioin aggregate (vtable 0x10ea10a8, ~11 interface sub-vtables whose operation thunks are no-ops on this build); capture hardware sits in the lla low-latency device pair (input vtables 0x10fe5eb4/0x10fe5f98 over /dev/dsp ring buffers, 'lla.in.poll' select loop, output vtable 0x10fe5a84) reached only through vtable registration, not direct calls; encoding modes {WAV/UNCOMPRESSED, COMPRESSED, WMA, v-spdif} with a demo-mode override forcing uncompressed, where the stored encode selector is write-only state and the wire compressed/uncompressed choice is carried by the vli_sink/chsnk transport flag (chsnk +0x518); a parallel artfetch thread supplies album art",
    "evidence": [
     {
      "type": "firmware",
@@ -217248,6 +217247,57 @@
      "function": "0x102933b4",
      "address": "0x10293448",
      "notes": "Demo override clears stored selector and automatic-selection flag; non-demo path conditionally preserves selector."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ea61a4",
+     "notes": "Encode-selector vfunc f_10293474 pointer inside htaudio impl primary vtable 0x10ea616c; same function at 0x10eacd5c (ai_impl_base) and 0x10ea10e0 (audioin aggregate)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fdb78",
+     "notes": "Manager callsite invoking htaudio impl factory f_1023b388; second callsite at 0x103fe46c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10e6f6d4",
+     "address": "0x10e6f6d4",
+     "notes": "LLA device open: open64('/dev/dsp',0x80002), ioctl 0x2000fd01, two mmap64 0x2000-byte ring buffers (prot1 then prot3); called from lla input path f_10d59f08/f_10d5886c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe5eb4",
+     "notes": "lla input device vtable (secondary at 0x10fe5f98); poll loop 'lla.in.poll' at 0x10d5a498, sample callback f_10d5abec; output device vtable at 0x10fe5a84 embeds sounddev.cxx ops."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10efe8d8",
+     "notes": "R_AudioInEncodeType validator vfunc f_10669aac at fixed slot of three settings-descriptor tables (0x10efe8d8, 0x10efe934, 0x10efe990); default-AUTO registration f_101981f0 at 0x10e97e10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106cadf8",
+     "address": "0x106caed4",
+     "notes": "vli_sink.cxx wire format branch: 'compressed' vs 'uncompressed' label for 'NodeTx configured to handle %s audio (qos: %d)'; chsnk m_bCompressed flag byte at obj+0x518 in f_1030f8ac."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102934f4",
+     "notes": "Dead code: full encode vocabulary mapper has no callers and no vtable slot; selector fields impl+0x834/+0x838 have no impl-typed readers in .text."
     }
    ]
   },
