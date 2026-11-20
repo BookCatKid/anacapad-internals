@@ -187939,9 +187939,95 @@
      "build": "86.10-80260",
      "address": "0x10118f64",
      "notes": "Full32-bit version copy at0x10118f9c/0x10118fa0; contrast row emission halfword at0x10119034 and index halfword store0x10119e4c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119034",
+     "function": "f_10119034",
+     "notes": "Row emitter writes sid(row+0), version(row+6 lhz low half), uri(row+8) then manifest via f_10239dc0; member literals at 0x10f03718/0x10f12828/0x10eb167c/0x10f07714."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10239dc0",
+     "function": "f_10239dc0",
+     "notes": "Manifest serializer emits schemaVersion unconditionally (empty model buffer -> \"\"), gates presentationMap/strings/accountTiers on presence, emits endpoints/apiKey unconditionally; absent-manifest rows serialize back as schemaVersion:\"\" which the reload version gate rejects."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011991c",
+     "function": "f_1011991c",
+     "notes": "File parse loop feeds 0x400-byte chunks to f_1011987c; result 0xa requires nonzero last read to continue; result 0 returns success without a separate full-consumption check."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f93dc4",
+     "notes": "In-object states 3/12 map all classes except '}' and '\"' to consume-only action 1, so post-root '{'/']'/':'/',' are skipped; post-root '\"'/'}' resolve frame at depth-1 = frame -1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109c31c4",
+     "function": "f_109c31c4",
+     "notes": "Object close decrements depth +0x428 and resolves frame[depth-1]; at depth 0 this reads frame -1 (parser+0x10 buffer region) when invoked on post-root '}'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10119a2c",
+     "function": "f_10119a2c",
+     "notes": "Constructor: vtable 0x10e8a688 at this+0, file mutex this+0x10, memcache mutex this+0x1f8, capacity 3 at this+0x1e4, entries at this+0x1e8, clock-facade pointer this+0x1f0 = this+0x1ec holding 0x11099e3c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011a204",
+     "function": "f_1011a204",
+     "notes": "Replication accept bound at vtable slot 0x10e8a694 (+0xc): comparator f_10660e58, rename, reindex f_10119dcc, cache clear under this+0x1f8, observer notify vfunc+0x14(0xd, source, revision, 0) on this+8 at 0x1011a4a8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011a650",
+     "function": "f_1011a650",
+     "notes": "Only bl callers are catalog projections f_100c5bb4 (0x100c5c04) and f_100c5c84 (0x100c5cc8); miss path releases cache mutex before file load, reacquires for fill."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1011be38",
+     "function": "f_1011be38",
+     "notes": "Sole bl caller is download worker f_1011b710 at 0x1011ba1c; worker reached via dispatcher f_100c6c3c at 0x100c6d04."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6d14",
+     "function": "f_100c6d14",
+     "notes": "Deletion worker f_1011b310 reached by tail branch at 0x100c6d24 from this dispatcher; no direct call or data reference exists."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1068bffc",
+     "function": "f_1068bf98",
+     "notes": "Imported sonosClockGetTime(1) call site demonstrating the clock family used by the 0x11099e3c facade whose vfunc+8 stamps cache last-access words."
     }
    ],
-   "todo": "Established: persisted grammar and selected acceptance paths, partial-load/upsert behavior, header-only reload, SID-only memory cache, replacement/invalidation, receiver/deletion worker ordering and full-word versus persisted-halfword versions are decoded. Remaining: finish nested/null/type/numeric/exception and absent-manifest round trips; audit malformed-tail effects, all callers/cache writers, clock wrap, concurrency and replication transport/observer/reconciliation consumers.",
    "save_fallback": "The ordinary emitter writes version, lastUpdateDevice and manifests. A separate persistence fallback can write only version and lastUpdateDevice after full serialization fails, then rename and report success. This header-only fallback is a real emitted representation; header_only_reload documents its accepted root grammar and its effect on fresh versus reused row tables.",
    "input_bindings": "Cache-file binder f_10119fe8 requires root version (numeric target at parser+0x1304) and lastUpdateDevice (fixed character buffer at +0x12e8, capacity 25). It leaves the manifests array optional. Row binder f_10119ec8 requires sid and version numeric fields and uri as a fixed buffer of capacity 1025; the nested manifest object binding has no required flag, although schemaVersion is required when that object is parsed. Required presence is checked separately from empty-text validity and numeric conversion. The row version is parsed into a 32-bit word at row+4, but saved through the halfword at row+6; round-trip emission therefore keeps only its low 16 bits.",
    "header_only_reload": "A syntactically valid header-only object containing version and lastUpdateDevice can pass cache parsing because manifests is optional. f_1011991c returns success when f_1011987c reports zero; the latter checks top-level binding status bit 0x2 but does not require an array. f_1011a4bc then copies source/version and rebuilds the public SID/version index from the supplied row table. If the caller supplied a fresh zero-row table, as the download worker does after f_101191c8 at 0x1011b7c4, the index is empty until later upserts. Parsing a header-only object does not itself clear an arbitrary already-populated supplied table. This closes the missing-array grammar question for the save fallback; it does not establish complete cache freshness/reconciliation behavior.",
@@ -187952,7 +188038,13 @@
    "cache_invalidation": "Local download success inserts/replaces its decimal-SID entry through f_1011be38; it does not invalidate unrelated cached SIDs. Accepted replication f_1011a204 clears every cache key and both time words after the incoming file is renamed into place. Successful local deletion f_1011b310 clears only the matching decimal-SID key and its two time words after the save worker succeeds. Clearing these paths does not overwrite the old row model stored at entry+0x20; subsequent keyed lookup cannot match an empty cleared key. A cache hit otherwise has no file modification check, so out-of-band file changes are not revalidated by that hit path. Disk reload and cache invalidation must not be treated as the same operation.",
    "replication_acceptance": "Manifest replication worker f_1011a204 holds the file mutex, applies revision comparator f_10660e58 to current stored source/revision and incoming source/revision supplied in r6/r7, opens the incoming path supplied in r8 and parses it into a fresh scratch row table. Failed revision acceptance, open, parse or rename returns false. After rename succeeds it copies the caller-supplied source (capacity25) and revision into object state, rebuilds the SID/version index from parsed rows, clears all three cache keys/time words, invokes observer slot+0x14 with (kind13, stored source, stored revision, zero), and returns true. It does not compare parsed file version/lastUpdateDevice to the caller-supplied source/revision before committing those supplied values. Its post-rename kind13 call has no new-version-nonzero guard, unlike the local save wrapper. The normal parser permits header-only input; no independent manifests-presence guard is added here. Sender binding, fetch transport and observer delivery remain open.",
    "deletion": "Local deletion f_1011b310 initializes a fresh table and output revision zero, acquires the file mutex and loads the current file through f_1011a4bc. On load failure it returns false. Compactor f_101195ac removes every row whose SID equals the requested SID, copies survivors forward in order and stores the survivor count; it returns whether any match was removed. No match returns false without saving. A removal calls f_1011ad40; only a true save result leads to matching-key cache invalidation and true return. The save worker header-only fallback is shared here, so true deletion is not proof that all surviving rows were persisted. An observer kind13 call is made only when the output revision is nonzero. Loading can already change stored metadata/index before a later no-match or save-failure false result, and no rollback is performed for those earlier load effects.",
-   "version_widths": "Full row copies f_10118f64 preserve the 32-bit version at row+4. Memory cache hits can therefore retain a full version word written by the download worker. The file emitter writes only its low16 bits, and the public index stores a halfword. A later file reload can return the saved low-halfword version while an uninvalidated in-memory row can retain its earlier full word. No version reconciliation check occurs on a hit; each representation and update path has its own width."
+   "version_widths": "Full row copies f_10118f64 preserve the 32-bit version at row+4. Memory cache hits can therefore retain a full version word written by the download worker. The file emitter writes only its low16 bits, and the public index stores a halfword. A later file reload can return the saved low-halfword version while an uninvalidated in-memory row can retain its earlier full word. No version reconciliation check occurs on a hit; each representation and update path has its own width.",
+   "emit_details": "Row emitter f_10119034 writes members in order: 'sid' from row+0 as an unsigned word, 'version' from row+6 as a halfword (the low 16 bits of the stored 32-bit version at row+4), 'uri' as the 0x401-capacity string at row+8 unconditionally, and 'manifest' through model serializer f_10239dc0. The serializer emits 'schemaVersion' unconditionally as a quoted string of model+0: a null model skips the member entirely, but a present model with an empty version buffer writes schemaVersion:\"\". It then emits 'presentationMap'/'strings' only when their uri word is nonempty, 'endpoints' and 'apiKey' unconditionally, and 'accountTiers' only when the count at model+0xe8 is nonzero. An endpoint row is skipped when its stored type or uri first byte is zero. Consequence: a row admitted without a manifest object (the nested member has no required flag) serializes back as manifest:{schemaVersion:\"\"}; on reload that empty string reaches the schemaVersion callback, which fails version parsing and rejects the whole file, so such rows are write-once rather than round-trippable.",
+   "malformed_tail": "File bytes are consumed entirely by the state machine; root-close does not stop the feed. After the root value closes, the per-chunk state word remains the in-object member-scan state (3 or 12) while parser depth (+0x428) returns to 0. In those states every class except '}' (close, action 6) and '\"' (member name, action 4) maps to action 1, which consumes the byte without error, so trailing whitespace and stray '{', '[', ']', ':' and ',' after the root are silently skipped and cannot start a second root: '{' is consumed by action 1 before any push can run, and the only push gates are depth<=15 and the skip counter. A trailing '\"' dispatches member-name handling and a trailing '}' dispatches f_109c31c4 object close; both resolve their frame at index depth-1, which at depth 0 reads the out-of-bounds frame -1 (fields around parser+0x10 inside the inline input buffer and parser+0x8) rather than a valid descriptor, so their outcome depends on residual buffer contents rather than a grammar verdict. A clean file therefore requires the root to be the last structured value; trailing noise is tolerated only while it avoids '\"' and '}'.",
+   "concurrency": "Two separate mutexes cover the store. File mutex this+0x10 serializes whole-file operations: f_1011a5d0 holds it around load+reindex f_1011a4bc, replication accept f_1011a204 holds it across compare/open/parse/rename/reindex, and deletion f_1011b310 holds it across load/compact/save. Memory-cache mutex this+0x1f8 covers the three-entry SID cache: f_1011a650 takes it for the lookup scan and again for the miss-fill insert, f_1011be38 takes it for insert/replace, and f_1011a204 takes it briefly to clear all keys after rename. Notably f_1011a650 releases the cache mutex before acquiring the file mutex for a miss load, so a lookup miss can duplicate a concurrent load; the fill's equal-key replace absorbs that. The last-access word comes from the shared clock facade embedded at this+0x1ec (pointer stored at this+0x1f0) whose vfunc+8 returns the current tick; the facade is the same clock family that issues imported sonosClockGetTime(1) calls (e.g. at 0x1068bffc). Eviction chooses the smallest unsigned last-access word by strict LT with no wrap compensation, so across a 2^32 tick wrap a freshly stamped entry can sort as oldest for one wrap interval; hits likewise never reconcile versions, so a stale pre-wrap stamp is trusted.",
+   "replication_delivery": "The cache object is a replication-resource implementation: constructor f_10119a2c installs vtable 0x10e8a688 whose slot +0xc is f_1011a204, the inbound replicated-file handler invoked through the shared replication framework (no direct call site exists in the binary). f_1011a204(this, r4, r5, source r6, revision r7, path r8) holds the file mutex, runs revision comparator f_10660e58(this+0xa4, this+0xc0, source, revision), opens the supplied path, parses into a fresh 34-row table, and on success renames it over the target path built by f_10118a1c. It then stores the accepted source (strlcpy 25) and revision (this+0xc0), rebuilds the SID/version index via f_10119dcc, clears all three memory-cache keys and time words under this+0x1f8, and finally calls observer vfunc+0x14 on this+8 with (0xd, this+0xa4, this+0xc0, 0), reporting the new source/revision to the registered observer. Any compare/open/parse/rename failure returns 0 with object state untouched.",
+   "caller_map": "Lookup f_1011a650 is called only from catalog projections f_100c5bb4 and f_100c5c84, so memory cache and file fallback serve the descriptor-projection path. Cache insert f_1011be38 is called only from download worker f_1011b710, itself reached from dispatcher f_100c6c3c at 0x100c6d04. Deletion f_1011b310 is reached by a tail branch from sibling worker f_100c6d14 at 0x100c6d24, the same dispatch group as the download worker. File-load wrapper f_1011a5d0 is called by the lookup-miss path inside f_1011a650, by the download worker f_1011b710, and by catalog-side f_100c6314. The replication handler f_1011a204 is bound only through vtable slot +0xc at 0x10e8a694; no code address in the binary calls it directly.",
+   "notes": "Resolved this pass: absent-manifest emit form and its reload asymmetry, malformed-tail mechanics through the 14-state grammar table, the full caller map for lookup/insert/delete/load, the two-mutex concurrency model, clock provenance and wrap behavior, and replication delivery including the observer notification. Genuinely static-boundary items now covered in prose: the inbound sender that invokes vtable slot +0xc lives in the shared replication framework and has no static call site; the frame -1 read on post-root close/member tokens is proven out of bounds but its observed effect depends on residual buffer bytes; and the clock facade's vptr at 0x11099e3c is installed at runtime, so the exact getter body is identified only to its sonosClockGetTime(1) family."
   },
   "music_service_manifest": {
    "name": "Nested music-service manifest JSON",
