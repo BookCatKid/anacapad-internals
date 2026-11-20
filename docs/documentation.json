@@ -220398,17 +220398,37 @@
      ]
     },
     "stream_processing": {
-     "description": "f_100cc4f4 creates a bounded temporary XML writer, writes a Services root with local source/version, SchemaVersion=5 and optional ETag, then reads the HTTP stream in chunks of at most 4096 bytes through HTTP slot +8 and feeds each chunk to f_10c3fc68. It checks the XML completion byte and its callback/write-error flag, appends supplied descriptors that have nonempty name and secure endpoint, then writes </Services>. Explicit write or parse failure unlinks the temporary file and returns false. Writer creation failure also unlinks. The final flush/fsync/close helper f_1054b8e0 is called but its result is ignored; fsync status is itself ignored by that helper. A later candidate reparse can catch damaged XML, but no 803 flush/sync-specific error ladder exists here.",
+     "description": "f_100cc4f4 opens the bounded temporary writer, then composes the root line '<Services LastUpdateDevice=\"<+4>\" Version=\"<%d of +8>\" SchemaVersion=\"5\"' plus optional ' ETag=\"<+0xc>\"' and '\">\\n' inside a 0x2000-capacity stack string writer built by f_105786a0 (vtable 0x10eeed50): markup is appended raw through f_10577db8, attribute values escaped through f_10577c40 -> f_105779c8 (entities for \", &, ', <, >), integers through f_10577fd0, and the composed text is committed to the file writer with f_1054b738, folding failures into normalizer byte +0x1024. It then builds SAX adapter f_105528ac over the normalizer and reads the HTTP stream through source vtable slot +8 in chunks of at most 4096 bytes into f_10c3fc68, the expat feed wrapper; a zero feed result sets +0x1024. EOF is accepted only when the adapter completion byte at stack +0x28 is set. After the remote stream, each supplied local row emits a six-attribute Service (Id Name Version SecureUri ContainerType Capabilities; no separate Uri attribute), a Policy (Auth PollInterval), then with capability byte +0x1434 clear a <Presentation> group containing Strings and PresentationMap (each {Version,Uri}, each emitted only when the expanded URI is nonempty), or with the bit set a Manifest {Version,Uri} taken from row +0xe0/+0x128. Rows end with '  </Service>\\n' and the document with '</Services>\\n'. Explicit write or parse failure unlinks the temporary file and returns false; writer creation failure also unlinks. The final f_1054b8e0 flush/fsync/close is called but its result is ignored, and fsync status is itself ignored inside that helper. A later candidate reparse can catch damaged XML, but no 803 flush/sync-specific error ladder exists here. f_100c8bec runs the identical normalizer and writer stack over the already-installed catalog opened via f_100c5fd0, using the descriptor as the stream source. The file-path equivalent feed f_10c4015c does open64(O_RDONLY) then a 4096-byte read pump f_10c4009c with EINTR retry.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100cc4f4",
-       "notes": "Full processor through 0x100cce68; output-writer open, root generation, streaming XML feed, appended rows and cleanup."
+       "notes": "Full processor through 0x100cce68; root generation, chunk loop, supplied-row emit order, cleanup and unlink."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10c3fc68",
+       "notes": "Adapter feed wrapper to f_10c3f440 expat parse; fd pump f_10c4009c reads 0x1000-byte chunks with EINTR retry; file feed f_10c4015c open64+ pump + close."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105779c8",
+       "notes": "Five-entity escaper (&apos; &quot; &amp; &gt; &lt;) driven by mask 0x1400_0031 over chars 0x22..0x3e; reached from attribute writes via string-writer vt +0xc -> +0x10."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c8bec",
+       "notes": "Second f_100cc4f4 caller re-normalizes the installed catalog via f_100c5fd0 fd source."
       }
-     ],
-     "todo": "Established: f_100cc4f4 creates a bounded temporary XML writer, writes a Services root with local source/version, SchemaVersion=5 and optional ETag, then reads the HTTP stream in chunks of at most 4096 bytes through HTTP slot +8 and feeds each chunk to f_10c3fc68. It checks the XML completion byte and its callback/write-error flag, appends supplied descriptors that have nonempty name and secure endpoint, then writes </Services>. Explicit write or parse failure unlinks the temporary file and returns false. Writer creation failure also unlinks. The final flush/fsync/close helper f_1054b8e0 is called but its result is ignored; fsync status is itself ignored by that helper. A later candidate reparse can catch damaged XML, but no 803 flush/sync-specific error ladder exists here. Remaining: Reverse SAX callbacks in vtable 0x10e767a8 to document every catalog attribute, validation failure and override-precedence rule; trace HTTP read status handling and XML parser completion."
+     ]
     },
     "temporary_file_writer": {
      "description": "The temporary writer is opened through f_1054b9c8 with capacity 0x20000 from f_100cc4f4 and flag 0. It first closes any existing descriptor, then tries open64(path,0xc1,0600) (O_WRONLY|O_CREAT|O_EXCL). On failure with flag arg6 nonzero it retries open64(path,0x201) (O_WRONLY|O_TRUNC); with flag zero it retries open64(path,1) (O_WRONLY) and lseek64(fd,0,SEEK_END), recording the existing size into +0x1008 as already-accounted bytes. The pre-open cap check requires +0x1008 <= arg5. Ctor f_1054b8b0 installs vtable 0x10ee96d4, +0x1004 buffered count, +0x1008 accounted total, +0x100c capacity and +0x1010 fd=-1. The add-data routine f_1054b738 rejects a proposed total above the cap, accepts equality, buffers in 4096-byte units and returns boolean status. Flush f_1054b670 issues a single write(fd, this+4, +0x1004), treats any result other than -1 as success, adds the buffered amount to +0x1008 and clears +0x1004, so a short successful write is accepted as full. f_1054b8e0 flushes, calls fsync and close, discards fsync status, and returns flush status unless close==-1. f_1054bb0c reserves space by seeking to cap-1, writing one byte and seeking back to 0 (sparse preallocation). f_100cc4f4 does not inspect the returned close status.",
