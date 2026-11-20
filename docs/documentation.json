@@ -220469,14 +220469,14 @@
      ]
     },
     "installation": {
-     "description": "Installer f_100c7898 holds the object+0x128 write lock while comparing incoming source/version against current source/version with f_10660e58. Rejected revisions return false. Accepted candidates are parsed from the candidate file through f_10c4015c; file-open/parse failure or a false parser-completion byte returns false. A nonzero rename(candidate,live-path) result also returns false. Successful rename clears the descriptor cache under its separate mutex, sets dirty byte +0x1d5, invokes f_1067c6ec(object+8), copies the source with capacity 25, stores the version at +0x1f0, copies ETag with capacity 65 and sets +0x1d6. It notifies replication through object+0x1b8 slot +0x14. Subsequent descriptor loading failure does not undo the rename or change the successful installer return. The committed source/version come from caller arguments, not from a comparison with the parsed file header. The metadata callback f_100ca73c copies source and captures header version only when source length is exactly 24; it separately copies nonempty ETag with capacity 65. The installer uses that parsed ETag, but does not compare parsed source/version against the caller values before storing them.",
+     "description": "Installer f_100c7898 runs on both local fetch completion and replication accepts; it logs 'deciding whether to accept replicated list from: %s; ver: %u format: %u', acquires the shared-state table at object+0x128 through f_10557cac and compares incoming source/version against the current +0x1d7/+0x1f0 pair with f_10660e58. Rejected revisions release the table through f_10557848 and return false. Accepted candidates are parsed from the candidate file through f_10c4015c (open64 O_RDONLY then a 4096-byte read pump f_10c4009c with EINTR retry feeding SAX adapter f_105528ac); file-open/parse failure or a false parser-completion byte returns false. A nonzero rename(candidate, live-path) result also returns false. On rename success it clears the descriptor cache under its separate mutex, sets dirty byte +0x1d5 and calls f_1067c6ec(&this+8), which marks the registered event source pending and signals the notification sender condvar. Only after that notify does it copy the accepted source into +0x1d7 with capacity 25, store the version at +0x1f0, copy the parsed ETag into +0x1f8 with capacity 65 and set +0x1d6. It then calls the replication object at +0x1b8 through vtable slot +0x14 with arguments (6, &+0x1d7, +0x1f0, 0), the group-distribution notify for the committed list, and logs 'Replicated list accepted'. Subsequent descriptor loading failure does not undo the rename or change the successful installer return. The committed source/version come from caller arguments, not from a comparison with the parsed file header. The metadata callback f_100ca73c copies source and captures header version only when the source length is exactly 24; it separately copies nonempty ETag with capacity 65. The installer uses that parsed ETag but does not compare parsed source/version against the caller values before storing them. Object+0x1d7 holds the 25-byte source id shown in the evented ServiceListVersion value '<id>:<version>'; the boot backstop path seeds it with the literal string 'musicservices' and version 0.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100c7898",
-       "notes": "Entire install through 0x100c7c30; compare, candidate file parse, rename, cache invalidation, notifications and bool result."
+       "notes": "Entire install through 0x100c7c30; compare, candidate file parse, rename, cache invalidation, +0x1d5 notify ordering at 0x100c7b78-80 before field stores at 0x100c7b90-0x100c7bac, replication slot +0x14 args (6, &+0x1d7, +0x1f0, 0)."
       },
       {
        "type": "firmware",
@@ -220484,9 +220484,22 @@
        "build": "86.10-80260",
        "address": "0x100ca73c",
        "notes": "Header callback source length==24 controls source/version copy; ETag copied separately. Installer stores caller r26/r25 at 0x100c7b90/94 and reads parsed ETag at 0x100c7b9c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10c4009c",
+       "notes": "fd pump: read(fd,buf,0x1000) loop with EINTR retry into adapter vt +8; f_10c4015c wraps it with open64(O_RDONLY) and close."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c83f0",
+       "notes": "Boot path: backstop open failure -> +0x1f0=0 and strlcpy 'musicservices' into +0x1d7 at 0x100c8428; cached-catalog path stores id/version/ETag then conditionally bumps +0x1f0 at 0x100c87ac when the f_100c76a4 result byte is nonzero."
       }
-     ],
-     "todo": "Established: Installer f_100c7898 holds the object+0x128 write lock while comparing incoming source/version against current source/version with f_10660e58. Rejected revisions return false. Accepted candidates are parsed from the candidate file through f_10c4015c; file-open/parse failure or a false parser-completion byte returns false. A nonzero rename(candidate,live-path) result also returns false. Successful rename clears the descriptor cache under its separate mutex, sets dirty byte +0x1d5, invokes f_1067c6ec(object+8), copies the source with capacity 25, stores the version at +0x1f0, copies ETag with capacity 65 and sets +0x1d6. It notifies replication through object+0x1b8 slot +0x14. Subsequent descriptor loading failure does not undo the rename or change the successful installer return. Remaining: Trace candidate metadata callback f_100ca73c and generic parser f_10554c70; bind replication slot +0x14 and provider/account reconciliation helpers to all effects."
+     ]
     },
     "cache_reload": {
      "description": "f_100c6d3c is a descriptor-cache reload, not a catalog-difference comparator. Under the object+0x13a40 mutex it clears the cache, opens the live catalog with f_100c5fd0, parses descriptors using f_10554918 and copies successfully parsed rows to object+0x23c. Its optional output byte reports catalog membership or content change, not count growth. When a flag pointer is supplied, f_10554918 treats the destination as a scratch array and reconciles it by Id while parsing; a null flag pointer selects direct overwrite. In reconcile commit helper f_10554f0c the flag is set when an incoming Service Id has no match among the not yet placed original rows (appended new Id), when a matched Id row fails the f_1055453c row-equality test and is replaced in place, and when the running write index exceeds the saved original count (net growth); it is one-shot, cleared from parser state +0x150 after firing. Row-identical Id matches only move the surviving row into the next write slot and set nothing, so a pure reorder leaves the flag clear. After the parse, f_10554918 additionally sets the flag when the surviving row count is strictly less than the saved original count (net loss). The flag therefore means added, removed or field-changed entries; it is not a generic changed-document flag and it does not fire for equal-content documents or pure reordering. Initializer f_10554858 stores capacity 256 at parser-state +0x1d4, the original caller count at +0x1d8, the count pointer at +0x1dc and the flag pointer at +0x1e0, and zeroes the caller count and flag. f_100c6e20 copies an already-populated cache, otherwise falls back to this reload with no output byte. The orchestrator consumes the flag to decide between reconcile + 'list changed old count %d -> new count %d); ETag:%s' logging and commit versus simple release.",
