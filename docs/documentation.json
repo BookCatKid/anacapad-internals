@@ -215434,7 +215434,7 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x10285e80",
-     "notes": "mergeAccounts driver: finds remote matches by serial via f_105712e4; valid rows are applied through f_105709c0 with op name \"mergeAccounts\" and bump the applied counter; invalid rows bump invalidCloud and record invalidCloudSerial; tombstone-table entries with flag set go to compactor f_10570cdc. After the merge the driver calls mgr vfunc+0x34 (f_102850c4 refresh) at 0x1028f1dc."
+     "notes": "mergeAccounts driver: finds remote matches by serial via f_105712e4; valid rows are applied through f_105709c0 with op name \"mergeAccounts\" and bump the applied counter; invalid rows bump invalidCloud and record invalidCloudSerial; tombstone-table entries with flag set go to compactor f_10570cdc. The post-merge refresh is not inside the merge worker: in pull driver f_1028fa98 it is gated at 0x10290c70-0x10290cac on mgr+0x173 plus a nonzero conflicted, updated or added counter, and the similar site 0x1028f1dc is inside updateAccountUserInfo worker f_1028ef24."
     },
     {
      "type": "firmware",
@@ -215540,6 +215540,90 @@
      "build": "86.10-80260",
      "address": "0x10286998",
      "notes": "migrateGuestAccount string-compares UDN and UserIDHash before rewriting the row; a mismatch logs \"Bad guest migration: UDN = %s - UserIDHash = %s\", and a non-guest target logs \"Existing account is not a guest account, migrateGuestAccount failing\" returning 0x322."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c1de0",
+     "notes": "Timed-job registry: f_10572dbc binds name to worker for deferredUpdate (f_105e80fc), svcAccountMaint (f_100bbc80), refreshEntitlements (f_100b944c) and ampTimer (f_100bbb08). f_100bbc80 iterates the service list and calls reconciliation worker f_101b869c at 0x100bbd14, 0x100bbd80 and 0x100bbe28, its only bl callers; f_1028f550 inside reportAllActiveAccounts worker f_1028f2c8 also queues it through the facility scheduler object 0x110a5f8c vfunc+8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b869c",
+     "notes": "Per-service account reconciliation worker, invoked only by service iterator f_100bbc80. It calls ReportSvcTimedJob f_1028f5a4 at 0x101b8ccc, migrateAccountToOAuth f_1028eb5c at 0x101b8ffc (nonzero result logs \"failed to migrate account to OAuth, type:%u, sn: %u\" at 0x10e9b580) and updateAccountUserInfo f_1028ef24 at 0x101b9940, and contains the getDeviceAuthToken call f_1072a2a4 at 0x101b8f6c plus \"sr: reauthenticated\" logging."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028ef24",
+     "notes": "updateAccountUserInfo worker (manager, service-entry args r4/r5, parsed-reply context r6). A null context or a zero entry count at ctx+0x5c returns early without touching tables. It locks mgr+0x20, initializes two row tables through f_10291d90 and loads via f_102887e0 selector 0x36 (failure -> 0x32a). Per reply entry it searches the loaded table by UserIdHash through f_105714c8; a row already holding the hash logs \"UserIdHash [%s] already exists and will not be updated for SN=%u\" (0x1028f240) and is skipped, otherwise the hash is copied into the candidate with capacity 0x19 and the update is applied by f_10286664, the row update tagged \"updateAccountUserInfo\" through f_105709c0 at 0x1028f178. Commit f_10289258 runs at 0x1028f1b4; on success the lock is released and mgr vfunc+0x34 is invoked by bctrl at 0x1028f1dc. Worker codes observed: 0x32a, 0x326, 0x323."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028f2c8",
+     "notes": "reportAllActiveAccounts worker, a standalone function (own prologue) separate from f_1028ef24. Locks mgr+0x20, loads selector 0x36; failure logs \"Failure to mark accounts for reporting (%hu)\" and returns 0x32a. Every row whose flags word +0x1f4 has bit0 clear is copied, flagged |2, clock-stamped revision+1 and applied through f_105709c0 tagged \"reportAllActiveAccounts\". When no row qualifies it releases the lock and schedules f_100bbc80 (the svcAccountMaint iterator) through facility scheduler 0x110a5f8c vfunc+8 with a zero argument instead of committing; otherwise it commits via f_10289258."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b6ecc",
+     "notes": "Reachability boundary for reportAllActiveAccounts: f_1028f2c8 has no bl caller and no branch-in; its only route is this+0x118 adjusting thunk f_101b6ecc (stwu/addi r3,0x118/b f_1028f2c8), alongside sibling thunks f_101b6eac (to pending-sync driver f_10290df4) and f_101b6ebc (to push driver f_10290400). A full .text call/branch census plus a .data/.rodata pointer scan find zero references to f_101b6ecc, so the route is statically unbound in this build even though the worker body is fully decodable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028f5a4",
+     "notes": "ReportSvcTimedJob worker (manager r29, timestamp-cell pointer arg4 kept in r26). Locks, then loads the current row table via f_102887e0 with all-zero out arguments (returns the row array in r31, count at stack 0xa000); failure logs \"Unable to read music accounts\". Phase A iterates rows and, for each whose flags+0x1f4 has bit1 set and bit0 clear, calls service-report f_104b16b4 with registry mgr+0x18, Type word row+4 and name row+8; a nonzero result logs \"Failed to report svc %u\" with the row Type and sets a failure flag. When at least one report succeeds, a one-hour throttle compares now+0xe10 against the timestamp cell (store only when expired) before phase B: relock, reload selector 0x36 into two stack tables, iterate the second table entries (row+8), keep entries whose flags still read pending-set/inactive-clear, resolve each to a primary-table row via f_10570e34 selector 1 keyed on the entry-4 serial field (miss logs \"Unexpected missing account for %u\"), copy the row, clear bit1 in its flag word (rlwinm mask 31..29), stamp clocks revision+1 and apply tagged \"ReportSvcTimedJob\" at 0x1028f894; a nonzero apply result commits via f_10289258 and failures log \"Failure to update reported accounts\"."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028eb5c",
+     "notes": "migrateAccountToOAuth worker (manager, type word, serial, then new credential fields in r6..r10). Locks mgr+0x20, initializes two tables, loads via f_102887e0 (failure -> 0x32a), locates the stored row through f_105710c0 (miss -> 0x326 at 0x1028ef04), tombstones prior matching rows through f_10570cdc, builds the candidate with bounded copies of the supplied fields plus the conditional call f_102854ac when flag byte +0x1a7 is set and its argument is nonempty, stamps clocks revision+1 through f_1056ecb4, applies tagged \"migrateAccountToOAuth\" at 0x1028eec4 and commits via f_10289258 (failure -> 0x329)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028b760",
+     "notes": "modifyAccount worker argument map: each optional pointer argument selects one candidate field; r7 is copied with capacity 0x41 into the password field (0x1028b944-950), r8 with capacity 0x80 into the metadata field with present-marker byte \"1\" (0x1028b95c-970), and r9 onward cover the remaining optional fields. Adapters f_104b0684 and f_104b06d0 forward exactly one field each and zero the rest."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10290a10",
+     "notes": "mergeAccounts worker f_10285e18 is called exactly twice: here in pull driver f_1028fa98 and at 0x10291760 inside pending-sync driver f_10290df4 (a real function start whose prologue build_funcmap had merged into f_1028fa98). The stats block is caller-allocated on the stack, r1+0x5c in f_1028fa98, passed as arg r10 (worker r30)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10290c70",
+     "notes": "Merge-stat refresh gate in f_1028fa98: with mgr+0x173 set, a nonzero value in stats+4 (conflicted), +8 (updated) or +0xc (added) takes a mutex via f_109889b4 and runs mgr vfunc+0x34 (f_102850c4 refresh) by bctrl at 0x10290ca4; all three zero skips the refresh entirely. Stats+0x1c (invalidCloudReason) is separately freed through f_10807034 at 0x10290acc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10284b70",
+     "notes": "Merge-stat serializer: builds a property bag through f_10557fa8, sets \"operation\", \"ms\", \"rc\" and \"hrc\", then loads stats offsets +0,+4,+8,+0xc,+0x14,+0x18,+0x10,+0x20 sequentially, paired with the name strings at 0x10eabccc+ (retry, conflicted, updated, added, deleted, invalidCloud, invalidCloudSerial, invalidCloudReason, vcCloud). The bag is submitted through the zpAM singleton vfunc+0x1c with domain \"zpAM\" and event \"accountReplication\" at 0x10284d44-60."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10559024",
+     "notes": "zpAM diagnostic delivery object: lazy singleton behind once-guard f_108073a0; base object at 0x110a5448, callable subobject 0x110a5450 carrying vtable 0x10eeae78 (vfunc+0x1c = submit f_10559954), teardown registered through __cxa_atexit(f_10559b3c). Submit formats \"%s.%s\" (cap 0x101) and f_10559524 calls delegate *(obj+0x148) vfunc+0x10 when the delegate is non-null; +0x148 is zeroed at construction (0x10559120) and more than eighty generic stw sites write that offset across .text, so which registration supplies this object's delegate is runtime-injected state, the proven static boundary."
     }
    ],
    "accountsmgr": {
@@ -215627,7 +215711,7 @@
     "Local persistence is f_10289258 -> f_102890b0 -> f_10508988 (call at 0x10289174), not merely the cloud XML endpoint. f_10508988 serializes through f_105084e0 into a temporary file and replaces the destination through rename at 0x10508a7c after serialization and close succeed. The close helper f_1054f0e8 calls fflush, fileno, fsync and fclose at 0x1054f108-0x1054f11c but only tests fclose, so a true result does not prove a successful durable flush. Serialization failure can take a root-only fallback rewrite and still return false; failure does not guarantee unchanged storage. On a true writer result, 0x102891ec-0x10289230 copies the local device identifier, updates cached counter/version fields and invokes receiver virtual +0x14 with selector 11. When callbacks are enabled, the separate predicate f_10285878 can schedule f_10285338 even after a false writer result (0x10289198-0x1028919c and 0x1028923c-0x10289250).",
     "MusicAccountChangedEvent is a local notification, not an account or password payload. f_102850c4 reaches f_101b8048 at 0x10285128 or 0x10285170. f_101b8048 rereads the account store at 0x101b8238, compares it with its cache at 0x101b8250 and calls f_101bb1d0 on the changed path at 0x101b8290. The emitter constructs a 24-byte MusicAccountChangedEvent string, not empty payload text: f_101b55ac receives begin=0x10e8ba90 and end=0x10e8baa8 at 0x101bb680 and 0x101bb6b4, copies end-begin bytes and stores that length. At both monitoring calls r5=&frame[0x5c] names this string object (0x101bb688 and 0x101bb6c0). The call at 0x101bb690 is f_10bbca78, and 0x101bb6c8 is f_10bbd280 with r6=1. Both pass the source string in r4 and event-name string in r5 to f_10bbb834, which constructs the monitoring key as source + '_' + event name (0x10bbb868-0x10bbb8b0); these arguments identify the monitored event, not an account payload. The emitter queues a callable through f_100f14ec at 0x101bb73c when an event loop is available. The callable's source string comes from emitter+4/+8 (0x101bb6dc-0x101bb6f4), not the incoming account argument. The no-event-loop path instead calls f_10bbd098 at 0x101bb9c0. This is separate from the generic UPnP event-source callback.",
     "Resolved: the complete Account element grammar. Emitter f_105081bc writes \"  <Account Type=\\\"%s\\\" SerialNum=\\\"%s\\\" Flags=\\\"%s\\\"\" plus conditional \" Deleted=\\\"1\\\"\" and conditional attrs Id(+0x240), VClockHousehold(+0x1fc) and VClockCloud(+0x220); live rows then emit presence-gated UN, NN, PW, MD, OADevID, Hash and Tier elements; deleted rows stop after the optional UN. Caller f_105084e0 appends Token and Key and closes \"  </Account>\". Row predicate f_105050b0 always returns 1 but only rows with both Type and SerialNum nonzero are emitted.",
-    "Resolved: the concrete selector-11 async path. Commit calls repl vfunc+0x14 = f_10652074 informLocalReplicatedSettingVersion (kind 0xb, source mgr+0xb8) at 0x10289230; it validates the running byte +0x3b0 and kind<=0x11, walks the consumer slots at +0x84+kind*4 (accounts mgr at +0xb0, registered by f_10651bd4), updates the per-kind entry under mutex +0x320 and queues an async ReplicatedSettingsChangedEvent through f_10654800 on the in-process event bus (\"inprocess-events/subject.h\"). Refresh lands on mgr vfunc+0x34 f_102850c4, which public wrappers, the merge driver (0x1028f1dc) and the pending-sync driver (0x10290ca4) all call.",
+    "Resolved: the concrete selector-11 async path. Commit calls repl vfunc+0x14 = f_10652074 informLocalReplicatedSettingVersion (kind 0xb, source mgr+0xb8) at 0x10289230; it validates the running byte +0x3b0 and kind<=0x11, walks the consumer slots at +0x84+kind*4 (accounts mgr at +0xb0, registered by f_10651bd4), updates the per-kind entry under mutex +0x320 and queues an async ReplicatedSettingsChangedEvent through f_10654800 on the in-process event bus (\"inprocess-events/subject.h\"). Refresh lands on mgr vfunc+0x34 f_102850c4, which public wrappers, the updateAccountUserInfo maintenance worker f_1028ef24 (0x1028f1dc) and the pull driver f_1028fa98 (0x10290ca4) all call.",
     "Resolved: preferred-account semantics. getPreferredAccount emits \"sn_0\" with success even when no preferred serial is set (mgr+0xdc==0), returns 0x20 \"No match for Preferred Account\" on a match miss, and setAndUpdatePreferredSerialNum stores +0xdc before commit then rolls it back on commit failure.",
     "Resolved: replication op dispatch. The dispatcher at 0x102876b8 maps op 1 to the +0x14d flag plus pull-task f_100ba320 and op 2 to +0x14c plus push-task f_100ba5dc, both scheduled via the facility+0x5f8c scheduler vfunc+8; other ops log \"Invalid replication operation\".",
     "Resolved: the migration family and its triggers. ensureLoaded f_1028d950 stats accounts.xml: present -> load + \"anonymous\" migration (transform f_102848ac keeps rows whose service reports type byte 2); absent -> f_102897d8 creates \"R_SvcAccounts\" from the legacy table (skip Type 0x307/0, renumber serials from 1) logging \"Created new accounts file; migrated %d accounts\". f_1028d4d8 runs \"pre-cloud\" mark-for-push on all rows; f_1028d180 (migrateAccountsToSMAPI) rewrites Pandora built-in Type&0x7f in {3,4}; f_1028e1a8 (migrateAccountSIDs) rewrites service IDs except service 0xfe; f_1028e5dc handles legacyTuneInReplaced under R_HideTuneIn; migrateGuestAccount verifies UDN and UserIDHash.",
@@ -215635,7 +215719,12 @@
     "Resolved: guest lifecycle. Matching key is {g,sn,h}; linkCode is required to add a guest; guest nickname runs op \"matchImpl\"; a reauth-time duplicate that is a guest fails 0x323 with the \"dup\" zpam diagnostic and \"guest upgrade not allowed via reauth.\", while a permitted guest match on the OAuth-token path commits under \"int_addAccountWithOAuthToken\" and logs \"New account matched to existing guest account with SN=%u, Hash=%s\".",
     "Resolved: the op-name strings are all third-argument tags to row modifier f_105709c0; unreachable-by-xref names are produced by delta addressing off anchor 0x10eaba94.",
     "Resolved: direct-control teardown. f_1028734c (\"End direct control context UUID: %s\") is invoked via secondary-vtable thunk 0x101b5490, runs the match call f_104363ec through facility+0x9d6c, answers 0x42 via f_10b00204 and on 0x34 broadcasts to the repl-object listener list at +0x29038 calling each vfunc+0x50.",
-    "Resolved: shared manifest helper f_10287238 backs the five manifest-gated add workers (call sites 0x10289df0, 0x1028aec8, 0x1028b36c, 0x1028b4d0, 0x1028b644), returning the manifest pointer or 0x322 with \"Failed to download manifest file\"."
+    "Resolved: shared manifest helper f_10287238 backs the five manifest-gated add workers (call sites 0x10289df0, 0x1028aec8, 0x1028b36c, 0x1028b4d0, 0x1028b644), returning the manifest pointer or 0x322 with \"Failed to download manifest file\".",
+    "Resolved: the five op-name routes are internal maintenance workers, not SOAP-exposed actions. Bindings: modifyAccount worker f_1028b760 behind edit adapters f_104b0684/f_104b06d0 and five internal callers; updateAccountUserInfo f_1028ef24, migrateAccountToOAuth f_1028eb5c and ReportSvcTimedJob f_1028f5a4 invoked inside per-service reconciliation worker f_101b869c (itself driven only by timed-job iterator f_100bbc80 registered as 'svcAccountMaint'); reportAllActiveAccounts f_1028f2c8 behind unreferenced thunk f_101b6ecc. Per-route argument and rejection semantics are instruction-traced in details.maintenance_ops.",
+    "Resolved: the merge-outcome counters have a complete consumer census. Storage is the caller stack stats block (r1+0x5c in f_1028fa98), written by merge worker f_10285e18 at offsets retry+0, conflicted+4, updated+8, added+0xc, deleted+0x10, invalidCloud+0x14, invalidCloudSerial+0x18, invalidCloudReason+0x1c, vcCloud+0x20. Behavioral consumers: conflicted/updated/added gate the post-merge vfunc+0x34 refresh at 0x10290c70-0x10290cac under flag mgr+0x173, and invalidCloudReason is freed at 0x10290acc; retry and deleted have no behavioral consumer in .text. The only other reader is diagnostic serializer f_10284b70 posting 'zpAM.accountReplication'.",
+    "Resolved: the zpAM diagnostic delivery object is the lazy singleton from f_10559024 (base 0x110a5448, callable subobject 0x110a5450, vtable 0x10eeae78, __cxa_atexit f_10559b3c). Its submit path 'zpAM.accountReplication' -> '%s.%s' formatting -> delegate obj+0x148 vfunc+0x10 is instruction-traced; the delegate pointer is zeroed at construction and its writer is not statically distinguishable among 80+ generic stw sites on that offset, which is the proven boundary rather than an unnamed reader.",
+    "Resolved (boundary): reportAllActiveAccounts worker f_1028f2c8 is statically unbound in this build - its only route, this+0x118 thunk f_101b6ecc, has no bl caller, no branch-in and no pointer word in .text, .data or .rodata (full branch census plus raw pointer scan). The worker body is fully decodable regardless.",
+    "Boundary: the numeric service/type codes have no in-binary name source. Raw 32-bit word scans for 0x307, 0x12f and 0xfe across the data region return only coincidental byte-pattern hits inside unrelated constants, with no adjacent name strings or lookup tables; the binary's only service naming is the string-keyed registry behind f_104b16b4. Proven uses stand: Type&0x7f in {3,4} is built-in Pandora by log text, 0xFE07 is rejected by the AddAccountX adapter, 0x307 is skipped on legacy create, 0x12f is skipped in maintenance, 0xfe is excluded from SID migration and low byte 7 is ORed into migrated SID types; the service names behind the numbers are ecosystem-assigned constants outside this image."
    ],
    "details": {
     "manifest_refresh_precondition": {
@@ -216462,11 +216551,93 @@
       "Resolved: the post-commit callback is a local cache refresh plus event emit, not a direct client notification: snapshot-diff at ctx+0x290, MusicAccountChangedEvent queued into the in-process event map0x110ba798, conditional household merge f_101b6fdc, and a queued f_100bbc80 maintenance job. Remote or GENA delivery depends on runtime subscriber registrations behind that map, so the static chain terminates there; the event name 'MusicAccountChangedEvent' is the only externally referenced payload text.",
       "Resolved: the diagnostic reporter submits {type,flags,rsid,asn} plus the operation text to the global diagnostic singleton via vfunc+0x1c('zpAM',1,1); retention and upload are that service's policy and no account-side queue exists, so diagnostic and controller-notification paths are confirmed separate."
      ]
+    },
+    "maintenance_ops": {
+     "description": "The five remaining op-name routes are internal account-maintenance workers, not SOAP actions. Service iterator f_100bbc80 is registered as timed job 'svcAccountMaint' through f_10572dbc at 0x100c1de0 (same registry as deferredUpdate, refreshEntitlements and ampTimer) and is also queued directly when reportAllActiveAccounts finds nothing to mark and by the pending-sync machinery; it calls reconciliation worker f_101b869c per service at 0x100bbd14, 0x100bbd80 and 0x100bbe28, its only bl callers. Inside f_101b869c the bindings are: ReportSvcTimedJob f_1028f5a4 at 0x101b8ccc, migrateAccountToOAuth f_1028eb5c at 0x101b8ffc and updateAccountUserInfo f_1028ef24 at 0x101b9940. reportAllActiveAccounts worker f_1028f2c8 is reachable only through this+0x118 adjusting thunk f_101b6ecc, which has no bl caller, no branch-in and no pointer word anywhere in the image, so that route is dormant in this build while its body remains fully decodable. Worker-level validation: updateAccountUserInfo requires a non-null service-reply context with a nonzero entry count at +0x5c, dedups UserIdHash via f_105714c8 (collision logs and skips the entry rather than failing), copies the hash with capacity 0x19, applies through f_10286664 and refreshes via vfunc+0x34 at 0x1028f1dc; migrateAccountToOAuth takes (manager, type word, serial, credential fields r6..r10), locates the row via f_105710c0 (miss -> 0x326), tombstones prior matches, conditionally resolves the service via f_102854ac, stamps clocks and commits (failure -> 0x329), and its caller logs 'failed to migrate account to OAuth, type:%u, sn: %u' on nonzero; ReportSvcTimedJob takes (manager, timestamp cell), reports every pending-flagged row through service-resolve f_104b16b4 logging 'Failed to report svc %u' per failure, throttles the update pass to a 3600 second window via the timestamp cell, then clears the pending bits on resolvable rows ('Unexpected missing account for %u' on a table miss, 'Failure to update reported accounts' on apply or commit failure); reportAllActiveAccounts marks every row whose flag bit0 is clear as pending |2, commits when at least one was marked and otherwise schedules the maintenance job instead; modifyAccount remains the generic row editor documented under password_metadata_modifier, with adapters f_104b0684 and f_104b06d0 selecting the password (r7, capacity 0x41) and metadata (r8, capacity 0x80 plus marker byte) optional arguments respectively.",
+     "evidence": [
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c1de0",
+       "notes": "svcAccountMaint job registration binding f_100bbc80."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b869c",
+       "notes": "Reconciliation worker containing all four route calls."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1028f2c8",
+       "notes": "reportAllActiveAccounts worker body."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b6ecc",
+       "notes": "Unreferenced this+0x118 thunk, the only route to f_1028f2c8."
+      }
+     ]
+    },
+    "merge_stats": {
+     "description": "The mergeAccounts outcome counters live in a caller-allocated stats block: pull driver f_1028fa98 places it at stack 0x5c(r1) and pending-sync driver f_10290df4 uses its own frame; the pointer arrives as arg r10 (worker r30) to merge worker f_10285e18, which is called only at 0x10290a10 and 0x10291760. Field order is fixed by serializer f_10284b70, which loads +0,+4,+8,+0xc,+0x14,+0x18,+0x10,+0x20 sequentially while setting the name strings at 0x10eabccc+ into the bag: retry+0, conflicted+4, updated+8, added+0xc, deleted+0x10, invalidCloud+0x14, invalidCloudSerial+0x18, invalidCloudReason+0x1c (a string pointer) and vcCloud+0x20. Increment sites inside the worker: +4 after each applied row, +0/+8/+0xc on the remaining outcome paths at 0x10286090/0x102860f4/0x1028612c/0x10286180/0x102861b0/0x102861d8, +0x14 and +0x18 on validator rejection, and +0x1c written by the validator as the reason out-parameter. The consumer census is complete: behaviorally, only conflicted/updated/added matter - in f_1028fa98 they gate the post-merge cache refresh at 0x10290c70-0x10290cac (requires mgr+0x173 set), invalidCloudReason is freed at 0x10290acc, and retry/deleted have no behavioral consumer anywhere in .text. The sole other reader is the diagnostic sink f_10284b70, which posts operation, ms, rc, hrc and all nine counters as event 'zpAM.accountReplication' through the zpAM singleton vfunc+0x1c; whether that bag is retained, batched or uploaded is the runtime-injected delegate's policy, outside static reach.",
+     "evidence": [
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10290a10",
+       "notes": "First merge call and stats-block argument."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10290c70",
+       "notes": "conflicted/updated/added refresh gate."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10284b70",
+       "notes": "Sequential loads pairing stats offsets with name strings."
+      }
+     ]
+    },
+    "zpam_delivery": {
+     "description": "The diagnostic delivery object behind the 'zpAM' submissions is statically nameable as a lazy singleton but its transport is runtime-injected. Getter f_10559024 passes once-guard f_108073a0, then constructs base object 0x110a5448 whose callable subobject 0x110a5450 carries vtable 0x10eeae78 (slots +0 f_10559b3c destructor, +0x1c submit f_10559954) and registers teardown via __cxa_atexit(f_10559b3c). Submit requires its string arguments non-null, formats '%s.%s' with capacity 0x101 (the account flow emits 'zpAM.accountReplication'), and funnels into f_10559524, which calls delegate *(obj+0x148) vfunc+0x10 only when the delegate pointer is non-null. The constructor zeroes +0x148 (0x10559120) and more than eighty generic stw sites on offset 0x148 exist across .text, so no static evidence decides which registration writes this specific object; the delegate identity is the proven boundary.",
+     "evidence": [
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10559024",
+       "notes": "Singleton construction and once-guard."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10559954",
+       "notes": "Submit vfunc: %s.%s formatting into f_10559524."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10559524",
+       "notes": "Delegate dispatch through obj+0x148 vfunc+0x10."
+      }
+     ]
     }
-   },
-   "todo": [
-    "Established: the credential-element grammar, the selector-11 notify chain into cache refresh, preferred-account get/set plus rollback, the replication-op dispatcher, cloud merge predicates and outcome counters, corruption detectors plus maintenance and stale-anonymous passes, the full migration family, guest and direct-control lifecycle, the shared manifest helper for the five add workers, and the f_105709c0 op-name tag mechanism are all instruction-traced. Remaining: the numeric service/type codes are only partially attributed (Type&0x7f in {3,4} proved Pandora built-in, 0x307 skipped on legacy create, 0x12f skipped in maintenance, service 0xfe excluded from SID migration, low byte 7 ORed into migrated SID types); the consumers of the merge-outcome counters and the identity of the zpAM diagnostic delivery object are unnamed; and per-route argument validation for modifyAccount, updateAccountUserInfo, migrateAccountToOAuth, reportAllActiveAccounts and ReportSvcTimedJob is known only by op-name tag, not yet traced per route."
-   ]
+   }
   },
   "htaudio": {
    "tv_session_fields": [
