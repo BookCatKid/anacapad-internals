@@ -93673,15 +93673,67 @@
         "function": "0x104791b0",
         "address": "0x104791f4",
         "notes": "listener shared pointer moved into store+0xc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018edb4",
+        "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018ede0",
+        "notes": "ctrl block -> main+0x29010"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10efcf9c",
+        "notes": "listener vtable slot +0x14 = f_10652074"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101981f0",
+        "address": "0x10198f98",
+        "notes": "f_10651bd4 registers manager for setting 2"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10654800",
+        "address": "0x10654d84",
+        "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103498f8",
+        "address": "0x10349918",
+        "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113d94",
+        "address": "0x10113d98",
+        "notes": "manager slot +0x14 returns 0x320"
        }
-      ],
-      "todo": [
-       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-       "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
       ],
       "resolved_findings": [
        "Resolved: QueueID 0 (else 800), engine mode 1 or 2 (else 800), Title nonempty and single-line after trimming (else 402), ObjectID empty or 'SQ:%d' (else 801), and a successful save (f_1047ee0c rc 0).",
-       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+       "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
       ]
      },
      "state_dependencies": {
@@ -93709,15 +93761,67 @@
         "function": "0x104791b0",
         "address": "0x104791f4",
         "notes": "listener shared pointer moved into store+0xc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018edb4",
+        "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018ede0",
+        "notes": "ctrl block -> main+0x29010"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10efcf9c",
+        "notes": "listener vtable slot +0x14 = f_10652074"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101981f0",
+        "address": "0x10198f98",
+        "notes": "f_10651bd4 registers manager for setting 2"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10654800",
+        "address": "0x10654d84",
+        "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103498f8",
+        "address": "0x10349918",
+        "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113d94",
+        "address": "0x10113d98",
+        "notes": "manager slot +0x14 returns 0x320"
        }
-      ],
-      "todo": [
-       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-       "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
       ],
       "resolved_findings": [
        "Resolved: reads engine mode engine+0x4654, the tracks of s+0x2d890 (count u16 q+0x26c8, entries through f_10146a1c) and the saved-queue manager *(0x11096770) state at +0xc8/+0xec.",
-       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+       "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
       ]
      },
      "side_effects": [
@@ -93746,15 +93850,67 @@
          "function": "0x104791b0",
          "address": "0x104791f4",
          "notes": "listener shared pointer moved into store+0xc0"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1018d27c",
+         "address": "0x1018edb4",
+         "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x1018d27c",
+         "address": "0x1018ede0",
+         "notes": "ctrl block -> main+0x29010"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10efcf9c",
+         "notes": "listener vtable slot +0x14 = f_10652074"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x101981f0",
+         "address": "0x10198f98",
+         "notes": "f_10651bd4 registers manager for setting 2"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10654800",
+         "address": "0x10654d84",
+         "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x103498f8",
+         "address": "0x10349918",
+         "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10113d94",
+         "address": "0x10113d98",
+         "notes": "manager slot +0x14 returns 0x320"
         }
-       ],
-       "todo": [
-        "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-        "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
        ],
        "resolved_findings": [
         "Resolved (manager side): f_104794d4 writes the saved queue through f_1047ee0c ('savedqueues.rsq'), then on rc 0/803 sets this+0xf0, increments this+0xec and calls f_1047cd90, which copies the ID string into this+0xd0 (strlcpy 0x19), stores the count in this+0xec, calls (*(this+0xc0))->v[+0x14](obj, 2, this+0xd0, count, 0) (0x1047cde4) and tail-calls this->v[+0x14](this, this+0xd0, count) (0x1047ce18).",
-        "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+        "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+        "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
        ]
       }
      ],
@@ -93783,15 +93939,67 @@
         "function": "0x104791b0",
         "address": "0x104791f4",
         "notes": "listener shared pointer moved into store+0xc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018edb4",
+        "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018ede0",
+        "notes": "ctrl block -> main+0x29010"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10efcf9c",
+        "notes": "listener vtable slot +0x14 = f_10652074"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101981f0",
+        "address": "0x10198f98",
+        "notes": "f_10651bd4 registers manager for setting 2"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10654800",
+        "address": "0x10654d84",
+        "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103498f8",
+        "address": "0x10349918",
+        "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113d94",
+        "address": "0x10113d98",
+        "notes": "manager slot +0x14 returns 0x320"
        }
-      ],
-      "todo": [
-       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-       "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
       ],
       "resolved_findings": [
        "Resolved (manager side): f_104794d4 writes the saved queue through f_1047ee0c ('savedqueues.rsq'), then on rc 0/803 sets this+0xf0, increments this+0xec and calls f_1047cd90, which copies the ID string into this+0xd0 (strlcpy 0x19), stores the count in this+0xec, calls (*(this+0xc0))->v[+0x14](obj, 2, this+0xd0, count, 0) (0x1047cde4) and tail-calls this->v[+0x14](this, this+0xd0, count) (0x1047ce18).",
-       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+       "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
       ]
      },
      "state_transitions": {
@@ -93819,15 +94027,67 @@
         "function": "0x104791b0",
         "address": "0x104791f4",
         "notes": "listener shared pointer moved into store+0xc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018edb4",
+        "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018ede0",
+        "notes": "ctrl block -> main+0x29010"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10efcf9c",
+        "notes": "listener vtable slot +0x14 = f_10652074"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101981f0",
+        "address": "0x10198f98",
+        "notes": "f_10651bd4 registers manager for setting 2"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10654800",
+        "address": "0x10654d84",
+        "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103498f8",
+        "address": "0x10349918",
+        "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113d94",
+        "address": "0x10113d98",
+        "notes": "manager slot +0x14 returns 0x320"
        }
-      ],
-      "todo": [
-       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-       "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
       ],
       "resolved_findings": [
        "Resolved (manager side): f_104794d4 writes the saved queue through f_1047ee0c ('savedqueues.rsq'), then on rc 0/803 sets this+0xf0, increments this+0xec and calls f_1047cd90, which copies the ID string into this+0xd0 (strlcpy 0x19), stores the count in this+0xec, calls (*(this+0xc0))->v[+0x14](obj, 2, this+0xd0, count, 0) (0x1047cde4) and tail-calls this->v[+0x14](this, this+0xd0, count) (0x1047ce18).",
-       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+       "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
       ]
      },
      "return_behavior": {
@@ -93855,15 +94115,67 @@
         "function": "0x104791b0",
         "address": "0x104791f4",
         "notes": "listener shared pointer moved into store+0xc0"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018edb4",
+        "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1018d27c",
+        "address": "0x1018ede0",
+        "notes": "ctrl block -> main+0x29010"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "address": "0x10efcf9c",
+        "notes": "listener vtable slot +0x14 = f_10652074"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x101981f0",
+        "address": "0x10198f98",
+        "notes": "f_10651bd4 registers manager for setting 2"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10654800",
+        "address": "0x10654d84",
+        "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103498f8",
+        "address": "0x10349918",
+        "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10113d94",
+        "address": "0x10113d98",
+        "notes": "manager slot +0x14 returns 0x320"
        }
-      ],
-      "todo": [
-       "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-       "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
       ],
       "resolved_findings": [
        "Resolved (front end): 402 parse, 800 nonzero QueueID or bad mode, 402 bad Title, 801 bad ObjectID, otherwise the f_1047ee0c code; only 0 emits AssignedObjectID.",
-       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+       "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+       "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
       ]
      },
      "fault_sites": [
@@ -94228,16 +94540,68 @@
        "function": "0x104791b0",
        "address": "0x104791f4",
        "notes": "listener shared pointer moved into store+0xc0"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1018d27c",
+       "address": "0x1018edb4",
+       "notes": "new(0x3c0) + ctor f_10650660 (ReplicatedSettings) -> main+0x2900c"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1018d27c",
+       "address": "0x1018ede0",
+       "notes": "ctrl block -> main+0x29010"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10efcf9c",
+       "notes": "listener vtable slot +0x14 = f_10652074"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x101981f0",
+       "address": "0x10198f98",
+       "notes": "f_10651bd4 registers manager for setting 2"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10654800",
+       "address": "0x10654d84",
+       "notes": "async ReplicatedSettingsChangedEvent scheduled via f_100f14ec"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x103498f8",
+       "address": "0x10349918",
+       "notes": "manager ctor: vptrs + named dirObjs 'dirObjSavedQueue'/'dirObjSavedQueueTrack'"
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10113d94",
+       "address": "0x10113d98",
+       "notes": "manager slot +0x14 returns 0x320"
       }
      ],
      "notes": null,
-     "todo": [
-      "Established: front-end gates, Title validation, ObjectID parsing, the save call and the AssignedObjectID formatting.",
-      "Residual: the listener comes from the shared pointer at main+0x2900c, but no direct store to that field has been found (it is not written with a main+0x30000-based stw anywhere in .text), so its class and what its slot +0x14 does with the notification remain unidentified."
-     ],
      "resolved_findings": [
       "Resolved: the impl chain is fully static. wrapper f_104643c0 parses QueueID as u32 (0x10464408), Title (cap 0x400, 0x10464430) and ObjectID (cap 0x400, 0x10464458), faults 402 on parse failure (0x104644ec) and calls qm->v[+0x24](qm, QueueID, Title, ObjectID, out, 0x400) at 0x1046449c; nonzero rc faults through req->v[+0x14] (0x104644b8), 0 emits AssignedObjectID from the out buffer (0x104644fc/0x1046451c). qm vtable 0x10ed1bcc slot +0x24 is f_10465f7c: QueueID != 0 returns 800 (0x10465f88); QueueID 0 tail-calls engine->v[+0x7c] on *(qm+0x128) (0x10465fa8), which in AVTransport impl vtable 0x10edfbb8 is f_102aa8b4. f_102aa8b4 locks engine+0x458 (0x102aa908); a nonzero QueueID would return 718 (0x102aa910, unreachable from this service); it returns 800 unless engine mode engine+0x4654 is 1 or 2 (0x102aa968..0x102aa974); it copies Title into a 0x400 buffer (f_10906304, 0x102aa988), trims it with sonosTrimWhitespace (0x102aa990), returns 402 if the result is empty (0x102aa99c) or contains CR or LF (strpbrk at 0x102aa9ac); otherwise it returns f_10146e94(s+0x2d890, title, ObjectID, out, cap, 0, 0, 0) (0x102aa9e0), s=*(engine+0x580). f_10146e94 forwards to f_104794d4 with this = *(0x11096770) (0x10146ecc). f_104794d4 logs 'pszObjectId is NULL' for a NULL ObjectID; an empty ObjectID selects index -1 (new playlist); a nonempty ObjectID must parse with sscanf 'SQ:%d' or it returns 801 (0x104798d4), and a parsed index selects replace mode (0x104796cc). Under the lock at this+0x28 (f_10988558/f_10988984) it walks tracks 1..u16 q+0x26c8 with f_10146a1c (0x10479744), saves through f_1047ee0c (0x10479794) to the 'savedqueues.rsq' store, and when that returns 0 or 803 it increments this+0xec, calls f_1047cd90(this, *(this+0xc8), count) (0x1047988c) and writes 'SQ:%d' with the saved index into the output buffer (0x104798b0) before returning the f_1047ee0c code. In plain terms: SaveAsSonosPlaylist only works with QueueID 0, needs a nonblank single-line title and transport mode 1 or 2, always saves the session queue s+0x2d890 (not a queue selected by ID), and returns the saved playlist's 'SQ:<n>' ID. A save that returns 803 still updates the counter and writes the ID internally but is reported to the client as fault 803.",
-      "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes."
+      "Established (listener installation): at startup f_101981f0 copies the shared pointer at main+0x2900c (r28 = main+0x30000 at 0x10198214, copied by f_101a22c4 into sp+0xe4 at 0x10198fa8) and passes it to f_104791b0 at 0x10198fdc. f_104791b0 moves it into store+0xc0/+0xc4 (0x104791f4..0x1047920c, the source is nulled). The store notifies this listener through its slot +0x14 from f_104786a4 (0x104788ac), f_104791b0 (0x10479314), f_10479930 (0x10479b08, 0x10479e50), f_1047a918 (0x1047abe0), f_1047ac60 (0x1047ae7c) and f_1047cd90 (0x1047cdc4). In plain terms: a single listener object, created at startup, is told every time the saved-queue store changes.",
+      "Resolved (listener class and its slot +0x14): the 'no direct store' residual was a scan artifact. The shared pointer is built inside the startup routine f_1018d27c (called from f_100c1478) at 0x1018edac..0x1018edf4: new(0x3c0) with ctor f_10650660 plus a new(0x14) control block (strong=weak=1, deleter vtable word 0x10e98824 -> f_1019e01c), obj to main+0x2900c and ctrl to main+0x29010, releasing the old pair through f_101af8ac. f_10650660 is the ReplicatedSettings manager constructor (literals 'repset', 'ReplicatedSettings', 'settingsReplication', 'netsettingsReplication'; source path ../anacapa-1.0/oc/zone/common/replicated_settings.cxx): primary vtable 0x10efcf88 at obj+0 (0x10efcfa8 at +0x1c, 0x10efcfc0 at +0x3c, 0x10efcfd8 at +0x5c), a setup flag at +0x3b0, a per-setting handler table at +0x84+4*id for id <= 0x11, per-setting LUD slots at +0xcc+25*id+1 and version words at +0xcc+4*(id+0x70)+4. Slot +0x14 is f_10652074, informLocalReplicatedSettingVersion: it logs 'informLocalReplicatedSettingVersion setting %u LUD %s version %u' (0x10652118), stores the {lud, version, flag} record under the +0x320 lock through f_10660af0/f_10660e58/f_10660a7c, copies a 0x254-byte payload (0x10652214) and posts an asynchronous ReplicatedSettingsChangedEvent through f_10654800 (0x10652230; event ctor f_109a687c, scheduled through f_100f14ec at 0x10654d84), logging 'unable to fire async ReplicatedSettingsChangedEvent' on failure (0x10652254). Setting index 2 is the saved queues: f_101981f0 installs the saved-queue manager *(0x11096770) as its handler through f_10651bd4 at 0x10198f98, so the store's vcall at 0x1047cde4 is informLocalReplicatedSettingVersion(2, this+0xd0 LUD, this+0xec version, 0), while the install path f_104791b0 uses flag 1 with version 0 (0x1047930c..0x10479330). The tail call at 0x1047ce18 is this->v[+0x14] on the saved-queue manager itself, a composite built by f_103498f8: outer vptr 0x10ebb7f4 at +0, embedded named dirObj 'dirObjSavedQueue' (vptr 0x10ebb7ac) at +8 and 'dirObjSavedQueueTrack' (vptr 0x10ebb778) at +0xa8 (f_10989174 name-tag constructors; the notified listener field +0xc0 lies inside the +8 subobject). Both vtables carry f_10113d94 at slot +0x14, a getter that returns constant 0x320 (0x10113d98); all three callers (0x1047988c, 0x1047a2d4, 0x1047a804) overwrite r3 immediately, so it performs no notification. In plain terms: every saved-queue store change updates the replicated-settings record for the saved-queues setting (LUD plus version) and queues a ReplicatedSettingsChangedEvent so settings consumers learn the new version; the second virtual call just reads a fixed 800-valued word whose result is discarded."
      ]
     }
    },
