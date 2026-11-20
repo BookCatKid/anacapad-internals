@@ -215378,10 +215378,172 @@
      "build": "86.10-80260",
      "address": "0x105071e4",
      "notes": "Accounts root writer builds LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud and MuseHouseholdID attributes in that order. Root literal Accounts is at 0x10faba10; these root fields do not establish the conditional credential-element grammar."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105081bc",
+     "notes": "Credential-element emitter writes \"  <Account Type=\\\"%s\\\" SerialNum=\\\"%s\\\" Flags=\\\"%s\\\"\" plus \" Deleted=\\\"1\\\"\" on tombstones, then conditional attrs Id(+0x240 uuid), VClockHousehold(+0x1fc) and VClockCloud(+0x220). Live rows then emit presence-gated elements UN(+8), NN(+0x14b), PW(+0x10a), MD(+0x89), OADevID(+0x18c), Hash(+0x1cd) and Tier(+0x1e8); deleted rows stop after the optional UN (bc on cr4 r29!=0 at 0x105082c8). Caller f_105084e0 appends Token(+0x1ec)/Key(+0x1f0) via f_1056f07c/f_1056f0c4 and closes \"  </Account>\". Row predicate f_105050b0 always returns 1; a row is emitted only when its Type and SerialNum words are both nonzero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10289230",
+     "notes": "Commit success calls the replication-object vfunc+0x14 = f_10652074 (informLocalReplicatedSettingVersion) with kind 0xb, source string at mgr+0xb8 and version = current revision + 1.",
+     "function": "f_102890b0"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10652074",
+     "notes": "informLocalReplicatedSettingVersion (\"repset\" facility): gate byte +0x3b0 must be nonzero else \"ReplicatedSettings must be setup before calling informLocalReplicatedSettingVersion: %u\"; kind > 0x11 logs \"Setting %u needs to call addServiceSetting\". For each consumer slot (+0x84+kind*4, accounts mgr at +0xb0 for kind 11 registered by f_10651bd4) it logs \"informLocalReplicatedSettingVersion setting %u LUD %s version %u\", updates the per-kind entry under the mutex at +0x320 via f_10660af0/f_10660e58, and on change builds an event (f_10660a7c, f_106608d0 alloc, memcpy) and posts it via f_10654800; failure logs \"unable to fire async ReplicatedSettingsChangedEvent\". Source file marker \"inprocess-events/subject.h\" identifies the shared in-process event bus; the static chain ends at runtime-registered subscribers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102877e4",
+     "notes": "getPreferredAccount reads mgr+0xdc; when zero it logs \"getPreferredAccount no preferred account set\" but still emits \"sn_0\" with result 0x34. Otherwise it calls the zone account-context vfunc+0xc(serial,&record) through facility+0xaa48 (vfunc+0xf0 gate f_1019e86c, else alternate object); a miss returns \"No match for Preferred Account\" code 0x20, a hit returns \"sn_%d\" plus the record."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102892e4",
+     "notes": "setAndUpdatePreferredSerialNum early-outs 1 when serial == mgr+0xdc; otherwise locks, reloads via f_102887e0, stores the new serial into +0xdc BEFORE commit, and on commit failure logs \"Error setting PreferredSerialNum\" and restores the old +0xdc value (rollback). Public wrapper f_10289648 extracts the serial with f_1033b4d0: failures give \"Invalid accountId\" / \"Failed to extract serialNum from accountId\" (0x48); operation failure gives \"Error setting preferred account\" (0x3f)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10287750",
+     "notes": "Replication-operation dispatcher (function at 0x102876b8): op word r30==1 sets flag byte this+0x14d and schedules pull task f_100ba320 via facility+0x5f8c scheduler vfunc+8 (0x102877b8); r30==2 sets this+0x14c and schedules push task f_100ba5dc; any other op logs \"Invalid replication operation\". This binds the pullFromReplicationService/pushToReplicationService op names."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10285a94",
+     "notes": "Cloud-record validator returns accept/discard with a reason string: service resolve failure gives \"invalid service ID\" (or a per-code reason via table 0x10eaba3c+i*4 -> +0x18); serial==0 && !(flags&4) gives \"missing serial number\"; null uuid gives \"missing service uuid\"; row+8 empty gives \"missing account ID\"; row+4==0 gives \"missing account type\"; row+0x89 empty gives \"missing metadata\"; stack flags give \"missing household vector clock\" / \"missing cloud vector clock\". Discards log \"Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]\"."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10285e80",
+     "notes": "mergeAccounts driver: finds remote matches by serial via f_105712e4; valid rows are applied through f_105709c0 with op name \"mergeAccounts\" and bump the applied counter; invalid rows bump invalidCloud and record invalidCloudSerial; tombstone-table entries with flag set go to compactor f_10570cdc. After the merge the driver calls mgr vfunc+0x34 (f_102850c4 refresh) at 0x1028f1dc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028734c",
+     "notes": "End-direct-control handler reached via secondary-vtable thunk 0x101b5490 (this+0x118): extracts the context UUID via f_109dacf0/f_109dd788, logs \"End direct control context UUID: %s\", then calls f_104363ec(uuid, serial=*(ctx+0xf0), &matchctx, 0) through the facility+0x9d6c interface (vfunc+0x2c checked against f_100c3a10). Result 0x42 responds via f_10b00204; result 0x34 walks the listener list at repl-object +0x29038/+0x2903c with atomic unlink and calls each listener's vfunc+0x50."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028ddf4",
+     "notes": "Accounts-mgr constructor: its caller registers the kind-11 consumer via f_10651bd4 then invokes it; the ctor stores \"mgr\" + the repl pair (+0xc/+0x10), retains, then calls f_10288b00(\"setup\"), f_102888c4 and f_1028d950."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028d950",
+     "notes": "ensureLoaded: __xstat64 on the accounts path; when the file exists it parses the document header into mgr fields (revision +0xd4, preferred +0xdc, vector clocks +0xeb/+0x10b), loads via f_102887e0, then runs the \"anonymous\" migration (f_10286b08 with transform f_102848ac, which returns 1 only when the service object's vfunc+0x20 reports type byte == 2); commit failure logs \"Unable to write file while migrating anonymous accounts\" and a load failure logs \"Unable to read file while migrating anonymous accounts\". When the file is absent it calls f_102897d8; both paths then call f_1028d4d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102897d8",
+     "notes": "Create path: checks whether the replication service already has an \"R_SvcAccounts\" resource (repl +0x160 vfunc+0x24); when absent it iterates the legacy table, skips rows with Type 0x307 or 0, renumbers SerialNum sequentially from 1, restamps vector clocks at rev+1, appends via f_1057082c, bumps +0xd4, announces via *(repl+0x580) vfunc+0xc, commits via f_10289258 and logs \"Created new accounts file; migrated %d accounts\"."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028d4d8",
+     "notes": "\"pre-cloud\" migration runner: f_10286b08 walks the live and tombstone tables with identity transform f_1028489c (always returns 1), restamps each row, and writes back via f_105709c0 with op name \"markAccountsForPushLocked\", logging \"Migrated %s replication account (%d)\" / \"Migrated tombstoned %s replication account (%d)\" per row. Also invoked from the reauth path at 0x101b8cb0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028d180",
+     "notes": "migrateAccountsToSMAPI: rows whose Type&0x7f is 3 or 4 (Pandora built-in types) have the Type word rewritten to the new packed type and vector clocks restamped, applied via f_105709c0 with op name \"migrateAccountsToSMAPI\" and logged \"Migrated Pandora built-in (%d,%d->%d)\"; the same filter drives tombstone compaction via f_10570cdc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028e1a8",
+     "notes": "migrateAccountSIDs: for each gated row (f_1056f2ac + f_1056fd48 validity) the Type word is rewritten and the row applied via f_105709c0 with op name \"migrateAccountSID\"; after commit it logs \"Migrated Account with SID %u. (%u,%u->%u)\" or \"Failed to migrate Account with SID %u. (%u,%u->%u)\", where the post-arrow value is (newType & 0xffffff00) | 7. Called at 0x101b8d98 only when the service code is not 0xfe."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028e5dc",
+     "notes": "legacyTuneIn path: reads the R_HideTuneIn setting (\"true\" stored at settings word +0x4edc), loads accounts, and emits the \"legacyTuneInReplaced\" diagnostic under source \"zpAM\"; failures log \"Failed to add migrated TuneIn account to accounts list.\" / \"Failed to write migrated TuneIn account file and push.\""
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028cfac",
+     "notes": "Maintenance pass removes duplicate accounts; per removed row it logs \"Removed account multiple. SN=%d, SID=%u, UID=%u\" and \"removing duplicate account with SID = \\\"%u\\\" accountUID = \\\"%u\\\" success = \\\"%s\\\"\" (rows with Type 0x12f are skipped), emits the zpAM diagnostic tagged \"duplicateAccountRemoval\" with fields {serviceID, numAccounts} via f_10284950 (\"zpam: %s,%d,%d,%u\" fields {type,flags,rsid,asn}), and finishes by calling mgr vfunc+0x34 refresh."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10288964",
+     "notes": "Stale-anonymous detection pass: locks, reloads via f_102887e0, and on reload failure logs \"Error reading file while detecting stale anonymous accounts\" before iterating rows."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028a6b4",
+     "notes": "Inside the OAuth-token add path f_1028a230: a hash-duplicate hit while the reauth flag is set and the existing row is a guest logs \"addAccount failed: guest upgrade not allowed via reauth.\", emits the zpam diagnostic tagged \"dup\" via mgr vfunc+0x28 and returns 0x323."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028ad3c",
+     "notes": "Guest-match success path: applies the row via f_105709c0 with op name \"int_addAccountWithOAuthToken\", commits via f_10289258 and logs \"New account matched to existing guest account with SN=%u, Hash=%s\"; the competing failure path logs \"addAccount failed: account already exists on household\"."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028bdc0",
+     "notes": "\"Pending report for account %u\" then calls the shared modifier f_1028b760 with flag word 2 (mark-for-push); the push driver iterates rows applying f_1056f854+f_1056ecb4+f_105709c0, logging \"Failed to report svc %u\" per failure and \"Failure to update reported accounts\" when the reload fails, then commits via f_10289258."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1028662c",
+     "notes": "\"exceeded max deleted accounts\" is logged right after tombstone compactor f_10570cdc runs, enforcing the deleted-table cap."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10286998",
+     "notes": "migrateGuestAccount string-compares UDN and UserIDHash before rewriting the row; a mismatch logs \"Bad guest migration: UDN = %s - UserIDHash = %s\", and a non-guest target logs \"Existing account is not a guest account, migrateGuestAccount failing\" returning 0x322."
     }
    ],
    "accountsmgr": {
-    "guest": "guest accounts: link-code required; sn_%d serials; \"guest upgrade not allowed via reauth\"; matched by {g,sn,h(ash)}; nickname update; tombstone migration \"Migrated tombstoned %s replication account\"",
+    "guest": "Guest rows carry the guest flag inside the packed Type word and are matched on the {g,sn,h} triple. migrateGuestAccount string-compares UDN and UserIDHash before rewriting a row: a mismatch logs \"Bad guest migration: UDN = %s - UserIDHash = %s\" and a non-guest target logs \"Existing account is not a guest account, migrateGuestAccount failing\" (0x322). Add flows: a missing linkCode returns \"Link code required to add guest account\" (0x3f); success logs \"Added guest account with SN=%u\" and returns \"sn_%d\"; the nickname path runs op \"matchImpl\" and logs \"Updating guest account nickname from: %s to: %s\", \"Guest account matched with SN=%u\" or \"Unable to update guest account sn=%u,h=%s\". In the OAuth-token add path f_1028a230, a hash-duplicate against a guest row during reauth logs \"addAccount failed: guest upgrade not allowed via reauth.\", emits the \"dup\" zpam diagnostic via vfunc+0x28 and returns 0x323; a permitted match commits under op \"int_addAccountWithOAuthToken\" logging \"New account matched to existing guest account with SN=%u, Hash=%s\", otherwise failing \"addAccount failed: account already exists on household\".",
     "errors": [
      "no account",
      "stale account",
@@ -215393,21 +215555,30 @@
      "Either linkCode or accountId should be provided",
      "Could not resolve serviceId",
      "Unsupported account authentication method",
-     "missing required Token or OAuthDevID"
+     "missing required Token or OAuthDevID",
+     "Invalid accountId",
+     "Failed to extract serialNum from accountId",
+     "Error setting preferred account",
+     "No match for Preferred Account",
+     "Link code required to add guest account",
+     "Invalid replication operation",
+     "account already exists on household"
     ],
-    "corruption": "detectors {emptyUUID,dupUUID,serial}->\"Found corrupted accounts\"; removals corruptedAccountRemoval/duplicateAccountRemoval; \"Removed account multiple. SN=%d, SID=%u, UID=%u\"",
-    "replication": "\"replicating accounts file from %s\"; \"Rejected version %u, schema %u from %s\"; \"Invalid replication operation\"",
-    "migration": "\"Created new accounts file; migrated %d accounts\"; \"Migrated Pandora built-in\"; pre-cloud/anonymous account migration; legacyTuneInReplaced; \"Migrated Account with SID %u. (%u,%u->%u)\"",
-    "preferred": "getPreferredAccount no preferred set/no matching; setPreferred via serialNum extraction from accountId; performsSMAPIAccountMatching; \"Account matched g=%d,sn=%u,h=%s\"",
+    "corruption": "Load-time detectors inside f_102887e0 flag emptyUUID, dupUUID and serial anomalies (row flag bytes +0x523c/+0x523d), then \"Found corrupted accounts\" plus a zpAM \"accountCorruption\" diagnostic carrying uuid and caller; a reload failure logs \"Error reading file while detecting corrupted accounts\". A maintenance pass removes duplicates, logging \"Removed account multiple. SN=%d, SID=%u, UID=%u\" and \"removing duplicate account with SID = \\\"%u\\\" accountUID = \\\"%u\\\" success = \\\"%s\\\"\" per row (Type 0x12f rows are skipped) and emitting \"duplicateAccountRemoval\" / \"corruptedAccountRemoval\" / \"maintenance\" diagnostics with {serviceID, numAccounts} fields through the vfunc+0x28 emitter f_10284950 (\"zpam: %s,%d,%d,%u\" fields {type,flags,rsid,asn}), then calls the vfunc+0x34 cache refresh. A separate pass detects stale anonymous accounts (\"Error reading file while detecting stale anonymous accounts\" on reload failure). Tombstone compactor f_10570cdc enforces \"exceeded max deleted accounts\".",
+    "replication": "The op dispatcher at 0x102876b8 decodes the replication op word: op 1 sets flag byte +0x14d and schedules pull task f_100ba320 via the facility+0x5f8c scheduler vfunc+8; op 2 sets +0x14c and schedules push task f_100ba5dc; any other op logs \"Invalid replication operation\". The pull/offer handler gates on \"Rejected version %u, schema %u from %s\", checks the source+version change test (f_10660e58, unchanged returns 0), parses the document header (bytes 0x38/0x39), logs \"replicating accounts file from %s\" and installs by rename(offer, accounts.xml). Commit runs f_10289258 -> f_102890b0 -> f_10508988; on success it calls kind-11 notify f_10652074 informLocalReplicatedSettingVersion at 0x10289230, which updates the consumer slot and queues an async ReplicatedSettingsChangedEvent on the in-process event bus (f_10654800, \"inprocess-events/subject.h\"); subscribers refresh the cache through mgr vfunc+0x34 f_102850c4, which the merge and pending-sync drivers also call directly.",
+    "migration": "Ctor f_1028ddf4 (its caller registers the kind-11 consumer via f_10651bd4) runs setup then f_1028d950: when accounts.xml exists it parses the header into mgr fields and runs the \"anonymous\" migration (f_10286b08 + transform f_102848ac, which keeps a row only when the service's vfunc+0x20 reports type byte 2); when the file is missing it calls f_102897d8, which checks the \"R_SvcAccounts\" resource, builds the replicated document from the legacy table (skipping Type 0x307/0 rows and renumbering SerialNum from 1), restamps clocks and commits, logging \"Created new accounts file; migrated %d accounts\". f_1028d4d8 then runs the \"pre-cloud\" migration marking every live and tombstone row for push under op \"markAccountsForPushLocked\" (\"Migrated %s replication account (%d)\" / \"Migrated tombstoned %s replication account (%d)\"). migrateAccountsToSMAPI (f_1028d180) rewrites the Type word of Pandora built-in rows (Type&0x7f in {3,4}) under op \"migrateAccountsToSMAPI\" (\"Migrated Pandora built-in (%d,%d->%d)\") and compacts matching tombstones. migrateAccountSIDs (f_1028e1a8) rewrites per-row service identifiers under op \"migrateAccountSID\" (\"Migrated/Failed to migrate Account with SID %u. (%u,%u->%u)\"), skipped for service code 0xfe. f_1028e5dc handles the legacy TuneIn replacement under R_HideTuneIn with diagnostic \"legacyTuneInReplaced\".",
+    "preferred": "getPreferredAccount (f_102877e4) reads mgr+0xdc: when unset it logs \"getPreferredAccount no preferred account set\" but still answers \"sn_0\" with result 0x34; otherwise it matches via the zone account-context vfunc+0xc and a miss returns \"No match for Preferred Account\" (0x20). setAndUpdatePreferredSerialNum (f_102892e4) early-outs on the same serial, stores mgr+0xdc BEFORE commit and rolls it back on failure (\"Error setting PreferredSerialNum\"); the public wrapper f_10289648 fails \"Invalid accountId\" / \"Failed to extract serialNum from accountId\" (0x48) or \"Error setting preferred account\" (0x3f). Telemetry bag carries esdkVersion, performsSMAPIAccountMatching, success and ms.",
     "ops": [
      "restore",
      "addAccount",
      "migrate",
-     "maintenance"
+     "maintenance",
+     "reauth",
+     "match"
     ],
-    "reporting": "\"Pending report for account %u\"; \"Failure to mark accounts for reporting\"; \"Failed to report svc %u\"; numAccounts",
-    "manifest": "\"Failed to download manifest file (%s) for service %u, error %hu\"",
-    "directcontrol": "\"End direct control context UUID: %s\"; spotifyTransferStartDirectControlEx; authToken/smapi keys"
+    "reporting": "\"Pending report for account %u\" invokes the shared modifier f_1028b760 with flag word 2 (mark-for-push); the push driver iterates rows applying f_1056f854 + f_1056ecb4 + f_105709c0 and logs \"Failed to report svc %u\" per failure or \"Failure to update reported accounts\" when the reload fails, then commits. Per-row diagnostics use the vfunc+0x28 emitter f_10284950 (\"zpam: %s,%d,%d,%u\" fields {type,flags,rsid,asn}) under source \"zpAM\" with bag fields such as {asn,uid,sid,success}, {serviceID,numAccounts} and tags including corruptedAccountRemoval, duplicateAccountRemoval, maintenance, dup and spotifyTransferStartDirectControlEx (under \"spotify\").",
+    "manifest": "Shared helper f_10287238 derives serviceId = arg>>8 & 0xffffff and calls the downloader object's vfunc+0x130; success returns the manifest pointer (callers parse it for elements such as needs_reauth), failure logs \"Failed to download manifest file (%s) for service %u, error %hu\" and returns 0x322. The five call sites are the manifest-gated add workers.",
+    "directcontrol": "End-direct-control f_1028734c runs behind a secondary-vtable thunk (this+0x118): it extracts the context UUID, logs \"End direct control context UUID: %s\" and calls f_104363ec via the facility+0x9d6c interface; result 0x42 answers through f_10b00204 and 0x34 walks the repl-object listener list at +0x29038/+0x2903c calling each vfunc+0x50. addAccountForOAuthDirectControl is one of the op-name tags, and the spotifyTransferStartDirectControlEx diagnostic is emitted under source \"spotify\"; authToken and smapi appear as bag keys."
    },
    "stereo_pair_rc": "rc_impl_stp: RcSetEqActionEvt {DesiredLoudness,DesiredBass,DesiredTreble,RampType}; VolumeSetActionEvent {vol,mute,ignoreProxy}; \"This command is allowed only on primary: %s\" forwarding gate; \"Muse command forwarding failed\"; volumeScalingFactor; SetRoomCalibrationStatus propagated to SUB, second SUB, SURROUND via UPnP clients",
    "sp_impl": "TuneIn migration gated by FCS flag \"TuneIn Migration enabled from FCS\"; R_PromoVersion,R_ForceReIndex keys; trial-ZP tracking \"Trial zp updated with result:%d\"/\"Trial ZP has changed from %s to %s\"; \"Account registration for service %u res %hu\"; ChsrcSysSettingsEvtSrc/AirplayIncGrpEvtSubject",
@@ -215443,7 +215614,8 @@
      "invalidCloudSerial",
      "invalidCloudReason"
     ],
-    "validation": "cloud record requirements {service ID,service uuid,account type,metadata,cloud vector clock,serial number,account ID,household vector clock}: \"Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]\"; accounts.xml + vcCloud vector clock; zpam log fmt"
+    "validation": "cloud record requirements {service ID,service uuid,account type,metadata,cloud vector clock,serial number,account ID,household vector clock}: \"Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]\"; accounts.xml + vcCloud vector clock; zpam log fmt",
+    "addressing": "Every op name above is the operation tag string passed as the third argument to row modifier f_105709c0, which logs and stamps the change; several sites reach the strings by delta addressing off the anchor at 0x10eaba94 (for example anchor+0x40 = int_addAccountWithOAuthToken, +0xdc = migrateAccountsToSMAPI, +0xf4 = setup, +0xfc = migrateAccountSID), so bare string xref scans miss them. Observed bindings: markAccountsForPushLocked = migration write-backs; migrateAccountsToSMAPI = Pandora Type rewrite; migrateAccountSID = SID rewrite; int_addAccountWithOAuthToken = OAuth-token add/guest match; mergeAccounts = cloud merge apply; setAndUpdatePreferredSerialNum = preferred setter; matchImpl = guest nickname match. The per-route dispatchers for modifyAccount, updateAccountUserInfo, migrateAccountToOAuth, reportAllActiveAccounts and ReportSvcTimedJob are identified only by their op tags, not yet traced."
    },
    "resolved_findings": [
     "Resolved: account struct = {guest g, serialNum sn, hash h, serviceId, nickname, tombstone, auth{Token,OAuthDevID,OAuthToken,OAuthCode}, linkCode}; matching key is the {g,sn,h} triple; merge is version-gated replication rejecting {version,schema} mismatches; tombstones migrate; corruption detectors {emptyUUID,dupUUID,serial} route to corrupted/duplicate removal; preferred = serialNum from accountId.",
@@ -215453,7 +215625,17 @@
     "Established: the verbatim Account element grammar, sync endpoint, and vector-clock fields are all proven literals.",
     "The accounts.xml root is not a bare <Accounts> wrapper, and NextSerialNum and PreferredSerialNum are not sibling elements. f_105071e4 builds eight name/value pairs at 0x105072b8-0x10507370 and passes them to XML writer f_105784a4 at 0x10507374 for the Accounts root (0x10faba10). The attribute names in order are LastUpdateDevice, Version, NextSerialNum, SchemaVersion, PreferredSerialNum, VClockHousehold, VClockCloud and MuseHouseholdID. f_105084e0 invokes this root writer at 0x1050855c before serializing account arrays. f_105081bc writes the Account Type, SerialNum and Flags attributes using fragments at 0x10edf0dc, 0x10edf0f0 and 0x10edf100; these fragments alone do not describe the complete document or every conditional credential field.",
     "Local persistence is f_10289258 -> f_102890b0 -> f_10508988 (call at 0x10289174), not merely the cloud XML endpoint. f_10508988 serializes through f_105084e0 into a temporary file and replaces the destination through rename at 0x10508a7c after serialization and close succeed. The close helper f_1054f0e8 calls fflush, fileno, fsync and fclose at 0x1054f108-0x1054f11c but only tests fclose, so a true result does not prove a successful durable flush. Serialization failure can take a root-only fallback rewrite and still return false; failure does not guarantee unchanged storage. On a true writer result, 0x102891ec-0x10289230 copies the local device identifier, updates cached counter/version fields and invokes receiver virtual +0x14 with selector 11. When callbacks are enabled, the separate predicate f_10285878 can schedule f_10285338 even after a false writer result (0x10289198-0x1028919c and 0x1028923c-0x10289250).",
-    "MusicAccountChangedEvent is a local notification, not an account or password payload. f_102850c4 reaches f_101b8048 at 0x10285128 or 0x10285170. f_101b8048 rereads the account store at 0x101b8238, compares it with its cache at 0x101b8250 and calls f_101bb1d0 on the changed path at 0x101b8290. The emitter constructs a 24-byte MusicAccountChangedEvent string, not empty payload text: f_101b55ac receives begin=0x10e8ba90 and end=0x10e8baa8 at 0x101bb680 and 0x101bb6b4, copies end-begin bytes and stores that length. At both monitoring calls r5=&frame[0x5c] names this string object (0x101bb688 and 0x101bb6c0). The call at 0x101bb690 is f_10bbca78, and 0x101bb6c8 is f_10bbd280 with r6=1. Both pass the source string in r4 and event-name string in r5 to f_10bbb834, which constructs the monitoring key as source + '_' + event name (0x10bbb868-0x10bbb8b0); these arguments identify the monitored event, not an account payload. The emitter queues a callable through f_100f14ec at 0x101bb73c when an event loop is available. The callable's source string comes from emitter+4/+8 (0x101bb6dc-0x101bb6f4), not the incoming account argument. The no-event-loop path instead calls f_10bbd098 at 0x101bb9c0. This is separate from the generic UPnP event-source callback."
+    "MusicAccountChangedEvent is a local notification, not an account or password payload. f_102850c4 reaches f_101b8048 at 0x10285128 or 0x10285170. f_101b8048 rereads the account store at 0x101b8238, compares it with its cache at 0x101b8250 and calls f_101bb1d0 on the changed path at 0x101b8290. The emitter constructs a 24-byte MusicAccountChangedEvent string, not empty payload text: f_101b55ac receives begin=0x10e8ba90 and end=0x10e8baa8 at 0x101bb680 and 0x101bb6b4, copies end-begin bytes and stores that length. At both monitoring calls r5=&frame[0x5c] names this string object (0x101bb688 and 0x101bb6c0). The call at 0x101bb690 is f_10bbca78, and 0x101bb6c8 is f_10bbd280 with r6=1. Both pass the source string in r4 and event-name string in r5 to f_10bbb834, which constructs the monitoring key as source + '_' + event name (0x10bbb868-0x10bbb8b0); these arguments identify the monitored event, not an account payload. The emitter queues a callable through f_100f14ec at 0x101bb73c when an event loop is available. The callable's source string comes from emitter+4/+8 (0x101bb6dc-0x101bb6f4), not the incoming account argument. The no-event-loop path instead calls f_10bbd098 at 0x101bb9c0. This is separate from the generic UPnP event-source callback.",
+    "Resolved: the complete Account element grammar. Emitter f_105081bc writes \"  <Account Type=\\\"%s\\\" SerialNum=\\\"%s\\\" Flags=\\\"%s\\\"\" plus conditional \" Deleted=\\\"1\\\"\" and conditional attrs Id(+0x240), VClockHousehold(+0x1fc) and VClockCloud(+0x220); live rows then emit presence-gated UN, NN, PW, MD, OADevID, Hash and Tier elements; deleted rows stop after the optional UN. Caller f_105084e0 appends Token and Key and closes \"  </Account>\". Row predicate f_105050b0 always returns 1 but only rows with both Type and SerialNum nonzero are emitted.",
+    "Resolved: the concrete selector-11 async path. Commit calls repl vfunc+0x14 = f_10652074 informLocalReplicatedSettingVersion (kind 0xb, source mgr+0xb8) at 0x10289230; it validates the running byte +0x3b0 and kind<=0x11, walks the consumer slots at +0x84+kind*4 (accounts mgr at +0xb0, registered by f_10651bd4), updates the per-kind entry under mutex +0x320 and queues an async ReplicatedSettingsChangedEvent through f_10654800 on the in-process event bus (\"inprocess-events/subject.h\"). Refresh lands on mgr vfunc+0x34 f_102850c4, which public wrappers, the merge driver (0x1028f1dc) and the pending-sync driver (0x10290ca4) all call.",
+    "Resolved: preferred-account semantics. getPreferredAccount emits \"sn_0\" with success even when no preferred serial is set (mgr+0xdc==0), returns 0x20 \"No match for Preferred Account\" on a match miss, and setAndUpdatePreferredSerialNum stores +0xdc before commit then rolls it back on commit failure.",
+    "Resolved: replication op dispatch. The dispatcher at 0x102876b8 maps op 1 to the +0x14d flag plus pull-task f_100ba320 and op 2 to +0x14c plus push-task f_100ba5dc, both scheduled via the facility+0x5f8c scheduler vfunc+8; other ops log \"Invalid replication operation\".",
+    "Resolved: the migration family and its triggers. ensureLoaded f_1028d950 stats accounts.xml: present -> load + \"anonymous\" migration (transform f_102848ac keeps rows whose service reports type byte 2); absent -> f_102897d8 creates \"R_SvcAccounts\" from the legacy table (skip Type 0x307/0, renumber serials from 1) logging \"Created new accounts file; migrated %d accounts\". f_1028d4d8 runs \"pre-cloud\" mark-for-push on all rows; f_1028d180 (migrateAccountsToSMAPI) rewrites Pandora built-in Type&0x7f in {3,4}; f_1028e1a8 (migrateAccountSIDs) rewrites service IDs except service 0xfe; f_1028e5dc handles legacyTuneInReplaced under R_HideTuneIn; migrateGuestAccount verifies UDN and UserIDHash.",
+    "Resolved: corruption handling. The loader f_102887e0 flags emptyUUID, dupUUID and serial anomalies then logs \"Found corrupted accounts\" with an accountCorruption zpAM diagnostic; a separate maintenance pass removes duplicates with per-row logs and {serviceID,numAccounts} diagnostics, and a stale-anonymous detection pass reports read errors separately.",
+    "Resolved: guest lifecycle. Matching key is {g,sn,h}; linkCode is required to add a guest; guest nickname runs op \"matchImpl\"; a reauth-time duplicate that is a guest fails 0x323 with the \"dup\" zpam diagnostic and \"guest upgrade not allowed via reauth.\", while a permitted guest match on the OAuth-token path commits under \"int_addAccountWithOAuthToken\" and logs \"New account matched to existing guest account with SN=%u, Hash=%s\".",
+    "Resolved: the op-name strings are all third-argument tags to row modifier f_105709c0; unreachable-by-xref names are produced by delta addressing off anchor 0x10eaba94.",
+    "Resolved: direct-control teardown. f_1028734c (\"End direct control context UUID: %s\") is invoked via secondary-vtable thunk 0x101b5490, runs the match call f_104363ec through facility+0x9d6c, answers 0x42 via f_10b00204 and on 0x34 broadcasts to the repl-object listener list at +0x29038 calling each vfunc+0x50.",
+    "Resolved: shared manifest helper f_10287238 backs the five manifest-gated add workers (call sites 0x10289df0, 0x1028aec8, 0x1028b36c, 0x1028b4d0, 0x1028b644), returning the manifest pointer or 0x322 with \"Failed to download manifest file\"."
    ],
    "details": {
     "manifest_refresh_precondition": {
@@ -216283,8 +216465,7 @@
     }
    },
    "todo": [
-    "Established: manifest refresh preconditions/error translation in five account-add paths and shared account-family lookup are instruction-traced. Remaining: audit the older account field/matching/migration/corruption/preferred-account assertions against instruction-level callers and writers; trace all public add/edit/remove routes, credential acquisition, persistence/replication ordering, cloud merge predicates, guest/direct-control lifecycle and result/rollback/notification effects. Operation-name strings and existing inventories alone do not establish those behaviors.",
-    "Established: the local Accounts root attributes, temporary-file replacement and failure behavior, selector-11 advertisement, and cache-change MusicAccountChangedEvent emitter are traced above. Unknown: the complete conditional credential-element grammar and the concrete asynchronous path from the selector-11 receiver to account-cache refresh have not been traced here; root literals and an event name do not establish those links. Next: follow f_105081bc and its credential helpers for each live/deleted branch, then bind the receiver called at 0x10289230 and follow selector 11 through its queued callbacks to f_102850c4."
+    "Established: the credential-element grammar, the selector-11 notify chain into cache refresh, preferred-account get/set plus rollback, the replication-op dispatcher, cloud merge predicates and outcome counters, corruption detectors plus maintenance and stale-anonymous passes, the full migration family, guest and direct-control lifecycle, the shared manifest helper for the five add workers, and the f_105709c0 op-name tag mechanism are all instruction-traced. Remaining: the numeric service/type codes are only partially attributed (Type&0x7f in {3,4} proved Pandora built-in, 0x307 skipped on legacy create, 0x12f skipped in maintenance, service 0xfe excluded from SID migration, low byte 7 ORed into migrated SID types); the consumers of the merge-outcome counters and the identity of the zpAM diagnostic delivery object are unnamed; and per-route argument validation for modifyAccount, updateAccountUserInfo, migrateAccountToOAuth, reportAllActiveAccounts and ReportSvcTimedJob is known only by op-name tag, not yet traced per route."
    ]
   },
   "htaudio": {
