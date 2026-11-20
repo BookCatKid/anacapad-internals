@@ -494945,7 +494945,9 @@
      }
     },
     "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with optional household path scope. It does not list general add/edit/remove-account routes in this resource. Nearby field strings and candidate vtables do not establish an exact request/response schema or every operation result.",
-    "todo": "Established: seven method/path registrations identify match, preferred-account get/set and group direct-control start/end with household aliases. Remaining: bind each route to its concrete executor, separate input/output fields and required/default/validation policy, and trace matching, preference persistence, direct-control playback/account effects and emitted errors/events.",
+    "todo": [
+     "Established: all seven routes bound to their command classes and exec entries, and the three input models fully decoded with required/optional/context flags; scope fields are context-injected not body-parsed; match response member musicServiceAccount with globalError set. Remaining: the musicServiceAccount output-model member list (produced by a different serializer path, not the f_109cc8f4 registry), the concrete impl actor for the match/preferred/direct-control calls, match-to-account persistence semantics, and exact event emission predicates for musicServicesChanged."
+    ],
     "evidence": [
      {
       "type": "firmware",
@@ -494967,8 +494969,28 @@
       "build": "86.10-80260",
       "address": "0x10fa32ec",
       "notes": "Candidate op vtable; slot+0xc points to0x10b01aac, while other interface slots require separate binding."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "match work function f_10b008f4 and input model ctors",
+      "address": "0x10b008f4",
+      "callsite": "0x10b00930 cmd+0x7c impl read / 0x10b009dc impl vfunc+0xc call / model ctors 0x10aff404/0x10aff848/0x10affc44",
+      "notes": "Exec +0xc entries 0x10b01aac..0x10b01afc bound to the seven verbs subscribe/unsubscribe/match/setPreferred/getPreferred/startDirectControlEx/endDirectControl via consecutive command vtables 0x10fa32ec..0x10fa356c. Field models registered through f_109cc8f4 with tag=5 strings and flag required/optional/context."
      }
-    ]
+    ],
+    "executor_binding": {
+     "mechanism": "impl.execs are the +0x0c exec entries of each op's command-class vtable; the real work happens in the vtable +0x38 work function (e.g. match f_10b008f4), which parses inputs via f_109da4f8 and calls the injected implementation through impl vfunc+0xc on the command+0x64 object",
+     "input_models": {
+      "match": "f_10aff404: userIdHashCode str required, nickname str required, serviceId str required, linkCode str optional, linkDeviceId str optional",
+      "setPreferredMusicServiceAccount / getPreferredMusicServiceAccount": "f_10aff848: accountId str required (same model for setter and getter routes)",
+      "startDirectControlEx / endDirectControl": "f_10affc44: serviceId str required, appId str optional, linkCode str context(flag2), linkDeviceId str optional, restartToken str optional, accountId str optional"
+     },
+     "scope_fields": "householdId and groupId are flag-2 context-injected fields (from the command header model f_10a30b3c), never body members",
+     "response": "match's declared response member is musicServiceAccount plus globalError set (spec pool 0x10fa3648); preferred/direct-control ops return ok",
+     "events": "musicServicesChanged is produced by this namespace (event registry prod index 0x19)"
+    }
    },
    "networkTest": {
     "ops": [
@@ -640876,7 +640898,31 @@
     "field_vocab": [],
     "op_count": 8,
     "description": "Recovered routes expose a player-scoped call bridge plus subscription creation, renewal by logicalSID and deletion by logicalSID, with household-qualified aliases. The bridge vocabulary includes method, input, output and headers; subscription vocabulary includes durationSecs and logicalSID. Exact schemas, lifetime bounds, callback delivery and individual action reachability still require executor binding.",
-    "todo": "Established: eight call/subscription method/path registrations and related vocabulary are recovered. Remaining: bind bridge and create/renew/delete executors, verify MusicServices action reachability and error conversion, separate request/response schemas and recover subscription duration/default/expiry, logicalSID ownership and notification delivery semantics."
+    "todo": [
+     "Established: bridge structure (15 service classes, four verbs each), all input models decoded including logicalSID/durationSecs shapes and the notification record models. Remaining: per-service impl actor and SOAP target binding (which internal UPnP client each service proxies to), error conversion table for UPnP failure codes, exact subscription duration default/expiry arithmetic, and notification delivery predicates."
+    ],
+    "executor_binding": {
+     "mechanism": "the 15 impl.execs are the +0x0c exec entries of the 15 upnp* bridge command classes (one per UPnP service, in registry order AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology); each class exposes call/subscribe/renew/unsubscribe",
+     "input_models": {
+      "call": "{method str required, headers repeated-string optional, input repeated-object optional, output repeated-object optional} e.g. f_10b4e920 for upnpAlarmClock, identical shape for all 15 services",
+      "subscribe": "{durationSecs int64 optional} e.g. f_10b4ed04",
+      "renew": "{logicalSID str required, durationSecs int64 optional} e.g. f_10b4ef90",
+      "unsubscribe": "{logicalSID str required} e.g. f_10b4f290"
+     },
+     "notification_models": "f_10ab8bb0 {logicalSID str required, eventKey int64 required, body str required}; f_10aba0c8 {parameters repeated-object optional, logicalSID str optional, result int64 required, subscriptionDurationSecs int64 optional}",
+     "semantics": "logicalSID is a free-form string the bridge owns (UPnP subscription id); durationSecs is an optional client proposal (server default applies when omitted); the bridge forwards call inputs/headers to the named UPnP service and delivers UPnP NOTIFY traffic through the muse event channel"
+    },
+    "evidence": [
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "upnp bridge input/subscription models",
+      "address": "0x10b4e920",
+      "callsite": "model ctors 0x10b4e920/0x10b4ed04/0x10b4ef90/0x10b4f290 + event record 0x10ab8bb0/0x10aba0c8",
+      "notes": "Field registrations via f_109cc8f4: method str req, headers str-list, input/output obj-list for call; logicalSID str req for renew/unsubscribe; durationSecs i64 opt for subscribe/renew. Identical model shape repeated for all 15 services."
+     }
+    ]
    },
    "upnpQueue": {
     "ops": [
