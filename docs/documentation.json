@@ -215039,7 +215039,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
@@ -716954,11 +716954,11 @@
   "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
   "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
   "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\": ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
-  "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV) and the deeper fields inside the 0xb0-byte mbedtls_ssl_config (mbedTLS library structure)",
+  "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV). mbedTLS library-internal layout of the 0xb0 config beyond the stores the firmware itself performs is library data, not device behavior",
   "download_flow": {
    "provenance": "devicecertmanager.cxx unit f_105a6984-f_105a8724 (source-path literal proven)",
    "orchestrator": "f_105a7dac prepares the staging path and calls fetch helper f_1055030c at 0x105a8274. The later f_105a7868 call logs the download outcome; f_105a75dc is a separate metrics path.",
-   "request": "The URL comes from cert.uri. The user/household and manufacturing-data strings are not by themselves proof of the outgoing request-body key set.",
+   "request": "POST <cert.uri path> HTTP/1.1 rebuilt from fetch helper f_1055030c + request writer f_10544994: request line 'POST <path> HTTP/1.1', headers CONNECTION: close, Host: <host>[:port], ACCEPT: */* (ctx+0x8568 compiled default), USER-AGENT: 'Linux UPnP/1.0 Sonos/<version> (<model>)' (f_10550f6c snprintf into global 0x110a4ba4), Content-Type: application/json, Transfer-Encoding: chunked (stack flag arm; Content-Length is the alternate arm), then packed extra headers from ctx+0x490: 'X-Sonos-Muse-Household-Id: <hhid>' (header pair built at 0x105a8078-0x105a8094 from mgr+0x111c vfunc+0x54 string) and 'If-None-Match: <stored etag>' (added by f_1055030c at 0x105505a4 only when the 0x41-byte etag copy at this+0x10d2 is non-empty). Authorization/COOKIE lines exist in the writer but only emit when ctx+0x488/0x48c/0x494 are configured, which this path does not do. Body: one JSON object {\"_objectType\":\"manufacturingData\",\"model\":..,\"submodel\":..,\"revision\":..,\"region\":..,\"color\":..} serialized by vfunc+0x8 f_10a6cc54 -> f_10a6cb9c of the sp+0x50 aggregate (ctor f_10a6c6d8, type-id 0xa3 stored at obj+4 by base ctor f_109ec9f0, name table 0x10f97094); the five values are getters f_10909550/60/70/80(+0x10c/0x110/0x114/0x120) and f_10908cd8(+0xe8) on the device-properties singleton f_1090ad44 (0x110b8150).",
    "staging": "downloads written to *.tmp files (\"file %s [%s]\" log) then installed; state+etag persisted as settings keys (state, etag literals in scope)",
    "events": "muse Registration event emitted with eventType=downloaded, certType=deviceCert, secureReg fields; refresh scheduler f_105a6984 wakes via Job* fields and re-arms \"refresh check in %ld seconds\"; expiry path logs \"certificate expired\"",
    "driver": "f_1064556c (regdevicecert.cxx cluster, \"regcert\" literal former) drives refresh check",
@@ -716970,11 +716970,9 @@
     "newETag",
     "previousETag",
     "eventType=download on this path"
-   ]
+   ],
+   "response_handling": "f_1055030c streams the response body in 0x1000-byte reads (ctx vfunc+8) to the '<dir>/<file>.tmp' staging file with a 0x4000-byte budget (arg r7), fsync+close+re-stat size check before returning 0. Status word ctx+0x856c: HTTP 417 returns 2; (status-200)>2 unsigned returns -7; request failure unlinks and returns -1; open/write/size/verify failures return -2/-3/-4/-5 with the staging file unlinked. Return 1 = no-fetch cache hit when the staging file already exists (stat==0 under flag arg9==0). Response ETag header parsed into ctx+0x8679 is strlcpy'd (0x41) over the caller's etag buffer, which the orchestrator then logs as newETag and persists via the 'state'/'etag' settings keys."
   },
-  "todo": [
-   "Residual: reconstruct the exact HTTP body and headers by tracking inputs to the fetch helper, and attribute any deeper wrapper fields beyond the stores proven by f_1056c7d0. Neither the post-fetch event object nor the selector context proves that schema or layout. The deployed cert.uri value comes from settings."
-  ],
   "local_store": {
    "layout": "<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt} - constructed by f_106b268c via imported constructJFFSRootPath(buf, mgr->+0x10a4) then strlcat '/' + env + '/' + filename",
    "files": {
@@ -716989,7 +716987,10 @@
   "resolved_findings": [
    "The concrete URL value in cert.uri comes from runtime settings.",
    "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri).",
-   "In build 86.10-80260, f_105a7dac calls f_1055030c at 0x105a8274 between clock_gettime calls (0x105a8214 and 0x105a829c). Only afterward does it populate the object at sp+0xb4 (0x105a8300 onward); 0x105a8388 sets eventType to the literal download and f_10559024 at 0x105a83b4 returns a singleton without using the incoming event pointer. The caller loads vtable slot +0x1c at 0x105a83d0, sets r4 to sp+0xb4 at 0x105a83d8, and passes the object to that slot at 0x105a83e0. Those fields do not describe the HTTP response."
+   "In build 86.10-80260, f_105a7dac calls f_1055030c at 0x105a8274 between clock_gettime calls (0x105a8214 and 0x105a829c). Only afterward does it populate the object at sp+0xb4 (0x105a8300 onward); 0x105a8388 sets eventType to the literal download and f_10559024 at 0x105a83b4 returns a singleton without using the incoming event pointer. The caller loads vtable slot +0x1c at 0x105a83d0, sets r4 to sp+0xb4 at 0x105a83d8, and passes the object to that slot at 0x105a83e0. Those fields do not describe the HTTP response.",
+   "The download request is a POST (not GET) when a body object is present: f_1055030c tests the body-pointer stack arg (caller sp+0x30 {ptr,len} pair produced by f_109ece48 at 0x105a81b4); nonzero dispatches vtable+0x60, which for this ctx equals f_101512f8 so the direct call f_10546158 is used (0x1055049c). When the body pointer is null it falls back to ctx vfunc+0x5c (0x10550738) instead.",
+   "Exact wire form established: 'POST <path> HTTP/1.1\\r\\nCONNECTION: close\\r\\nHost: <host>[port]' then ACCEPT: */*, USER-AGENT 'Linux UPnP/1.0 Sonos/<version> (<model>)', Content-Type: application/json, Transfer-Encoding: chunked, caller headers X-Sonos-Muse-Household-Id plus conditional If-None-Match, and a chunked JSON body {_objectType:'manufacturingData', model, submodel, revision, region, color} drawn from the device-properties singleton (0x110b8150 fields +0x10c/+0x110/+0x114/+0x120/+0xe8).",
+   "Cert-object wrapper deeper fields attributed: f_1056d5c0 fresh-builds the 0x10 wrapper {flag 0x1000000, malloc(0xb0) mbedtls_ssl_config, +8, +0xc}; it pins conf+0/conf+4 = 0x303 (TLS1.2 min and max), mbedtls_ssl_conf_authmode(conf,2) VERIFY_REQUIRED, conf+0x44 = f_10579c2c plus mbedtls_ssl_conf_verify (f_10579e08,0), mbedtls_ssl_conf_cert_profile(sonos::certval::getCertProfile()), mbedtls_ssl_conf_groups (table 0x10ecd8b0); arg2 credential record is refcounted into wrapper+8 with conf+0x6c = cred+0xc, and arg3 RootCACertBundle into wrapper+0xc with mbedtls_ssl_conf_ca_chain(conf, bundle+4, 0) and conf+0xa4 = bundle+8 (CRL head). The clone path f_1056cfc4 memcpy's the whole 0xb0 conf and re-shares +8/+0xc. The per-id wrappers land in table 0x110a56d8[id] built by f_1056dc3c, which matches credential records against hostnames such as 'sonos.com' (f_1056c9bc)."
   ],
   "endpoints": {
    "registry": "the O_* settings-key vocabulary is fully enumerated in rodata at 0x10eea650..0x10eead00 (~67 keys); URL-class keys include O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_UPDATE_MSG_URL, O_CLOUD_API_BASE_URL, O_DC_DESCRIPTOR_BASE_URL, O_SETUP_SERVER_URL, O_UPDATE_SERVER_URL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_TRACKPLAYBASE_URL, O_UNIVERSAL_SEARCH_URL, O_TIMEZONE_URL plus non-URL keys (intervals, sids, flags). Key VALUES are runtime settings populated from provisioning/environment config - the O_SONOS_CLOUD_API_TEST_ENV key selects the environment.",
@@ -716997,6 +716998,72 @@
    "request_headers": "The image contains user ID, household ID, device registration status, software version, conditional ETag, and accepted-format header names. The complete set actually sent by the registration-device download has not been verified from the fetch helper."
   },
   "reject_reasons": "cert validation reject codes emitted as strings: BAD_FILE, BAD_KEY, BAD_CERT, BAD_ISSUE_DATE, MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present (0x10ef2430-0x10ef24b4)",
-  "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce"
+  "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce",
+  "evidence": [
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x105a7e68",
+    "address": "0x105a8274",
+    "notes": "fetch call: r3=ctx@sp+0x10c8, r4=url, r5=staging '.tmp' path (strlcat 0x10eeb864 at 0x105a815c), r6=header list sp+0x38, r7=0x4000 byte budget, r8=0x7530 ms deadline, r9=1/r10=1 etag mode; stack: etag buf sp+0xd818 (copied from this+0x10d2 at entry), size 0x41, body ptr sp+0x30, flag 1, 'application/json'"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x1055030c",
+    "address": "0x10550444",
+    "notes": "ctx+0x490 = sp+0xbc accumulator buffer built by f_105512c4/f_1055181c; If-None-Match appended at 0x105505a4 when *etagbuf != 0; caller header list walked 0x10550418-0x1055043c (node+0x10 name, +0x28 value)"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x1055030c",
+    "address": "0x1055064c",
+    "notes": "response body written to staging file via open64 0x1055064c, write loop vfunc+8 chunk read 0x10550678, byte budget r21 -= chunk, fsync 0x105507fc, re-stat verify 0x10550814"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x10544994",
+    "address": "0x10544a3c",
+    "notes": "request fmt '%s %s HTTP/1.1\\r\\nCONNECTION: close\\r\\nHost: %s%s\\r\\n'; ACCEPT/USER-AGENT/Content-Type conditional on args; 'Transfer-Encoding: chunked' when stack flag byte 0x2093 != 0; extra headers ctx+0x490 iterated as packed name\\0value pairs emitted '%s: %s\\r\\n' through vfunc+0x38 filter (default f_10540a18)"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x10a6cb9c",
+    "address": "0x10a6cbc4",
+    "notes": "JSON body members: '_objectType'(name table 0x10f97094[id], id=obj+4=0xa3 'manufacturingData'), 'model','submodel','revision','region','color' from obj+8..+0x18 via f_109d1570 key-value writes"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x10550f6c",
+    "address": "0x10550fb4",
+    "notes": "UA string 'Linux UPnP/1.0 Sonos/%s (%s)' snprintf into global 0x110a4ba4; version via f_1090b078, model via f_10908370(f_1090ad44())"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x1056d5c0",
+    "address": "0x1056d654",
+    "notes": "fresh conf: mbedtls_ssl_config_defaults(conf,0,0,0); conf+0=conf+4=0x303 (TLS1.2 pin); authmode 2; f_1057a090 installs conf+0x44=f_10579c2c + conf_verify(f_10579e08,0); cert_profile getCertProfile; groups 0x10ecd8b0; wrapper+8=cred rec (conf+0x6c=cred+0xc); wrapper+0xc=CA bundle (conf_ca_chain bundle+4; conf+0xa4=bundle+8)"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x105a7e68",
+    "address": "0x105a8084",
+    "notes": "'X-Sonos-Muse-Household-Id' header pair: hhid string obtained via mgr+0x111c vfunc+0x54 then vfunc+0xc at 0x105a8004-0x105a8034; pair pushed by f_105a8b48 into list sp+0x38"
+   }
+  ]
  }
 }
