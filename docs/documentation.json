@@ -201993,17 +201993,18 @@
    "semantics": "multi-device action routing: the coordinator/group proxy forwards actions to the target member identified by UDN; pairs w/ MobileDeviceUDN/playerUDN/HTPrimaryUDN identity fields"
   },
   "soap_param_redaction": {
-   "flags": "secure + sensitive + trackIDing + prevent per-param flags",
-   "semantics": "params (passwords, tokens, account data) flagged to be excluded from SOAP request logging; 'Invalid secure param' when a redacted param is malformed",
-   "todo": [
-    "Established: per-param redaction flags at request-param +0x48/+0x4c; tier-2 literal REDACTED substitution sites; arg-record +0x31 proven to be a zero-initialized runtime flag, not the redact marker.",
-    "Residual: the complete param-name list that arrives flagged - driven by action metadata tables, partially observable per action"
-   ],
-   "flag_location": "Two-tier model decoded. TIER 1 - log suppression (f_1056026c, tag 'reporter'): each request param record carries flag word +0x48 and flag byte +0x4c; when +0x48 is set the param is dropped from logs entirely ('not logging %s, sensitive'), otherwise the four-flag diagnostic 'not logging %s, secure %d, prevent %d, sensitive %d, trackIDing %d' prints the param name (vfunc +0xc) with {secure=+0x48, sensitive=+0x4c, prevent=f_1055fde8(), trackIDing=f_10560138()} - so 'secure'/'sensitive' are stored flags while 'prevent'/'trackIDing' are computed predicates. TIER 2 - value substitution: the 'REDACTED' literal replaces flagged values inside serialized dumps rather than dropping the field - e.g. the wifi settings serializer f_101d0d1c emits 'ssid' and 'frequency' plainly but substitutes 'REDACTED' for the credential-bearing members at +0x24/+0x28/+0x2c; ~10 substitution sites spread across the anacapa (0x101d0d1c) and muse (0x109f-0x10a7) serializer families. DEFAULTS: flags come from the action/dispatch metadata - credential params (psk, passwords, keys, device secrets) are the flagged class; 'trackIDing' marks params that can identify what a user played.",
+   "flags": "per-param redaction via two stored flags (secure ptr +0x48, prevent byte +0x4c) plus two computed name predicates (sensitive, trackIDing); tier-2 literal 'REDACTED' substitution in serializers",
+   "semantics": "params (passwords, tokens, account credentials, session ids, track URIs) are withheld from SOAP request/response logging: the per-param reporter suppresses a param when its stored secure flag (+0x48) or prevent flag (+0x4c) is set, or when its name matches the sensitive or trackIDing name predicates; each suppression emits the diagnostic 'not logging %s, secure %d, prevent %d, sensitive %d, trackIDing %d' at level 8 on the 'reporter' logger; 'Invalid secure param' when a redacted param is malformed; a separate tier-2 mechanism substitutes the literal 'REDACTED' for credential fields inside serialized dumps",
+   "flag_location": "TIER 1 - log suppression, per-param reporters f_1056026c (full gate) and f_1055ffa0 (sensitive-only). Param records are 0x58-byte entries in the param-set container array at +0x1180 (capacity 0x10, count +0x1178); record layout: vptr +0x00 (vfunc+8 = init/assign, vfunc+0xc = name getter, vfunc+0x10 = value setter), type tag +0x04, heap value ptr +0x08, inline value buffer +0x30, secure ptr +0x48, prevent byte +0x4c, producer aux +0x50. Gate order in f_1056026c: +0x48 != 0 (secure) -> suppress, +0x4c != 0 (prevent) -> suppress, f_1055fde8(name) (sensitive) -> suppress, f_10560138(name) (trackIDing) -> suppress; on any hit it logs 'not logging %s, secure %d, prevent %d, sensitive %d, trackIDing %d' via the 'reporter' logger (lookup f_109b6fe4 arg 8, emit f_109b72ac) and drops the param; otherwise it appends 'name = value' to the report sink via f_1055847c. The diagnostic proves the field names: 'secure' and 'prevent' are the stored flags, 'sensitive' and 'trackIDing' are computed name predicates (an earlier note had prevent/sensitive swapped). Flag producers: the ctor f_1055fb88 zeroes +0x48/+0x4c; the plain-append producer f_10562388 (520 callers) stores the caller's flag arg r5 into +0x4c and never touches +0x48; the secure-append producer f_10562468 (20 callers, plus uncalled sibling f_1056267c) stores &container+0xc5c into +0x48 and forces +0x4c = 0 - container+0xc5c is an embedded polymorphic buffered-stream helper (vtable 0x10ee9984, f_1054ed40 family, ring-buffer write f_1054e5c4, fopen-based read f_1054f15c), so 'secure' params bind their value to a dedicated channel object instead of a plain pointer. Both reporters select the printable value by type tag: tag <=5 uses the inline buffer +0x30, tag ==6 uses the heap ptr +8, tag >6 uses the empty-string literal at 0x10ea6a2c so pointer-typed params (tags 7-9 written via setters f_105605c8/e8/608) log name only. f_1056026c also contains latent metadata mining for the names CurrentURIMetaData / EnqueuedURIMetaData / EnqueuedURIsMetaData (extracts parentID=, 'search'/'SEARCH' -> parentIsSearch, <upnp:class> -> upnpClass via f_1055f258 + f_1055847c), but the block sits behind the trackIDing gate and all three names carry a trackIDing prefix, making it unreachable in this build. TIER 2 - value substitution: the 'REDACTED' literal replaces flagged values inside serialized dumps rather than dropping the field - e.g. the wifi settings serializer f_101d0d1c emits 'ssid' and 'frequency' plainly but substitutes 'REDACTED' for the credential-bearing members at +0x24/+0x28/+0x2c; ~10 substitution sites spread across the anacapa (0x101d0d1c) and muse (0x109f-0x10a7) serializer families. DEFAULTS: flags come from the producer variant each call site uses plus the fixed name predicates - credential params (psk, passwords, keys, device secrets, session tokens) are the flagged class; 'trackIDing' marks params that can identify what a user played.",
    "resolved_findings": [
-    "Resolved: flags live at param +0x48 (secure=suppress) and +0x4c (sensitive), with prevent/trackIDing computed; tier-2 substitutes 'REDACTED' inside dumps - credential params are the flagged class.",
+    "Resolved: flags live at param +0x48 (secure, suppress) and +0x4c (prevent, suppress); the 'sensitive' and 'trackIDing' diagnostic slots are computed name predicates on the param name, not stored flags - corrected from an earlier pass that had prevent/sensitive swapped; tier-2 substitutes 'REDACTED' inside dumps - credential params are the flagged class.",
     "Resolved (partial): one redaction mechanism is hardcoded substitution - the credential-response serializer writes literal 'REDACTED' for fields {clientId, authFlow, refreshToken, accessToken} unconditionally (sites 0x10ba6450..0x10ba64b8 via f_109d1924 doc-setter), independent of any flag. Separately, each parsed request-arg record carries a flag byte at +0x31 (zeroed by the f_105614xx/f_105615xx parse ctors alongside type tag at +0x4 and value ptr at +0x8/+0xc) - candidate carrier for a per-param redact marker.",
-    "Resolved: the +0x31 flag byte is NOT the redaction carrier - the arg-record ctor family f_10561414..f_105616xx (per-type ctors storing type tags {1,2,3,...} at +0x4, value ptr +0x8, vec {base+0xc,len+0x10,cap+0x14}) unconditionally ZEROES +0x30/+0x31/+0x32 for every type. +0x31 is a runtime-mutated per-arg flag (dirty/consumed class) set post-parse; redaction itself rides the request-param record flags at +0x48 (secure=suppress) and +0x4c (sensitive) as established."
+    "Resolved: the +0x31 flag byte is NOT the redaction carrier - the arg-record ctor family f_10561414..f_105616xx (per-type ctors storing type tags {1,2,3,...} at +0x4, value ptr +0x8, vec {base+0xc,len+0x10,cap+0x14}) unconditionally ZEROES +0x30/+0x31/+0x32 for every type. +0x31 is a runtime-mutated per-arg flag (dirty/consumed class) set post-parse; redaction itself rides the request-param record flags at +0x48 (secure=suppress) and +0x4c (prevent) as established.",
+    "Resolved: sensitive predicate f_1055fde8 fully enumerated - nine case-insensitive PREFIX compares (strncasecmp on the vfunc+0xc name): logon(5), password(8), newLogon(8), newPassword(11), developerKey(12), AccountID(9), CurrentAVTransportURI(21), ProgramURI(10), username(8). Any param name starting with one of these is sensitive, e.g. passwordNew also matches.",
+    "Resolved: trackIDing predicate f_10560138 fully enumerated - six case-insensitive prefix compares: CurrentURI(10), EnqueuedURI(11), EnqueuedURIs(12), uri(3), term(4), prefix(6). So CurrentURIMetaData, EnqueuedURIMetaData and EnqueuedURIsMetaData are all trackIDing by prefix, as is any arg name beginning with 'uri' or 'term'.",
+    "Resolved: secure-flagged name census complete - +0x48 is written only by the secure-append producer family (f_10562468: stores &container+0xc5c at 0x105624d4/0x1056254c; sibling f_1056267c at 0x105626e8 has no callers) and the only other writer is the zeroing ctor f_1055fb88. f_10562468 has exactly 20 call sites, all inside six SystemProperties account-credential action handlers: SetAccountNicknameX (AccountUDN, AccountNickname), EditAccountPasswordX (AccountID, NewAccountPassword), AddAccountX (AccountID, AccountPassword), RefreshAccountCredentialsX (AccountToken, AccountKey), ReplaceAccountX (AccountUDN, NewAccountID, NewAccountPassword, AccountToken, AccountKey, OAuthDeviceID), AddOAuthAccountX (AccountToken, AccountKey, OAuthDeviceID, AuthorizationCode, RedirectURI, UserIdHashCode) - 12 distinct names total.",
+    "Resolved: prevent-flag census complete - of 520 f_10562388 call sites 516 pass flag r5 = 0; the only prevent=1 appends are 'username' in the SMAPI getSessionId builder (0x1072512c inside f_10724f50), 'deviceSessionToken' in the SMAPI getContentKey builder (0x107264e8 inside f_10725a88) and the SMAPI getMediaURI builder (0x10729df0 inside f_10728dc8), and 'Username' in MusicServices GetSessionId (0x1072fe80 inside f_1072fd50). These cover SMAPI credential fields outside the sensitive list (deviceSessionToken) or double-cover it (username/Username). The earlier 'driven by action metadata tables' hypothesis is disproven: flags are fixed per call site by which producer variant the code calls, not looked up per action at runtime.",
+    "Resolved: sibling reporter f_1055ffa0 (single caller at 0x10561b60, vs f_1056026c called at 0x10561bdc) is the simpler variant - it checks only the sensitive predicate, emits 'not logging %s, sensitive' on the 'reporter' logger, else ' - param %s = %s' on the 'soap' logger once the sink count (f_10564be8) exceeds 11; same type-tag value selection (tag <=5 inline +0x30, tag 6 heap +8, else empty literal 0x10ea6a2c)."
    ]
   },
   "httpcache_manager": {
@@ -212058,10 +212059,6 @@
      "0x100exxxx-0x100fxxxx": "rendering-control event layer (Unduck, StereoPairStateEvent, VolumeScalingFactor, SpeakerSize, SubGain/Crossover, DuckingEvent, ProxiedFastVol0Event, runtime_policy)"
     },
     "notes": "Boundaries approximate at 0x20000 granularity; vendored-block identity inferred from sampled literals. Sonos-code subsystems whose bodies live in the 0x10aa-0x10e7 span: muse/spec RPC engine, household-settings engine, LED engine, Spotify eSDK, evo decoder, dsplib, htaudio chproc, SPDIF writer.",
-    "todo": [
-     "Established: the per-0x20000-block map is built from string sampling plus bl-target fingerprinting, cross-checked against vtable referrers where possible.",
-     "Residual: regions labeled by sampling alone (not cross-checked) carry residual attribution risk, and the map's block boundaries are coarse by construction. (impl/delegate internals sit behind runtime-injected dispatch - documented static boundary)"
-    ],
     "resolved_findings": [
      "Resolved: every block now carries an attribution verified by named-dynsym residency, vtable-method residency, or dense module-file literal clusters; no sampling-only attribution remains."
     ]
@@ -212069,10 +212066,6 @@
    "rela_dyn": ".rela.dyn = 17 relocs: 12x R_PPC_COPY (kHttpsPortDeltaFromBase,kDefaultBaseHttpPort,kSecureHHHttpsPortDeltaFromBase,g_pszJFFSRoot,timevalInf/Zero,environ,stdin/stdout/stderr copied from a shared lib into .bss @0x1109b000+), 4x R_PPC_ADDR32 into .data.rel.ro, 1x R_PPC_GLOB_DAT (.got 0x110953ac). Confirms those named consts are exported by a Sonos shared lib, not defined here.",
    "tbss": ".tbss 16B @0x1109b328 - thread-local storage, minimal",
    "build_metadata": ".comment = GCC 5.5.0 (crosstool-NG 1.24.0) for app code + many GCC 4.3.2 objects (vendored libstdc++/old libs); build-id 76be87c7d664cac4bf54251a8afb3c33f72bf4df; .gnu_debuglink \"anacapad\" crc 0xd61b897d; interp /lib/ld.so.1; ABI-tag GNU/Linux kernel>=2.6.32; gnu.attributes PPC (soft-float flags embedded); .PPC.EMB.apuinfo = APUinfo header (embedded-PPC aux info); .gnu.hash + .gnu.version normal dynamic tables.",
-   "todo": [
-    "Established: the pointer-table physical layout and text-region sampling method are documented.",
-    "Residual: some text blocks are mapped by string-sampling only and not cross-verified against vtable/data anchors."
-   ],
    "verification": "Per-region cross-verification complete. .data.rel.ro/.data/.sdata vtable-slot residency: household/settings block 0x10ba-0x10c2 = 237 slots (vtable-heavy C++ module, confirmed); JSON-schema/expat block 0x10c2-0x10c7 = 120 slots (validator classes, confirmed); vorbis+metadata block = 11 (mostly-C with a thin C++ metadata layer); spotify eSDK block = 1 (C-style callback structs, no vtables); LED driver and expat sub-block = 0 slots (pure C). .rodata function-table residency fills the gap: muse engine blocks carry dense generated dispatch tables (0x10aa-0x10ba = 3295 ptrs in small runs, 0x10a0-0x10aa = 1299) rather than C++ vtables - consistent with the generated namespace/message layer; expat carries 108 ptrs in uniform 6-word runs = its per-encoding scanner tables; LED = single 14-entry table; spotify = single 17-entry callback table. Every region's table style matches its module attribution.",
    "resolved_findings": [
     "Resolved: per-region verification pass done - vtable-slot counts (.data.rel.ro) and rodata function-table runs both corroborate the module attributions; no mislabeled regions found."
@@ -216503,7 +216496,7 @@
    ]
   },
   "multi_daemon_boundary": {
-   "summary": "The netstartd boundary uses a framed binary AF_UNIX stream, with direction-specific message dispatch and payload checks. The checked /anacapad-external, /netstartd-external and sibling path literals instead select outbound HTTPS crash-upload destinations; they do not establish local HTTP IPC handlers. Diagnostic uploads and netstartd control IPC must be mapped separately.",
+   "summary": "The netstartd boundary uses a framed binary AF_UNIX stream with direction-specific message dispatch and payload checks. Inbound dispatch f_10691034 switches on BE32 msg id at frame+0xc (ids 0x1f..0x5b via self-relative table 0x10f01d6c; 23 live arms) covering netstartd lifecycle, WAC/setup mode, netsettings and connection-type updates, WiFi telemetry events, HHID and upgrade triggers; two receiver vfunc wrappers pre-empt ids 0x30/0x31/0x40 for wifi-connect bookkeeping and the event-loop wakeup. Outbound pushes go through IPC-send vfunc+0x34: msg 0x14 netsettings table (N x 0x6c records), msg 0x17 PSK pair (2 x {ssid 0xa1, key16, key16}, stack buffer scrubbed after send), plus a SonosNet channel-change sender. The checked /anacapad-external, /netstartd-external and sibling path literals instead select outbound HTTPS crash-upload destinations; they do not establish local HTTP IPC handlers.",
    "anchors": [
     "/btmanager-external",
     "/netstartd-external",
@@ -216724,16 +216717,50 @@
      "address": "0x105d39b8 / lib0x1698",
      "callsite": "0x105d39c0 / lib0x16a0",
      "notes": "Raw receiver addi r9,r31,-4 precedes cmplwi0x800 and bgt reject, so body_len4..0x804 inclusive is accepted. Shared-library raw compare0x2b860800 followed by0x419d00e0 rejects data_len>2048, not>=2048; body_len is data_len+4 at0x1750. Equality cases and unsigned underflow were checked, correcting the old803/<800 claims. Separate24-row name catalog is not the42-slot executed wire dispatcher."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10691034",
+     "notes": "Inbound msg-id dispatcher: BE32 @frame+0xc minus 0x1f bounds 0x3c, self-relative table 0x10f01d6c; 23 live arms, rest default-return."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f01e60",
+     "notes": "Second switch table inside msg-0x58 arm: connection-type codes 0..7 -> name blocks (Unknown, SonosNet(Ethernet), SonosNet(wireless), Ethernet, Ethernet(WiFi Disabled), WiFi, Home Theater, Home Theater(Ethernet))."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10628f4c",
+     "notes": "Outbound push: msg 0x14 netsettings table (0x6c8 buf, N x 0x6c {b64key,ssid,flags}), msg 0x17 PSK pair (0x142 buf, 2x{ssid 0xa1,key16,key16}) via vfunc+0x34 send; PSK buf scrubbed via ZZ0038."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10197fc4",
+     "notes": "Receiver vfunc thunk: msg 0x40 -> f_101b2724 'Change in event loop detected' before table dispatch."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019808c",
+     "notes": "Second receiver thunk: msg 0x30 -> wifi-connected bookkeeping (wC flag, 30s boot-seq gate), 0x31 -> disconnect timestamp, then normal dispatch."
     }
    ],
    "ipc_routes": "Observed diagnostic upload paths: /anacapad-external, /btmanager-external, /netstartd-external, /sonosledmgrd-external, /sonospowercoordinator-external. These references in f_102537b0 are outbound URL suffixes, not a certified inbound route table.",
-   "netstartd_contract": "socket /tmp/netstartd.ipc + /tmp/netstartd.pid; handshake 'netstartd hello'; anacapad->netstartd: 'Pushed netsettings update to netstartd', 'Pushed PSK update to netstartd', satellite-addition notify, 'signaling netstartd (%s) %s'; netstartd->anacapad: 'Received netsettings update from netstartd', 'Got connection type update from netstartd: [%s]'",
+   "netstartd_contract": "socket /tmp/netstartd.ipc + /tmp/netstartd.pid; handshake 'netstartd hello' (msg 0x32 -> f_10690648). INBOUND (netstartd->anacapad, dispatch f_10691034, msg id BE32 @frame+0xc, bounds word BE32 @frame+8, payload @+0x10): 0x1f 'Netstart is idle' (post state event 0x18004004), 0x20 'Netstart open' (ForceShutdownOnNewSSID=1, event 0x18000004 arg 0x4000), 0x21/0x22 SSID set/clear (log only), 0x23/0x24/0x25 'WAC mode disabled/enabled/timeout' (state flags masks 0x60000/0x20000+1/0x20000-0+0x40000+1), 0x27 netsettings entry (len<=0x6c -> f_1062b668 'Received netsettings update from netstartd' into ctx+0x8c8), 0x28 'Netstart alive' (FSON=1, event 0x18004000 arg 4), 0x29 (len<=0x58, u32 @+0x10 -> polymorphic vfunc+0xd4 consumer), 0x2a 'In setup mode' (len<=0xc, flag byte@+0x17&1 gate, event 0x08004004 arg 0x10000000), 0x2c 'Netstart triggered upgrade (0x%x): %s' (u32 flags @+0x411, reason str @+0x10 -> vfunc+0x84 then obj vfunc+0xc), 0x2e 'Setup start' (len<=0xc, FSON=1, event 0x10004004 arg 0x8000000, flag +0x941), 0x2f 'Setup stop', 0x30 'Received WiFi connected event' (len<=0x23 -> f_1062bab0 then telemetry kv {eventType=wifiConnected, hardware=wifi} via f_10557fa8/f_1055847c/f_10559024 + obj vfunc+0x1c(5,1)), 0x31 'Received WiFi disconnected event' (same, wifiDisconnected), 0x32 'netstartd hello' (f_10690648 registration), 0x34 registration-key buffer (len<=0x23 -> f_1064bc38), 0x35 'Received set Muse HHID' (str@+0x10 len<=0x35, strcmp vs vfunc+0x54 getter -> f_1068d588), 0x50 (vfunc+0x14 state delegate), 0x58 'Got connection type update from netstartd: [%s]' (len>=4, u32 @+0x10 -> nested table 0x10f01e60 names 0..7 = Unknown/SonosNet(Ethernet)/SonosNet(wireless)/Ethernet/Ethernet(WiFi Disabled)/WiFi/Home Theater/Home Theater(Ethernet) then f_105ae8fc; falls into the 0x50 delegate), 0x5a network bounce (f_105e7338()==9 mid-shutdown or global 0x11097690 -> 'ignoring network bounce mid-shutdown', else '  ----  Networking Bounced ----' + f_1069ad98 ctx+0x40), 0x5b 'recovery AP connection: %02X%02X%02X%02X%02X%02X' (len<=9, MAC@+0x14 state@+0x10 -> f_1057bb58, fail -> 'unable to set recovery AP state'). Default arms 0x26/0x2b/0x2d/0x33/0x36-0x4f/0x51-0x57/0x59 return silently. PRE-DISPATCH intercepts: receiver wrapper 0x10197fc4 routes id 0x40 to f_101b2724 ('Change in event loop detected', event-pump wake on this+0xd0) before the table; wrapper 0x1019808c routes id 0x30 to wifi-connected bookkeeping (wC flag r3-0x7c4, 30s boot-sequence re-eval via f_101b2ca4, 'Not updating boot sequence due to wifi connection event wC:%d') and id 0x31 to disconnect timestamping, then both still fall through to the dispatcher. OUTBOUND (anacapad->netstartd, f_10628f4c 'push' gated on ctx flag +0xfc): msg 0x14 netsettings update - {count u32, version u32 ctx+0x158, N x 0x6c entries {b64-decoded key @0 <=0x20 via sonosBase64Decode ('Error decoding SSID, cannot notify netstartd'), ssid str @0x20 cap 0x41, u32 flag}}, max buf 0x6c8 (16 entries); msg 0x17 PSK update - 0x142 buf {ssid1[0xa1] ctx+0x8a0, key16 ctx+0x921, key16 ctx+0x931, ssid2[0xa1] ctx+0x950, key16 ctx+0x9d1, key16 ctx+0x9e1}, buffer wiped via ZZ0038 after send; SonosNet channel change sender f_10628e68(ctx+0x158, ch, holdms 0x1388/0x3a98) gated by WifiFuncsIsFreqSupported, 'Pushed SonosNet channel change to %u for %u ms from now', pending/ack flags +0xe37/+0xe38; send API = vfunc+0x34 on ctx+0xe30 IPC object; 'signaling netstartd (%s) %s'; satellite-addition notify; 'Disabling networking'/'Enabling networking'/'Signaling start/end of network connectivity test' vocabulary.",
    "crash_machinery": "per-daemon *.dmp + *.properties + *_backtrace strings + CrashCount/count files (sonospowercoordinator, btmanager, netstartd); logs /opt/log/{netstartd,sonosledmgrd,btmanager}.log + /jffs/netstartd_prev.log + /jffs/app/debug/*.dmp",
    "daemons": "anacapad, netstartd (network), btmanager (Bluetooth), sonosledmgrd (LEDs), sonospowercoordinator (power), wacd (WAC setup), mdnsd, sddpd, chronyd, dropbear (SSH), udhcpc (DHCP), wpa_supplicant, upgrade_mgr",
    "launcher_scripts": "etc/run{anacapa,netstartd,ledmgrd,diagprocessd,sddp,mdns,chrony}+rundaemon.sh: inittab-supervised wrapper scripts; shared helpers: trackrestart(name,trackfile,debounce-s) logs restarts to /var/run/<daemon>.start; waitwhiletrue loops on /var/run/stop<daemon> sentinel files; waitfordns blocks until /var/run/waitforip clears AND resolv.conf has a nameserver. Daemon->binary map: netstartd=/wifi/netstartd, ledmgrd=sonosledmgrd (stale-pid watchdog writes <3> messages into /opt/log/sonosledmgrd.log and restarts), diagprocessd=/etc/diagprocessd, sddpd, mdnsd=/sbin/mdnsd -f, chronyd (slew-for-small/step-once-per-run clock discipline).",
    "sddp": "sddpd = Control4 SDDP (Simple Device Discovery Protocol) daemon (/etc/sddpd.conf: Type=sonos:Zoneplayer, PrimaryProxy=media_service, Proxies={media_service,amplifier}, Manufacturer=Sonos, Model=Zoneplayer, Driver=sonos.c4z (Control4 driver DB), MaxAge=1800) the device announces itself to Control4 systems. /jffs/dev_sddp.conf overrides the shipped config (-c flag).",
    "anacapa_upgrade_hook": "runanacapa intercepts upgrades BEFORE exec'ing anacapad: if /var/run/upgradeinfo exists -> mkdir /tmp; mv /jffs upgrade_tmp_prev.log; run /bin/upgrade >> /tmp/upgrade.log; echo 'RESULT = $rr'; rm upgradeinfo; exit rr: the daemon slot doubles as the upgrade runner. Normal path also cleans stale /tmp/smb/* mounts.",
-   "todo": "Established: binary framing and directional switch bounds, outbound crash-upload use of the checked /X-external strings, and inbound msg0x34 registration-key buffer/length parsing. Remaining: enumerate the reachable arms of anacapad f_10691034/table0x10f01d6c (ids0x1f..0x5b), bind each payload offset/length check to its sender and consumer, and finish the outbound netsettings/PSK field joins. Treat any additional HTTP IPC claim as unverified until a local route-registration consumer is found; do not search for JSON handlers solely from the diagnostic-upload suffixes. This remains actionable static work.",
    "resolved_findings": [
     "The eventType/hardware key-value object built with f_10557fa8/f_1055847c is a downstream event representation, not the netstartd socket wire frame. Inbound f_10691034 reads a big-endian message id from frame+0xc, subtracts0x1f and unsigned-bounds the result against0x3c before a self-relative switch at0x10f01d6c. It is a separate direction from netstartd's inbound 0..0x29 table. The old key-value-wire-frame and plain-HTTP /X-external IPC claims are withdrawn.",
     "IPC framing decoded (ipc_msg.cxx, reader loop ~0x105d3954 under module ipc): the channel is a 3-field binary header read by ReadIPCHeader (0x11098588) followed by a bounded payload - the unsigned check (body_len-4)<=0x800 at0x105d39b8-0x105d39c0 accepts body_len4..0x804 inclusive, including the message-id word, and malformed frames log Bad IPC message received (%d %d %d) with the three header fields. Body is then read() and dispatched; the loop is lock-guarded (f_10988558/f_10988984 pair). Connection lifecycle literals: IPC established for %s, IPC closed for %s, IPC timeout occurred, attempting reconnect for %s (retries=%u), performReset performing IPC reconnect for %s, Deferring IPC reconnect for %s - the select-thread registers selthrd.RIPCHandler.reset/.data handler pair. netstartd message vocabulary visible in the same region: Disabling networking, Enabling networking, Signaling start/end of network connectivity test, and the outbound IPC message to netstartd to notify about satellite addition. ReadIPCHeader is imported at0x11098588; its concrete shared-library implementation establishes the hdr_len/version/body_len semantics described below, not the earlier type/length/sequence guess.",
@@ -216747,7 +216774,10 @@
     "Resolved (IPC header semantics via shipped libsonosutils.so.1): the shared IPC frame is {u32 hdr_len=0xc, u32 version=1, u32 body_len, u32 msg_id, payload[]} - proven in SendIPCMessageWithData (lib @0x1658): writes {0xc,1,data_len+4,msg_id} then payload; ctx+0x70 is the socket fd, payload cap cmplwi 0x800 (returns -9 over 0x800, -1 on dead fd). ReadIPCHeader (@0x1508) reads 0xc bytes, rejects if buf[0] <= 0xb (ret -10) or arg bufsz <= 0xb (ret -9), then reads buf[0]-12 trailing header bytes in 0x40-byte __read_chk chunks - buf[0] is the header-block length, so the msg_id word + body are read by the caller per words[2]=body_len. The earlier '{type,length,seq}' guess is corrected: the 3 fixed words are {hdr_len,version,body_len} and 'Bad IPC message received (%d %d %d)' prints those three.",
     "Resolved (anacapad->netstartd msg-id vocabulary + payload grammars, from shipped /wifi/netstartd): the IPC handler f_1000886c dispatches msg_id via a 0x2a-entry self-relative jump table at 0x1002f6f4 (ids 0x00-0x29; default arm 0x10008990 silently drops 0,13-17,25,31-38,40). Wire payload sits at msg+0x10 with body_len (u32be @+8) == payload_len+4 checked per arm. Map: 1='anacapa hello' (full subsystem re-init sequence), 2='anacapa byebye' (logs byebye then re-runs init), 3=small command (body 0x8, payload word 4), 4/5='Entering WAC open mode', 6=netsettings push: memcpy 0x69-byte blob msg+0x10 -> staged @0x1005543e (id u32be @+0x21, string @+0x25), 7=0x44-byte blob -> 0x100555e0 (PSK record), 8=0x25-byte blob -> 0x100557e0 (37B, Muse HHID), 9=commit: copies {msg+0x10->0x100551e0 (33B), msg+0x25->0x10055624 (65B)} and moves staged blobs into active slots, 10/11/12='Deferring WAC timeout' variants, 18='Anacapa triggering joinhh' (household join), 19='join cancel', 20=0x6c8-byte payload -> f_10013da4 (large config/scan blob), 21='Disabling wifi for start of test', 22/23/24/26='Enabling wifi for end of test' family, 27/28=disable-for-test family, 29='MeshDisable: new=%d' + ath0 scangetresults, 30=Muse HHID resend + match check, 39=SonosNet frequency set ('setting SonosNet frequency to %u in %u.%u seconds', WifiFuncsIsFreqSupported gate), 41=SonosNet enable/disable ('SonosNet already %s'). Staging globals {0x1005543e:105B, 0x100555e0:68B, 0x100557e0:37B} are memset on IPC reset (f_10008714), which also clears connected flag 0x10050104 and unlinks netsettings_check.txt.",
     "The /X-external premise was checked against executable consumers rather than inferred from slashes: f_102537b0 compares crashdump identities and selects suffixes; f_105403a8 forwards them with scheme https to f_1053faf8. Its caller at0x10253d64 passes the returned URL to multipart setup f_10545274; the attachment loop f_10253ab4 opens files and adds form-data/file parts named crashdump with text/plain content. These are outgoing diagnostic-upload paths, not proof of inter-daemon HTTP payload parsers. No exhaustive alternative inbound-route census is asserted.",
-    "Concrete anacapad inbound payload: msg0x34 reaches0x1069138c, decodes body_len at frame+8, requires body_len>0x23 and passes frame+0x10 to f_1064bc38. That consumer checks the big-endian length at payload+0x20 is<=32, wipes the old key buffer and stores bytes/length at owner+0x154/+0x174. Thus a registration-signing-key update contains a32-byte buffer and u32be length; it is not a textual eventType object. Bodies<=0x23 are skipped by the arm; key length>32 is separately rejected by the consumer. These exact numeric checks do not certify a complete malformed-frame audit: body_len includes the message-id word. The enclosing stream framing and per-handler semantic checks are separate layers."
+    "Concrete anacapad inbound payload: msg0x34 reaches0x1069138c, decodes body_len at frame+8, requires body_len>0x23 and passes frame+0x10 to f_1064bc38. That consumer checks the big-endian length at payload+0x20 is<=32, wipes the old key buffer and stores bytes/length at owner+0x154/+0x174. Thus a registration-signing-key update contains a32-byte buffer and u32be length; it is not a textual eventType object. Bodies<=0x23 are skipped by the arm; key length>32 is separately rejected by the consumer. These exact numeric checks do not certify a complete malformed-frame audit: body_len includes the message-id word. The enclosing stream framing and per-handler semantic checks are separate layers.",
+    "Resolved: inbound dispatch fully enumerated - f_10691034 reads BE32 msg id at frame+0xc, subtracts 0x1f, bounds <=0x3c, and jumps via self-relative table 0x10f01d6c. 23 live arms: 0x1f idle, 0x20 open, 0x21/0x22 SSID set/clear (log-only), 0x23-0x25 WAC mode transitions (state-machine flag masks via c4-object vfunc+0xc: 0x60000 disabled, 0x20000=1 enabled, 0x20000=0+0x40000=1 timeout), 0x27 netsettings entry (len<=0x6c -> f_1062b668/ctx+0x8c8, the mirror of outbound msg-0x14 records), 0x28 alive, 0x29 len<=0x58 -> vfunc+0xd4 consumer, 0x2a in-setup-mode (len<=0xc, byte@+0x17&1), 0x2c upgrade trigger (flags@+0x411, str@+0x10 -> vfunc+0x84), 0x2e setup start (event 0x10004004), 0x2f setup stop, 0x30/0x31 WiFi connect/disconnect (len<=0x23, telemetry kv {eventType=wifiConnected|wifiDisconnected, hardware=wifi} confirming the f_10557fa8/f_1055847c object is the downstream event rep), 0x32 hello (f_10690648), 0x34 registration key (f_1064bc38), 0x35 set Muse HHID (<=0x35 strcmp->f_1068d588), 0x50 vfunc+0x14 state delegate, 0x58 connection-type update (u32@+0x10 -> second table 0x10f01e60 with 8 names, consumer f_105ae8fc), 0x5a network bounce (suppressed mid-shutdown/by flag 0x11097690 -> f_1069ad98), 0x5b recovery-AP (MAC@+0x14, f_1057bb58). Ids 0x26,0x2b,0x2d,0x33,0x36-0x4f,0x51-0x57,0x59 hit the default return - unhandled in this build. 'Home Theater 2.0' exists as a name block at 0x10691cf0 but no table entry reaches it.",
+    "Resolved: two adjustor-thunk receiver wrappers pre-empt ids before the table - 0x10197fc4 sends 0x40 to f_101b2724 ('Change in event loop detected' wakeup on this+0xd0), and 0x1019808c sends 0x30 through wifi-connect bookkeeping (wC flag at r3-0x7c4, 30s boot-sequence gate f_101b2ca4, 'Not updating boot sequence due to wifi connection event wC:%d') and 0x31 through disconnect timestamping; both then call f_10185430(this,1|0) and fall through to f_10691034. So ids 0x30/0x31 have dual handlers (bookkeeping + telemetry) and 0x40 is fully shadowed from the table on this receiver.",
+    "Resolved: outbound netsettings/PSK field joins complete - f_10628f4c pushes msg 0x14 (netsettings table: count+version header then N x 0x6c records {base64-decoded key <=0x20, SSID str cap 0x41, u32 flags} in a 0x6c8 buffer, 16 entries max) and msg 0x17 (PSK: 0x142 buffer, two slots each {ssid string 0xa1, key 0x10, key 0x10} from netsettings ctx +0x8a0/+0x921/+0x931 and +0x950/+0x9d1/+0x9e1, scrubbed post-send via ZZ0038) through IPC-send vfunc+0x34 on ctx+0xe30. SonosNet channel changes go via f_10628e68 (channel ctx+0x158, hold-ms 0x1388/0x3a98) gated by WifiFuncsIsFreqSupported with flags +0xe37/+0xe38 tracking pending/acked. The inbound 0x6c bound on msg 0x27 matches the outbound record stride exactly."
    ],
    "ipc_select_transport": {
     "vtable_and_descriptor": "In-image concrete RIPCHandler vtable0x10ef5f10 binds fd+c=0x105d30fc,data+0x18=0x105d3954,timeout+0x1c=0x105d3874 and reset+0x28=0x105d36bc. fd getter locks handler mutex+0x88,reads handler+0x18c and unlocks before returning. Constructor0x105d3288 sets fd+0x18c=-1. The field aliases IPCContext+0x70 because the embedded context begins at handler+0x11c; it is not a second independently owned socket. Player construction0x1018d998/0x1018d99c establishes embedded owner=player+0x3a8,which is passed to0x10691e00 at0x1018da0c. That constructor creates selector at owner+0x130=player+0x4d8 and concrete IPC handler at owner+0x518=player+0x8c0;0x1069204c installs this vtable. These sums join the concrete vtable to the live startup/shutdown receiver.",
@@ -228158,7 +228188,7 @@
   },
   "event_loop": {
    "name": "main event loop",
-   "summary": "eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,stopped,has no more work,shutdown. Cancelling watchdog,failure,elapsed-time:%lld}; scope names scopeDefault/scope:mtx/scope:cv/scopeHttpClient + warn_fault/authservice/trueplay_zp log scopes",
+   "summary": "eventLoopThreadPool + watchdogTimestamp; logs {Eventloop started. Threads: %zu,stopped,has no more work,shutdown. Cancelling watchdog,failure,elapsed-time:%lld}; two workers drain one flat io_context ready queue (impl+0x94) by calling node+4 handlers; named scope objects (scopeDefault/scopeHttpClient/scopeMp/...) are per-subsystem 0x1e0-byte execution bundles with own io_context + strand + named scope:mtx/scope:cv; warn_fault/authservice/trueplay_zp log scopes",
    "evidence": [
     {
      "type": "firmware",
@@ -228192,13 +228222,159 @@
      "build": "86.10-80260",
      "address": "0x106947e8",
      "notes": "HttpClient scope label and separate mutex-label construction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b9180",
+     "notes": "Eventloop reset: +0x98 started flag cleared, +0x9c..+0xdc memset 0x40 (two list anchors +0x9c/+0xbc and worker descriptors +0xb4/+0xd4), +0xdc/+0xe0 shared_ptr to f_1099de48 wrapper, +0xe4/+0xe8 shared_ptr to f_109a687c strand."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a08c4",
+     "notes": "io_context impl ctor (0xa0 bytes): +0 registry/mutex holder {pthread_mutex+4, service list+0x20}, +4 0xa8-byte event service from f_109a4d1c registered under key 0x11097d31 ('Service already exists.' duplicate guard), +0x10 'sonosAsyncWorkGuard' named work guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a0b1c",
+     "notes": "Run loop behind vfunc+8: pthread_setspecific key 0x11097d40 to this impl, then drains intrusive ready list impl+0x94 under mutex impl+0x18+4, calls node+4 handler as fn(impl,node,&out), recycles nodes to impl+0x98, waits on impl+0x78 event / cond impl+0x40, tracks outstanding work in atomic impl+0x90."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a4fec",
+     "notes": "Post/dispatch behind vfunc+0xc: checks TLS key 0x11097d40 against this impl and runs inline when already inside this io_context, otherwise enqueues to impl+0x94 and signals; this proves cross-thread work injection enters the same flat ready queue."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a685c",
+     "notes": "Strand executor vtable 0x10f9304c: {context*, strand_impl*}; vfunc+0xc/+0x10 tail-call f_109a7734/f_109a7e1c on the strand impl, serializing handlers one-at-a-time into the owning io_context."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101a50b0",
+     "notes": "Scope ctor (0x1e0 bytes): named sync primitive 'scope:mtx' at +0 with companion at +0x18, named 'scope:cv' at +0xa8 with companion at +0xc0, shared_ptr<byte> +0x110, dual-vptr service-registry member +0x120 (dtor f_100e7754 walks +0x9c..+0x5c service chain), shared_ptr<io_context wrapper> +0x12c, shared_ptr<strand> +0x134 wrapping that context, shared_ptr<{ptr,ptr,0x3e8}> +0x140, more shared_ptr slots to +0x16c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018f850",
+     "function": "0x1018d27c",
+     "notes": "scopeDefault constructed embedded in app context at this+0x3f328 via f_101a50b0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018fdb0",
+     "function": "0x1018d27c",
+     "notes": "scopeHttpClient: new(0x1e0) scope named via stack string, stored as shared_ptr at app+0x3fa98; a second inline scope construction (same 0x1e0 layout, 'scopeHttpClient') runs in the HttpClient init at 0x106947c4-0x10694834."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103fac8c",
+     "notes": "scopeMp pattern: subsystem object holds std::string name 'scopeMp'+formatted index at +0x18b0, then new(0x1e0) scope stored as shared_ptr at +0x18c8; same shape at 0x103d9888 (scopeLoadOp) and 0x104cf2f4/0x104cfa74/0x104cfc04."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102c0fe4",
+     "notes": "scopeAvt instance name built by std::string operator+ ('scopeAvt' + vsnprintf-formatted index byte from obj+4) stored at obj+0x430; f_100ec240 is the variadic vsnprintf-to-std::string helper (crxor 6,6,6 marks the varargs call)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bbca78",
+     "notes": "Event queue entry on global registry 0x110ba798: resolves emitter binding via map lookup f_10bc0b8c at +8, locks queue+8 mutex, marks queue+0xf8 byte, second map at +0x20 via f_10bc17f4; sibling intern function f_10bbd098 uses map at +0x10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b8e58",
+     "notes": "Watchdog arming: mutex +0xf8 guards sonosClockGetTime(1,&ts) into +0xec, then calls timer +0xf4 vfunc+0xc with delay {0,0x1388} and self callback, so the health check re-arms every 5000 units; f_106b8d34 compares elapsed to 0x186a0 and logs 'eventLoop elapsed-time:%lld' to 'watchdog'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a4f34",
+     "function": "0x109a4d1c",
+     "notes": "Event-service ctor gate: Thread::start (bl f_109a448c) is skipped when r6==0. Impl ctor f_109a08c4 always calls f_109a4d1c(svc,r4=impl,r5=-1,r6=0,r7=f_109a6218), so the io_context-embedded service spawns no internal thread; the lazy reactor instance at 0x109a5f40 passes r6=1 and does spawn one."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a5f40",
+     "function": "0x109a5bc4",
+     "notes": "Reactor factory path: new(0xa8) second event service built with r6=1 (self-pump) plus a 0x7c epoll object (dual vtables 0x10f92f90/0x10f92fb0) whose vfunc+4 is the wait entry; registered into impl+0x20 service list under mutex impl+0x1c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a62c4",
+     "function": "0x109a6218",
+     "notes": "Lazy reactor lookup stored at service+0x7c: walks impl+0x20 list for service key 0x11097d30; on miss calls f_109a5bc4 which spawns the dedicated thread (body f_109a3334). A scope io_context therefore acquires a pump thread only on first async-descriptor registration."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a3334",
+     "notes": "Internal reactor thread body (arg+4 = 0xa8 event service): sets TLS key 0x11097d40, then runs the same scheduler drain shape as run (pops service+0x94 nodes, calls node+4 with r3=svc, waits on service+0x40 condvar / service+0x78 epoll vfunc+4, tracks service+0x90 outstanding)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109a7e1c",
+     "notes": "Strand post (vfunc+0x10 -> strand_impl): appends item to strand_impl list under impl+0xc mutex, pushes drain node onto owning impl+0x98 ready list, bumps impl+0x90, wakes impl via impl+0x78 event-object vfunc+4. Scope-bound work lands in the scope's own io_context ready queue."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101a5384",
+     "function": "0x101a50b0",
+     "notes": "Scope member census (0x1e0): +0x148/+0x14c shared_ptr<{ptr,ptr,0x3e8}> bounded work queue, +0x150..+0x1b4 zeroed slot arrays, +0x1bc/+0x1c0 shared_ptr<byte>, +0x1c8/+0x1cc list anchor =1/+0x1d0/+0x1d4 self-pointers, +0x1d8 waiter count; f_100e4f24 drains waiters by signalling scope+0xc0 (scope:cv companion) until +0x1d8==0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b8c38",
+     "notes": "Member-path io_context dispatch census: scanning all io_context wrapper members (eventloop+0xdc, scope+0x12c, HttpClient-embedded +0x12c, owners 0xb14/0x544/0x3cc/0x36c/0x1d4/0x4/0x130/0x8) for vcall sites on slots +8/+0x10/+0x18/+0x1c/+0x20 finds member-path run() only on eventloop+0xdc (workers f_106b8cd0, plus vfunc+0x18 reset here); every other io_context reaches run/poll only through runtime-held executor copies."
     }
    ],
-   "todo": "Residual: trace the constructed scope objects through actual main-loop work registration and scheduler dispatch. Constructor-label provenance is recovered, but literal scope names and mutex/condition-variable labels do not establish a per-item execution-scope table.",
    "resolved_findings": [
     "Worker cardinality is verified with GNU e500 disassembly, not inferred from a log format: f_106b8f2c sets descriptor base to object+0xb4 and end sentinel to object+0xdc. After each spawn it compares descriptor+8 to that sentinel, then advances the descriptor by 0x20 (0x106b8f84-0x106b8fa8). This executes exactly twice, for +0xb4 and +0xd4; the printed thread count is independently literal 2 at 0x106b8fd4. The worker entry is f_106b8cd0. Object+0x98 prevents repeating initialization.",
     "The earlier claim that every queued item carries one of scopeDefault/scope:mtx/scope:cv/scopeHttpClient was not established by literal xrefs. f_101a50b0 constructs scope:mtx and scope:cv separately at 0x101a50e4 and 0x101a5114; these are distinct constructor arguments, not two entries in a recovered work-registration table. The HttpClient construction path at 0x106947e8 supplies scopeHttpClient and then a separate scope:mtx label. f_1018d27c supplies scopeDefault at 0x1018f850 and scopeHttpClient at 0x1018fd9c. These sites prove caller provenance for labels, not a complete work-to-scheduler-scope map.",
-    "The twelve non-colon scope literals include scopeRc, scopeZP, scopeDefault, scopeHttpClient, scopeSpotyVli, scopeAvt, scopeGm, scopeGrc, scopeLoadOp, scopeMp, scopeVliCtrl and scopeAsyncMuse; scope:mtx/scope:cv are additional labels. The former three-name completeness assertion is false. The scope-validation diagnostics and event_loop_counter-- from the Spotify SDK do not prove the native main event-loop registration grammar or pending-work count and are withdrawn from this record. No absence or vendor boundary prevents following the remaining native scheduler bindings."
+    "The twelve non-colon scope literals include scopeRc, scopeZP, scopeDefault, scopeHttpClient, scopeSpotyVli, scopeAvt, scopeGm, scopeGrc, scopeLoadOp, scopeMp, scopeVliCtrl and scopeAsyncMuse; scope:mtx/scope:cv are additional labels. The former three-name completeness assertion is false. The scope-validation diagnostics and event_loop_counter-- from the Spotify SDK do not prove the native main event-loop registration grammar or pending-work count and are withdrawn from this record. No absence or vendor boundary prevents following the remaining native scheduler bindings.",
+    "Dispatch machinery is now traced end to end. The eventloop object holds shared_ptr<io_context wrapper> at +0xdc whose impl (0xa0 bytes, f_109a08c4) carries an intrusive ready queue +0x94, recycle list +0x98, atomic outstanding counter +0x90, mutex+condvar+eventfd-style wait service, and a 'sonosAsyncWorkGuard'. Both worker threads call the same vfunc+8 run loop f_109a0b1c: a flat MPMC queue where each node {+0 next,+4 handler,+8 aux} is dispatched by calling node+4. Posting (vfunc+0xc -> f_109a4fec) executes inline when the caller is already inside this io_context (TLS key 0x11097d40), else enqueues and signals. There is no per-item scope field in the scheduler itself.",
+    "The 'scope' objects are self-contained execution scopes, not scheduler partitions: f_101a50b0 builds a 0x1e0-byte object containing a named mutex 'scope:mtx' (+0) and condvar 'scope:cv' (+0xa8) that carry the scope name for diagnostics, plus its own shared_ptr<io_context> (+0x12c), shared_ptr<strand executor> (+0x134), and an embedded dual-vptr service-registry member (+0x120). Work is bound to a scope at post time through the strand the poster holds; the strand serializes handlers one at a time into the scope's own io_context.",
+    "Concrete scope instances: scopeDefault embedded in the app context (this+0x3f328); scopeHttpClient heap-allocated, shared_ptr at app+0x3fa98 and a second inline construction inside HttpClient init at 0x106947c4; scopeMp/scopeLoadOp and siblings follow the pattern 'std::string name = scopeX + formatted index; new(0x1e0) scope stored as shared_ptr beside it' (obj+0x18b0/+0x18c8 for Mp). scopeAvt and scopeZP names are formatted with an instance index byte ('scopeAvt%d','scopeZP%d' style via f_100ec240 vsnprintf helper).",
+    "Event emission uses a separate global registry at 0x110ba798: emitters intern event names (f_10bbd098, map at +0x10) then queue (f_10bbca78, maps at +8/+0x20) carrying a source-name pointer (e.g. +0x23c); when no eventloop is bound the emit logs 'Attempt to queue event %s(%u) from \"%s\" with no eventloop configured' on 'inprocess-events' level 3/7.",
+    "Pump topology resolved to the member-offset boundary. The only member-path io_context::run in .text is on eventloop+0xdc by the two workers (f_106b8cd0 -> f_106b8c54). A census of all twelve io_context wrapper constructions (f_1099de48 call sites) finds no member-path run()/poll() call site for any scope io_context (+0x12c) or other owner member; the shared_ptr is copied into each consumer's executor (the scope's own strand at +0x134 already holds a copy at strand+4), so the concrete pump thread per named scope is a runtime registration not recoverable from member offsets.",
+    "Scope io_contexts spawn no dedicated thread at construction: embedded event-service ctor f_109a4d1c skips Thread::start when r6==0 and impl ctor f_109a08c4 always passes r6=0. Pump capacity is acquired lazily: the service stores factory f_109a6218 at +0x7c, which on first use creates the epoll reactor service (f_109a5bc4, r6=1) whose own thread runs the identical scheduler drain (f_109a3334) on that service's queue inside the same impl.",
+    "Strand-bound posting fully traced: strand vfunc+0x10 runs f_109a7e1c on the strand_impl, which appends to the strand list under impl+0xc mutex, pushes a drain node onto the owning impl+0x98 ready list, bumps impl+0x90, and wakes via impl+0x78 event-object vfunc+4; handlers therefore execute on whatever thread runs that impl. Inline execution applies only when the poster's TLS key 0x11097d40 already names the same impl.",
+    "The scope's own work machinery is separate from its io_context: a bounded work queue {head,tail,cap=0x3e8} at +0x148, plus a shutdown-waiter list +0x1c8/+0x1cc with count +0x1d8 that f_100e4f24 drains by signalling scope+0xc0 until empty. The complete poster-to-scope binding table is runtime map content (emitter+8 key via f_10bc0b8c, emitter+0x20 key via f_10bc17f4 in the global registry), not a static enumeration."
    ]
   },
   "devicecertmanager": {
