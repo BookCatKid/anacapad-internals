@@ -216972,6 +216972,46 @@
      "function": "descriptor flag accessors",
      "address": "0x1090855c",
      "notes": "Raw operations: andi. 0xff00 at 0x10908568 covers byte +d2 only; lhz +d0 followed by low-bit mask at 0x10908598/0x109085a0 extracts word bit16; rotate-and-select-low-bit at 0x10908608 (SH18), 0x1090861c (SH19), 0x10908630 (SH12) extracts bits14/13/20 respectively. These rotations are not the erroneous clrlwi-as-shift case. Names beyond observed consumer bindings remain residual."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1008e7c4",
+     "address": "0x1008e844",
+     "notes": "Complete name/mask dictionary decode (80 pairs) binds every descriptor feature bit to a literal name; groups are 32-bit words not one array. Word +0xd0 = audio I/O; +0xd4 = device class/network/buttons/sensors; +0xd8 = feature flags; +0xdc = ephemeral-role bits; +0xe4 = default-behavior bits. Second identical initializer f_10095d04."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10909fcc",
+     "address": "0x1090a21c",
+     "notes": "48 model-class branches each call recognizer f_10909058 with the short code then store {+0xec amp-on ms, +0xf0 i16, +0xf8 mem, +0xfc flash}, often through shared store blocks. Extracted tuples: ZP120/ZP90 {1,-,64,64}; BR200 {-,-,64,16}; S1 {10,11,128,64}; Sub {-,-,-,64}; S3 {-,15,-,64}; S9 {-,25,128,128}; S21 {10,20,512,256}; S12 {10,11,256,256}; S6 {50,30,256,256}; S11 {56,13,256,256}; S13 {20,12,1024,1024}; S18 {20,11,1024,1024}; S14 {65,14,1024,1024}; S15 {-,-,256,256}; S16 {115,0,1024,1024}; S17 {20,reg,1024,1024}; S20 {10,11,512,256}; S59 {160,31,2048,8192}; S19/S34 {65,31,1024,1024}; S22/S38 {10,11,512,512}; S23 {-,-,512,512}; S54/S35/S27 {35,30,1024,1024}; S42/S28/S33 {-,20,512,512}; S56 {-,-,1024,1024}; S51 {65,31,2048,2048}; S44 {20,11,2048,8192}; S48/S41/S40/S39/S55 partial {140,11,2048,8192} (S55 {140,11,512,1024}); S46 {140,11,2048,8192}; S24 {50,reg,512,512}; S26 {-,-,128,128}; S36 {145,12,1024,1024}; S58 {120,11,1024,8192}; S57 {-,-,2048,8192}; S30/S29 {-,20,512,512}; S32/S31 {65,26,1024,1024}. +0xf0 stores the dispatch register in three branches."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10909058 / f_109091cc",
+     "address": "0x10f7c4e8",
+     "notes": "The +0xd0/+0xd4/+0xd8 words are written solely by recognizer f_10909058: S9 gets the literal vector {0x8000, 0x30206772, 0x37008} identical to static template 0x10f7c4e8; all other models share {d0|=0x05010001, d4|=0x60b2, d8|=0x30001}; f_109091cc ORs +0xd8 0x20 (EQ_BALANCE) on an MDP hardware byte. Per-model feature vectors beyond S9 therefore exist only in received remote descriptors and the static S9 template, not as an in-image table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1090acf4 / f_1090ad44 / remote copies",
+     "address": "0x110b8150",
+     "notes": "Self descriptor singleton at 0x110b8150 (lazy init f_1090acf4, accessor f_1090ad44, vtable 0x10f7c888). The same descriptor class is embedded in zone-player records at +0x378 (ordinal +0x444, copied at 0x10766a54-0x10766b00) and at obj+0x13b0 (capability builders f_10621b90/f_10621ebc/f_106221e8); base ctor f_109092c4 installs vtable 0x10f7c1b4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10909010 / f_1090927c",
+     "address": "0x10909010",
+     "notes": "Brand helper returns 'Sonos' or 'SYMFONISK' via bitmap 0x40e03 for argument <0x16. Ordinal helper f_1090927c accepts ordinals {29,31,34,36,45,46,59} by bitmap 0x340a5 shifted by ordinal-29 plus ordinal==59. Ordinal-keyed member predicates: f_10908a38 ==47, f_109089f0 in [29,55] or ==59, f_10908a54 <29 else ==35, f_10908d6c (+0xd0 RCA_OUT && +0xcc==3)."
     }
    ],
    "model_ids": "ZPS1, ZPS3, ZPS5, ZPS6, ZPS9, ZPS11, ZPS12, ZPS13, ZPS14, ZPS15, ZPS16, ZPS17, ZPS18, ZPS19, ZPS20, ZPS21, ZPS22, ZPS23, ZPS24, ZPS26, ZPS27, ZPS28, ZPS29, ZPS30, ZPS31, ZPS32, ZPS33, ZPS34, ZPS35, ZPS36, ZPS37, ZPS38, ZPS39, ZPS40, ZPS41, ZPS42, ZPS43, ZPS44, ZPS45, ZPS46, ZPS48, ZPS49, ZPS51, ZPS52, ZPS53, ZPS54, ZPS55, ZPS56, ZPS57, ZPS58, ZPS59, ZPS61 (collected canonical identifiers; their presence alone does not establish active hardware)",
@@ -217042,16 +217082,17 @@
     "note": "ordered literal run 0x10efa2a8-0x10efa5dc bounded by RMuseFeature array check; masks group related bits"
    },
    "model_tables": "Verified parallel arrays: short code at 0x10f7c1f4, display at 0x10f7c2f0, canonical ID at 0x10f7c3ec, each indexed by ordinal 0..62. Fields below are short/display/canonical: 0:CR100/CONTROL/CR100; 1:ZP80/Connect (getter override)/ZP80; 2:ZP100/ZP100/ZP100; 3:ZP120/Connect:Amp/ZP120; 4:ZoneBridge/Bridge/BR100; 5:S5/Play:5/ZPS5; 6:WD100/Dock/WD100; 7:S3/Play:3/ZPS3; 8:Sub/Sub/ANVIL; 9:S1/Play:1/ZPS1; 10:S9/Playbar/ZPS9; 11:BR200/Boost/BR200; 12:S6/Play:5/ZPS6; 13:S11/Playbase/ZPS11; 14:S12/Play:1/ZPS12; 15:S13/One/ZPS13; 16:S14/Beam/ZPS14; 17:S15/Connect/ZPS15; 18:S16/Amp/ZPS16; 19:S17/Move/ZPS17; 20:S18/One/ZPS18; 21:S19/Arc/ZPS19; 22:S20/Table lamp/ZPS20; 23:S21/Bookshelf/ZPS21; 24:S22/One SL/ZPS22; 25:S23/Port/ZPS23; 26:S24/Five/ZPS24; 27:null/null/null; 28:S26/Sub/ZPS26; 29:S27/Roam/ZPS27; 30:S28/TITAN/ZPS28; 31:S29/Picture frame/ZPS29; 32:S30/Table lamp/ZPS30; 33:S33/Bookshelf/ZPS33; 34:S34/Arc SL/ZPS34; 35:S35/Roam SL/ZPS35; 36:S36/Ray/ZPS36; 37:S31/Beam/ZPS31; 38:S32/Beam SL/ZPS32; 39:S37/Sub Mini/ZPS37; 40:S38/One SL/ZPS38; 41:S39/Era 100/ZPS39; 42:S40/Optimo1 SL/ZPS40; 43:S41/Era 300/ZPS41; 44:S42/Floor lamp/ZPS42; 45:S43/One SL/ZPS43; 46:S44/Move 2/ZPS44; 47:S45/Arc Ultra/ZPS45; 48:S48/Era 100 Pro/ZPS48; 49:S49/Ace/ZPS49; 50:S46/Jaws/ZPS46; 51:S51/Pallas Plus/ZPS51; 52:null/null/null; 53:S53/RylesS767/ZPS53; 54:null/null/null; 55:S54/Roam 2/ZPS54; 56:S55/Sub 4/ZPS55; 57:S56/Ryles30/ZPS56; 58:S57/Era 100/ZPS57; 59:S58/Mojave/ZPS58; 60:S59/Gambit/ZPS59; 61:S52/Roundhouse/ZPS52; 62:S61/Disco/ZPS61. The former table starting at 0x10f7c300 was a truncated display-array view, not a separate ordinal space. S9 is ordinal 10 in these arrays, not 6; descriptor+0xf4=6 is internalSpeakerSize. Static model vocabulary is not proof that every listed model is supported by the active hardware configuration. Separate DSP config names at 0x10f24808 are not model-ordinal rows.",
-   "todo": [
-    "Established: complete bounded name-array indexing, corrected S9 ordinal, descriptor defaults and S9 names, amplifier startup time (+0xec, ms), signed calibrated setup/chirp volume (+0xf0), advertised memory (+0xf8), advertised flash (+0xfc), and internalSpeakerSize (+0xf4). Remaining work: bind individual capability flags in descriptor word +0xd0, especially bytes +0xd1/+0xd2, to named input/capability consumers and verify the per-model bit-to-name join. Start with predicates f_1090855c (aggregate 0xff00), f_10908594 (bit 16), f_109085fc (bit 14), f_10908610 (bit 13) and f_10908624 (bit 20), trace their callers/virtual slots and join to capability-name tables. Recover volume scale and memory/flash units from their actual consumers if documenting them, not tuple shapes. Original enum spellings and invented hardware-generation/subclass labels are not established."
-   ],
    "resolved_findings": [
     "Model lookup boundaries and names are verified from accessors rather than an inferred record layout: f_10908f50 returns short[ordinal], f_10908f88 returns display[ordinal] with the ordinal-1 Connect override, and f_10908fd8 returns canonical[ordinal]. All bound ordinals by 0x3e and use three parallel arrays at 0x10f7c1f4/0x10f7c2f0/0x10f7c3ec. S9/Playbar/ZPS9 is ordinal 10. The previous ordinal-6/device-record interpretation of 0x10f7c4e8 is withdrawn.",
     "Descriptor construction is distinct from the name arrays. f_10908f38 installs vtable 0x10f7c1d0 and delegates default setup to f_10908e70: name (Unknown), empty secondary names, +0xf4=-1, +0xec=425 and +0xf0=0, with memory/flash zero. f_10909058 recognizes S9 explicitly and writes S9/ZPS9/Playbar, flags +0xd0=0x8000, +0xd4=0x30206772, +0xd8=0x37008, and +0xf4=6. f_10909fcc constructs the fuller descriptor, reads HAL MDP/MDP2 data and branches on model/board values before assigning the scalar fields. The former claim that f_10908f38 itself executes the entire per-model strcmp ladder is withdrawn.",
     "Tuple semantics recovered through actual consumers: +0xec is the amplifier power-on/startup time in milliseconds (getter f_10908d3c); +0xf0 is a signed 16-bit calibrated setup/chirp volume value (getter f_10908d4c uses lha, with zero meaning not yet calibrated at the audited callers); +0xf8 is the advertised memory scalar (getter f_10908ca8), and +0xfc the advertised flash scalar (getter f_10908cb8). Device-description replacement joins these getters to #AMP_ONTIME#, #MEMORY# and #FLASH#, and the shipped XML names ampOnTime/memory/flash. No memory/flash unit or exact volume scale is inferred solely from row magnitudes. These are not four hardware-generation/version classes.",
     "Descriptor+0xf4, read by f_10908474, is formatted into #INT_SPEAKER_SIZE# and emitted as internalSpeakerSize. Consequently the S9 value 6 is not the ordinal used by the product-name arrays. The earlier Amp/Play/Soundbar/Portable labels assigned to +0x110 and S2-generation labels assigned to +0x10c are also withdrawn: f_10909fcc loads the HAL MDP block at +0x104 and uses +0x10c/+0x110 in model/board dispatch. Numeric comparisons alone do not establish those invented class names.",
     "Big-endian capability extraction is numeric: f_10908540 tests byte +0xd3 nonzero (word low byte), f_1090855c tests word+0xd0 & 0xff00 (byte +0xd2 only, not both +0xd1/+0xd2), f_10908578 tests the high halfword, f_10908594 extracts word bit 16, f_109085fc bit 14, f_10908610 bit 13, and f_10908624 bit 20. The S9 mask 0x8000 is byte +0xd2 bit 7; the aggregate 0xff00 predicate alone does not name every bit or distinguish optical/ARC/eARC. Remaining per-bit names must be joined to actual consumers rather than inferred from product membership.",
-    "SKU document literals contain attributes sku/startDate/endDate/codes at 0x10ebfcb0. That separate SKU-document shape does not assign a meaning to the descriptor timing/volume/memory/flash fields or to every capability flag. The model-name vocabulary and the separate capability-name vocabulary must likewise not be mistaken for a verified per-model bit-to-name join."
+    "SKU document literals contain attributes sku/startDate/endDate/codes at 0x10ebfcb0. That separate SKU-document shape does not assign a meaning to the descriptor timing/volume/memory/flash fields or to every capability flag. The model-name vocabulary and the separate capability-name vocabulary must likewise not be mistaken for a verified per-model bit-to-name join.",
+    "Established bit-to-name join for the entire descriptor feature vector: initializer f_1008e7c4 binds each literal name to a 32-bit mask and the groups land on +0xd0 (audio I/O: analog-in byte RCA/35MM/DOCK/USB=1/2/4/8, HT-in byte eARC/ARC/TOSLINK=0x2000/0x4000/0x8000, audio-out half RCA/35MM/COAX/TOSLINK/SPEAKER/HEADPHONE/SUB=0x10000..0x4000000), +0xd4 (DEV_CLASS nibble; WIFI 0x10; ETHERNET 0x20; 2PORT 0x40; 4PORT 0x80; 2GHZ 0x100; 5GHZ 0x200; CONCURRENT 0x400; USB_ETHERNET 0x800; PLAY_PAUSE 0x1000; VOL_ROCKER 0x2000; MUTE 0x4000; JOIN 0x8000; CAPTOUCH_ABC 0x10000; WIFIBT_MODE 0x20000; CAPTOUCH_JOIN 0x40000; MICROPHONE_SWITCH 0x80000; SUB 0x100000; HT_SOURCE 0x200000; MONO_SPEAKER 0x400000; VOICE 0x800000; BLE 0x1000000; BTCLASSIC 0x2000000; MICROPHONE 0x4000000; IR_SENSOR 0x10000000; IR_TRANSMITTER 0x20000000; NFC 0x40000000; 12V_TRIGGER 0x80000000), +0xd8 (EXTENDER..HP_SWAP_TARGET bit order 1<<0..1<<31), +0xdc (EPHEMERAL_PLAYER..IS_HEADPHONE_MEDIAPLAYER 1..0x10), +0xe4 (DEFAULT_STATUS_LED_OFF 1, DEFAULT_AUTOPLAY_LINEIN 2). The join is verified by the S9 literal 0x30206772 decoding to WIFI+ETHERNET+2PORT_SWITCH+2.4/5/concurrent wifi, PLAY_PAUSE+VOL_ROCKER+MUTE, HT_SOURCE, IR_SENSOR+IR_TRANSMITTER: exactly Playbar hardware.",
+    "Established byte-level resolution of the residual: word +0xd0 byte +0xd1 (value bits 8-15) carries RCA_LINE_OUT 0x10000, 35MM_LINE_OUT 0x20000, COAX_DIGITAL_OUT 0x100000, TOSLINK_DIGITAL_OUT 0x200000 and byte +0xd2 carries HDMI_EARC 0x2000, HDMI_ARC 0x4000, TOSLINK_HT_IN 0x8000; f_1090855c's 0xff00 test means 'any home-theater input'. Bit16 = RCA_LINE_OUT (f_10908594), bit14 = HDMI_ARC (f_109085fc), bit13 = HDMI_EARC (f_10908610), bit20 = COAX_DIGITAL_OUT (f_10908624).",
+    "Established per-model join boundary: the self descriptor's feature words are not per-model beyond S9. Recognizer f_10909058 hardcodes the S9 vector (identical to static template 0x10f7c4e8) and applies shared legacy defaults to all 47 other model names; f_109091cc adds EQ_BALANCE on an MDP hardware byte. Genuine per-model feature vectors live in remote-peer descriptors copied into zone-player records (+0x378, ordinal +0x444) and consumed by the f_10621b90/f_10621ebc/f_106221e8 capability-list builders. There is no in-image table of per-model feature vectors beyond the S9 template.",
+    "Established scalar-field units from producer magnitudes and consumers: +0xec ampOnTime milliseconds (values 1-160 across models, S16=0x73=115); +0xf8/+0xfc consistent with megabytes (S44/S46/S57 2048/8192; ZP120 64/64; S21 512/256; S26 128/128); +0xf0 is a signed 16-bit calibrated setup/chirp volume where branches write small constants 0x0-0x1f and three branches store the dispatch register; ordinal +0xcc indexes the three 63-entry name arrays; +0xf4 is internalSpeakerSize (S9=6)."
    ]
   },
   "multi_daemon_boundary": {
@@ -227299,16 +227340,88 @@
      "build": "86.10-80260",
      "address": "0x10908ce8",
      "notes": "Feature-word accessors read model members +0xd0/+0xd4/+0xd8/+0xdc; producer not yet traced."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10909fcc / f_1090acf4 / f_1090ad44",
+     "address": "0x110b8150",
+     "notes": "Descriptor singleton lives at .bss 0x110b8150. f_1090ad44 is the lazy accessor (checks init flag, calls f_1090acf4 once, returns pointer); f_1090acf4 runs ctor f_10909fcc on the singleton, initializes the +0x328 string member and registers dtor f_1090aefc (vtable 0x10f7c888) through __cxa_atexit."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10909fcc",
+     "address": "0x1090a184",
+     "notes": "Producer of feature words +0xd0/+0xd4/+0xd8/+0xdc: ctor loads HAL MDP/MDP2 at +0x104 (hal_flash_get_mdp_wrapper 0x1090a07c, hal_flash_get_mdp2_wrapper 0x1090a088), dispatches on +0x10c model class and +0x110 board, calls recognizer f_10909058 per model, then writes only +0xec/+0xf0/+0xf8/+0xfc per model. No branch writes the feature words directly."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10909058 / f_109091cc",
+     "address": "0x10909190",
+     "notes": "Recognizer is the sole feature-word writer for the self descriptor: strcmp(model,'S9'). S9 branch 0x10909134-0x109091c4: +0xcc=10, +0xd0=0x8000, +0xd4=0x30206772, +0xd8=0x37008, +0xdc=0, +0xe0/+0xe4=0, +0xf4=6. Non-S9 branch 0x10909098-0x10909114: names '(Unknown)', +0xcc=2, +0xd0|=0x05010001, +0xd4|=0x60b2, +0xd8|=0x00030001. f_109091cc then ORs +0xd8 0x20 when a fetched MDP byte is <0x14. Identical assignments appear in the static template at 0x10f7c4e8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1008e7c4",
+     "address": "0x1008e844",
+     "notes": "Full name/mask dictionary decode (80 entries). Word groups: +0xd0 audio I/O (AUDIO_IN 0xff: RCA 1, 35MM 2, DOCK 4, USB 8; HTAUDIO_IN 0xff00: eARC 0x2000, ARC 0x4000, TOSLINK 0x8000; AUDIO_OUT 0xffff0000: RCA_OUT 0x10000, 35MM_OUT 0x20000, COAX 0x100000, TOSLINK_OUT 0x200000, SPEAKER_OUT 0x1000000, HEADPHONE_OUT 0x2000000, SUB_OUT 0x4000000). +0xd4 device class/IO: DEV_CLASS nibble, WIFI 0x10, ETHERNET 0x20, 2PORT_SWITCH 0x40, 4PORT_SWITCH 0x80, WIFI_2GHZ 0x100, WIFI_5GHZ 0x200, CONCURRENT 0x400, USB_ETHERNET 0x800, BUTTON_PLAY_PAUSE 0x1000, VOL_ROCKER 0x2000, MUTE 0x4000, JOIN 0x8000, CAPTOUCH_ABC 0x10000, WIFIBT_MODE 0x20000, CAPTOUCH_JOIN 0x40000, MICROPHONE_SWITCH 0x80000, SUB 0x100000, HT_SOURCE 0x200000, MONO_SPEAKER 0x400000, VOICE 0x800000, BLE 0x1000000, BTCLASSIC 0x2000000, MICROPHONE 0x4000000, IR_SENSOR 0x10000000, IR_TRANSMITTER 0x20000000, NFC_SENSOR 0x40000000, 12V_TRIGGER 0x80000000. +0xd8 feature flags EXTENDER 1 through HP_SWAP_TARGET 0x80000000. +0xdc: EPHEMERAL_PLAYER 1, RECONFIGURABLE_OUTPUTS 2, AUTOMATIC_WIRED_SOFTAP 4, EPHEMERAL_BONDING 8, IS_HEADPHONE_MEDIAPLAYER 0x10. +0xe4: DEFAULT_STATUS_LED_OFF 1, DEFAULT_AUTOPLAY_LINEIN 2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10908238-f_10908e24",
+     "address": "0x10908568",
+     "notes": "Member accessor family: each predicate loads one feature word and extracts a bit/field (extrwi/andi/lbz/lhz). Representative: f_1090855c +0xd0&0xff00 = any HT input; f_10908578 &0xffff0000 = any audio out; f_10908594 lhz&1 = RCA_LINE_OUT; f_109085fc bit14 = HDMI_ARC; f_10908610 bit13 = HDMI_EARC; f_10908624 bit20 = COAX_DIGITAL_OUT; f_109085e8 bit26 = SUB_OUT; f_10908540 +0xd3!=0 = any analog in; f_1090852c +0xd4 bit20 = SUB; f_10908798 +0xd4 bit21 = HT_SOURCE; f_10908660 bit19 = MICROPHONE_SWITCH; f_10908728 bit23 = VOICE; f_1090864c bit26 = ETHERNET; f_109086b0/c4/d8 = WIFI bands; f_109086ec byte&1 = BLE; f_10908700 bit25 = BTCLASSIC; f_1090875c/73c = IR_SENSOR / IR pair; f_10908258 +0xd8 bit24 = PORTABLE; f_109089dc bit30 = SUPPORTS_FLEXIBLE_SURROUNDS; f_109089b4 bit23 = DOLBY_ATMOS; f_109089c8 bit29 = VIDEO_PLAYBACK; f_10908c7c +0xdc bit27 = IS_HEADPHONE_MEDIAPLAYER; f_10908be0/c0c +0xe4 bits = DEFAULT_STATUS_LED_OFF / DEFAULT_AUTOPLAY_LINEIN. Ordinal predicates test +0xcc: f_10908350 raw, f_10908a38 ==47 (Arc Ultra), f_109089f0 in [29,55] or 59, f_1090927c bitmap {29,31,34,36,45,46,59}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10908c34 / f_10908c4c / f_10908c64 / f_10908c94 / f_109094f8 / f_1090826c",
+     "address": "0x10908c34",
+     "notes": "Runtime writers: f_10908c34 sets +0xdc|=EPHEMERAL_PLAYER, f_10908c4c clears +0xd0 audio-in byte, f_10908c64 clears +0xd8 VOICE bit (0x800000), f_10908c94 sets +0xdc|=IS_HEADPHONE_MEDIAPLAYER; all four are called from descriptor-context f_103fa434. f_109094f8 sets the +0xd4 device-class nibble and clears the +0xd0 audio-in/HT half unless the class argument is 5 or 6; it has no callers in this build. f_1090826c is the copy-assign installed at vtable slot +0x10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1059515c / f_10766a20 / f_10621b90",
+     "address": "0x10766a58",
+     "notes": "Remote-peer descriptors use the same class embedded in zone-player records: descriptor at player+0x378 with ordinal at +0x444, copied wholesale at 0x10766a54-0x10766b00; stack copies install vtable 0x10f7c1d0 at 0x1059517c. Capability-list builders f_10621b90/f_10621ebc/f_106221e8 read a descriptor embedded at obj+0x13b0 and sequentially call the bit predicates to assemble support vectors."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "guard-to-predicate bindings",
+     "callsite": "0x10185eac / 0x1011d518 / 0x101863b4 / 0x1017fa98",
+     "notes": "Not-subwoofer checker f_10185e60 obtains the singleton via f_1090ad44 at 0x10185ea8 and tests SUB_OUT through f_109085e8 at 0x10185eac. PORTABLE predicate f_10908258 callers: f_1011d518, f_106882d0, f_106c70f8, f_10760804. Ordinal-47 (Arc Ultra) predicate f_10908a38 caller: f_101863b4. LED bit predicates f_10908b78/f_10908b8c/f_10908ba0 callers: f_1017fa98, f_101981f0. IS_HEADPHONE_MEDIAPLAYER f_10908c7c callers: f_1011e5c4, f_10124654, f_10765d28, f_10759088, f_1075b334, f_10766860. HT_SOURCE f_10908798 has 20 bl callers (0x1023cef0, 0x1030e704, 0x103a84f0, 0x107e96f0 among them). DOLBY_ATMOS f_109089b4 has 14 callers (0x1023cf44, 0x1030e8a8, 0x10392b08, 0x10528fb0). Battery and suspendable emitters f_10185f6c/f_10186068 read a settings blob through f_1018069c instead of a descriptor bit. Microphone-switch predicate f_10908660 is consumed by capability-list builders f_10621b90/f_10621ebc/f_106221e8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "vtables",
+     "address": "0x10f7c1b4",
+     "notes": "Three descriptor vtables share slots: +0x00 dtor, +0x04 delete, +0x08 f_10908238 (device-class nibble == 2), +0x0c f_10908258 (PORTABLE), +0x10 f_1090826c (copy-assign). Vtables: 0x10f7c1b4 (base ctor f_109092c4), 0x10f7c1d0 (f_10908f38 init), 0x10f7c888 (singleton dtor f_1090aefc). Secondary vtables embedding the descriptor as a base subobject appear at 0x10f142a4/0x10f142f4/0x10f17b8c inside f_1076xxxx player-record classes."
     }
-   ],
-   "todo": [
-    "Residual: identify the model-object population/writers for feature words +0xd0/+0xd4/+0xd8/+0xdc and trace each settings checker to the corresponding feature predicate. The recovered literal name/mask dictionaries describe separate feature-word domains, not a universal 77-bit array. Concrete per-model values and each guard-to-predicate binding remain unresolved; main -C supplies process privileges, not device features."
    ],
    "resolved_findings": [
     "Resolved: guard emit plumbing decoded - each reject string is wrapped by an emitter fn (0x10185cd8 PoE+eth, 0x10185d58 water-sensor, 0x10185ddc mic-switch, 0x10185e60 not-subwoofer, 0x10185f6c suspendable, 0x10186068 battery) that stamps {code 0x48/0x5a, message} via f_101a2ba8 then calls the reply thunk f_109db780. Each emitter is reached through a tiny vtable thunk (0x10185d50-family: 'addi r4,-0x56dc; b emitter') stored in the settings-object vtable block 0x10e97ef8-0x10e97f38 - no direct bl callers exist; the capability-bit test itself runs in the checker vfunc that selects the thunk.",
     "Launch-capability premise disproven in the executable: main f_1006a690 dispatches option character C through relative jump-table 0x10e706a4 to 0x1006a8f4, where the next argv pointer is selected into r22. The u case at 0x1006a858 selects username into r25. At 0x1006a7b4-0x1006a7bc those values are passed as (r25,r22) to sonos_auth_become_capable@plt. Shipped opt/bin/anacapactl line 5 supplies -u anacapa -C all=eip. This is the process-user/privilege path, not a device-model feature mask source. The usage text calling the argument caps was insufficient to identify it as product capabilities.",
     "Literal feature masks are encoded in startup instructions, not inferred from string ordinal: f_1008e7c4 constructs a name/mask dictionary. Stores at 0x1008e848/0x1008e854 bind AUDIO_IN_MASK=0xff; 0x1008e860/0x1008e86c bind RCA_LINE_IN=1; 0x1008e878/0x1008e884 bind 35MM_LINE_IN=2; 0x1008e890/0x1008e89c bind DOCK_ANALOG_IN=4; 0x1008e8a8/0x1008e8b4 bind USB_LINEIN=8; 0x1008e8c0-0x1008e8d0 bind HTAUDIO_IN_MASK=0xff00; 0x1008e8dc-0x1008e8ec bind TOSLINK_HT_IN=0x8000; 0x1008e8f8 binds HDMI_ARC=0x4000. Independent initializer f_10095d04 constructs the same initial pairs at 0x10095da8 onward. AUDIO_IN_MASK is therefore a grouped mask and array index one is not bit one. This directly refutes the universal feature-bit-order interpretation of the contiguous strings.",
-    "Actual name-selection path: f_1062192c calls f_106214f4 at 0x10621970 to create a vector of feature names. f_106214f4 first obtains object+0xd0 via f_10908ce8 at 0x10621568, walks dictionary nodes from global 0x110a89c4+8, intersects the feature word with node+4 at 0x1062158c-0x10621594, filters names containing MASK via f_108327fc, and copies selected names into a vector. It next obtains object+0xd4 via f_10908cf8 at 0x10621608. Accessors f_10908d08/f_10908d18 similarly read +0xd8/+0xdc. The RMuseFeature-array size warning at 0x10621b50 compares resulting vector count to caller capacity; this path does not index a literal 77-entry bit-name array. These verified reads locate the required model-word writer investigation, but do not establish its result or justify the previous S9 live/dead guard claims, which are withdrawn."
+    "Actual name-selection path: f_1062192c calls f_106214f4 at 0x10621970 to create a vector of feature names. f_106214f4 first obtains object+0xd0 via f_10908ce8 at 0x10621568, walks dictionary nodes from global 0x110a89c4+8, intersects the feature word with node+4 at 0x1062158c-0x10621594, filters names containing MASK via f_108327fc, and copies selected names into a vector. It next obtains object+0xd4 via f_10908cf8 at 0x10621608. Accessors f_10908d08/f_10908d18 similarly read +0xd8/+0xdc. The RMuseFeature-array size warning at 0x10621b50 compares resulting vector count to caller capacity; this path does not index a literal 77-entry bit-name array. These verified reads locate the required model-word writer investigation, but do not establish its result or justify the previous S9 live/dead guard claims, which are withdrawn.",
+    "Established: the feature words are populated only through the descriptor constructor. The self singleton at 0x110b8150 is built by f_10909fcc from HAL MDP/MDP2 flash data; recognizer f_10909058 is the sole writer of +0xcc/+0xd0/+0xd4/+0xd8/+0xdc/+0xe0/+0xe4/+0xf4, assigning the S9 literal vector {0x8000,0x30206772,0x37008} or the shared legacy defaults {d0|=0x05010001, d4|=0x60b2, d8|=0x30001} to every other model name; f_109091cc adds +0xd8 bit 0x20 (EQ_BALANCE) on an MDP hardware byte. Runtime mutation paths are the four setters called from f_103fa434, the device-class setter f_109094f8 (uncalled in this build) and copy-assign f_1090826c; remote peer descriptors are received copies embedded at player record +0x378.",
+    "Established: the dictionary masks partition into six word domains on the descriptor, verified by the S9 literal vector matching Playbar hardware: +0xd0 audio I/O (bytes: +0xd3 analog-in RCA/35MM/DOCK/USB, +0xd2 HT-in eARC/ARC/TOSLINK, +0xd0..+0xd1 audio-out RCA/35MM/COAX/TOSLINK/SPEAKER/HEADPHONE/SUB), +0xd4 device class plus network/button/sensor bits, +0xd8 software feature flags EXTENDER..HP_SWAP_TARGET, +0xdc ephemeral/headphone-role bits, +0xe4 default-behavior bits STATUS_LED_OFF/AUTOPLAY_LINEIN.",
+    "Established: the guard predicates are the member accessors f_10908238-f_10908e24 on descriptor +0x0 vptr; each extracts one named bit or field from +0xd0/+0xd4/+0xd8/+0xdc/+0xe4 or the +0xcc ordinal. Proven guard bindings: the not-subwoofer checker calls SUB_OUT predicate f_109085e8 on the singleton; battery/suspendable emitters check a settings blob via f_1018069c; PORTABLE, ordinal-47, LED, headphone-mediaplayer, HT_SOURCE and DOLBY_ATMOS predicates each have named bl callers enumerated in evidence. Predicates without direct bl callers are reached through the three capability-list builders f_10621b90/f_10621ebc/f_106221e8, the feature-name decoder f_106214f4 or the shared vtable slots."
    ]
   },
   "ext_audio_src": {
