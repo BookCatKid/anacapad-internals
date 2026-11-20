@@ -220411,7 +220411,7 @@
      "todo": "Established: f_100cc4f4 creates a bounded temporary XML writer, writes a Services root with local source/version, SchemaVersion=5 and optional ETag, then reads the HTTP stream in chunks of at most 4096 bytes through HTTP slot +8 and feeds each chunk to f_10c3fc68. It checks the XML completion byte and its callback/write-error flag, appends supplied descriptors that have nonempty name and secure endpoint, then writes </Services>. Explicit write or parse failure unlinks the temporary file and returns false. Writer creation failure also unlinks. The final flush/fsync/close helper f_1054b8e0 is called but its result is ignored; fsync status is itself ignored by that helper. A later candidate reparse can catch damaged XML, but no 803 flush/sync-specific error ladder exists here. Remaining: Reverse SAX callbacks in vtable 0x10e767a8 to document every catalog attribute, validation failure and override-precedence rule; trace HTTP read status handling and XML parser completion."
     },
     "temporary_file_writer": {
-     "description": "The temporary writer is opened with capacity 0x20000. Its add-data routine rejects a proposed total above that cap, accepts equality, buffers in 4096-byte units and returns boolean status. Its direct write and flush paths test write()==-1 rather than verifying the complete requested byte count, so a short successful write can be treated as full. f_1054b8e0 flushes, calls fsync and close, discards fsync status, and returns flush status unless close==-1. f_100cc4f4 does not inspect that returned status.",
+     "description": "The temporary writer is opened through f_1054b9c8 with capacity 0x20000 from f_100cc4f4 and flag 0. It first closes any existing descriptor, then tries open64(path,0xc1,0600) (O_WRONLY|O_CREAT|O_EXCL). On failure with flag arg6 nonzero it retries open64(path,0x201) (O_WRONLY|O_TRUNC); with flag zero it retries open64(path,1) (O_WRONLY) and lseek64(fd,0,SEEK_END), recording the existing size into +0x1008 as already-accounted bytes. The pre-open cap check requires +0x1008 <= arg5. Ctor f_1054b8b0 installs vtable 0x10ee96d4, +0x1004 buffered count, +0x1008 accounted total, +0x100c capacity and +0x1010 fd=-1. The add-data routine f_1054b738 rejects a proposed total above the cap, accepts equality, buffers in 4096-byte units and returns boolean status. Flush f_1054b670 issues a single write(fd, this+4, +0x1004), treats any result other than -1 as success, adds the buffered amount to +0x1008 and clears +0x1004, so a short successful write is accepted as full. f_1054b8e0 flushes, calls fsync and close, discards fsync status, and returns flush status unless close==-1. f_1054bb0c reserves space by seeking to cap-1, writing one byte and seeking back to 0 (sparse preallocation). f_100cc4f4 does not inspect the returned close status.",
      "evidence": [
       {
        "type": "firmware",
@@ -220419,9 +220419,22 @@
        "build": "86.10-80260",
        "address": "0x1054b738",
        "notes": "Bounded append through 0x1054b8ac; write/flush f_1054b670 and close f_1054b8e0; close result ignored at 0x100cc704."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054b9c8",
+       "notes": "Open path: close-existing, open64 0xc1 then 0x201 or 1 with lseek64 to end; cap check +0x1008 <= arg5; verified constants."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054b8b0",
+       "notes": "Ctor installs vtable 0x10ee96d4 and zeroes +0x1004/+0x1008/+0x100c, +0x1010=-1; sparse prealloc f_1054bb0c seek cap-1 write 1 byte."
       }
-     ],
-     "todo": "Established: The temporary writer is opened with capacity 0x20000. Its add-data routine rejects a proposed total above that cap, accepts equality, buffers in 4096-byte units and returns boolean status. Its direct write and flush paths test write()==-1 rather than verifying the complete requested byte count, so a short successful write can be treated as full. f_1054b8e0 flushes, calls fsync and close, discards fsync status, and returns flush status unless close==-1. f_100cc4f4 does not inspect that returned status. Remaining: Trace concrete writer vtable initialization and all exceptional paths; verify target open-flag constants against the shipped ABI."
+     ]
     },
     "acceptance": {
      "description": "f_10660e58 accepts incoming unsigned version > local version except incoming 0xffffffff. Equal versions, including two 0xffffffff values, accept only when strcmp(incoming-source,local-source)<0. Other comparisons reject. In particular a normal incoming version does not replace local 0xffffffff just because that local value is a sentinel.",
