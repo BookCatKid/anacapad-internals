@@ -220360,6 +220360,34 @@
      "build": "86.10-80260",
      "address": "0x100cb8f0",
      "notes": "AvailableSvcsSummary emitter builds six local/remote diagnostic attributes at 0x100cb984 through 0x100cba0c. It is distinct from normalized catalog Service emitter f_100cb694."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c997c",
+     "notes": "Poll orchestrator: shared-table acquire via f_10557cac + release cb f_100caad8, once-per-boot gate +0x1d4, saved ETag +0x1f8 and flag +0x1d6 handed to fetch worker f_100c8fdc, reconcile f_101b7e90 with 'list changed old count %d -> new count %d); ETag:%s'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c59b4",
+     "notes": "Poll scheduler: interval from +0x1f4, ICS-sourced iff 1800<=I<=86400 else Player-sourced 86400, byte 0x11091868 randomizes via ZZ0153(&out,1800,I), logs 'next check for available services in %u s [source=%s]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c71d0",
+     "notes": "Service vtable slot +0x4c event enumerator feeding f_100c7084 ServiceListVersion emit; full chain in notification_wakeup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552c20",
+     "notes": "Manifest load with devmode option-7 HTTPS gate at 0x10553504."
     }
    ],
    "resolved_findings": [
@@ -220367,9 +220395,16 @@
     "Refresh error ladder decoded in f_100c8fdc: HTTP helper failure or unavailable reported response length ->801; catalog-processing callback false ->803; final installer false ->802; unsigned reported response length >=0x20000 ->804; unmodified flag ->0; successful processing/install ->0. Worker f_100c997c adds the update-active 800 gate. These are branch-proven outer statuses, not a shared store-save error ladder. The fetch worker sets a deadline to clock-id 1 current time plus 30000ms, passes it to the HTTP helper and catalog callback, uses a .tmp path, and sets the expected catalog media type. If current ETag is nonempty and its third argument is nonzero, it adds If-None-Match. Missing response ETag and same-ETag modified responses warn but continue to body processing; they do not themselves select an error.",
     "f_10660e58 accepts incoming unsigned version > local version except incoming 0xffffffff. Equal versions, including two 0xffffffff values, accept only when strcmp(incoming-source,local-source)<0. Other comparisons reject. In particular a normal incoming version does not replace local 0xffffffff just because that local value is a sentinel.",
     "Installer f_100c7898 holds the object+0x128 write lock while comparing incoming source/version against current source/version with f_10660e58. Rejected revisions return false. Accepted candidates are parsed from the candidate file through f_10c4015c; file-open/parse failure or a false parser-completion byte returns false. A nonzero rename(candidate,live-path) result also returns false. Successful rename clears the descriptor cache under its separate mutex, sets dirty byte +0x1d5, invokes f_1067c6ec(object+8), copies the source with capacity 25, stores the version at +0x1f0, copies ETag with capacity 65 and sets +0x1d6. It notifies replication through object+0x1b8 slot +0x14. Subsequent descriptor loading failure does not undo the rename or change the successful installer return.",
-    "Normalized catalog fields and generic parser input are now separated in payload_formats.music_service_catalog. The six zpETag/rsETag/zpLUD/rsLUD/zpVer/rsVer attributes belong to the AvailableSvcsSummary diagnostic emitter f_100cb8f0; they are not the primary Service row grammar, and their presence does not establish an ETag-based install predicate. The concrete installer compares only source/version through f_10660e58 before candidate parsing."
+    "Normalized catalog fields and generic parser input are now separated in payload_formats.music_service_catalog. The six zpETag/rsETag/zpLUD/rsLUD/zpVer/rsVer attributes belong to the AvailableSvcsSummary diagnostic emitter f_100cb8f0; they are not the primary Service row grammar, and their presence does not establish an ETag-based install predicate. The concrete installer compares only source/version through f_10660e58 before candidate parsing.",
+    "Correction: earlier text described the f_10554918 out-flag as set only when parsed count is strictly greater than the original count. Instruction-level re-check of f_10554f0c and the end check at 0x1055499c shows the flag reports membership or content change instead: new-Id append, Id-match row replacement, write-index growth past the original count, or surviving count strictly less than original. Equal-content documents and pure reorders leave it clear.",
+    "Poll scheduler f_100c59b4 reads the stored interval at this+0x1f4 and treats it as ICS-sourced only inside 1800..86400 seconds, falling back to Player-sourced 86400; when byte 0x11091868 is set the next interval is randomized through ZZ0153(&out,1800,I). It logs 'next check for available services in %u s [source=%s]' with sources 'ICS'/'Player', stores now+interval and, on the first pass, invokes the update action through service vtable slot +8.",
+    "Fetch worker f_100c8fdc is fully decoded: global enable gate to f_100c6248, R_CustomerID via settings subobject +0x1c4 (+0x164 vt +0x24), 33-entry 0x250-stride installed-attribute array via f_101b688c(+0x1c8), '&installedIds=' comma list, optional '?sonosId=', URL '/catalog/services' via f_10540004, Accept 'application/sonos_service_catalog.v1.xml', If-None-Match only when the stored ETag is nonempty AND its third argument is nonzero, GET via f_10546520 with a 30000 ms deadline, response poll interval stored to +0x1f4.",
+    "Supplied local rows are collected inline at 0x100c9814 through service vtable slot +0x20 (f_100c6068): first call selector 0xff, then service types 0xf0..0xfd, cumulative cap 0xff. After normalization, f_100c72e8 writes R_AvailableSvcTrials and vtable slot +0x1c (thunk f_100c7c34 -> f_100c7898 with (6,src,ver,0)) performs the replication/install step.",
+    "Notification chain completed: installer sets +0x1d5 then f_1067c6ec(&this+8) -> f_1067c46c pending-source/payload gate -> f_10678c50 sender lock/+0x10e/condvar signal. Emission runs through service vtable slot +0x4c f_100c71d0 into f_100c7084, which emits ServiceListVersion as '<+0x1d7 id>:<+0x1f0 version>' gated and consumed by +0x1d5. Sender-thread internals, subscriber delivery and WSS producers are outside this subsystem; the proven hand-off is the sender condvar signal plus the +0x10e pending byte.",
+    "Manifest URI policy is decided in f_10552c20 at 0x10553504: devmode option 7 on global 0x110a0374 gates a strncmp 'https' requirement that logs 'Manifest URL must use HTTPS: %s' when the option is clear.",
+    "Serializer internals mapped: elements are composed in a 0x2000 stack string writer with attribute values escaped through the five-entity escaper f_105779c8; URIs are prefix-packed via marker table 0x10ee9eb0 (tags 0x1000000..0x4000000) and expanded via f_10553ab0; '{device}' in manifest URIs expands to 'zp'; Auth names come from table 0x10ee9eec (Stateless/Anonymous/DeviceLink/AppLink else UserId); PollInterval is clamped to 30.",
+    "Static boundary: the GENA sender thread, the refcounted notification sender internals and the replication transport used by object+0x1b8 slot +0x14 live in the eventing/replication code, not in music_services. All in-subsystem producers and consumers for this record set are instruction-traced."
    ],
-   "todo": "Established: static catalog bindings, complete outer status ladder, known-length/gzip gate, stream-to-XML temporary conversion, revision acceptance, rename, cache reload, trial-setting write and GENA sender wakeup are instruction-traced. Remaining: exhaust SAX descriptor callbacks and projection grammar; trace underlying HTTP execution/read/redirect behavior, exact file writer ABI/exception handling, replication and reconciliation callees, sender-thread delivery, polling schedule and WSS producers. Follow the functions named in catalog_update_details; these paths are statically recoverable.",
    "catalog_update_details": {
     "response_length": {
      "description": "The f_10541e00 helper reports response-length availability, not body availability. It returns false when byte +0x44b4 is clear or gzip flag +0x4a8 is set; otherwise it writes the unsigned total at +0x44b8 to the caller and returns the availability byte. Header parser f_10543698 is the only producer of these fields besides reset helper f_10540aa8. Content-Length is parsed by strtol into +0x44b8. Content-Range is parsed by the sscanf forms 'bytes %zu-%zu/%zu' and 'bytes %zu-/%zu'; the advertised total is validated against the end-of-range value at +0x44bc and mismatches log 'BAD HTTP Header EOR'. A range-start marker at +0x44b0 suppresses the plain Content-Length result. Content-Encoding matched by strncmp 'gzip' (4 bytes) sets +0x4a8 and installs inflate state via f_10542284 with the z_stream at +0x44fc. Transfer-Encoding 'chunked' sets +0x4aa and initializes a decoder at +0x4a0; 'identity' is ignored. 'HTTP/1.1 1' informational responses are skipped wholesale. Parse failures return 0x80000002, 0x80000007 or 0x80000025 and log 'Bad HTTP Header: %s'; the completion status is delivered through object vtable slot +0x40. f_10540aa8 zeroes all of +0x44b0/+0x44b4/+0x44b8/+0x4a8 and calls inflateEnd when the gzip flag was set. Therefore a modified catalog with no usable advertised length, including the gzip path, selects 801 before body streaming; a reported total >=0x20000 selects 804. The gate is not a measurement of actual streamed or normalized XML size.",
