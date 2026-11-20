@@ -216567,7 +216567,7 @@
   },
   "cloud_synchronizer": {
    "name": "RCloudSynchronizer",
-   "summary": "cloud_synchronizer thread: registerServices (max-count abort, called-once guard), \"received JIT event\", \"discarding %s type %d\"",
+   "summary": "cloud_synchronizer thread: registerServices (max-count abort, called-once guard), startup registers the EntitlementsManager +0x12c cache-update delegate, readiness object *(god+0xc7c)+4 installed at sync+0x12c, \"received JIT event\", \"discarding %s type %d\"",
    "evidence": [
     {
      "type": "firmware",
@@ -216601,13 +216601,76 @@
      "build": "86.10-80260",
      "address": "0x105a3328",
      "notes": "Virtual +0xc called only when eligible object virtual +8 returns false."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018eaac",
+     "notes": "Established: new(0x210) EntitlementsManager via ctor f_10370f1c (strings 'entitlements_manager'/'EntitlementsManager'/'entitlements_mgr', source ../anacapa-1.0/oc/zone/zoneplayer/entitlementsmanager.cxx) stored at god+0x14d34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101893f4",
+     "notes": "Established: sole startup pair assembled on stack: isel r10,(E+0x12c)|0 on cr7.eq(E==0) at 0x10189414; evstddx r8,r7,r9 stores {r8,r9=-0x18} at sp+0x28 then stw r10 overwrites word0 at 0x10189434. Pair = {E?E+0x12c:0, 0xffffffe8}, count=1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a3768",
+     "notes": "Established: f_105a35b0(sync=*(god+0x3f840), ready, pairs, count) stores arg2 at sync+0x12c via stw r27,0x12c(r28); arg2 = isel(*(god+0xc7c)+4 or 0) built at 0x10189418-0x10189430; logs 'RCloudSynchronizer initalized.' under 'cloud_sync'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ebf7a4",
+     "notes": "Established: EntitlementsManager+0x12c subobject vtable (installed by ctor stw at 0x103710b0): vfunc+8 f_10371d54, vfunc+0xc f_10372978, both addi r3,-0x12c adjusting thunks back to the primary base."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10371c80",
+     "notes": "Established: vfunc+8 impl f_10371c80 builds an 'entitlements' string (f_10370864), looks up its subject via f_10371c10 and publishes through f_109e66b0; returns nonzero so a successful publish suppresses the vfunc+0xc fallback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103726fc",
+     "notes": "Established: vfunc+0xc impl f_103726fc is the cache-update fallback ('onCacheUpdate'): same 'entitlements' subject, f_109e66e8 eTag read (failure logs 'failed to get current eTag from cache' at 'entmt' level 6), then EntMgr->vfunc+0x3c f_1037120c performs the cloud GET '/entitlements/api' with 'X-Sonos-User-Id' header, logs 'Fetch from cloud returned with status=%s', and vfunc+0x40 f_10372980 consumes the result."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a32c4",
+     "notes": "Established: pair dispatch requires BOTH pair.sel == arg (bc 4,30 skip) AND arg == 0 (bc 4,18 skip on cr4 from cmpwi r29,0 at 0x105a32a8). Sole invoker f_100b94e0 passes arg 0, so only selector-0 pairs can ever fire; the stored selector 0xffffffe8 cannot match, leaving the startup pair inert under every proven call path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ed8f0",
+     "notes": "Established: readiness predicate f_109ed8f0 is a generic forwarding thunk, obj->vfunc+8(obj) via mtctr/bctr; the walk gates the whole iteration on its nonzero return. Second use site 0x105fcad0 gates a separate fetch alongside two capability checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10189210",
+     "notes": "Established: the same *(god+0xc7c)+4 readiness pointer is stashed into global 0x11097d94 via setter f_109d3910; *(god+0xc80) is a refcounted companion (lwarx/stwcx ++ at +4, f_100c5050 release) held for the call duration."
     }
    ],
-   "todo": "Residual: identify the concrete startup registrant at parent+0x4d34/+0x12c and trace its virtual +8/+0xc implementations, together with the readiness predicate f_109ed8f0. JIT is proven to schedule selector-zero work with null callback data; a service-id/body wire schema and the earlier six-store list are not established.",
    "resolved_findings": [
     "Registration is a bounded array of eight-byte {object pointer, selector} pairs, not a proven six-service replicated-store list. Constructor f_105a3058 clears 32 physical slots at owner+0x28 and count at +0x128. registerServices f_105a3158 rejects unsigned count>31 at 0x105a3160-0x105a316c, rejects a subsequent registration only if the existing count is nonzero at 0x105a3170-0x105a3178, copies count pairs and stores the count. The Aborting text on these guards leads to a diagnostic and return, not a process abort (0x105a31d0-0x105a3254). Count zero is accepted and leaves the subsequent-call guard unset. Thus max accepted count is 31, despite storage for 32 pairs.",
     "Native startup call sites at 0x10189468-0x10189470 and 0x10189508-0x10189510 both pass count=1 and stack+0x28 to initializer f_105a35b0, which forwards that pair to f_105a3158 at 0x105a3754-0x105a3760. The pair is assembled at 0x101893f4-0x10189434 from the object loaded at parent+0x4d34 plus its +0x12c subobject. These instructions disprove the claimed fixed set of settings/accounts/favorites/playlists/queues/experiments registrants. The exact concrete service behind this startup subobject still needs its vtable and owning constructor traced.",
-    "The JIT callback itself has no decoded service-id/body envelope. f_105a2ee8 logs the JIT event and schedules callback f_100b94e0 with null callback data through scheduler virtual +8 at 0x105a2f34-0x105a2f5c. f_100b94e0 then invokes f_105a3258 with selector zero at 0x100b94f4-0x100b9508. That worker first requires f_109ed8f0(owner+0x12c) to return nonzero, then walks registered pairs, applying the selector filter only when the supplied selector is nonzero. Each eligible object gets virtual +8; only a false result triggers its virtual +0xc at 0x105a3328-0x105a3338. This proves a scheduled all-registrant wake/check path for JIT, not direct dispatch of a parsed push body. Adjacent WebSocket/muse strings alone do not bind this callback to a WSS wire parser."
+    "The JIT callback itself has no decoded service-id/body envelope. f_105a2ee8 logs the JIT event and schedules callback f_100b94e0 with null callback data through scheduler virtual +8 at 0x105a2f34-0x105a2f5c. f_100b94e0 then invokes f_105a3258 with selector zero at 0x100b94f4-0x100b9508. That worker first requires f_109ed8f0(owner+0x12c) to return nonzero, then walks registered pairs, requiring the stored selector to equal the dispatch argument and the argument to be zero (bc 4,30 / bc 4,18), so only selector-0 pairs fire on the selector-0 JIT dispatch. Each eligible object gets virtual +8; only a false result triggers its virtual +0xc at 0x105a3328-0x105a3338. This proves a scheduled all-registrant wake/check path for JIT, not direct dispatch of a parsed push body. Adjacent WebSocket/muse strings alone do not bind this callback to a WSS wire parser.",
+    "The single startup registrant is the EntitlementsManager +0x12c cache-update delegate: new(0x210) via ctor f_10370f1c, stored at god+0x14d34, subobject vtable 0x10ebf7a4. Its vfunc+8 posts the 'entitlements' inprocess event (f_10371c80); its vfunc+0xc is the cloud fallback fetch of /entitlements/api with X-Sonos-User-Id and eTag gating (f_103726fc). Readiness is the *(god+0xc7c)+4 secondary base installed at sync+0x12c, probed by generic vfunc+8 forwarder f_109ed8f0. The stored selector 0xffffffe8 never matches the only proven dispatch argument (0), so the delegate is registered but cannot be invoked by this walker; whether a nonzero-selector path exists elsewhere is not statically established."
    ]
   },
   "cert": {
