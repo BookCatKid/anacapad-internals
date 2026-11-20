@@ -220535,17 +220535,23 @@
      ]
     },
     "trial_settings": {
-     "description": "f_100c72e8 reads R_AvailableSvcTrials into a 1024-byte buffer, substitutes an empty string when lookup fails and compares it with the incoming trial string. It writes the setting through the settings object slot +8 only when strcmp differs. The fetch worker calls this after successful processing but before final installation, so a later install failure can occur after trial-setting mutation.",
+     "description": "f_100c72e8 reads R_AvailableSvcTrials into a 1024-byte buffer through the settings subobject at object+0x1c4, first checking the +0x164 subobject method identity at vtable +0x4c against f_100c9be8 before choosing the lookup call; a failed lookup substitutes an empty string. It compares the stored value with the incoming trial string and writes through the settings object slot +8 only when strcmp differs. The incoming string is the trial-type comma list the normalizer accumulated in +0x1034 (length +0x1030, capacity 0x400): BuiltInService handler f_100cb190 (accumulate tail at 0x100cb2a8) appends '%u,' of the Type argument whenever (Type & 0x81)==0x80 and Type!=0x84, and f_100cc4f4 strips the trailing comma before success return. The fetch worker calls this after successful processing but before final installation, so a later install failure can occur after trial-setting mutation.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x100c72e8",
-       "notes": "Read/empty fallback, strcmp branch at 0x100c7384 and conditional settings call at 0x100c73a4."
+       "notes": "Read/empty fallback, strcmp branch at 0x100c7384 and conditional settings slot +8 call at 0x100c73a4; vtable identity check against f_100c9be8 at 0x100c732c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100cb2a8",
+       "notes": "Trial accumulate tail of f_100cb190: andi test (Type & 0x81)==0x80 at 0x100cb2a8, !=0x84 compare at 0x100cb2c8, then '%u,' snprintf into normalizer +0x1034 advancing +0x1030; trailing comma stripped by f_100cc4f4."
       }
-     ],
-     "todo": "Established: f_100c72e8 reads R_AvailableSvcTrials into a 1024-byte buffer, substitutes an empty string when lookup fails and compares it with the incoming trial string. It writes the setting through the settings object slot +8 only when strcmp differs. The fetch worker calls this after successful processing but before final installation, so a later install failure can occur after trial-setting mutation. Remaining: Trace trial-string SAX generation and the settings write/notification method to establish exact grammar and persistence."
+     ]
     },
     "notification_wakeup": {
      "description": "The subsystem-internal chain from install to event emission is fully traced. Installer f_100c7898 sets dirty byte +0x1d5 at 0x100c7b78 and calls f_1067c6ec(&this+8) on the embedded shared-state base. That dispatcher reaches f_1067c46c, which atomically installs the pending marker on event source +0x110, obtains the refcounted notification sender at +0xb8 (refcounts at +4/+8 with stwcx) and, when the sender and the source payload at +0xb4 are both present, calls f_10678c50; otherwise it logs 'Event source %s has no notification sender' with the +0xbc name. f_10678c50 locks sender +0x28, sets sender+0x10e=1 and signals the condvar at sender+0xb8, which wakes the GENA sender thread. On the emission side, the service object exposes the state-variable enumerator at primary vtable (0x10e768a4) slot +0x4c = f_100c71d0: it acquires shared table this+0x128 via f_10557afc with release callback f_100caad8 (vtable 0x10e766f0), calls f_100c7084 for each nonnull builder argument, copies the 8-byte variable descriptor from .bss global 0x1109b010 into the out parameter, and releases the table. f_100c7084 emits '<ServiceListVersion>' content '<+0x1d7 id>:<+0x1f0 version>' (name written with length 0x12, id string, ':' separator, decimal version). With the consume flag nonzero it emits only when +0x1d5 is set, then calls f_101b7cd4(&this+0x1c8) and clears +0x1d5; with the flag zero it emits unconditionally, the initial full-state form. +0x1d5 is written nowhere else in the binary: constructor f_100c69xx zeroes it with +0x1d4/+0x1d6/+0x1d7 at 0x100c6a68, the installer is its only setter, and f_100c7084 its only clearer, so a ServiceListVersion delta event is queued exactly once per accepted install through f_100c7898 (whether the list arrived by local fetch or by replication) and cleared the next time the variable is read out. The sender thread itself, its registration, retry and packet delivery, and any WSS producers live in the eventing/notification code outside this subsystem; the hand-off proven here is the sender condvar signal at f_10678c50 plus the +0x10e pending byte.",
