@@ -221257,15 +221257,19 @@
    "playervolume": "verbs {duck,unduck} at v1/players/%s/playerVolume/{duck,unduck}; setVolume \"cannot set volume AND mute parameter\"; setRelativeVolume \"cannot set volumeDelta AND muted parameter\"; fixed flag; v1/groups/ + v1/players/ + /playerVolume paths",
    "command_format": "muse command = JSON array [header object, body object]; \"failed to parse json body (offset: %u)\"; param validation emits MISSING_VALUE/UNEXPECTED_TYPE + range/coerce messages",
    "client_auth": "schemes {wssmtls,httpsmtls}; audience v2.api.smartspeaker.audio; credentials {apikey,guest_token,guest_token_pin}; \"Policy key permissions length exceeds maximum size!\"; \"validateTargetIdV1: invalid target id: %s of type: %s.\"; \"Client auth exception\"; \"API key changed from [%.8s] to [%.8s]\"; \"Credential is missing\"; \"Secure connection required\"; \"Upnp command failed with return code\"; \"Error code not found in objectStatusMap\"; \"Api Key passed by client is too long..truncating.\"; MuseDebugInfo; providers {getActorProvider,getTargetIdProvider,getTargetValidator,MuseDeviceImplProvider}",
-   "namespaces": "{audioClip,householdUpdate,management,musicServiceAccounts,pinewood,platformInternal,positioning,roomDetection,soundSwap,systemReporting,systemTime,virtualRemoteControl} + settings:{accessorySettings,business,frontierLlms,global,playback,playerBasic,playerLineIn,playerUI,positioning,preferences,prodashboard,security,video} + upnp:{AlarmClock,AudioIn,AVTransport,ConnectionManager,ContentDirectory,DeviceProperties,GroupManagement,GroupRenderingControl,HTControl,MusicServices,Queue,RenderingControl,SystemProperties,VirtualLineIn,ZoneGroupTopology}",
+   "namespaces": "83-entry descriptor index space enumerated at 0x10f96aa4; 69 generated classes constructed by factory jump table 0x10e781d8 covering the cloud set {alarms,areas,audioClip,authorization,catalog,devices,devicesExtended,diagnostics,effectiveSettings,entitlements,favorites,global,groups,groupVolume,hardwareStatus,hdmi,history,homeTheater,households,householdUpdate,info,ircontrol,localContentLibrary,management,musicServiceAccounts,networkTest,pinewood,platformInternal,playback,playbackExtended,playbackMetadata,playbackSession,playerVolume,playlists,positioning,power,roomDetection,settings,sleepTimer,smartplay,soundSwap,svc,systemReporting,systemTime,time,timers,topology,trueplay,trueroom,update,virtualLineIn,virtualRemoteControl,voice,zones} + 15 upnp* bridge classes + 13 settings:* sub-namespaces served inside settings. Full per-namespace verb census lives in the muse_verbs record.",
    "http_auth": "challenge {private,public,realm,error_description,nonce,Basic}; OAuth errors {invalid_request,invalid_token,insufficient_scope,service_unavailable}; results {denied/403,denied/503,no token}; log \"Muse auth result: [%s] [%s] [%s] [%s] [%s] [%.8s] [%s/%s::%s]\"",
    "todo": [
-    "Established: static alarms/audioClip namespace tables, name getters, the complete eight-entry alarms verb-factory switch and dispatcher missing-command versus missing-implementation paths. Remaining: complete the namespace->generated class->verb-command->concrete domain implementation join for the cloud namespace set, including the writers of namespace+4 and command+4 and their startup/setupWholeDevicePointers injection paths. Start with alarms vtable 0x10f9fc44, f_10ac47ac and factories f_10ac5140/f_10ac5464, then repeat for areas vtable/name getter f_10acc504 and other namespace classes. HTTP prefix rows and name literals are not sufficient to certify this census; the old route-only and no-static-pair limitation is withdrawn. This is actionable static reverse engineering."
+    "Established: the complete namespace registry join (83-entry index -> name 0x10f96aa4 -> ctor arm 0x10e781d8 -> 0x3c-byte object with implementation context at +4), the f_1018e9a0 registration bootstrap and provider-store table 0x10f99508, the dispatcher resolve/configure/post pipeline through getActorProvider, and the command object layout. Remaining: for each of the 69 namespace classes, identify the concrete implementation (actor) object actually passed as the factory's r6 at registration, i.e. bind every engine-slot entry to its producer call chain, and decode the command +0x80/+0x84 argument sources. This is actionable static reverse engineering."
    ],
    "resolved_findings": [
     "The old route-only/no-name-reference premise for cloud namespaces is false. f_10ac78b4 returns the alarms literal at 0x10e7bf5c; f_10acc504 returns areas at 0x10e7c0e4. Alarms static namespace vtable 0x10f9fc44 binds +0x18=f_10ac47ac (verb selection/factory), +0x1c=f_10ac78b4 (name), +0x20=f_10ac78a4 (current command), +0x24=f_109eac1c and +0x28=f_109eb04c (dispatch). AudioClip provides a counterexample to treating these functions as registration calls: f_10ad03b8 only returns a name, and its static namespace vtable is 0x10fa03d4. Static namespace class identity is therefore recoverable without relying on HTTP route adjacency.",
     "Alarms namespace f_10ac47ac builds eight {verb,factory} entries on its stack: subscribe->f_10ac4ec4, unsubscribe->f_10ac5000, getAlarms->f_10ac5140, fetchAlarm->f_10ac5464, createAlarm->f_10ac56e8, updateAlarm->f_10ac5a20, snoozeAlarm->f_10ac5d24, removeAlarm->f_10ac5fd4. It compares the incoming command name at command-info+0x26 using strcmp and stride 8. No match returns null. A match invokes the factory with namespace+4 as an argument, replaces namespace+0x38 with the returned command object, and destroys the previous object if present. The +0x38 slot is not itself proof of a permanent domain actor/module mapping.",
-    "f_109eb04c is a dispatcher, not the namespace-registration function previously claimed. It calls the namespace virtual +0x20 at 0x109eb1d4; the default implementation or a null returned command produces status 0x5a. It initializes the command and executes the subsequent pipeline. The Namespace may be missing actor diagnostic is gated later on status 0x59 at 0x109eb708. A concrete alarms command path separately checks its implementation pointer at command+4: null yields 0x59 and Namespace has no actor, while non-null calls implementation virtual +8. Thus absence of a command and absence of its injected implementation are distinct failures, not evidence that all cloud namespace code lives outside the image."
+    "f_109eb04c is a dispatcher, not the namespace-registration function previously claimed. It calls the namespace virtual +0x20 at 0x109eb1d4; the default implementation or a null returned command produces status 0x5a. It initializes the command and executes the subsequent pipeline. The Namespace may be missing actor diagnostic is gated later on status 0x59 at 0x109eb708. A concrete alarms command path separately checks its implementation pointer at command+4: null yields 0x59 and Namespace has no actor, while non-null calls implementation virtual +8. Thus absence of a command and absence of its injected implementation are distinct failures, not evidence that all cloud namespace code lives outside the image.",
+    "The namespace->generated-class join is complete. Every namespace is a descriptor-indexed registration: u16 index resolves to a name (0x10f96aa4) and to a ctor arm (0x10e781d8 inside f_100d12f4). 69 classes are constructed for indices 1-38 and 52-82; index 0 and the 13 settings:* indices (39-51) share the null arm and are served by the settings class. Each constructed object is 0x3c bytes and receives its implementation context as ctor arg4 stored at +4 (f_109ebd04); the verb selector at vtable+0x18 news a command object which lands at +0x38. This closes the prior 'writers of namespace+4' question at the class level: the writer is the registration-time factory call whose r6 argument is the injected implementation.",
+    "The engine bootstrap is f_1018e9a0. It stores factory objects into context slots +0x4d20..+0x4d38, then registers namespaces one descriptor at a time: stack-built {u16 index, u8 flag} descriptors, name lookup f_109ebaec, member-name lookup f_109ecb5c into table 0x10f97094, provider-store name from f_10a07fe8's AUTHZTOKENS/AUTHZPOLICIES/DEVICES/ENTITLEMENTS/FCS/SETTINGS/HISTORY table at 0x10f99508, and registration into context slots +0x4e70/+0x4f78/+0x5080 via f_109e60c0. The setupWholeDevicePointers strings near f_109eb6f4 describe the diagnostic for a namespace whose implementation pointer stayed null.",
+    "Dispatcher internals are now mapped past the resolve step. After vptr+0x20 yields the op object, f_109eb04c runs five configuration setters, stores the provider at op+0xa0, performs a mutex-guarded lazy init, then asks getActorProvider (f_109e07b8) for the singleton provider. Depending on request flags (f_109e5dc0/f_109e5ddc) it either calls f_10b98840 or gets a functor via provider vptr+8 applied to op+0xec, wraps it as a task with f_103ff5e4 and posts it; refcounted objects are released by atomic decrement and the vptr+4 deleter. Status 0x5a means the selector produced no command; status 0x59 means the command's implementation pointer was null (Namespace has no actor).",
+    "Command object layout is verified: f_109d9b18 installs primary vtable 0x10f9496c and a second interface vtable 0x10f949d0 at +0x78, stores the injected context at +0x7c and two further arguments at +0x80/+0x84 over an object of at least 0x144 bytes containing embedded strings and sub-objects."
    ],
    "summary": "Muse dispatches commands through generated namespace objects with static method tables and per-verb factories. A namespace object can hold the currently constructed command at +0x38; this is distinct from its injected implementation/context pointer. HTTP route literals alone do not bind the underlying domain actor.",
    "evidence": [
@@ -221295,8 +221299,50 @@
      "address": "0x109eb140",
      "callsite": "0x109eb1d4 / 0x109eb73c / 0x10ac6180",
      "notes": "Dispatcher virtual+20 resolves command, default-function comparison at 0x109eb148-0x109eb154 and null branch at 0x109eb1d8-0x109eb1dc reach status0x5a at 0x109eb158. Status0x59 diagnostic gate at 0x109eb704-0x109eb73c. Alarms command checks command+4 implementation at 0x10ac6160-0x10ac6168; non-null calls its virtual+8 at 0x10ac6180; null writes0x59 and Namespace has no actor at 0x10ac62a8-0x10ac62bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "engine registration loop f_1018e9a0",
+     "address": "0x1018eb0c",
+     "callsite": "0x1018eb0c-0x1018eb64 / 0x1018ebbc-0x1018ec20 / 0x1018ea20-0x1018ea98",
+     "notes": "Builds stack descriptor: sth immediate u16 (4,10,0x26 seen) at r1+0x1a4 and stb flag at r1+0x1a6, calls f_109ebaec for the namespace name, f_109ecb5c with member-table index (0x31,0x2f,0x67 seen), f_10a07fe8 with provider enum (2,4,5 seen) then f_109e60c0 into context slots +0x4e70/+0x4f78/+0x5080. Earlier it stores the factory vtable 0x10e7832c object into +0x4d20/+0x4d30/+0x4d34/+0x4d38 and performs the +4 context store at 0x1018ea90."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "provider store table f_10a07fe8",
+     "address": "0x10f99508",
+     "callsite": "0x10a07fe8-0x10a08008 index / 0x10a0800c-0x10a080b4 name lookup",
+     "notes": "8 rows of 12 bytes {name-ptr, length, enum}: row1 AUTHZTOKENS(0xb,1), AUTHZPOLICIES(0xd,2), DEVICES(7,3), ENTITLEMENTS(0xc,4), FCS(3,5), SETTINGS(8,6), HISTORY(7,7). Index getter returns row+0; reverse lookup strncasecmp bounded by 7. Sibling table base 0x10f9955c used by f_10a080e8/f_10a0810c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "command base ctor f_109d9b18 and dispatcher f_109eb04c pipeline",
+     "address": "0x109d9b94",
+     "callsite": "0x109d9b74-0x109d9b88 arg stores / 0x109eb1d4-0x109eb228 resolve+setters / 0x109eb230-0x109eb240 provider / 0x109eb404-0x109eb458 functor wrap",
+     "notes": "Ctor stores dual vtables 0x10f9496c(+0) and 0x10f949d0(+0x78), ctx +0x7c, args +0x80/+0x84. Dispatcher: vptr+0x20 resolve -> r29, five setter calls, provider at r29+0xa0, mutex init f_109df998, getActorProvider f_109e07b8 yields provider+refcount, flag check f_109e5dc0/f_109e5ddc chooses f_10b98840 vs async provider vptr+8(r29+0xec) wrapped by f_103ff5e4, atomic refcount release via vptr+4."
     }
-   ]
+   ],
+   "namespace_registry": {
+    "descriptor": "{u16 class-index @0, bound 0x52 (83 slots); u8 flag @2, nonzero skips the factory rebuild; u8 instance @4, formats '%s:%u' display names via f_109ebb30}",
+    "index_to_name": "0x10f96aa4: 83 pointers, index 0 'UNKNOWN', 1-82 named namespaces including 13 settings:* sub-namespaces at 39-51; resolver f_109ebaec, out-of-range/flagged -> default string 0x10ea6a2c",
+    "index_to_ctor": "jump table 0x10e781d8 inside factory f_100d12f4 (factory object vtable 0x10e7832c slot +8); 69 real arms for indices 1-38 and 52-82; indices 0 and 39-51 share null arm 0x100d1384, so settings:* names produce no class instance and are served inside settings (index 38)",
+    "namespace_object": "0x3c bytes, ctor arg = implementation context stored at +4 by base ctor f_109ebd04 (store at 0x109ebd2c); current command at +0x38; primary vtable +0x18 verb selector, +0x1c name getter, +0x20 current-command getter, +0x24 f_109eac1c, +0x28 dispatcher f_109eb04c",
+    "command_object": "base ctor f_109d9b18: primary vtable 0x10f9496c at +0, secondary vtable 0x10f949d0 at +0x78, context at +0x7c, two arguments at +0x80/+0x84; object is at least 0x144 bytes with embedded strings and sub-objects",
+    "registration": "f_1018e9a0 is the engine registration loop: builds stack descriptors with immediate indexes (sth const -> r1+0x1a4, stb flag -> r1+0x1a6), resolves the name via f_109ebaec and a member name via f_109ecb5c (table 0x10f97094), fetches a provider-store name via f_10a07fe8 and registers each namespace into context slots +0x4d20 through +0x5080+ via f_109e60c0",
+    "provider_stores": "f_10a07fe8 indexes 12-byte rows at 0x10f99508 {name-ptr, length, enum}: AUTHZTOKENS, AUTHZPOLICIES, DEVICES, ENTITLEMENTS, FCS, SETTINGS, HISTORY (rows 1-7); name lookup f_10a0800c; sibling table at 0x10f9955c via f_10a080e8"
+   },
+   "dispatch_pipeline": {
+    "resolve": "f_109eb04c entry: logs 'Dispatching command (ns=v%u/%s, cmd=%s)' (v%u is the descriptor u16), calls the engine object's vptr+0x20 at 0x109eb1d4 (default f_109ec9e0) to produce the op/context object r29; null or default -> status 0x5a",
+    "configure": "r29 setters: f_109da900(r19 target), f_109da784(r25), f_109da764(indexed row r26+0x130*i), f_109da910(r22), f_109da944(ns-name at request+0x26); provider stored at r29+0xa0; f_109df998 does a mutex-guarded (0x110b8ce0+0xa8) one-time init f_109df920",
+    "actor": "getActorProvider f_109e07b8 returns {provider object, held refcount}; request flags checked by f_109e5dc0 and f_109e5ddc; flag path calls f_10b98840, else provider vptr+8 with r29+0xec produces a functor that is wrapped into a task by f_103ff5e4 and posted; refcount released by atomic decrement and vptr+4",
+    "statuses": "0x5a command object not produced (unknown verb -> selector returned null); 0x59 gate at 0x109eb704-0x109eb73c emits Namespace-has-no-actor when the command's +4 implementation is null"
+   }
   },
   "iocompress": {
    "name": "iocompress: zlib buffers",
@@ -227083,7 +227129,7 @@
   },
   "muse_verbs": {
    "name": "Muse verb vocabulary and generated command dispatch",
-   "summary": "Muse verb strings include executable per-namespace command factories, URI/CSV metadata, schema field names and a separate static namespace/name-pair list. These must not be conflated into a global bound/unbound census. Concrete alarms, areas and zones command switches are compiled in anacapad; the complete namespace/verb/implementation join remains unfinished.",
+   "summary": "Muse command dispatch is generated code, not route metadata. An 83-entry descriptor index space names every namespace via table 0x10f96aa4 (index 0 is the UNKNOWN sentinel); factory f_100d12f4 maps the same index through jump table 0x10e781d8 to one of 69 generated namespace classes, each 0x3c bytes with its implementation context at +4 and current command at +0x38. Each class vtable +0x18 is a verb selector: 59 are generated strcmp loops over stride-8 {verb,factory} rows (374 verbs), 6 are hand-coded single-verb bodies, 3 are return-0 stubs and one is a nonstandard body. The separate 68-row {namespace,verb} string-pair list at 0x110941d4 is the outbound side: 136 generated client stubs embed it through nine per-namespace .got2 slots and copy its literals into outbound command headers.",
    "evidence": [
     {
      "type": "firmware",
@@ -227116,17 +227162,944 @@
      "address": "0x10b8c024",
      "callsite": "0x10b8c198 / 0x10b8c20c / 0x10b8c220",
      "notes": "Stack rows+14..+8b contain15 names initialized0x10b8c024-0x10b8c0d4 and factories0x10b8c0e0-0x10b8c188. Includes unjoinZone literal reference0x10b8c0d0 and factoryf_10b8f1a4 at0x10b8c184/188. strcmp0x10b8c198 advances8; match loads row+4, namespace+4 at0x10b8c1fc, calls0x10b8c20c and stores namespace+38 at0x10b8c220. Old-command virtual+4 release0x10b8c234; missing name returns0 on exhausted loop. These are code pointers and execution branches, unlike the static string-pair list."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "namespace index->name table and f_109ebaec",
+     "address": "0x10f96aa4",
+     "callsite": "0x109ebaf0 / 0x109ebafc-0x109ebb18 / 0x109ecb5c-0x109ecb78",
+     "notes": "f_109ebaec reads descriptor byte+2 flag then u16 index bound 0x53 and returns 0x10f96aa4[index]; out-of-range/flagged returns default at 0x10ea6a2c. Table dump: index0 'UNKNOWN', 1 alarms ... 82 zones, indices 39-51 are settings:* names. Separate member-name table 0x10f97094 (bound 0x146) used by f_109ecb5c with strcmp reverse-lookup f_109ecb90 (326 entries). f_109ebb30 formats the descriptor as '%s' or '%s:%u' (byte+4 suffix), matching the 'ns=v%u/%s' dispatcher log."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100d12f4 namespace factory + jump table 0x10e781d8",
+     "address": "0x100d1324",
+     "callsite": "0x100d1330-0x100d134c / arm example 0x100d1350-0x100d1380",
+     "notes": "Factory object vtable 0x10e7832c slot+8. Bound check cmplwi 0x52 at 0x100d1328, offset-indexed jump at 0x100d133c-0x100d134c. Each arm: operator-new 0x3c via f_10809f0c, ctor(ns,ctx=r6) then store at this+0 and release previous through vptr+0x10. Arms for indices 0 and 39-51 all target 0x100d1384 (leave result null). Factory objects materialize at 0x100c0fb0, 0x100d3448, 0x1018ea20, 0x104413fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "generated client stubs consuming 0x110941d4",
+     "address": "0x10c5e6f4",
+     "callsite": "0x10c5e688-0x10c5e6c8 PIC idiom / 0x10c5e708-0x10c5e728 header fill / 0x10c5e730 bctrl",
+     "notes": "f_10c5e680: bcl/mflr/lwz/add gives GOT2 base, lwz r10,-0x8000(r30) loads slot 0x1108de34 (authorization run head), lwz +0/+4 reads resolveToken row pair into stack header at 0x24(r1), calls object vptr+0xc. Neighbor f_10c5e968 is the vptr+8 variant of the same row. Census: 136 stubs 0x10c5e680-0x10c76b28 hit 9 slots whose values are the per-namespace run heads; zones stub at 0x10c76b28 offsets +0x70/+0x74 = unjoinZone (last row). Two hits on slot 0x1108e748 near 0x10cc8a.. are excluded: the slot points past the terminator into float data at 0x110943fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "hand-coded and stub selectors",
+     "address": "0x10af29f0",
+     "callsite": "0x10af2a34 / 0x10af696c / 0x10b20160 / 0x10b33bf8 / 0x10b39cc0 / 0x10b8493c",
+     "notes": "Six single-verb selectors each strcmp command+0x26 once: households/setName (f_10af29f0, 'setName' at 0x10fa2694), info/getInfo (f_10af6928, 0x10e7452c), power/setPowerPolicy (f_10b2011c, 0x10fa5640), smartplay/getContent (f_10b33bb4, 0x10fa6c04), time/getRelativeTime (f_10b39c7c, 0x10fa72b0), virtualRemoteControl/sendButtonCommand (f_10b848f8, 0x10fab488). Stub selectors returning 0: catalog f_10ad6194, systemReporting f_10b38540, topology f_10b41080. global's +0x18 body f_10ae6260 is a small hand-written buffer routine, not a generated table."
     }
    ],
    "todo": [
-    "Established: the 68-row static list is only string pairs, while alarms (8), areas (6) and zones (15) have verified executable namespace-local factory rows. Remaining: enumerate all namespace vtables and +0x18 selectors, recover each bounded {verb,factory} set and concrete implementation injection, and reconcile that executable census with route/CSV metadata and schema names without publishing unverified global counts. Also bind the consumer of .got2 slot 0x1108de34 pointing to static list 0x110941d4 before assigning that list a policy/registration role. Start from areas vtable 0x10fa00ac/f_10ac9fc4 and repeat the command-factory method for authorization, audioClip and other namespace classes. This is actionable static work, not evidence that cloud verbs exist only in route metadata."
+    "Established: the full server-side census (69 namespace classes, 380 locally-bound verbs, selector shapes, descriptor format, factory semantics and registration loop) and the outbound role of the 68-row pair list with its 136 consumer stubs. Remaining: decode each generated command class's parameter model (field/tag descriptor tables are only partially joined) and bind the concrete implementation object passed as the factory's r6 argument (stored at namespace+4) for each of the 69 classes; the implementation-producer side is tracked under muse_engine. This is actionable static work."
    ],
    "resolved_findings": [
     "Corrected static-list layout: 0x110941d4..0x110943f3 contains exactly 68 consecutive 8-byte {namespace-string pointer, name-string pointer} pairs, all checked as strings. Its following word at 0x110943f4 is 0xffffffff, not a third-column dispatch pointer. The first pairs are authorization/resolveToken, authorization/getPolicyKey and authorization/getPermissions; the final pair is zones/unjoinZone. The previous alternating 12-byte nsCtx/verbSpec interpretation is false. Namespace literals were misidentified as context objects. No function/descriptor column exists in these pair rows, so membership does not prove executable binding.",
     "Actual dispatch exists outside that static list. Areas vtable 0x10fa00ac has +0x18=f_10ac9fc4, +0x1c=f_10acc504 (areas getter) and +0x20=f_10acc4f4 (current command). f_10ac9fc4 builds six stride-8 {verb,factory} rows: subscribe->f_10aca364, unsubscribe->f_10aca4a0, getAreas->f_10aca5e0, createArea->f_10acc128, updateArea->f_10acc434 and removeArea->f_10acaa04. It strcmp-matches command-info+0x26, invokes the matching factory, and stores its result at namespace+0x38. An exhausted search returns null. Thus areas is not merely an unbound cloud-route declaration.",
     "Zones selector f_10b8bfc8 builds fifteen actual command-factory rows: subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone and unjoinZone. strcmp at 0x10b8c198 advances by8; a match calls the row factory at 0x10b8c20c with namespace+4 implementation/context, replaces namespace+0x38 and releases the old command. Missing-name and missing-implementation cases are separate from presence in a static string list.",
-    "Alarms supplies a second namespace absent from the claimed static binding list: f_10ac47ac has eight executable rows including subscribe/unsubscribe and six alarm operations. These selectors demonstrate a repeatable census method: follow each namespace vtable +0x18 to its bounded factory rows, then join their command descriptors and injected implementation pointers. Schema-name/type registries are different structures; their null fields are not proof that a command is unbound. The old 237/265 bound ratio and 242 verbs/112 namespaces are withdrawn as certified dispatch totals. The old zero-reference route-block argument also does not establish absence of generated code or an external runtime-only binding limitation."
-   ]
+    "Alarms supplies a second namespace absent from the claimed static binding list: f_10ac47ac has eight executable rows including subscribe/unsubscribe and six alarm operations. These selectors demonstrate a repeatable census method: follow each namespace vtable +0x18 to its bounded factory rows, then join their command descriptors and injected implementation pointers. Schema-name/type registries are different structures; their null fields are not proof that a command is unbound. The old 237/265 bound ratio and 242 verbs/112 namespaces are withdrawn as certified dispatch totals. The old zero-reference route-block argument also does not establish absence of generated code or an external runtime-only binding limitation.",
+    "Completed the server-side executable census. The descriptor u16 (bound 0x52) indexes both the 83-entry name table 0x10f96aa4 and jump table 0x10e781d8; 69 arms construct distinct namespace classes (indices 1-38 and 52-82). Selector census: 59 generated strcmp-table selectors bound 374 verbs across their own {verb,factory} rows; six hand-coded selectors bind one verb each (households/setName, info/getInfo, power/setPowerPolicy, smartplay/getContent, time/getRelativeTime, virtualRemoteControl/sendButtonCommand); catalog, systemReporting and topology selectors are return-0 stubs; global uses a nonstandard body. 380 verbs are locally bound in total. Indices 39-51 are settings:* sub-namespaces sharing the settings class (index 38). The prior false-positive vtables at 0x100e382c and 0x1074e604 are GCC-version string data and the ZoneGroupTopology SOAP path, excluded from the census.",
+    "The consumer of .got2 slot 0x1108de34 and the role of list 0x110941d4 are bound. The list is an outbound literal pool: 136 generated client stubs at 0x10c5e680-0x10c76b28 load a per-namespace run head through nine .got2 slots (0x1108de34..0x1108de94), add a constant row offset, copy the {namespace,verb} pair into the outbound command header and dispatch through the client interface. Per row exactly two stubs exist (vptr+0xc then vptr+8 call variants). Namespace partition: authorization 9, catalog 2, entitlements 6, groups 7, history 6, playback 18, smartplay 1, systemReporting 4, zones 15. catalog, systemReporting and topology thus have outbound-only verbs: their server selectors are stubs while the client side generates calls for them.",
+    "Namespace descriptor format is decoded: u16 class index at +0, u8 flag at +2 that skips the factory rebuild when nonzero, and u8 instance discriminator at +4 used to format '%s:%u' names (f_109ebb30). The engine registration loop f_1018e9a0 builds these descriptors on the stack with immediate indexes (sth const at +0x1a4, stb flag at +0x1a6), resolves names via f_109ebaec and member names via f_109ecb5c, and registers each into engine slots at context+0x4d20 upward through f_109e60c0, pulling provider-store names AUTHZTOKENS/AUTHZPOLICIES/DEVICES/ENTITLEMENTS/FCS/SETTINGS/HISTORY from the 12-byte-row table 0x10f99508 via f_10a07fe8."
+   ],
+   "server_census": {
+    "model": "descriptor {u16 class-index @0 (bound 0x52), u8 flag @2 (nonzero = skip rebuild), u8 instance @4 (drives '%s:%u' display names)}; index -> name table 0x10f96aa4 via f_109ebaec; index -> ctor via jump table 0x10e781d8 inside f_100d12f4 (vtable 0x10e7832c slot +8); result written at factory-object+0 with old object released through vptr+0x10",
+    "namespaces": {
+     "alarms": {
+      "index": 1,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ac47ac",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getAlarms",
+       "fetchAlarm",
+       "createAlarm",
+       "updateAlarm",
+       "snoozeAlarm",
+       "removeAlarm"
+      ]
+     },
+     "areas": {
+      "index": 2,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ac9fc4",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getAreas",
+       "createArea",
+       "updateArea",
+       "removeArea"
+      ]
+     },
+     "audioClip": {
+      "index": 3,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ace018",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "loadAudioClip",
+       "cancelAudioClip"
+      ]
+     },
+     "authorization": {
+      "index": 4,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ad2780",
+      "verbs": [
+       "resolveToken",
+       "getPolicyKey",
+       "getPermissions",
+       "authorizeDevice",
+       "authenticateClient"
+      ]
+     },
+     "catalog": {
+      "index": 5,
+      "kind": "return-0 stub selector (no local verbs)",
+      "verbs": []
+     },
+     "devices": {
+      "index": 6,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ad6390",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getRegistrationStatus",
+       "setRegistrationState",
+       "transferDeviceRegistration",
+       "getLocalDevices"
+      ]
+     },
+     "devicesExtended": {
+      "index": 7,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101bf3e4",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getExtendedDeviceStatus"
+      ]
+     },
+     "diagnostics": {
+      "index": 8,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10adb6b4",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "submitDiagnostics",
+       "getMetadata",
+       "reportStatus"
+      ]
+     },
+     "effectiveSettings": {
+      "index": 9,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10adf524",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getAllSettings",
+       "getSettingsGroup",
+       "updateAllSettings",
+       "updateSettingsGroup"
+      ]
+     },
+     "entitlements": {
+      "index": 10,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ae2ffc",
+      "verbs": [
+       "subscribeUser",
+       "subscribe",
+       "unsubscribeUser",
+       "unsubscribe",
+       "getUserEntitlements",
+       "getEntitlements"
+      ]
+     },
+     "favorites": {
+      "index": 11,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101cadac",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getFavorites",
+       "loadFavorite"
+      ]
+     },
+     "global": {
+      "index": 12,
+      "kind": "nonstandard +0x18 body",
+      "selector": "0x10ae6260",
+      "verbs": []
+     },
+     "groups": {
+      "index": 13,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101c41c8",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getGroups",
+       "getGroupsEx",
+       "createGroup",
+       "modifyGroupMembers",
+       "setGroupMembers"
+      ]
+     },
+     "groupVolume": {
+      "index": 14,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10ae6d3c",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "setVolume",
+       "setRelativeVolume",
+       "setMute",
+       "getVolume"
+      ]
+     },
+     "hardwareStatus": {
+      "index": 15,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101ce118",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getBluetoothStatus",
+       "getBatteryStatus",
+       "changeBatteryStatus",
+       "getBatteryCells",
+       "transitionToShipMode",
+       "initiateOrderlyShutdown",
+       "getEthernetStatus",
+       "getWiredSubStatus",
+       "getWirelessNetworkStatus",
+       "setBluetoothPairing",
+       "activatePairedBluetoothDevice",
+       "removePairedBluetoothDevice",
+       "getMicrophoneSwitchState",
+       "getWaterStatus",
+       "getPoeStatus",
+       "getLineInStatus",
+       "getLineInStatuses"
+      ]
+     },
+     "hdmi": {
+      "index": 16,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10aea9cc",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "status",
+       "edid",
+       "powercycle"
+      ]
+     },
+     "history": {
+      "index": 17,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10aedca4",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getHistory",
+       "postHistory",
+       "removeHistoryItem",
+       "clearHistory"
+      ]
+     },
+     "homeTheater": {
+      "index": 18,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101d9d24",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "loadHomeTheaterPlayback",
+       "setTvPowerState",
+       "getOptions",
+       "setOptions",
+       "addAccessoryWifi",
+       "removeAccessory",
+       "getAccessoryList",
+       "getAccessorySwapStatus",
+       "disconnectAccessory",
+       "getConnectedAccessoryList",
+       "getSwapModelInfo",
+       "getTVAudioSignalStatus"
+      ]
+     },
+     "households": {
+      "index": 19,
+      "kind": "hand-coded single-verb selector",
+      "selector": "0x10af29f0",
+      "verbs": [
+       "setName"
+      ]
+     },
+     "householdUpdate": {
+      "index": 20,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10af3df4",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "beginHouseholdSoftwareUpdate",
+       "getHouseholdUpdateStatus"
+      ]
+     },
+     "info": {
+      "index": 21,
+      "kind": "hand-coded single-verb selector",
+      "selector": "0x10af6928",
+      "verbs": [
+       "getInfo"
+      ]
+     },
+     "ircontrol": {
+      "index": 22,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10af7afc",
+      "verbs": [
+       "setIRControl",
+       "getIRControl"
+      ]
+     },
+     "localContentLibrary": {
+      "index": 23,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10af9088",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getShares",
+       "addShare",
+       "removeShare",
+       "reindex",
+       "getIndexerStatus"
+      ]
+     },
+     "management": {
+      "index": 24,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10afd778",
+      "verbs": [
+       "factoryReset",
+       "reboot"
+      ]
+     },
+     "musicServiceAccounts": {
+      "index": 25,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10afedc8",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "match",
+       "setPreferredMusicServiceAccount",
+       "getPreferredMusicServiceAccount",
+       "startDirectControlEx",
+       "endDirectControl"
+      ]
+     },
+     "networkTest": {
+      "index": 26,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b03bf4",
+      "verbs": [
+       "temporarilyDisableNetwork",
+       "startNetworkTests",
+       "getNetworkTestResults"
+      ]
+     },
+     "pinewood": {
+      "index": 27,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b05ea8",
+      "verbs": [
+       "toggleMute",
+       "volumeUp",
+       "volumeDown",
+       "loadResource",
+       "power",
+       "dpad",
+       "back",
+       "home",
+       "settings",
+       "togglePlay"
+      ]
+     },
+     "platformInternal": {
+      "index": 28,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b0bb70",
+      "verbs": [
+       "sync",
+       "reboot",
+       "invalidateCache"
+      ]
+     },
+     "playback": {
+      "index": 29,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101e3984",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getPlaybackStatus",
+       "play",
+       "pause",
+       "togglePlayPause",
+       "setPlayModes",
+       "skipToNextTrack",
+       "skipToPreviousTrack",
+       "skipBack",
+       "seek",
+       "seekRelative",
+       "loadContainer",
+       "loadTrackList",
+       "loadStream",
+       "loadLineIn",
+       "loadContent",
+       "skipToTrack"
+      ]
+     },
+     "playbackExtended": {
+      "index": 30,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101f0478",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getExtendedPlaybackStatus"
+      ]
+     },
+     "playbackMetadata": {
+      "index": 31,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b0e11c",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getMetadataStatus",
+       "rate"
+      ]
+     },
+     "playbackSession": {
+      "index": 32,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x101f5f88",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "joinOrCreateSession",
+       "joinSession",
+       "rejoinSession",
+       "createSession",
+       "suspend",
+       "leaveSession",
+       "loadCloudQueue",
+       "loadCloudQueueWithWindow",
+       "loadStreamUrl",
+       "loadStreamUrlWithContext",
+       "refreshCloudQueue",
+       "skipToItem",
+       "skipToItemWithWindow",
+       "seek",
+       "seekRelative"
+      ]
+     },
+     "playerVolume": {
+      "index": 33,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10202024",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "setVolume",
+       "setRelativeVolume",
+       "setMute",
+       "getVolume",
+       "duck",
+       "unduck"
+      ]
+     },
+     "playlists": {
+      "index": 34,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b109c8",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getPlaylists",
+       "getPlaylist",
+       "postPlaylist",
+       "loadPlaylist"
+      ]
+     },
+     "positioning": {
+      "index": 35,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b14d30",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "playStimulus",
+       "setStimulusTuning",
+       "getStimulusTuning",
+       "startSession",
+       "cancelSession",
+       "applyAction",
+       "getSessionMap",
+       "getDeviceMeasurements",
+       "sendMeasurements",
+       "notifySessionError",
+       "notifySessionStatus",
+       "notifyDeviceStatus",
+       "getMeasurementCapabilities",
+       "setTelemetryLevel"
+      ]
+     },
+     "power": {
+      "index": 36,
+      "kind": "hand-coded single-verb selector",
+      "selector": "0x10b2011c",
+      "verbs": [
+       "setPowerPolicy"
+      ]
+     },
+     "roomDetection": {
+      "index": 37,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b21724",
+      "verbs": [
+       "startSignalling",
+       "stopSignalling"
+      ]
+     },
+     "settings": {
+      "index": 38,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b23730",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "subscribePlayerSettings",
+       "unsubscribePlayerSettings",
+       "getSettings",
+       "getPlayerSettings",
+       "setPlayerSettings",
+       "setAllowMicrophone",
+       "setSelfTruePlay",
+       "setEnablePositioningMeasurement",
+       "setSonosNetChannel",
+       "getAllSettings",
+       "getSettingsGroup",
+       "updateAllSettings",
+       "updateSettingsGroup",
+       "getRestrictedAdminSettings",
+       "setUserMetricsTracking",
+       "setRestrictedAdminSettings",
+       "getPublicSettings",
+       "getProtectedSettings",
+       "getProtectedAdminSettings",
+       "setProtectedAdminSettings"
+      ]
+     },
+     "sleepTimer": {
+      "index": 52,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b31154",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "configureSleepTimer",
+       "getSleepTimer"
+      ]
+     },
+     "smartplay": {
+      "index": 53,
+      "kind": "hand-coded single-verb selector",
+      "selector": "0x10b33bb4",
+      "verbs": [
+       "getContent"
+      ]
+     },
+     "soundSwap": {
+      "index": 54,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b34d34",
+      "verbs": [
+       "triggerSwap",
+       "requestSwap"
+      ]
+     },
+     "svc": {
+      "index": 55,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b36514",
+      "verbs": [
+       "setWeatherConfig",
+       "getWeatherConfig",
+       "voiceCommand"
+      ]
+     },
+     "systemReporting": {
+      "index": 56,
+      "kind": "return-0 stub selector (no local verbs)",
+      "verbs": []
+     },
+     "systemTime": {
+      "index": 57,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b386bc",
+      "verbs": [
+       "getTimeZoneInfo",
+       "setTimeZoneInfo"
+      ]
+     },
+     "time": {
+      "index": 58,
+      "kind": "hand-coded single-verb selector",
+      "selector": "0x10b39c7c",
+      "verbs": [
+       "getRelativeTime"
+      ]
+     },
+     "timers": {
+      "index": 59,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b3aec0",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getTimers",
+       "createTimer",
+       "setDuration",
+       "setRelativeDuration",
+       "pauseTimer",
+       "resumeTimer",
+       "abortTimer"
+      ]
+     },
+     "topology": {
+      "index": 60,
+      "kind": "return-0 stub selector (no local verbs)",
+      "verbs": []
+     },
+     "trueplay": {
+      "index": 61,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b4131c",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "detectSpeakers",
+       "detectSpeakerPresence",
+       "resetDetectedSpeaker",
+       "setSpeakerPresenceRate",
+       "getConfiguration",
+       "setConfiguration",
+       "getTrueplayStatus"
+      ]
+     },
+     "trueroom": {
+      "index": 62,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b46b50",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "estimatorConfiguration",
+       "adaptation",
+       "getCalibrationStatus",
+       "playSuccessTone",
+       "setSwapInputMute"
+      ]
+     },
+     "update": {
+      "index": 63,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b4ad60",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "checkForUpdate",
+       "beginSoftwareUpdate",
+       "getUpdateStatus"
+      ]
+     },
+     "upnpAlarmClock": {
+      "index": 64,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b4e48c",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpAudioIn": {
+      "index": 65,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b51a9c",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpAVTransport": {
+      "index": 66,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b550a4",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpConnectionManager": {
+      "index": 67,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b586b0",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpContentDirectory": {
+      "index": 68,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b5bcb8",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpDeviceProperties": {
+      "index": 69,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b5f2c8",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpGroupManagement": {
+      "index": 70,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b628d0",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpGroupRenderingControl": {
+      "index": 71,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b65ed8",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpHTControl": {
+      "index": 72,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b694e0",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpMusicServices": {
+      "index": 73,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b6cae8",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpQueue": {
+      "index": 74,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b700f0",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpRenderingControl": {
+      "index": 75,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b73708",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpSystemProperties": {
+      "index": 76,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b76d30",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpVirtualLineIn": {
+      "index": 77,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b7a340",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "upnpZoneGroupTopology": {
+      "index": 78,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b7d948",
+      "verbs": [
+       "call",
+       "subscribe",
+       "renew",
+       "unsubscribe"
+      ]
+     },
+     "virtualLineIn": {
+      "index": 79,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b80d00",
+      "verbs": [
+       "selectSource",
+       "startTransmission",
+       "stopTransmission",
+       "sendBackChannelCmd",
+       "startAudio",
+       "stopAudio"
+      ]
+     },
+     "virtualRemoteControl": {
+      "index": 80,
+      "kind": "hand-coded single-verb selector",
+      "selector": "0x10b848f8",
+      "verbs": [
+       "sendButtonCommand"
+      ]
+     },
+     "voice": {
+      "index": 81,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b86230",
+      "verbs": [
+       "getVoiceAccounts",
+       "createVoiceAccount",
+       "updateVoiceAccount",
+       "removeVoiceAccount",
+       "createAmazonChallenge",
+       "notifyInitiateOnboarding",
+       "subscribe",
+       "unsubscribe"
+      ]
+     },
+     "zones": {
+      "index": 82,
+      "kind": "generated strcmp-table selector",
+      "selector": "0x10b8bfc8",
+      "verbs": [
+       "subscribe",
+       "unsubscribe",
+       "getActiveZoneList",
+       "getZoneDefinition",
+       "getZoneDefinitionList",
+       "addZoneDefinition",
+       "addMissingZoneDefinition",
+       "updateZoneDefinition",
+       "updateActiveZone",
+       "updateZoneMemberSettings",
+       "removeZoneDefinition",
+       "activateZone",
+       "deactivateZone",
+       "joinZone",
+       "unjoinZone"
+      ]
+     }
+    },
+    "totals": {
+     "classes": 69,
+     "table_driven": 59,
+     "hand_coded": 6,
+     "return0_stubs": 3,
+     "nonstandard": 1,
+     "local_verbs": 380
+    },
+    "settings_subnamespaces": "indices 39-51 (settings:accessorySettings, settings:business, settings:frontierLlms, settings:global, settings:playback, settings:playerBasic, settings:playerLineIn, settings:playerUI, settings:positioning, settings:preferences, settings:prodashboard, settings:security, settings:video) share the null ctor arm 0x100d1384 and have no class of their own; they are served inside the settings class (index 38), whose 22-verb selector covers the settings:* operations",
+    "outbound_only_namespaces": "catalog, systemReporting and topology have stub selectors yet appear in the client pair table; their verbs are outbound-only on this build"
+   },
+   "client_pair_table": {
+    "list": "0x110941d4..0x110943f3: 68 stride-8 {namespace-string, verb-string} pairs, terminated by ffffffff/ffffffff at 0x110943f4",
+    "role": "outbound command literals for generated client stubs (the muse client side), not inbound dispatch metadata and not a registration table",
+    "partition": {
+     "authorization": 9,
+     "catalog": 2,
+     "entitlements": 6,
+     "groups": 7,
+     "history": 6,
+     "playback": 18,
+     "smartplay": 1,
+     "systemReporting": 4,
+     "zones": 15
+    },
+    "consumers": "136 generated methods at 0x10c5e680-0x10c76b28, exactly 2 per row: a vptr+0xc-call variant first, then a vptr+8-call variant (verified at rows 0-1: 0x10c5e680/0x10c5e968 resolveToken, 0x10c5ec40/0x10c5ef28 getPolicyKey)",
+    "got2_binding": "each stub computes its per-file GOT2 base with the bcl 20,31,+4 / mflr / lwz -off / add PIC idiom, loads its namespace row-head via lwz rX,-0x8000(r30) from one of nine .got2 slots (0x1108de34 authorization, 0x1108de40 catalog, 0x1108de4c entitlements, 0x1108de58 groups, 0x1108de64 history, 0x1108de70 playback, 0x1108de7c smartplay, 0x1108de88 systemReporting, 0x1108de94 zones), adds its constant row byte offset, copies both literal pointers into the stack command header, and tail-calls through the client interface vptr"
+   }
   },
   "cec_diagnostics": {
    "name": "HDMI-CEC/ARC diagnostics fields",
