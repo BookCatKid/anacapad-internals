@@ -240050,9 +240050,6 @@
   "kmod_ath_wifi": {
    "name": "Atheros WiFi modules",
    "summary": "The Qualcomm Atheros 802.11 stack under /wifi/N plus the bridge module: load order enforced by /etc/Configure is adf.ko -> asf.ko -> ath_hal.ko -> dfs.ko (if present) -> ath_driver.ko, then /wifi/bridge.ko.",
-   "todo": [
-    "Established: the correct table base and REL32 formula reduce the supposed ~300 leaf cases to 119 non-default slots, with 117 distinct non-default entry PCs; two slots are epilogue-only, and 266 slots share the fallback after ath_lmac_ioctl declines. Outer ioctl framing and selected household-id, UUID, deauth and chain-count bindings are documented. Remaining: join the actual inline/marshal parameter arms to athconfig verbs and field meanings, and audit the other named-handler payloads rather than assign semantics from the first call. Candidate inline/marshal slots requiring that join are 0x4,0xc,0xe,0xf,0x15-0x17,0x19-0x1b,0x1d,0x1f-0x21,0x23,0x27,0x2d,0x2e,0x30,0x35-0x3a,0x49-0x4c,0x53,0x54,0x64,0x66,0x67,0x9b,0xce-0xd0,0xd3,0xdc,0xdd,0xe3-0xe5,0xe7,0xe8,0x137,0x13a-0x13c,0x164,0x16b,0x176,0x17e-0x180. Trace their corrected case entry PCs through shared copy paths and cross-reference the userspace five-word envelope builders. Lower-layer ath_lmac_ioctl handling precedes this switch and must also be checked before interpreting a fallback slot as globally unsupported."
-   ],
    "artifacts": [
     "wifi/N/adf.ko",
     "wifi/N/asf.ko",
@@ -240070,7 +240067,12 @@
     "Concrete reachability: Linux ioctl 0x89f0 reaches ath_do_ioctl (.text+0x12ddc). It reads the ifreq pointer at +0x10, copies a 20-byte envelope from userspace, and passes its five words as cmd,r5,r6,r7,r8 to ath_ioctl at .text+0x12e7c. This is distinct from outer requests 0x89f1 and 0x89f2. The switch values 0..0x180 are envelope command words, not Linux ioctl request numbers; .text+0x11524 is not an outer SIOCDEVPRIVATE dispatcher.",
     "Verified corrected handler bindings: envelope cmd 0x2 enters .text+0x11428 and calls ath_ioctl_set_hhid at +0x114a8; cmd 0x3b enters +0x10394 and reaches ath_ioctl_set_uuid at +0x11780; cmd 0x13 enters +0x114fc and calls ath_ioctl_set_nchains at +0x11504. Cmds 0x2a and 0x2b share +0x11118 and ath_ctl_deauth_sta_ioctl at +0x11120. Cmds 0x138 and 0x139 both enter the shared epilogue +0xfa18 without another operation after lower-layer decline. These examples independently check the relocation formula; reading each relocation addend as an absolute case PC, or using .rodata+0 as the table start, produces different and incorrect command bindings.",
     "Household-id input contract on cmd 0x2: envelope word 1 (r5) is an unsigned length checked <=32 at .text+0x11428. The arm zeroes a 33-byte local buffer, copies that length from the user pointer in envelope word 3 (r7), checks copy failure, and passes the buffer and low-byte length to ath_ioctl_set_hhid. It does not treat word 1 as a pointer. This is one concrete semantic binding across the shared marshalling paths, not evidence that every arm uses the same word layout.",
-    "Chain-count input contract on cmd 0x13: envelope word 1 is passed directly to ath_ioctl_set_nchains. Positive values 1,2,3,4 select masks 1,3,7,15. Negative inputs select the low eight bits of the negated word, accepted only when that result is <=15; this is not a general full-width negative-mask range check. Other nonnegative values return -22. The selected mask is compared with driver bytes +0x552c/+0x552d, then written to both, with spatial-stream counts written at +0x552e/+0x552f. A present HAL callback at +0x8c receives the masks; callback failure returns -22 after the stored bytes have already changed."
+    "Chain-count input contract on cmd 0x13: envelope word 1 is passed directly to ath_ioctl_set_nchains. Positive values 1,2,3,4 select masks 1,3,7,15. Negative inputs select the low eight bits of the negated word, accepted only when that result is <=15; this is not a general full-width negative-mask range check. Other nonnegative values return -22. The selected mask is compared with driver bytes +0x552c/+0x552d, then written to both, with spatial-stream counts written at +0x552e/+0x552f. A present HAL callback at +0x8c receives the masks; callback failure returns -22 after the stored bytes have already changed.",
+    "athconfig verb table (userspace): 93 {name_ptr,handler} pairs at .rodata 0x100051d4..0x100054b0, read as name-first not handler-first; the second word is a handler VA, the first points to the verb string at 0x10006b9c+. Each tiny stub handler loads r6=envelope cmd word, r7=usage string, r3=declared numeric-arg count, then tail-branches to the shared issuer 0x10001214, which atoi()s argv[3..] into a word array whose word[0]=cmd and calls the ioctl wrapper 0x10000b2c. That wrapper snprintf()s the netif name into a 16-byte ifreq, stores the word-array pointer as ifr_data at +0x10, and issues ioctl(fd,0x89f0,&ifr): exactly the five-word envelope ath_do_ioctl copies in. The earlier off-by-one risk is real: reading the table as {handler,name} pairs shifts every binding by one verb.",
+    "Complete athconfig verb -> envelope-cmd -> switch-arm join (athconfig handler -> cmd -> .text arm in ath_driver.ko): setchannel 0xb->0x112d8, getchannel 0xc->0x113c4 (helper 0x10000bc8 env {0xc,&out} returns word), getchannels 0x48->0x1037c (env {0x48,buf,0x404}), sethhid 0x2->0x11428 (env {0x2,len<=32,strptr} -> ath_ioctl_set_hhid), setwepkey 0x6->0x111fc (kernel copies 0x10 bytes from user pointer), ssidinbeaconenable 0x16->0x112b8, beaconenable 0x1c->0x110cc, psenable 0xe->0x11510, setantswitch 0x9 (LMAC returns -ENOSYS), csenable 0xd->0x111a8, phyerrcalenable 0x10 (LMAC stb 0x54e0), defofdmweak 0x18 (LMAC arg<=9 stb 0x54e3, matches usage 0|1..9), percalenable 0x11 (LMAC stb 0x54e1 plus rate 0x3c->0x5a94 when on), indicatenetstart 0x4->0x1124c (requires word1==dev+0x5500 magic, copies 6-byte MAC to +0x5518), settxtries 0x15->0x111c8, setlatencybucket 0x23->0x1102c (env {0x23,arg*1000,0}), setnchains 0x13->0x114fc, getnchains 0x21->0x11054 ({0x21,buf,0x10,0}), settxpower 0x17->0x1129c, noisecal 0x22 (LMAC reads noise floor, chan-set with cal flags via hook +0x1c), forcetxrate 0x1b->0x1113c, conttx 0xdc->0x10a24 (plus cmd 0x7->0x111dc in the same test sequence, embedded frame bytes 01 FE CA FE ...), setmcs 0x1f->0x110b0, getmcs 0x20->0x11064 ({0x20,&out}), deafmode 0xda (LMAC hook +0x1f0, result->0x4a0), ldpc 0x24 (LMAC bool->0x4a4), stbc 0x25 (LMAC bool->0x4a8), getqosedca 0x36->0x104d0 ({0x36,ac-idx,0x28-buf,arg}, userspace loops idx 0..6), setqosedca 0x37->0x10ef8 ({0x37,6,argblk,0,0,aifsn,cwmin,cwmax,-1}), setqosretries and sethptxqretries share cmd 0x38->0x1048c (envs {0x38,qosidx,ms,each,total} and {0x38,ms*1000,each,total,0}), sethptxqedca 0x39->0x10410, setbeaconperiod 0x1d->0x1112c, gettxbackpressure 0x1a->0x10f20 ({0x1a,&out}), getrxhistory 0x65->0x1014c, clearrxhistory 0x64->0x10170 (flag->0x4bb8, zeroes 0x4bac/0x4bb0/0x4bb4), setrxhistorylenfilter 0x66->0x10194 (->0x4bbc), setrxhistorytrigger 0x67->0x10130 ((arg!=0)->0x4bc0, 0->0x4bc4), txtrigger 0xdc->0x10a24 plus cmd 0x7 in sequence, qosenable 0x35->0x105e8, acs 0xc8->0x10744, acslmenable 0xcf->0x10638 ((arg!=0)->0x56a0), acslmconfig 0xd0->0x105f0 (24-byte per-index record at scan-ctx+0x2688, fields r27/r26/r24 = blocksize/blocks/thresh), getacs 0xce->0x1064c (copies 48-byte-per-channel ACS table from ctx+0x1a28 gated by flag bit 0x40 in dev+0xcc), setuuid 0x3b->0x10394 (env {0x3b,ptr,strlen} -> ath_ioctl_set_uuid), scanenable 0xd1->0x109a4, scaninterval 0xd3->0x10880 (arg*250ms bound by 0xdbba0, jiffies stored ctx+0x1a18/0x1a24), setprimaryadvert 0xdd->0x10a0c (flag byte->0x53b9), idlescan 0xd2->0x108ec, cacenable 0xcb->0x10718, cactimeout 0xd5->0x10018, cacreset 0xd4->0x107d4, nolenable 0xc9->0x10734, nolclear 0xca->0x10728, setnoltimeout 0x163->0xfcb4, bangradar 0x4a->0x10464 (indirect call via ops+0x70 with arg 7), forcewdreset 0xe1 (LMAC counter 0x4ac, jiffies->0x4b0, atomic bit or->0x4c2c, stoprecv path), getlinkstats 0x2e->0x10d60 -> ath_ioctl_get_link_stats at +0x10dc ({0x2e,0,0x32,bufptr,0}), getwirelesscnx 0x55->0x102b4 ({0x55,&out}), directenable 0x49->0x10484 (->0x5a64), settestpoint 0xd8->0xff74 ({0xd8,strlen,strptr,ints}), gettestpoints 0xd9->0xff28 ({0xd9,buf,0x500,out}), settestpointneighbor 0xe6->0x10028, keycache 0xdb->0x10a58, setnladdthresh 0x4b->0x1045c (->0x5a70), setnldelthresh 0x4c->0x10454 (->0x5a74), setnladdthreshht 0x53->0x1022c (->0x5a78), setnldelthreshht 0x54->0x10224 (->0x5a7c), stasetenable 0x12d->0x1077c, stassidlistclr 0x13a->0xfd80 (memset 0x228 at dev+0x2974), stassidlistadd 0x13b->0xfcfc (<=16 slots of 0x20 bytes at +0x2978, len<=0x20), stagetstate 0x12e->0xff0c ({0x12e,arg,0x434,0}), stadisassoc 0x12f->0xfefc, stasetnogcint 0x136->0xfd70, stasetwmm 0x137->0xfd68 (->0xafc), staroamscanint 0x13c->0xfcc4 (arg1 in [0x3c,0x93a44], arg2 in [0x78,0x127488], arg1>=arg2, else -22), forcegtkrekey 0x9c->0x10078, bgprotect 0x164->0xfc78 ((arg!=0)->0xb00 plus ops hook +0xa0 with flag byte 0x325e), scanstart 0x50->0x102c8 ({0x50,atoi,0x50,0x50}), scanabort 0x51->0x1024c, scanclear 0x56->0x1029c, scanclearssid 0xe9->0x10ee0 ({0xe9,strptr,strlen,0}), scangetresults 0x52->0x10234 ({0x52,arg,0xf28-buf,0,0}), senddeauth 0x58->0x10208 (parsed MAC + numeric args), nsprobeenable 0xdc->0x10a24 ({0xdc,atoi,1,0,0}), setintrmitig 0xe2 (LMAC enable bits ->dev+0x44c/0x450 then four hook calls via +0x23c types 0..3 = rxfirst rxlast txfirst txlast), setnetsettings 0xe5->0x10b94 (word2 must be ptr, word3==4; kernel copies 4 bytes {u16==2,u8,u8} into +0x4c40..0x4c44), getmibcc 0xe7->0x10e18 (word3==0x18; returns six clear-channel counter bytes +0x5d35/0x5e11/0x5eed/0x5d36/0x5e12/0x5eee indexed by channel byte +0x6010), blockadvertisedpath 0x175->0xfb24, lmlenient 0x17c->0xfaac, ignorenonsatprobes 0x17e->0xfa84 (printk then flag->0x5644), setopenmode 0x4d->0x10324 ({0x4d,strlen,strptr,1}).",
+    "ath_lmac_ioctl first-stage dispatch at .text+0x27f18 (0x3ac bytes): writes 1 to the caller's handled out-word on entry, then switches on cmd. Handled set: 0x10 -> stb arg!=0 at dev+0x54e0; 0x11 -> stb at +0x54e1 and stw 0x3c->+0x5a94 when arg nonzero; 0x18 -> arg<=9 stb +0x54e3 else -22; 0x22 -> noise-floor read then channel-set via lmac hook +0x1c with cal flag word; 0x24 -> bool +0x4a4; 0x25 -> bool +0x4a8; 0xda -> indirect hook at [dev+0x300]+0x1f0 with bool arg, result stored +0x4a0 and printed; 0xe1 -> increments wd counter +0x4ac, stores jiffies +0x4b0, atomic-ORs bit 1 at +0x4c2c, and if the bit was already set drives the stop-recv path; 0xe2 -> combine-enables to lmac dev +0x44c/+0x450 and calls hook +0x23c four times (types 0,1,2,3) with the four numeric args. cmds 0x9 and 0x12 return -ENOSYS (-38). Any other cmd writes 0 to the handled out-word and returns 0, which is exactly what drops the request into the documented ath_ioctl jump table. So the 0x11524 fallback inside the switch only sees cmds that LMAC explicitly declined.",
+    "Switch arms with no athconfig/wpa_supplicant verb in this build (still real entry PCs, semantics from the arm bodies): cmd 0x7 ->0x111dc and 0x8->0x112f4 (numeric stores used inside conttx/txtrigger sequences); 0xf->0x114b4 copies dev+0x54f8 blob to user when flag +0x54f4 set; 0x19->0x10f74 stw arg->+0x54d8; 0x27->0x10f7c returns a 0x40-byte status struct (0x10 at +0xc, fields at +0x20/+0x24); 0x28->0xf904, 0x29->0x1114c, 0x2c->0x11104, 0x2f->0x10c60; 0x2d->0x10d7c printk then sth (arg!=0)->+0xa48; 0x30->0x10c0c returns 0x84 bytes from scan ctx +0xbb60 under local_bh_disable; 0x3a->0x10400 stores {word->+0x9a8, byte->+0x9ac, byte->+0x9ad}; 0x9b->0x100ac sets len<=0x101 at +0x5634, memsets +0x5530 and copies the user string, flag->+0x5528; 0xe3->0x10b68 copies the word at dev+0x5438 to user; 0xe4->0x10b04 indirect hook via ops+0x3c returning 0x40 bytes; 0xe8->0x10dcc requires word3==2 and marshals 2 bytes from the user buffer; 0x130->0x10da8 and 0x132->0xfe38 (issued by wpa_supplicant {0x130,&out},{0x132,&out}); 0x133->0xfdd0; 0x16b->0xfbf8 returns flag (dev+0x5504)!=0; 0x176->0xfad8 copies 6-byte MAC from +0xb76 or [[+0x300]+0x150]; 0x17f->0xfa5c printk then flag->+0x5648; 0x180->0xfdb0 calls ath_ioctl_set_channel_simple.part.19 (+0x534c) with u16 arg.",
+    "wpa_supplicant issues the same 0x89f0 envelope through its own builder at 0x10037cb0: it memcpy()s the 16-byte ifreq name from priv+4, stores {r4,r5,r6,r7,r8} as the five-word data block (word[0]=cmd), and calls ioctl. Its three call sites send cmds 0x12e (stagetstate, also used by athconfig), 0x130 with an out pointer, and 0x132 with an out pointer. Neither 0x130 nor 0x132 has an athconfig verb. sta-assoc and wpaconfig are scripts, and netstartd/wacd contain no 0x89f0 immediate, so every other unbound arm above has no in-build issuer."
    ],
    "evidence": [
     {
@@ -240115,6 +240117,66 @@
      "function": "ath_ioctl_set_nchains",
      "address": "0x827c",
      "notes": "Rotate audit of .text+0x827c: raw 0x549e063e has SH=0,MB=24,ME=31,Rc=0: r30=(-input)&0xff after neg at +0x8278, not (-input)>>8. Unsigned compare <=15 at +0x8280 follows this byte mask. The previously documented negative-input contract already describes low-byte truncation and remains unchanged."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "address": "0x100051d4",
+     "notes": "93-entry verb table {name_ptr,handler} (name first). Stub convention proven by embedded usage strings: each handler's r7 string names itself (for example 0x10001644 loads 'stasetwmm netif 0|1' for the stasetwmm entry), and 'setnchains' handler 0x10001884 issues cmd 0x13 matching kernel-verified set_nchains."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "function": "issuer",
+     "address": "0x10001214",
+     "notes": "Shared stub tail: r6=cmd stored at env word[0] (+0x18(r1)), argv ints atoi'ed into following words, then bl 0x10000b2c. Wrapper 0x10000b2c builds ifreq{name[16],data=envptr+0x10} and calls ioctl(fd,0x89f0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "address": "0x10001cb4",
+     "notes": "sethhid handler: env {0x2,len<=32-checked,strptr} confirms kernel arm contract for cmd 2. Adjacent bodies give setuuid env {0x3b,ptr,strlen} (cmd 0x3b), gettestpoints env {0xd9,buf,0x500,out}, settestpointneighbor {0xe6,...}, getwirelesscnx {0x55,&out}, getnchains {0x21,buf,0x10,0}, getmcs {0x20,&out}, gettxbackpressure {0x1a,&out}."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "address": "0x10000d60",
+     "notes": "getlinkstats env {0x2e,0,0x32,bufptr,0}; arm .text+0x10d60 calls ath_ioctl_get_link_stats (symtab). getmibcc env {0xe7,ptr,0x18}; scanstart env {0x50,atoi,0x50,0x50}; scangetresults env {0x52,arg,0xf28,0,0}."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_lmac_ioctl",
+     "address": ".text+0x27f18",
+     "notes": "First-stage dispatch before the switch: handled cmds 0x10/0x11/0x18/0x22/0x24/0x25/0xda/0xe1/0xe2 with per-cmd field writes (0x54e0/0x54e1+0x5a94/0x54e3/chan-set hook/0x4a4/0x4a8/hook+0x1f0->0x4a0/wd-counter+atomic bit/enable pair +0x44c+0x450 with 4 hook calls); cmds 9 and 0x12 return -ENOSYS; all others write 0 to handled out-word, dropping to the 385-entry switch."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl",
+     "address": ".text+0x10f7c",
+     "notes": "Representative arm bodies: 0x27 returns 0x40-byte status struct to user; 0x30 copies 0x84-byte block from scan ctx +0xbb60; 0x9b string-set len<=0x101 ->+0x5634/+0x5530; 0x16b returns flag +0x5504; 0x176 returns 6-byte MAC (+0xb76 or [[+0x300]+0x150]); 0xe5 marshals 4 user bytes {u16==2,u8,u8}->+0x4c40..0x4c44; 0xe8 requires len==2 marshal."
+    },
+    {
+     "type": "firmware",
+     "binary": "wpa_supplicant",
+     "build": "86.10-80260",
+     "address": "0x10037cb0",
+     "notes": "Sonos driver wrapper issues ioctl 0x89f0 with same five-word envelope {r4..r8} (word[0]=cmd, ifreq.name=priv+4 via 16-byte memcpy, ifr_data=env). Call sites send 0x12e, 0x130, 0x132."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl",
+     "address": ".text+0x1124c",
+     "notes": "cmd 0x4 indicatenetstart arm: requires envelope word1 == dev+0x5500 stored magic (else -22 path 0x12ad8), then copies 6 bytes from the user pointer in word2 into dev+0x5518 and sets flag +0x5520. Matches athconfig 'indicatenetstart netif 0|1' issuing {0x4,arg} with kernel reading a following pointer word."
     }
    ]
   },
