@@ -224787,10 +224787,77 @@
      "build": "86.10-80260",
      "address": "0x1073ff9c",
      "notes": "Global0x110978c0 -> call0x1073ffb4 -> f_106adbc4 locking+0x68 and loading+0x1f0 -> r26/r5 -> XML formatter0x107400b8. BusyClients call0x1073ffc4 -> f_106adc60 -> seven byte indicators and0x10f04e58. Local state stores0x106adf58/0x106ae160 disprove an unavailable peer-only producer premise."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106adf58",
+     "function": "0x106addb8",
+     "notes": "Consumer stores entry quad {state,code,cnt,chan} to +0x1f0/+0x1f4/+0x1f8/+0x1fc when entry+0x15==0; zero-state entry clears; 0x106ae160 variant."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106ada48",
+     "function": "0x106ad9f8",
+     "notes": "bl _ZN14RZPWifiFuncsIf11setIdleScanEPKcijij on +0x204/+0x21c handles; caches submitted quad into handle+8..+0x14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106ae174",
+     "function": "0x106addb8",
+     "notes": "Submit-failure retry: sonosClockGetTime+0xa via global 0x11098e0c-area scheduler vptr, cb f_106b0738; retry bound r29<10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b03e4",
+     "function": "0x106b0330",
+     "notes": "setBusyClient recompute loop over +0x1e9..+0x1ef: state=0x1e ANDN masks OR bits via tables 0x10f04e78/0x10f04e94; 'client %s is %s with primary chan %d' log."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f04e78",
+     "notes": "Per-client mask table {0x1e,0x1e,0x1a,0x2,0x8,0x1e,0x1e} and bits table 0x10f04e94 {1,0,0,0,0,0,2} aligned with names 0x10f04e58."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b0058",
+     "function": "0x106b0058",
+     "notes": "Generic enqueue: args -> entry {type,state,code,chan,cnt,retry}, ephemeral byte=0; deque push_back growth via 0x1f8 chunks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106aff8c",
+     "function": "0x106aff24",
+     "notes": "Scan-only producer: entry all-zero with +0x15=1 ephemeral; consumer submits setIdleScan(0) without recording."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f04df4",
+     "notes": "MI vtable: primary slots f_106b05cc,f_106ae1f8,f_106ae3c4,f_106b0624,f_106b05f4; -0x20 thunk f_106b06a4, -0x40 thunk f_106b061c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b0738",
+     "function": "0x106b0738",
+     "notes": "Retry callback: f_106b06ac re-enqueue then 0x7fffffff disarm into timer handle."
     }
-   ],
-   "todo": [
-    "Established: actual local 32-bit IdleState getter and XML chain, null-global output0, and separately enumerated BusyClients bytes/name table. Remaining: trace the state producers reaching stores0x106adf58/0x106ae160 to object+0x1f0, recover each bit predicate and its relation to radio/scan requests, then reconcile with the seven busy-client registrations without equating identifier ordinals to state bits. Start with global0x110978c0, f_106adbc4 and the local writer cluster. The old peer-computed-byte limitation is disproved; this is actionable static work."
    ],
    "resolved_findings": [
     "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
@@ -224799,7 +224866,12 @@
     "Resolved: the wifi-enabled FSM vocabulary is proven in enum_tables.10fadd94: INACTIVE=1, WIFI_ENABLING=2, ACK_AWAIT=3, WIFI_DISABLING=4, WIFI_DISABLED=5, ACK_NOT_RECEIVED=6.",
     "The actual WirelessInfo IdleState XML source is local: f_1073ff10 loads global0x110978c0, and when nonnull calls f_106adbc4 at0x1073ffb4. That getter locks object+0x68 and returns the full word at object+0x1f0; the caller passes it as r5 to the IdleState 0x%08x formatter at0x107400b8. A null global leaves the initialized output0. The old attribution to a peer byte at+0x82e and f_10761d40 struct copying is not this emit chain and is withdrawn.",
     "BusyClients is independently built by f_106adc60 using seven local client bytes at object+0x1e9..+0x1ef and the names table0x10f04e58: AUDIO_OUT, AUDIO_IN, LOCAL_SONOSNET, NO_SONOSNET_PEERS, NO_PRIMARY, UPGRADING and HT_SWAP; active names are comma-space separated. The companion name getter f_106adc2c also accepts index7=UNKNOWN_ID and returns an empty spelling above7. These client identifiers are not automatically the IdleState word bit positions.",
-    "Local writer stores to the getter member occur at0x106adf58 and0x106ae160, with initialization at0x106ae58c. This supplies a concrete static continuation into the producing logic. The dpUpdateIdleState reference at0x105b6c30 only constructs a named task and does not itself compute the state bits."
+    "Local writer stores to the getter member occur at0x106adf58 and0x106ae160, with initialization at0x106ae58c. This supplies a concrete static continuation into the producing logic. The dpUpdateIdleState reference at0x105b6c30 only constructs a named task and does not itself compute the state bits.",
+    "IdleState producer chain fully traced: object+0x1f0..+0x1fc is a 4-word recorded request {state@+0x1f0, code@+0x1f4, count@+0x1f8, chan@+0x1fc} plus retry marker +0x200, written only by queue consumer f_106addb8 (wifi_idle_mgr.cxx) at 0x106adf58/0x106ae160 and zeroed by ctor f_106ae408 at 0x106ae58c-0x106ae5a8. Entries are 0x18-byte deque records {u8 selector@0, u32 state@4, u32 code@8, u32 chan@0xc, u32 cnt@0x10, u8 retry@0x14, u8 ephemeral@0x15}: non-ephemeral entries record their quad to +0x1f0..+0x1fc (a zero-state entry therefore clears it), then every entry is submitted to the fronthaul radios.",
+    "Submission path: f_106addb8 forwards each entry through f_106ad9f8 to the two RZPWifiFuncsIf handles cached at +0x204 and +0x21c, invoking RZPWifiFuncsIf::setIdleScan(PKc,int,uint,int,int) with (ifname, state|1 on the record path, chan, code, cnt); the second handle receives chan=0. On a nonzero return the entry reschedules itself through the global+0x5f8c scheduler (vtable+0xc) with callback f_106b0738 at now+10 ticks for up to 9 attempts; the retry callback calls f_106b06ac and disarms the timer handle. 'Device set to %08x with primary chan %d code 0x%x cnt %u retry %u' and 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d' are the two log lines.",
+    "Enqueue producers: f_106b0058 is the generic append (args map 1:1 to entry fields, ephemeral=0); f_106aff24 appends an all-zero ephemeral entry = one-shot idle-scan request; f_106b01c4 appends the fixed startup request {selector0, state0x16, code1}; f_106b0624 (vtable slot +0x10) re-enqueues the recorded quad for link resync; f_106b06ac re-enqueues it with chan=0 only when +0x200 shows no retry pending; f_106b020c drains the queue under the +0x1e8 run flag.",
+    "BusyClients reconciliation: the state word is derived, not ordinal-mapped. setBusyClient f_106b0330 stores val at +0x1e9+id and recomputes state = (0x1e AND NOT union of per-client masks) OR union of per-client bits, and code = union of bits (forced to 1 when empty). Tables 0x10f04e78 (mask) and 0x10f04e94 (bits) are indexed by the same 0..6 ordinal as the name table 0x10f04e58: AUDIO_OUT{0x1e,0x1}, AUDIO_IN{0x1e,0x0}, LOCAL_SONOSNET{0x1a,0x0}, NO_SONOSNET_PEERS{0x2,0x0}, NO_PRIMARY{0x8,0x0}, UPGRADING{0x1e,0x0}, HT_SWAP{0x1e,0x2}. Idle with no busy clients reads 0x1e; AUDIO_OUT contributes bit0, HT_SWAP contributes bit1, NO_SONOSNET_PEERS strips bit1, NO_PRIMARY strips bit3, LOCAL_SONOSNET strips bits1+3+4.",
+    "Client registrations enter through the class vtable at 0x10f04df4 (three-subobject MI table, second/third base thunks f_106b06a4 -0x20 and f_106b061c -0x40): adapter f_106b05cc converts *(arg)!=0 into setBusyClient id1 and f_106b05f4 does id0 via f_106b0538, which forwards the recorded +0x1f8 count into the queue entry; per-client getter f_106adb4c reads +0x1e9+id under the +0x68 lock."
    ]
   },
   "audio_decoders": {
