@@ -229654,7 +229654,7 @@
   },
   "json_parser": {
    "name": "embedded JSON parser error enum",
-   "summary": "Distinct JSON reader families coexist. The Muse nonce envelope uses a NUL-terminated 16-byte DOM reader; household settings and diagnostic-initiation responses use the custom incremental reader. The custom reader enforces a 15-level active container stack. Its Sequence too long diagnostic does not yet have a verified emitting predicate.",
+   "summary": "Distinct JSON reader families coexist. The Muse nonce envelope uses a NUL-terminated 16-byte DOM reader; service manifests, household settings, cloud-queue, audioclip, httpcache, diagnostic and settings frontends use the custom incremental reader driven by f_109c4b34. The custom reader enforces a 15-level active container stack. Its external status word at reader+0x40 can only be 0,1,2,3,4,5,6,8,9,10 or 12: diagnostic entries 7 (Sequence too long) and 11 (Out Of Memory) have no producing store and are dead vocabulary.",
    "evidence": [
     {
      "type": "firmware",
@@ -229769,21 +229769,85 @@
      "function": "f_104463c8 / f_109ce584 / f_109c36c0",
      "address": "0x104463f0",
      "notes": "Rotate audit: raw 0x5529063e at 0x104463f0 has SH=0,MB=24,ME=31 and implements (byte-9)&0xff, not a right shift. Bitmap 0x00800013 shifted by that masked index plus unsigned index<=23 admits precisely tab/LF/CR/space. Raw 0x5529077e at 0x109ce800 retains three low type bits, not a shift by 3. Error-table indexing 0x54a5103a at 0x109c36f4 is a genuine left shift by 2. These agree with the recorded whitespace, value-tag and error-number contracts; no parser-size limit follows from the low-bit masks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c6abc",
+     "address": "0x109c704c",
+     "notes": "Internal code 7 producer: after an array element the next non-space char must be ',' (loop) or ']' (close via f_109c3360); anything else stores 7 into the stack result +0x18 (read as driver r24) with f_109cd850 position to +0x1c. Reachable, but the commit gate suppresses codes 6/7."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c4b34",
+     "address": "0x109c5220",
+     "notes": "Defensive internal code 7: when the dispatch state index at stack +0x30 reaches >=0xd before the bctr jump-table dispatch (tables r29=0x10f93b84, r23=0x10f93bbc, r22=0x10f93bf4, r21=0x10f93c2c; char-class table 0x10f93e60)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c1fd4 / f_109c2058 / f_109c206c",
+     "address": "0x109c4e1c",
+     "notes": "Single error-commit chain off driver f_109c4b34 at 0x109c4e1c (the only f_109c2058 call site). Gate f_109c1fd4 returns 1 (suppress) for codes 0,6,7 and for nested-frame conditions; setter f_109c2058 writes first-error to +0x40 via f_109c206c, later codes only to +0x44."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109bf390",
+     "address": "0x10f93860",
+     "notes": "Internal-to-external code translation: table of 16 words [0,12,12,6,6,6,6,6,2,4,3,12,4,5,5,5]; inputs >=15 return 12. No internal code maps to external 7,8 or 11.",
+     "callsite": "0x109c20d4 / 0x109c2d34 / 0x109c2ff4 / 0x109c3e74 / 0x109c3f44 / 0x109c4180 / 0x109c44e8 / 0x109c4550"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c36c0",
+     "address": "0x10f93c64",
+     "notes": "Diagnostic getter: code-1 indexes this 11-entry string table (r5 bound <0xb, else literal 0x10ea6a2c). Entries 1..11 = Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Incomplete, Out Of Memory.",
+     "callsite": "0x101199e8 / 0x1011acfc / 0x1033a674 / 0x10510c24 / 0x1051a670 / 0x1051aedc / 0x105c75f0 / 0x105ce2d8 / 0x109e6da0"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c29d0 / f_109c2a70 / f_109c6abc",
+     "address": "0x109c6e00",
+     "notes": "Depth-capacity guards: 'frame count+1 >= 0xf' at 0x109c29f8, 0x109c2a98 and 0x109c6e00 store external 1 (Exceeded max depth); the 15-deep frame stack at reader+0x68 stride 0x3c with depth count at +0x428."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109c311c",
+     "address": "0x109c3164",
+     "notes": "Missing required value (8) producer: returns 8 at 0x109c3164; results propagate into +0x40 at f_109c31c4/0x109c3268 and f_109c3360/0x109c3458."
     }
-   ],
-   "todo": [
-    "Established: the nonce 16-byte DOM contract, household-settings and diagnostic-initiation custom-reader bindings, active custom-container depth limit 15, replay-counter behavior, and exact diagnostic numbering including Incomplete=10. Remaining: identify a reachable producer of custom error 7 (Sequence too long), or prove its absence; f_109bf390's translation and the literal are not such a producer. Audit remaining writes to reader+0x40 and typed-descriptor capacity handling at f_109c1314/f_109c2490. Also trace constructor/schema options and error consumption for other frontends: custom-reader calls at 0x1011989c, 0x1059982c, 0x109e6d30 and 0x109ecc80; DOM calls at 0x104d00d8, 0x1058fc48, 0x106635bc, 0x10663de0, 0x109d3120, 0x109f55fc, 0x109f588c and 0x10bde6f8. These are concrete entrypoint bindings, not recovered per-subsystem contracts. Earlier universal custom-parser and zones_storage/common_logger RapidJSON assignments remain withdrawn pending concrete frontend chains."
    ],
    "resolved_findings": [
     "Two JSON reader families are present. Individual consumer binding requires following the parse call and concrete value/error representation;the presence of an error string does not prove that every Muse/cloud consumer uses the same engine.",
     "The custom reader's active container depth is limited to 15 by unsigned comparisons in opening paths f_109c29c4, f_109c2a64 and f_109c6abc. Its nonzero +0x64 bypass replays synthetic prefixes for incremental input, rather than establishing an unbounded nesting mode.",
-    "The custom diagnostic vocabulary has twelve nonzero entries: Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Incomplete, Out Of Memory, Unexpected error. Sequence too long=7 is recognized by the formatter, but a reachable producer and any associated sequence-length limit remain unresolved.",
-    "Household settings and diagnostic initiation are bound through custom-reader construction and parse dispatch, independently of shared error text. Earlier blanket assignments of all remaining consumers to the custom parser and zones_storage/common_logger to RapidJSON are withdrawn: error-string xrefs alone do not establish those frontend contracts. The other direct entrypoint callers still need constructor/schema and error-path traces."
+    "Resolved: the custom diagnostic table at 0x10f93c64 is indexed by external code-1 through getter f_109c36c0 (bound r5<0xb, else fallback literal at 0x10ea6a2c), giving codes 1..11: Exceeded max depth, Invalid unicode escape, Invalid escape, Invalid string character, Invalid numeric character, Unexpected token, Sequence too long, Missing required value, Invalid value, Incomplete, Out Of Memory; values >=12 take the fallback. The internal-to-external translation f_109bf390 uses table 0x10f93860 = [0,12,12,6,6,6,6,6,2,4,3,12,4,5,5,5] for internal 0..15 and returns 12 for >=16.",
+    "Household settings and diagnostic initiation are bound through custom-reader construction and parse dispatch, independently of shared error text. Earlier blanket assignments of all remaining consumers to the custom parser and zones_storage/common_logger to RapidJSON are withdrawn: error-string xrefs alone do not establish those frontend contracts. The other direct entrypoint callers still need constructor/schema and error-path traces.",
+    "Resolved: external code 7 (Sequence too long) is unreachable. Internal code 7 is produced by leaf f_109c6abc at 0x109c704c-0x109c7058 when the character after an array element is neither ',' nor ']', and defensively by driver f_109c4b34 at 0x109c5220-0x109c5230 when the state index exceeds 0xd; both feed the single commit gate f_109c1fd4, which short-circuits codes 0,6,7 so they never reach the setter f_109c2058/f_109c206c. Even if committed, translation table[7]=6 would surface 'Unexpected token'. External code 11 (Out Of Memory) likewise has no producing store anywhere in the +0x40 census.",
+    "Established: reader+0x40 external-status write census is complete. Constant stores: 0 (ctor f_109c1c80 and clears in f_109c2e64/0x109c2eb0, f_109c31c4/0x109c3210, f_109c2c3c/0x109c2c78, f_109c3c58/0x109c3ca4, f_109c3360/0x109c3384); 1 Exceeded max depth at f_109c29d0/0x109c29f8, f_109c2a70/0x109c2a98 and f_109c6abc/0x109c6e00 (all 'frame count+1 >= 0xf' capacity guards); 9 Invalid value at f_109c2c3c/0x109c2d8c, f_109c31c4/0x109c331c, f_109c3360/0x109c340c, f_109c3c58/0x109c3de0, f_109c4250/0x109c4598 (typed-descriptor tag mismatches); 10 Incomplete at f_109c206c/0x109c20a8 (depth +0x428 nonzero at commit, detail +0x44=0x10) and f_109c4250/0x109c42dc. Translated stores via f_109bf390 at f_109c206c/0x109c20d8, f_109c2c3c/0x109c2d38, f_109c2e64/0x109c2ff8, f_109c3c58 (3 sites) and f_109c4250 (2 sites). Propagated returns: f_109c311c yields {0,8} so Missing required value is reachable; f_109c2270 and f_109c2490 yield {0,1,translated}. +0x44 stores the untranslated internal code as detail.",
+    "Established: the alternate entry f_109c53e8 and helper family f_109ecc24 plus its f_10a16414/f_10a17704/f_10a185f0/f_10a19bc4 callers have no branch, code-address or data-word references in this binary; only PIC-computed paths remain unprovable. The this+0x10 adjusting thunk f_10599820 to the driver is likewise unreferenced, while sibling thunks f_1076eca4/f_1076ed14 are used by the diagnostics frontends."
    ],
    "nonce_frontend_binding": {
     "caller": "Muse nonce envelope0x10b99264 ->0x109d0588 ->16-byte DOM reader0x10447a78;typed string access0x109ce584.",
     "representation": "Reader objects have type flags at value+0xe,object tag3,array tag4,string flag0x400 and short-string flag0x1000. Strings up to13 bytes use inline flags0x1c05 at0x10447200;longer copied strings use0x0c05 at0x10447278. Object members are32-byte key/value pairs. This concrete representation and reader/accessor chain,not an error-string match alone,bind the nonce consumer.",
     "contract": "One NUL-terminated value;only tab/LF/CR/space around it;required string fields credentials and nonce;first duplicate wins;decoded NUL truncates typed string extraction;raw non-ASCII bytes are copied in this string-reader instantiation. Detailed nonce-specific consequences are in shared_primitives.noncehandler.muse_json_envelope."
+   },
+   "frontend_bindings": {
+    "custom_reader_f_109c4b34": "Complete direct-call census (23 sites): svcmanifestfile.cxx manifest load/save (f_1011991c via embedded-reader wrapper f_1011987c at 0x1011989c, and f_1011aabc at 0x1011abb0; 'Failed to load manifests JSON file','JSON parse error %d: %s'); diagnostics POST /v2/diags initiation and manifest-submission status (f_106b5380 and f_106b5f0c through this+0x10 adjusting thunks f_1076eca4 at 0x1076ecb0 and f_1076ed14 at 0x1076ed20; 'Diagnostic initiate error', 'Diagnostic manifest submission error'); cloudrequest websocket config push f_105d52e0 at 0x105d57d4 and 0x105d5808 ('not applying cloudcfg change'); museauth token validation f_106407cc at 0x10640d0c and 0x10640d50 ('Access token is invalid','Response code: %d'); product-settings v3 f_106cbd04 at 0x106cbe34 ('/product-settings/v3/settings'); household settings HHSettingsFile f_105c73f8 at 0x105c7490 ('JSON parse error: %s (v1?:%d)'); cloudqueue f_1051a5b4 at 0x1051a5e4 ('timePlayed JSON parse error'), f_1051ae20 at 0x1051ae50 and f_1033a5b8 at 0x1033a5e8 (queue/policy status); audioclip buzzers f_10510b08 at 0x10510bfc ('Parse error: %s'); httpcache manager f_105ce138 at 0x105ce34c ('cacheHashes','fileVersion') and cache-entry reader f_109e6c18 at 0x109e6d30 ('cache' key,'get_status_not_found'); websocket registration f_1059a178 at 0x1059a21c (called by f_1059c088 SET_CONFIG/CHECK_CONFIG path); CSRF/diagnostic helper f_100d3a70 at 0x100d3b84 ('csrfToken','/bin/ping -c 3'); settings f_106d23c8 at 0x106d247c and 0x106d2680 (called by f_106d4388); one call inside alternate entry f_109c53e8 at 0x109c54bc; dead sites: unreferenced this+0x10 thunk f_10599820 at 0x1059982c and unreferenced helper family f_109ecc24 at 0x109ecc80.",
+    "dom_reader_f_10447a78": "Direct external calls: metadata parser f_104cfffc at 0x104d00d8 ('Failed to parse metadata from JSON string', keys durationMs/errorCode/explicit/fault/name/type); callCloudGetAPI response f_1058f744 at 0x1058fc48 ('JSON parse failure [sz:%zu|off:%zu|%s]', application/json); settings-group body validators f_10663390 at 0x106635bc and f_10663b68 at 0x10663de0 ('JSON body must be an object','groupName'); muse metadata wrapper f_10442c8c at 0x10442e04 ('Unable to parse metadata:'); shared DOM parse helper f_109d0588 at 0x109d061c (serves nonce f_10b99264 'credentials'/'nonce', dolbyconfigparser f_10d5fd98 'parse error: %s', and f_10644ae0); muse command framing f_109d3038 at 0x109d3120 ('muse command must be formatted as an array containing a header object followed by a body object', v1/v2); JWT header decode f_109f5504 at 0x109f55fc and 0x109f588c ('alg','x5c'); f_10bde5ec at 0x10bde6f8 (paired with free + f_104463c8 cleanup); plus recursive calls inside f_10447a78 itself.",
+    "error_consumption": "Frontends read reader+0x40 as the %d code and obtain the %s text from f_109c36c0(code); the nine f_109c36c0 callers are f_1011991c, f_1011aabc (svcmanifest), f_1033a5b8, f_1051a5b4, f_1051ae20 (cloudqueue), f_10510b08 (audioclip), f_105c73f8 (householdsettings), f_105ce138 and f_109e6c18 (httpcache). The commit chain is driver f_109c4b34 -> gate f_109c1fd4 (codes 0,6,7 short-circuit; otherwise depth +0x428, frame flag at (depth-1)*0x3c+0xa0 and comma lookahead decide) -> setter f_109c2058 (first error wins: if +0x40 already set, the code goes only to +0x44) -> f_109c206c (depth>0 forces Incomplete=10 with detail 0x10, else +0x40 gets f_109bf390(internal) and +0x44 the internal code).",
+    "construction": "Reader objects are constructed per-frontend (ctor family f_109c1c64/f_109c1c80 zeroing +0x40, input install helper f_109c07a4, source string at reader+4) and schema is bound by typed-descriptor tables (e.g. 0x10f93cb4 -> f_109c5590; tag f_100d3728 used by f_109c2270); capacity enforcement is the f_109c2490-family 'count+1 >= 0xf' frame guard producing code 1, plus close/validate dispatch f_109c1314 on descriptor +0x1c type (tag 4 -> strnlen bound f_109cfe58 vs capacity lhz +0x18; tags 9/10 -> member vfunc +8)."
    }
   },
   "event_loop": {
