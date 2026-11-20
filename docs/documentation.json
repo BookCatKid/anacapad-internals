@@ -187607,9 +187607,141 @@
      "build": "86.10-80260",
      "address": "0x105544d8",
      "notes": "Insufficient-capacity fallback strlcpy copies original URI and optional diagnostic; no-placeholder path at 0x10554524 also uses strlcpy."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552d18",
+     "notes": "SchemaVersion<=5 gate: ble -> 0x10553130 sets valid byte +0xc and root-seen +0xd together; the >5 fall-through at 0x10552d20 clears +0xc only, so a repeated <Services> element is retried."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553438",
+     "notes": "Service begin dispatch: slot+0x0c called unconditionally with (Id,Name,Version,SecureUri,ctype,caps); false -> 0x105538ac 'beginService failed (URLs too long?)' log; +0xe set only on true at 0x1055346c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553820",
+     "notes": "BuiltInService begin requires Type (r26) non-null before setting flag +0x16; slot+0x10 stub-guarded against f_10552778 then tail-called with (Type,Name)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552a78",
+     "notes": "Service end: clear +0xe then unconditional slot+0x40 (lwz vtab+0x40, mtctr, no stub compare); same unconditional shape for Services +0x44 at 0x10552b24 and BuiltInService +0x48 at 0x10552aec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552938",
+     "notes": "End-handler flag priority: Policy +0xf, Presentation +0x10, Manifest +0x11, Rating +0x13, Ratings +0x12, Service +0xe, BuiltInService +0x16, Services +0xd; first active flag picks the single name compared and a mismatch returns untouched. Policy/Manifest ends clear flags with no callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552f7c",
+     "notes": "Within-Service name ladder: Policy, Presentation (slot+0x18 stub-guarded at 0x10553218), then +0x10-set Strings/PresentationMap or +0x10-clear Manifest, then Ratings; the shared tail covers Rating (+0x12), Icon (+0x13) and BuiltInService (+0x16 clear, +0xd set)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100ca73c",
+     "notes": "Replication header parser slot+0x08: stores Version word at this+0x60 and strlcpy LastUpdateDevice to +0x5 cap 25 only on strlen==24; nonempty ETag strlcpy to +0x1e cap 65; SchemaVersion arg unused."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e76700",
+     "notes": "Replication parser vtable: only +0x08 is real; +0x0c=f_10552740 returns 1, +0x14=f_10552750 void, +0x1c/+0x20/+0x28=f_1055275c return 1, everything else void stubs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cb5e8",
+     "notes": "Descriptor-projection Service begin: depth +0x28 must reach exactly 1; Id>0xff rejected, Id==0xfe always emitted; else scans this+0x18 list (count +0x24, stride 0x250, id=(word>>8)&0xffffff) and emits via f_100cb31c only on a match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cb3f8",
+     "notes": "Type-list append: __snprintf_chk(',%u', (Id<<8)|7) at this+8+cursor with remaining=+0xc-+0x10; success sets flag +0x14 and advances +0x10, truncation pins +0x10 to +0xc. Re-emits Service via builder f_10578490 with attrs Id,Name,Version,Uri,SecureUri,ContainerType,Capabilities (Uri and SecureUri share one value) and patches '/>' to '>'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cab50",
+     "notes": "Services end: writes '</Services>' through sink vtable+0xc; when flag +0x14 is clear and buffer this+8 exists, logs 'Not enough space to write full list of available services: %s'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6770",
+     "notes": "Publisher f_100c6314 pushes AvailableServiceDescriptorList/AvailableServiceTypeList/AvailableServiceListVersion via f_10560608 with accessor entries f_100cc34c (descriptor projection parse), f_100ca7f4 (type list), f_100ca84c (list version)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105779c8",
+     "notes": "Attribute-value escaper: bytes 0x22..0x3e tested against bitmask 0x14000031 via srw; jump table 0x10eeecb8 writes &quot;/&amp;/&apos;/&lt;/&gt; literals (0x10ebf624..0x10ebf648) through sink vtable+0x8; all other bytes pass raw."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fb2674",
+     "notes": "'expat_2.5.0' version literal; DTD keyword table DOCTYPE/SYSTEM/PUBLIC/ENTITY/ATTLIST/ELEMENT/NOTATION/CDATA/IMPLIED/REQUIRED at 0x10fb3484+."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3fd30",
+     "notes": "Catalog parser construction: f_10c3f81c called with encoding 0, start thunk f_10554c70, end thunk f_10554c64, and zeros for every optional handler; f_10c3f27c then installs only start/end at parser +0x34/+0x38 via f_10c4b220."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554918",
+     "notes": "Registry deserializer parse: adapter bound to embedded processor 0x110a4ca8+0x90=0x110a4d38 (vptr 0x10ee9e64 installed in f_10086d30); on success f_10988984 commits and *+0x1e0 is flagged when *+0x1dc differs from +0x1d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c86f8",
+     "notes": "Download orchestrator f_100c8230 composite assembly: replication-parser object at r30-0x38ac gets vptr 0x10e76700 and becomes child zero; composite at r30-0x38c8 gets vptr 0x10e76754, count at r30-0x38c4, children appended at sp+0 up to 4 more via f_100c76a4 pass loop."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100ca278",
+     "notes": "Composite slot+0x2c Ratings: iterates count at this+4 and calls the same slot on each child pointer from this+8; identical forwarding shape at slot+0x08 f_100c9c18 (4 args, results ignored)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8c28",
+     "notes": "Local-config parser f_100c8900 (sid/name/secureUri/containerType/pollInterval/authType keys, called from 0x103424c4) installs normalizer vtable 0x10e767a8, feeding local override rows through the same normalizer used for downloaded rows."
     }
    ],
-   "todo": "Established: normalized XML grammar, overrides, manifest projection, numeric/version/auth/poll gates, Ratings/Icon fields and retained ID, callback state, namespace-disabled construction, packed URI storage and manifest placeholder expansion are instruction-traced. Remaining: exhaust processor return effects, descriptor/SOAP projections and malformed/repeated-element state interactions; trace XML escaping and shared XML DTD/entity/encoding/error behavior; verify numeric libc overflow/locale semantics and Ratings/Icon consumers beyond the normalizer. Audit URI call-site capacities and failure propagation using music_service_descriptor_uri.",
    "input_rules": {
     "catalog_header": "Start handler f_10552c20 matches the literal Services and recognizes LastUpdateDevice, Version, SchemaVersion and ETag with strcmp. Version and SchemaVersion use strtoul(base=10,endptr=NULL). Both default to zero; source and ETag default to null. The unsigned SchemaVersion must be <=5 to set the valid/root-seen bytes. Larger values leave the validity byte clear. The callback still receives parsed header values; acceptance also depends on the XML parser completion state.",
     "service_row": "The parser recognizes Id, Name, SecureUri, Version, ContainerType and Capabilities. Id starts at 0xffffffff; unsigned values above 0x00ffffff skip the row. Name, SecureUri and Version pointers must be present, but these tests do not themselves reject empty name/endpoint strings. Version must pass f_10552b38. ContainerType defaults to MService; Capabilities defaults to zero. Id and Capabilities use decimal strtoul with a null end pointer. Invalid row guards return without setting the active-Service byte; they do not directly invalidate the complete catalog.",
@@ -187624,7 +187756,26 @@
     "namespace_setup": "Catalog parser constructor f_105528ac installs start/end thunks f_10554c70/f_10554c64. f_10c3fcd4 passes namespace option zero to f_10c3f81c, which selects f_10c4a8cc. That constructor passes a null namespace-separator pointer to f_10c4a530, leaving the namespace-processing byte +0xe8 clear. The alternative non-null path sets that byte and installs the separator. f_10c3f27c installs the catalog callbacks directly through f_10c4b220, which stores them at XML-parser offsets +0x34/+0x38. The thunks perform no name transformation. The catalog handler compares literal names rather than namespace URIs or local-name suffixes; a prefixed callback name does not match Services or Service. Namespace-expansion and colon-resolution paths in the XML engine are gated by +0xe8, including f_10c45190. Full DTD/entity/encoding behavior remains a shared XML-engine investigation.",
     "uri_storage": "Descriptor URL storage is secure URI at +0x20, strings URI at +0x60, presentation-map URI at +0xa0 and manifest URI at +0xe0, each 0x40 bytes. f_10553f1c sets secure URI through the packer. f_105540f4/f_1055410c/f_10554124 first store the supplied version halfword at descriptor+0x124/+0x126/+0x128, respectively, then call the packer for strings/presentation-map/manifest URI and return its boolean. Consequently a failed URI update can leave the new version paired with the previous URI; callers must handle the result. This is independent of the earlier SAX prefix and version gates. f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4). The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62, followed by a terminator. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
     "manifest_uri_expansion": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a placeholder it also uses strlcpy. The function returns the destination pointer and does not report truncation or placeholder substitution as a separate status. Other placeholders and subsequent occurrences are unchanged by this helper."
-   }
+   },
+   "processor_contract": "The SAX adapter (ctor f_105528ac, processor pointer at this+8) drives one processor object through a fixed 19-slot vtable. Start handler f_10552c20 invokes: +0x08 Services root (Version u32, SchemaVersion u32, LastUpdateDevice ptr, ETag ptr; stub-guarded against f_10552734, result ignored); +0x0c Service begin (Id, Name, Version, SecureUri, container-type, capabilities; always called, false logs 'beginService failed (URLs too long?)' on 'msd' and leaves Service flag +0xe clear); +0x10 BuiltInService (Type required non-null, Name; stub-guarded against f_10552778); +0x14 Policy (Auth text, PollInterval masked to 16 bits; always called, result ignored); +0x18 Presentation begin (stub-guarded against f_10552784); +0x1c Strings (Version u16, Uri; always called, false logs 'Failed to load strings %s (URLs too long?)'); +0x20 PresentationMap (Version u16, Uri; always called, false logs 'Failed to load pmap %s (URLs too long?)'); +0x28 Manifest (Version u16, Uri; always called after the option-key-7/https gate, false logs 'Failed to load manifest %s (URLs too long?)'); +0x2c Ratings begin (stub-guarded against f_10552784); +0x30 Rating (retained halfword ratingId, StringId, AutoSkip, OnSuccessStringId; stub-guarded against f_1055276c); +0x34 Icon (ratingId, Controller, LastModified, Uri; stub-guarded against f_1055276c). End handler f_10552938: Policy and Manifest closes only clear flags +0xf/+0x11 with no callback; Presentation/Rating/Ratings ends +0x24/+0x38/+0x3c are stub-guarded against f_10552784; Service/Services/BuiltInService ends +0x40/+0x44/+0x48 are always called. A slot equal to its default sentinel is skipped; any other implementation is always invoked, and the four false-logging paths record the diagnostic without failing the parse. Stub sentinels: f_10552740/f_1055275c return 1; f_10552734/f_10552750/f_10552778/f_10552784/f_1055276c are empty voids.",
+   "processor_roles": "Five processor vtables consume this grammar. 0x10e767a8 (normalizer) emits downloaded Service rows to the local catalog file and stubs Ratings/Icon (+0x2c..+0x3c); it is instantiated in feed path f_100cc4f4 and again inside local-config parser f_100c8900, which supplies local override rows from a non-XML settings format keyed sid/name/secureUri/containerType/pollInterval/authType. 0x10e76700 (replication header parser) is built inside download orchestrator f_100c8230 as composite child zero; only slot +0x08 (f_100ca73c) is real: it stores Version at +0x60 and copies LastUpdateDevice to +0x5 cap 25 only when the device text has strlen==24, then copies a nonempty ETag to +0x1e cap 65; SchemaVersion is ignored and every other slot is a trivial stub. 0x10e767fc (descriptor projection) exists only inside f_100cc34c, the accessor the state publisher runs for AvailableServiceDescriptorList; all grammar slots are real except +0x2c..+0x3c Ratings/Icon and +0x48. 0x10e76754 (composite) fans every slot out to child pointers stored inline from +8 with count at +4 (built to at most five children in f_100c8230, the replication parser first), ignoring child returns. 0x10ee9e64 (registry deserializer, also the descriptor-view vtable) is the embedded object at 0x110a4ca8+0x90=0x110a4d38 whose vptr init runs in f_10086d30; f_10554918 parses persisted catalog text into it and commits the registry through f_10988984 when the +0x1d8/+0x1dc value pair differs, flagging *+0x1e0. Its Service/Policy/Strings/PresentationMap/Manifest/Service-end slots are real (row-appender f_10554e00); BuiltInService, Ratings and Icon slots are void stubs.",
+   "soap_projection": "Publisher f_100c6314 registers three state variables through f_10560608 with lazily-run accessor functions: AvailableServiceDescriptorList via f_100cc34c (a full catalog parse through the descriptor-projection processor), AvailableServiceTypeList via f_100ca7f4 (the accumulated comma list) and AvailableServiceListVersion via f_100ca84c. f_100cc34c builds the projection on its stack: the descriptor list is seeded from context+4 (count-led array, stride 0x250), the catalog text is context+0xc, the output sink is the caller argument and the type-list buffer is context+0x34 with end at +0x800. Inside the projection, Service begin f_100cb5e8 accepts only depth-1 elements (counter +0x28), requires Id<=0xff with Id==0xfe always admitted, and emits only when the Id matches an entry of that seeded list at this+0x18 (count +0x24, stored id=(word>>8)&0xffffff); a null list emits unconditionally. Emitter f_100cb31c appends ',%u' of (Id<<8)|7 to the type-list buffer at this+8 (cursor +0x10, end +0xc) and re-emits the element through XML builder f_10578490 with attribute set Id, Name, Version, Uri, SecureUri, ContainerType, Capabilities, where Uri and SecureUri carry the same supplied value; a last-bytes patch rewrites the '/>' close to '>' so children follow. Flag +0x14 starts set, is cleared at each Service start and set again when the append fits completely; on truncation the cursor is pinned at the buffer end so no later service appends, and Services-end f_100cab50 writes '</Services>' then logs 'Not enough space to write full list of available services: %s' when the flag is clear and the buffer exists. Each processed element also logs 'ServiceTypeList, adding: %s; name: %s' on 'musicservices'.",
+   "element_state_machine": "The adapter tracks state in flag bytes, not a depth stack, so document-shape anomalies have concrete effects. A Services root with SchemaVersion>5 clears valid byte +0xc but leaves root-seen +0xd clear, so a repeated <Services> element is retried and can still validate the document; once +0xd is set a later 'Services' name falls through every ladder harmlessly. The within-Service ladder tests Policy, Presentation, then either Strings/PresentationMap when +0x10 is set or Manifest when it is clear, then Ratings, then the shared tail (Rating when +0x12, Icon when +0x13, BuiltInService when +0x16 is clear and the root was seen). A <Service> inside an active Service is not rematched (Policy is tested first), so a nested row produces no callback; its children parse as children of the outer row and its 'Service' close clears +0xe and fires slot+0x40 for the outer row, merging the nested row into its parent. When beginService returns false, +0xe stays clear and the rejected row's children hit the top-level ladder, where Policy, Presentation, Manifest and Ratings are not candidates but BuiltInService still matches and Rating/Icon/Strings/PresentationMap match while their flags happen to hold; a BuiltInService nested in a rejected Service is therefore adopted as a top-level entry. Repeated Policy, Manifest, Strings, PresentationMap and Presentation starts re-invoke their slots with no idempotence guard (Presentation re-fires slot+0x18 even while +0x10 is already set); whether later values replace or append is processor-defined. In the end handler the first active flag in the order Policy, Presentation, Manifest, Rating, Ratings, Service, BuiltInService, Services picks the single name compared; a mismatch returns with no state change. Under Expat well-formedness that priority order can only diverge from real nesting on element names the adapter does not recognize.",
+   "xml_engine": "The engine is embedded Expat 2.5.0 (version literal 'expat_2.5.0' at 0x10fb2674 and the full DTD keyword table DOCTYPE/SYSTEM/PUBLIC/ENTITY/ATTLIST/ELEMENT/NOTATION/CDATA/IMPLIED/REQUIRED at 0x10fb3484+). Construction for the catalog goes through f_10c3f81c with encoding arg 0 and f_10c4a8e4 parser creation; the callback install stores only start and end element handlers at parser +0x34/+0x38 via f_10c4b220 with userdata 0. The same installer supports optional character-data and single-handler arguments, and all of them are passed 0 here, so no character-data, default, comment, PI or doctype handler exists: element text content is dropped entirely. Namespace processing is disabled (separator byte +0xe8 clear; the colon/prefix expansion branch at f_10c45190 is gated off), so element names arrive unexpanded and a prefixed name never matches the literal vocabulary. Chunked UTF-8 input is buffered across partial sequences in f_10c3f440. Entity and DTD behavior is the Expat 2.5.0 default for this configuration: predefined entities and internal-subset general entities are still resolved during attribute-value normalization before the start callback sees them, while no parameter-entity or external-entity handler is installed.",
+   "xml_escaping": "On the emit side, builder f_105782a0 writes element names and markup raw through the output sink (vtable +0x8) and routes attribute values through the escaping sink at vtable +0x10, which lands in f_105779c8. The escaper walks each value and tests bytes c in 0x22..0x3e against bitmask 0x14000031 shifted right by (c-0x22): set bits map through jump table 0x10eeecb8 to writers for &quot; (0x22), &amp; (0x26), &apos; (0x27), &lt; (0x3c) and &gt; (0x3e) emitted as literal strings via the same sink. Every other byte, including control bytes below 0x22 and non-ASCII bytes at or above 0x7f, is copied raw with no numeric escaping or UTF-8 validation; the escaper is the only attribute-value sanitizer between a stored attribute string and the output document.",
+   "numeric_semantics": "All decimal conversions in the catalog path use the shipped libc strtoul or strtol with a null end pointer and no errno read: leading locale whitespace and a +/- sign are accepted, overflow returns ULONG_MAX, and trailing non-numeric bytes are silently dropped. Consequences per site: Service Id and Capabilities take the raw u32 (Id then gated <=0xffffff); PollInterval and child Version attributes go through f_105527f8 which keeps values <=0xfffe and saturates any larger result, including -1 -> ULONG_MAX, to 0xffff with a diagnostic; Service Version uses sscanf('%d.%d') which skips leading whitespace, accepts signs on each component and tolerates trailing garbage after the second conversion. On the separate local-descriptor parser f_100c8900 the supplied version text instead passes through strtol and is truncated to 16 bits with no saturation (see music_service_descriptor_uri).",
+   "uri_callsite_audit": "Packer f_10553994 has a complete caller census for this binary: four bl sites inside row-init f_10554218 (+0x20 secure URI checked, a false result aborts initialization; +0x60/+0xa0/+0xe0 packed from an empty string and unchecked) plus four tail-branch wrappers f_10553f1c (secure URI), f_105540f4 (strings), f_1055410c (presentation map) and f_10554124 (manifest). The three resource wrappers store the supplied version halfword at +0x124/+0x126/+0x128 before tail-calling the packer, so a failed pack leaves a new version paired with the previous URI; the boolean reaches the SAX caller, where slot +0x1c/+0x20/+0x28 false results only log '(URLs too long?)' diagnostics and the parse continues. Expander f_10553ab0's ignored return and the {device}-placeholder and capacity behaviors are in music_service_descriptor_uri; no call site validates the URI beyond the packer byte-count rules.",
+   "ratings_consumers": "No processor in this binary consumes Ratings, Rating or Icon content: all four concrete vtables (0x10e767a8 normalizer, 0x10e76700 replication parser, 0x10e767fc descriptor projection, 0x10ee9e64 registry deserializer) leave +0x2c..+0x3c at their stub sentinels, and the adapter skips the calls. Composite 0x10e76754 forwards every slot including Ratings to its children (verified for slot+0x2c f_100ca278 and slot+0x08 f_100c9c18), so survival of these fields depends entirely on runtime children, none of which implement them here. The adapter still performs its own side effects while dispatching: the Rating Id halfword at +0x14 persists across ratings and services when a later Rating omits Id.",
+   "resolved_findings": [
+    "Resolved: processor return effects are fully enumerated. Only the four begin/URI booleans (+0x0c/+0x1c/+0x20/+0x28) are honored, each producing a 'msd'-domain diagnostic and parse continuation; +0x08 and +0x14 results are ignored; end slots are void. Stub-guarded slots compare the vtable entry against its exact default sentinel (f_10552734/0x10552778/0x10552784/0x1055276c) and skip only while unimplemented.",
+    "Resolved: all five consumer projections are mapped. Normalizer 0x10e767a8 writes the local file (f_100cc4f4, also instantiated inside local-config parser f_100c8900); replication parser 0x10e76700 captures only header fields (f_100ca73c); descriptor projection 0x10e767fc exists solely in f_100cc34c; composite 0x10e76754 fans out to inline children in f_100c8230; registry deserializer 0x10ee9e64 is the embedded object at 0x110a4ca8+0x90 fed by f_10554918.",
+    "Resolved: the SOAP projection publishes AvailableServiceDescriptorList/AvailableServiceTypeList/AvailableServiceListVersion via publisher f_100c6314 accessors f_100cc34c/f_100ca7f4/f_100ca84c. Re-emission admits only depth-1 Service elements with Id<=0xff (0xfe unconditional) matching an installed descriptor row; the type list appends (Id<<8)|7 and its truncation is tracked by flag +0x14 with a close-time 'Not enough space' diagnostic.",
+    "Resolved: malformed and repeated-element semantics derive from flag bytes, not depth. Nested <Service> merges its children into the parent row; rejected Service rows (false beginService) expose their children only to the top-level ladder where BuiltInService can still be adopted; SchemaVersion>5 leaves the root retriable; Policy/Manifest ends have no callback; unknown names return with no state change.",
+    "Resolved: the XML engine is Expat 2.5.0 built with encoding arg 0, namespace processing disabled and only start/end element handlers installed, so element text is dropped and only predefined/internal entities in attribute values are resolved by the engine; output-side escaping covers exactly the five XML metacharacters via f_105779c8.",
+    "Resolved: numeric semantics follow shipped-libc strtoul/strtol with null end pointers and ignored errno (whitespace/sign accepted, overflow saturates to ULONG_MAX), plus the f_105527f8 u16 clamp to 0xffff and the local-parser strtol-to-u16 truncation.",
+    "Resolved: URI capacity and failure propagation is bounded by the f_10553994 packer: its complete caller set is f_10554218 (secure-URI failure aborts row init, resource fields packed empty) plus wrappers f_10553f1c/f_105540f4/f_1055410c/f_10554124, whose version halfword is stored before the pack so failures leave a new version with an old URI.",
+    "Resolved: Ratings/Icon have no consumer in this binary; every concrete vtable stubs slots +0x2c..+0x3c and the composite merely forwards to children that all stub them."
+   ]
   },
   "music_service_manifest_cache": {
    "name": "Persisted music-service manifest cache JSON",
@@ -215039,7 +215190,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
