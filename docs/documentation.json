@@ -215039,7 +215039,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
@@ -223124,15 +223124,65 @@
     {
      "type": "firmware",
      "notes": "reference/public/files/opt/dsp/S9_array.xml: all nine arrayDef elements contain 102 comma-separated weight words, 16 alphas and six delays. The declared numTaps remains 16; word count is not relabeled as tap count."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d65c40",
+     "notes": "Aggregate apply is a thin thunk: clears flag +0xa4, invokes virtual slot +8 on the DSP aggregate object, and derives its return from flag bytes +0x50/+0x19; per-block setters sit under that virtual."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10feccc4",
+     "notes": "Per-block param setter is a vtable virtual: multigain table starting near 0x10fecc88 stores f_10d9ae04 at slot +0x3c; sibling tables (RampMultiGain 0x10fecd04, SmoothMultiGain 0x10fecd80) share the layout."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d9ae04",
+     "notes": "multigain param setter: iterates obj+0x20 channels, extracts channel index via strtok+strtol base 10 and skips out-of-range indices (log 0x10feceb8), matches name against {gaindB,phase} (miss -> 'channel number not found' 0x10fece58), then converts value strtod -> pow(10.0, v) at 0x10d9b06c -> vft+0x68 setter. No numeric bound check."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d99bb8",
+     "notes": "downmixer scaleFactordB path applies the same strtod -> pow(10.0, v) transform and logs quantization via 'Scale factor %f dB rounded down to %g dB (%f)' (0x10fecbf0); no range rejection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10daaee8",
+     "notes": "dyniirblock dynamic-frequency-cutoff guard: out-of-range input takes the 0x10daafcc branch logging 'Invalid dynamic frequency cutoff, will set to minimum of 0.' (0x10fedf88) and stores 0 at obj+0x88/+0x8c; a per-parameter floor, not a table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d9b0d0",
+     "notes": "multigain apply routine bounds per-channel gains with fmin/fmax against runtime index arrays obj+0x24/+0x2c: internal smoothing/state bounding, not declared min/max."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10da1c64",
+     "notes": "ExcursionLimiter/DynHiPass parameter registration calls vft+0x38 once per named parameter passing name plus two rodata doubles, e.g. 'EB allocation, dB' with 15.0 and 120.0 (0x10ed4c98/0x10fc0200); 'Max Freq'/'Min Freq'/'Limiter Attack, msec' are parameter names in this descriptor list."
     }
    ],
-   "todo": "Residual: trace f_10d65c40 through the per-block parsers/setters to establish numeric acceptance, clamping and failure behavior for the UI parameter vocabulary. onSubmitValues forwards strings; native DRC validation is recovered separately, but universal server-side min/max enforcement is not yet proven.",
    "resolved_findings": [
     "Parameter consumers mapped: dolbyconfigparser feeds the dolby decoder config (dolby_utils JSON search order proven in dolby_decoder); /staticparams dap{frontangle,heightangle,rearsurrangle} drives the DAP virtualizer geometry; /dynamicparams {oarBassExtraction,dapCutOff,hfilt,post,vlamp,vmcal} drive the OAR bass-extraction + virtualizer lamp/cal blocks consumed by the evo/DDPI decoders. The shipped /opt/dsp/S9_array.xml is the model-9 woofer beamforming config: <arrayDefinition version=\"1.0\"> config entries {0: Production_H_design123 horizontal, 1: Production_VA_design123 vertical, ...} per driverset woofer numChan=6 numTaps=16, each arrayDef {ArrayLeftLows,ArrayRightLows,ArrayCenterLows} carrying hex-float weights (102 words per arrayDef in the shipped XML), alphas (16), and integer delays (6) - the array variant selects on detected orientation.",
     "Resolved (opt/htdocs_locked/dsp/configDSP.js - the engineering tuning UI driving the same dspconfigparam surface): the IIR option vocabulary + units is literal - {highpass2,lowpass2,shelving bandpass,rbj shelving bandpass,lfshelf,hfshelf,rbj lfshelf,rbj hfshelf,bandpassQ,allpass} take {Freq,Q[,gain dB]} (defaults 999 Hz / 0.707 / 0.0); {highpass1,lowpass1,allpass1} take {Freq}; gain takes {gain linear} 1.0; {bass1,treble1} take {gain dB}; loudness takes {FreqLF,gainLF,FreqHF,gainHF} (999,0.0,999,0.0); custom takes raw biquad {b0,b1,b2,a1,a2} as hex IEEE-754 (default b0=3f80000,b1=bfe66666,b2=3f4f5c29,a1=bfe66666,a2=3f4f5c29). {blank,mute} take none. Block modes {Off,Mute,Bypass,Active}, control modes {Off,Active}, debug {Off,On}. Block types consumed: IIRBlock, FIRBlock, RampIIRBlock, XFadeIIRBlock, XFadeTwinIIR, RampMultiGain, SmoothMultiGain, WeightedSum, MultiGain, SpeechEnhance, BassManager, Array, ChannelSet, Meter - block XML = <block><id/><debug/><mode/>[<debugParam name=.. value=../>*]<param entries keyed by dotted section.filter.param ids>.</param></block>",
     "The assertion that every numeric min/max is enforced server-side is not established by the UI. configDSP.js onSubmitValues (lines 504-546) reads input.value strings, builds block-specific XML and posts it to ../putDSP without a numeric range check in that submission function. Those labels/defaults define editing vocabulary, not native acceptance. No blanket frequency/Q/gain bounds are inferred from the form defaults.",
     "The native request/apply chain is now bound: HTTP handler f_100bb63c checks request/configuration state, reads a text/xml body with a 0x7d0 argument at 0x100bb76c-0x100bb784, checks HTTP result 200, then invokes f_102a5188 at 0x100bb794-0x100bb7a0. That wrapper loads owner+0x34, adds 0xe0 and tail-calls f_107fa080. The latter gathers processor interfaces through virtual slots +0x98/+0x9c, constructs a temporary aggregate with f_10d64ad4, and passes the supplied arguments to f_10d65c40 at 0x107fa158-0x107fa174. Its returned status is converted to a boolean at 0x107fa178-0x107fa180. The child parser/setters beneath this aggregate, not the web labels, determine acceptance.",
-    "At least one related native numeric validator is explicit: Dolby DRC f_10d60f0c compares two doubles against inclusive zero/one bounds and requires both zero in mode one. This disproves the stronger implication that only external preset values could reveal all bounds. It does not establish IIR frequency/Q/gain limits, nor does it make DRC bounds apply to every DSP block. Remaining work is the block-specific parser/setter census."
+    "At least one related native numeric validator is explicit: Dolby DRC f_10d60f0c compares two doubles against inclusive zero/one bounds and requires both zero in mode one. This disproves the stronger implication that only external preset values could reveal all bounds. It does not establish IIR frequency/Q/gain limits, nor does it make DRC bounds apply to every DSP block. Remaining work is the block-specific parser/setter census.",
+    "Per-block setter census resolves the min/max question. f_10d65c40 is a thin thunk that clears flag +0xa4, invokes virtual slot +8 on the DSP aggregate, and derives its boolean from flag bytes +0x50/+0x19; each block's parse-and-set is a vtable virtual (multigain slot +0x3c = f_10d9ae04, table at 0x10fecc88). Sampled setters share one contract: name, index, arity and vocabulary guards only, with numeric values accepted verbatim. multigain f_10d9ae04 bounds only the channel index against obj+0x20 and the name against {gaindB,phase}; the value goes strtod -> pow(10.0, v) -> vft+0x68 with no range check. downmixer scaleFactordB repeats that transform and merely logs quantization ('Scale factor %f dB rounded down to %g dB'). iirblock bounds only its identifiers: filter set/section/channel indices ('out of range'/'not in limits' logs 0x10fee684-0x10fee84c), filter-type vocabulary {highpass1,lowpass1,lowpass2,highpass2} at 0x10fe842c, and per-type arity ('given %d parameters'); coefficients pass strtod into the generators unclamped.",
+    "Guards exist but are per-parameter, not universal: dyniirblock f_10daaee8 clamps an invalid dynamic frequency cutoff to 0 with log 0x10fedf88, and multigain apply f_10d9b0d0 bounds per-channel gains with fmin/fmax against runtime arrays obj+0x24/+0x2c (internal slew/state bounding). The min/max values that 'exist' are descriptor metadata: registration calls through vft+0x38 attach two rodata doubles to each parameter name (e.g. 'EB allocation, dB' -> 15.0/120.0 in f_10da1c64) for the getDSP descriptor export; the sampled write paths never consult them. UI slider ranges are therefore advisory metadata, not enforced bounds; out-of-descriptor numerics are accepted unless a setter implements its own guard."
    ]
   },
   "network": {
