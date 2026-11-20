@@ -198919,12 +198919,8 @@
    "modes": "ZP_MODE_{UNKNOWN,STANDALONE,HT_SATELLITE,EXCLUSIVE_BT}: incl. bluetooth-exclusive mode",
    "consistency": "ValidateBondedState + isBondedZoneConsistent cross-ZP map compare + MissingBondedZoneMemberDetectedEvent; ifBondedZoneGet{Next,Partner}UUID traversal",
    "ops": "addSatellite(map)/removeHTSatellite + separateBondedZoneKeepPlaying graceful unbond; RemoteHTSwapStateChangedEvent (surround L/R swap); bonded->primary default-loudness",
-   "dsp": "dsp_preset_satellite.xml + dsp_system_satellite.bin + satellite_processor.bin: satellite-specific DSP chains",
+   "dsp": "dsp_preset_<role>.xml + dsp_system_<role>.bin + satellite_processor.bin: per-role DSP preset (XML chain config) and binary DSP system image selected by dsp_builder across {/jffs/app/debug/dsp, /opt/dsp, dsp}; satellite_processor.bin is the debug-override drop for the separate satellite audio-processor blob",
    "tz": "timezone DB from update-timezone.sonos.com/timezone/timezones.xml",
-   "todo": [
-    "Established: satellite file set {dsp_preset_*.xml, dsp_system_*.bin, satellite_processor.bin} + lifecycle log vocabulary + persisted satellite.{xml,bin} pair.",
-    "Residual: the semantic role of each DSP blob (what satellite_processor.bin configures vs dsp_system_satellite.bin) - the file names are proven, contents are config data"
-   ],
    "satellite_audio_path": "Satellite audio path decoded: bonded secondaries run a dedicated DSP preset 'dsp_preset_satellite.xml' plus per-channel gains delivered as HTChProcConfig protobufs ('Could not convert loaded satellite protobuf to HTChProcConfig', 'satellite channel: %i %s', 'satellite: failed to set gain for channel type %zu', 'could not send %s to satellite %s;%s. rc %d, error %d, %s, count %u'). Bonded zones carry SEPARATE bonded volume breakpoint tables alongside the defaults - 'Bonded gain for \"%s\" not found in DSPConfig', 'default (%i) and bonded (%i) volume breakpoint lengths differ', 'default and bonded volume breakpoints differ', 'volume (%i) and gain (%i) lengths differ in bonded volume breakpoints', 'no bonded volume breakpoints specified, using default instead', 'Num bonded subs', 'sub_bonded'/'sub_unbonded'. HT_SWAP exists ({HT_SWAP_START,HT_SWAP_END,HT_SWAP_ERROR}) but 'Swap is disabled as this player is in a bonded zone.' - role transitions '_satellite'/'satellite to normal'/'normal to satellite' happen through bonded membership, not the swap FSM. Secondaries are hidden: 'Setting invisible=true based on bonded secondary state'; primary keeps default loudness (\"bonded; set primary's default loudness %d\").",
    "create_recover": "Create sequence: AddBondedZones -> 'Created bonded zone; start topology monitor' -> state pushed to secondaries ('Pushing bonded zone state to secondaries failed: %d', 'Failed sending state to new bonded zone. Schedule recovery', 'Error creating bonded zone; %d'). Recovery (recoverBondedZone): retries while topology is unsettled ('retrying as topology hasn't settled yet (ct=%u)'), checks 'Status from topology is: %d', then either 'reducing bonded zone to %s', 'separating this player from bonded zone', aborts on 'partner is incompatible', or succeeds ('recoverBondedZone successful %s; %s sent to secondaries'). Sonar config is cleared on RemoveBondedZone, restickBondedSecondary and unstickBondedSecondary paths.",
    "channelmap_grammar": {
@@ -198943,7 +198939,57 @@
    },
    "resolved_findings": [
     "Established: full ChannelMapSet grammar - uuid:tokenList entries; complete channel-token vocabulary {CC,SW,LR,RS,LTF,RTF,LTR,RTR,LW,RW,LTM,RTM,AX1,AX2}; 42-entry speaker-role table at 0xee62b0; flatChannelMapSet joinZone wire form; action arg shapes decoded.",
-    "Resolved: the satellite DSP file set is literal (0x10e73a60-0x10e73ad0): {dsp_preset_default.xml, dsp_preset_satellite.xml, dsp_system_default.bin, dsp_system_satellite.bin, satellite_processor.bin} - bonding swaps the default preset/system pair for the satellite pair and loads satellite_processor.bin. Satellite lifecycle log vocabulary (0x10e8bdff-0x10ebc257): Satellite() map emit, \"Disable HT sat %s\", role strings \"Satellite of sat %s\" / \"Satellite of SELF %s\" / \"Satellite of SUB %s\" / \"Satellite on SOURCE %s\", \"SatelliteCmd: %s rc=%d\", \"Satellite config override: From: %s To: %s\", \"Satellites: reconnected Sat %s\" / \"Failed to reconnect with %s\" / \"removing Sat %s\", \"setting satellite state to UUID %s failed: %d\". The satellite.xml/satellite.bin files at 0x10e73a8b-0x10e73ad0 round out the persisted satellite config pair."
+    "Resolved: the satellite DSP file set is literal (0x10e73a60-0x10e73ad0): {dsp_preset_default.xml, dsp_preset_satellite.xml, dsp_system_default.bin, dsp_system_satellite.bin, satellite_processor.bin} - bonding swaps the default preset/system pair for the satellite pair and loads satellite_processor.bin. Satellite lifecycle log vocabulary (0x10e8bdff-0x10ebc257): Satellite() map emit, \"Disable HT sat %s\", role strings \"Satellite of sat %s\" / \"Satellite of SELF %s\" / \"Satellite of SUB %s\" / \"Satellite on SOURCE %s\", \"SatelliteCmd: %s rc=%d\", \"Satellite config override: From: %s To: %s\", \"Satellites: reconnected Sat %s\" / \"Failed to reconnect with %s\" / \"removing Sat %s\", \"setting satellite state to UUID %s failed: %d\". The satellite.xml/satellite.bin files at 0x10e73a8b-0x10e73ad0 round out the persisted satellite config pair.",
+    "DSP blob roles resolved by construction grammar and call path. The dsp_builder names files 'dsp' + kind + role + ext: kind '_preset' forces '.xml' and kind '_system' forces '.bin' (f_10dcf744: r29==1 -> '.bin' else '.xml'); the role piece is '_satellite' when the builder's satellite flag is set (optionally followed by '_flex'), '_default' on the marked-default arm, or nothing on the plain arm. dsp_preset_satellite.xml is therefore the bonded satellite's DSP preset (the XML filter/chain configuration), dsp_system_satellite.bin is the satellite's binary DSP system image, and the *_default names are the normal-role counterparts, not satellite files. The builder walks the search dirs {JFFS 'app/debug/dsp' override, '/opt/dsp', 'dsp'} and logs the first validated variant ({Override|Flex|satellite|plain} {System|Preset} Path). satellite_processor.bin is outside this grammar: it has no 'dsp_' prefix and '_processor' is not in the builder suffix vocabulary, and no instruction in the binary materializes 'satellite_processor' or its pooled tails ('satellite', '_processor', 'processor.bin'). Its only in-binary binding is the /removeDSPDebugFiles endpoint f_100bc518 (action-table entry 0x11091338 next to /putDSP, /setPersistentEQ, /dolby_config, /audio_tap), which deletes all five names from the JFFS 'app/debug/dsp' dir, so these are developer override drops for DSP resources. By family and naming convention satellite_processor.bin overrides the satellite audio-processor program blob, distinct from the dsp_system/dsp_preset pair that configures the local speaker DSP; the real resource name is supplied by its consumer at runtime, which is the static boundary here - no literal in anacapad loads it. Correction: 'satellite.xml' and 'satellite.bin' are not real file names, they are string-pool tails inside 'dsp_preset_satellite.xml' (0x10e73a8b) and 'dsp_system_satellite.bin' (0x10e73abf) with zero code references; the earlier 'persisted satellite config pair' claim is withdrawn. Rootfs check: none of the blobs ship in the squashfs; the DSP is reached through device nodes /dev/dspW and /dev/dspdefault."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100bc518",
+     "address": "0x11091338",
+     "notes": "status-page action table binds '/removeDSPDebugFiles' to f_100bc518; neighbors /putDSP 0x100bb63c, /setPersistentEQ 0x100ba218, /dolby_config 0x100be454, /audio_tap 0x100becc4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x100bc518",
+     "address": "0x100bc8b8",
+     "notes": "deletes each listed name under 'app/debug/dsp/' (built at 0x100bc61c) via remove(); logs 'successfully deleted %s'/'unable to delete %s even though it exists' under 'mod_zp'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10dcf744",
+     "address": "0x10dcf820",
+     "notes": "DSP name constructor: appends '_satellite' when r8 flag set, then '_flex' when r9 set (0x10dcf84c); r8==0 + r6!=0 appends '_default' (0x10dcf87c); r7==1 selects '.bin' else '.xml' (0x10dcf8b4/0x10dcf7d0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10dce770",
+     "address": "0x10dce80c",
+     "notes": "'Building paths' under 'dsp_config_manager': constructJFFSRootPath('app/debug/dsp') plus '/opt/dsp' and 'dsp' form the search dirs; lookup failure logs 'default preset file could not be found'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10dcfac8",
+     "address": "0x10dcfe04",
+     "notes": "preset path builder appends kind piece '_preset' to base 'dsp' then role suffix via f_10dcf744; 'system' sibling builds '_system'+'.bin'. Logs 'Constructed {Override|Flex|satellite|} {System|Preset} Path: %s' or 'Failed to validate all {system|preset} paths'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fef2f0",
+     "notes": "dsp_builder role-suffix vocabulary {'_satellite' 0x10fef2f0, '_flex' 0x10fef2fc, '_default' 0x10fef304} and kind pieces {'_system' 0x10fef384, '_preset' 0x10fef38c}; no '_processor' suffix exists in the binary."
+    }
    ]
   },
   "topology_engine": {
@@ -213929,14 +213975,100 @@
      "build": "86.10-80260",
      "address": "0x103c82b4",
      "notes": "Construction copies field-name pointers; no required-field mask test at the cited validator address."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x2f40",
+     "function": "hwmessagelib_parseRawNetlinkMessage",
+     "notes": "Exported parser: nlmsg/genlmsg validity gates, genl cmd byte must be 1, nla_parse(tb[7], maxtype 6) with policy at .data+4 (hwevtq_policy mirror: {0:unspec,1:string256,2:u64,3:u64,4:u16,5:u16,6:u32})."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x31fc",
+     "function": "hwmessagelib_parseRawNetlinkMessage",
+     "notes": "Required-attr bitmask built by isel/ori chain: bit0=attr2, bit1=attr3, bit2=attr5, bit3=attr4; cmplwi 0xf gate; failure at 0x3254 logs 'not all fields found in received message [0x%04X]'."
+    },
+    {
+     "type": "firmware",
+     "binary": "libhwmessagelib.so.1",
+     "build": "86.10-80260",
+     "address": "0x3274",
+     "function": "hwmessagelib_parseRawNetlinkMessage",
+     "notes": "Output fill: stw 2 -> out+0 (msgType EVENT); nla_get_u64(attr2) * 1e6 + nla_get_u64(attr3) -> out+8 (u64 usec); nla_get_u16(attr4) -> out+0x10 source; nla_get_u16(attr5) -> out+0x14 info; bounds source<=0x3c, info<=0x30 at 0x32e4-0x32fc else 'IS_VALID_HWEVENT failed'."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": "0x5f0",
+     "function": "hwevtq_send_event",
+     "notes": "Producer side: genl cmd byte 1 written at skb+0x10; ktime_get -> nla_put attr2 (u64 sec) at 0x710, attr3 (u64 nsec/1000) at 0x784, attr4 (u16 source) at 0x7a4, attr5 (u16 info) at 0x7c4, attr6 (u32 mcgrp) at 0x7e4; netlink_broadcast at 0x820."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": "0x550",
+     "function": "hwevtq_get_mcgrp_from_source",
+     "notes": "source->group: u16 default table at .rodata+0x1c0 (62 entries); AMP+{TEMP_WARNING,TEMP_FAULT,TEMP_OK} -> temp(9); info==0x26 WAKEUP + src in bitmask 0x40001005 over src-12 or src==3/[0x30..0x34]/0x25 -> wakeup(0xa). mcgrp_names .data+0x20c 12 ptrs incl index0 'reserved'."
+    },
+    {
+     "type": "firmware",
+     "binary": "hwevent_queue.ko",
+     "build": "86.10-80260",
+     "address": "0x1f0",
+     "function": "hwevtq_policy",
+     "notes": ".data+0x1f0: 7-entry nla_policy {0:{0,0}, 1:{NLA_STRING,256}, 2:{NLA_U64,8}, 3:{NLA_U64,8}, 4:{NLA_U16,2}, 5:{NLA_U16,2}, 6:{NLA_U32,4}}. Source name table .rela.rodata+0 (62 ptrs), info name table .rela.rodata+0xf8 (50 ptrs)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c5188",
+     "function": "f_103c4e64",
+     "notes": "RHWEvtHandlerZP ctor: stack array of 9 {name,err} pairs filled by hwmessagelib_multicast_group_{AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH} string getters (0x103c5188-0x103c51cc), then hwmessagelib_connection_init(this+0x80, pairs, 9, errbuf, f_103c4cb0) at 0x103c5200."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c674c",
+     "function": "f_103c6718",
+     "notes": "RHWEvtHandlerZP::readEvent: hwmessagelib_connection_readNextMsg(this+0x80, &raw24); type 2 -> out {source=raw+0x10 @0x103c6894, info=raw+0x14 @0x103c68a4, age via f_10982b78/f_10982f7c with 0x7fffffff clamp}; type 1 -> out {source=0, info=0x17 QUEUE OVERRUN} at 0x103c6828-0x103c6840."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c83cc",
+     "function": "f_103c822c",
+     "notes": "PlayerButtons required-field check: andi. on event+0x34 mask for bits {0x2,0x4,0x8}; first missing -> 'telemetry'-tagged 'PlayerButtons missing required field %s' at 0x103c8520 with name from stack array [log2(bit)] = {action,audio_type,orientation}; emission continues."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103c7efc",
+     "function": "f_103c7eac",
+     "notes": "Presence-bit writers: ori 0x8 + strlcpy -> event+0x35c (orientation via f_10557480); ori 0x4 + strlcpy 'none' -> +0x328 (audio_type, when player+0x9c vcall +0x68 returns 0); ori 0x2 + strlcpy caller str -> +0x2d6 (action); all len-cap 0x29 into mask word event+0x34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ec6b58",
+     "notes": "PlayerButtons schema descriptor: +0x00..0x34 thirteen FSM state-name ptrs, +0x38 'base', +0x3c 'action', +0x40 'audio_type', +0x44 'orientation', +0x48 'event_id' then remaining field names to +0x74, +0x84 small-int type codes."
     }
    ],
    "button_vocabulary": "BUTTON_PLAYPAUSE(+_PRESSED/_HELD), BUTTON_VOL_UP/DN(+_PRESSED), BUTTON_JOIN(+_PRESSED), BUTTON_MODE, BUTTON_POWER, BUTTON_MICMUTE/STATE_BUTTON_MICMUTE_PRESSED, BUTTON_PAIRING, BUTTON_VOL_ROCKER, BUTTON_MUTE, BUTTON_WIFIBT_MODE, SWIPED",
-   "forwarding": "hwmessagelib_multicast_group_BUTTON bus; 'No button handler, unable to forward buttons'; '%s button pressed (cid: %s)'/'Play button held (cid: %s)' correlation ids; PlayerButtons XML with required-field validation",
+   "forwarding": "libhwmessagelib genl family 'HW_EVQ' multicast bus; anacapad RHWEvtHandlerZP ('hwevt_handler'/'buttons') subscribes 9 of 11 groups {AUDIO,BATTERY,BUTTON,CAPZONE,HT,LED,SENSOR,TEMP,SWITCH} (not hwevtq_btnpwr/hwevtq_wakeup) via hwmessagelib_connection_init at 0x103c5200 with callback f_103c4cb0; kernel hwevent_queue.ko routes each event to a group from a per-source u16 default table (.rodata+0x1c0) with WAKEUP-info overrides; events arrive as genl cmd=1 messages with nla attrs {2:u64 tv_sec, 3:u64 tv_usec, 4:u16 source, 5:u16 info, 6:u32 mcgrp_id}; parseRawNetlinkMessage requires attrs {2,3,4,5} (found-mask 0xf else 'not all fields found in received message [0x%04X]'), bounds source<=0x3c and info<=0x30, and delivers {u32 type=2, u64 usec_ts = attr2*1e6+attr3, u32 source, u32 info}; type 1 (NLMSG_OVERRUN) is re-synthesized by RHWEvtHandlerZP::readEvent into {source=NO_SOURCE, info=0x17 QUEUE OVERRUN}; 'No button handler, unable to forward buttons'; '%s button pressed (cid: %s)'/'Play button held (cid: %s)' correlation ids; PlayerButtons telemetry with presence-mask required-field validation",
    "lock": "SetButtonLockState/GetButtonLockState/GetButtonState SOAP surface; DesiredButtonLockState/CurrentButtonLockState vars; UnpairedButtonLock; BUTTONS_LOCKED + IN_BUTTON_OBSERVATION_MODE + DAT_IN_BUTTONLESS_SETUP_MODE states; 'button-notify' config mode (cm_button/buttonAction); 'Becoming standalone due to button press'",
    "ir": "irdecoder.cxx select-thread (selthrd.RIRDecoder.*); LearnIRCode/CommitLearnedIRCodes/GetButtonState actions; one-button learn mode with timeout + UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND fault; codes fetched from http://ir.ws.sonos.com/IRCode/ (O_IR_DB_WS_IRCODE_URL key), <IRCode> XML schema; demo-mode missing-code path",
    "cloud": "v1/players/{playerId}/virtualRemoteControl/buttonCommand + household-scoped variant, sendButtonCommand op: cloud-injected virtual remote",
-   "todo": "Residual: trace the telemetry encoding and required-field validation backend, and recover the separate libhwmessagelib hardware-message field descriptors. Compiled PlayerButtons field-name metadata is not a wire-tag or required-bit table.",
    "resolved_findings": [
     "Resolved: IR learn flow - learn FSM captures pulses, rejects over-ten-codes as non-repeat-style, succeeds via Successful long code learn; local store keys {vol_up_codes,vol_down_codes,vol_mute_codes} by remote id; on miss the code is POSTed to http://ir.ws.sonos.com/IRCode/ as <IRCode><value>..</value></IRCode> with a guid, then polled until Requested code not found resolves; failure surfaces UPNP_DP_LEARNONE_IR_CODE_NOT_FOUND.",
     "Three layers separated: (1) hardware messages arrive as protobuf events on the libhwmessagelib BUTTON multicast group ({HT,LED,BUTTON,TEMP,SENSOR,BATTERY,CAPZONE,SWITCH,AUDIO} over hwmessagelib_connection_* APIs), pumped by selthrd.RHWEvtHandlerZP; lib shipped at reference/public/files/lib/libhwmessagelib.so.1. (2) vocabulary complete in hw_input_events: BUTTON_{PLAYPAUSE,VOL_UP,VOL_DN,JOIN}_PRESSED, PLAYPAUSE_HELD, STATE_BUTTON_MICMUTE_PRESSED, VOLUME_{UP,UP_REPEAT,DOWN,DOWN_REPEAT,DOWN_FAST_RAMP,SLIDE_UP,SLIDE_DOWN}, SWIPED, actions JOIN_{HH,HH_CHIME,HH_CANCEL}, OPEN_AP, NEXT_TRACK, PREV_TRACK, PLAY_RECENT, BECOME_STANDALONE, PREPARE_SWAP, PERFORM_SWAP, ENTER_SETUP_READY. (3) FSM semantics: play/pause falls back to un-mute; long-press cycles the household GC MRU list; coordinator forward Forwarding button events / No button handler with (cid:%s) correlation. IR learn: irdecoder.cxx histogram decode, two-pass long-code learn, three learnable groups; persistence proven by shipped reference/public/files/opt/ir/irconfig.txt (:vol_up_codes: style sections + repeat-code line), writable copy /jffs/irconfig.txt; cloud submit GET/POST ir.ws.sonos.com/IRCode/ with <IRCode><code/><value/><guid/></IRCode>. SOAP: LearnIRCode{IRCode cap 0x20, Timeout} + CommitLearnedIRCodes; IdentifyIRRemote carries an undocumented IRCode arg.",
@@ -213946,7 +214078,13 @@
     "Remote-button enum confirmed at 0x10fac9bc ({name*,len,id}): {POWER=1, BACK=2, HOME=3, MENU=4, PLAY_PAUSE=5, MUSIC=6, DPAD_UP=7, DPAD_DOWN=8, DPAD_LEFT=9, DPAD_RIGHT=10, DPAD_SELECT=11} + dpad table at 0x10facdb8 {UP=1,DOWN=2,LEFT=3,RIGHT=4,SELECT=5}; playback-action enum at 0x10fadccc {PLAY=1,PAUSE=2,NEXT_TRACK=3,PREV_TRACK=4}.",
     "Descriptor layout corrected by raw words and consumers: 0x10ec6b58 starts with fourteen string pointers for disallowed-action reason names. f_103c7250 bounds reason <=13 and indexes those pointers at 0x103c7358-0x103c7364 for a diagnostic; they are not wire enum ids. Immediately following at +0x38/+0x3c/+0x40/+0x44 are pointers to base/action/audio_type/orientation, not a fourteen-entry numeric enum table. Constructor f_103c822c copies those four pointers into object metadata at 0x103c82b4-0x103c82e4, then copies the eleven base-player field-name pointers from table+0x48 at 0x103c8340-0x103c8350. The earlier claimed positional value table {3,3,4,...} is not present at that location and is withdrawn.",
     "Live telemetry construction corroboration: f_103c9f0c takes queued button events, labels a PlayerButtons object with schema string 7.31.0-test and source hwEvtHandler through f_10c5be44 at 0x103c9fd0-0x103ca004, allocates/zeros 0x38c payload bytes at 0x103ca024-0x103ca060, and installs the same static field-name pointers at 0x103ca008-0x103ca03c. Thus the names are compiled metadata, not stripped names inferred from a dynamic protobuf table. Vtable 0x10ec6c88 slots +8/+0xc point to f_103cba78/f_103cba88, which only return embedded object+0x40/+0x9c. Neither these accessors nor construction calls decode a protobuf msgdesc. Numbered wire tags and the relation to the separate libhwmessagelib event transport remain unproven; no tag numbers are manufactured from array position.",
-    "Bit-field audit rejects the earlier required-field-mask claim at 0x103c822c. Both GNU e500 and the fixed repository listing show construction: f_10c5be44 initialization, four field-name-pointer loads/stores at 0x103c82b4-0x103c82e4, allocation of 0x38c bytes and nested-object construction. There is no 1<<field_index test or required-bits {1,2,3} validator in that cited path. The field names base/action/audio_type/orientation remain proven metadata, but that does not establish that action/audio_type/orientation are mandatory or that all others are optional. The unsupported required-field assertion is withdrawn; encoding/validation must be traced to its real implementation."
+    "Bit-field audit rejects the earlier required-field-mask claim at 0x103c822c. Both GNU e500 and the fixed repository listing show construction: f_10c5be44 initialization, four field-name-pointer loads/stores at 0x103c82b4-0x103c82e4, allocation of 0x38c bytes and nested-object construction. There is no 1<<field_index test or required-bits {1,2,3} validator in that cited path. The field names base/action/audio_type/orientation remain proven metadata, but that does not establish that action/audio_type/orientation are mandatory or that all others are optional. The unsupported required-field assertion is withdrawn; encoding/validation must be traced to its real implementation.",
+    "Resolved: PlayerButtons telemetry encoding and required-field backend. Schema descriptor 0x10ec6b58 = {+0x00..0x34 thirteen FSM state-name ptrs (ALLOWED, NOT_IN_HOUSEHOLD, PROCESSING_PLAYBACK, IN_DEMO_MODE, IN_RDM_MODE, IN_BUTTON_OBSERVATION_MODE, IN_TRANSFER_MODE, PROCESSING_JOIN, JOIN_CHIME_UNAVAILABLE, REGISTRATION_CHIME_UNAVAILABLE, BUTTONS_LOCKED, UNKNOWN, DAT_IN_BUTTONLESS_SETUP_MODE + DAT_IN_SETUP_DISCOVERY at +0x34), +0x38.. field-name ptrs {base,action,audio_type,orientation,event_id,event_name,event_schema_version,household_id,model_type,muse_household_id,serial_number,sonos_id,sw_build_type,sw_full_version,timestamp_utc}, +0x84 small-int type codes}. Emitter f_103c822c calls schema ctor f_10c5be44('PlayerButtons','7.31.0-test',schema,1), copies names schema+0x38..0x44 to stack array, builds 'TelemetryBasePlayer'/'TelemetryCategoryContext' objects.",
+    "Required-field backend is a presence bitmask at event-object+0x34, bit = 1<<field-index, populated by the filler itself: f_103c7eac ORs 0x2 when strlcpy'ing the caller action string into +0x2d6 (cap 0x29), ORs 0x4 when writing 'none' into +0x328 (audio_type; written when virtual call on player+0x9c vtable+0x68 returns 0), ORs 0x8 when writing f_10557480's state-name result into +0x35c (orientation). After serializer f_103c7830 runs, the check at 0x103c83cc tests mask bits {0x2,0x4,0x8} in order; for the first missing bit it logs 'PlayerButtons missing required field %s' through the 'telemetry' tag (level 3 gate f_109b6fe4, logger f_109b72ac), resolving the name as stack_array[log2(bit)] = {action,audio_type,orientation}. Emission proceeds regardless - the validation is a diagnostic, not a gate.",
+    "Resolved: libhwmessagelib hardware-message field descriptors. hwmessagelib_parseRawNetlinkMessage (.text+0x2f40, exported) validates nlmsg via nlmsg_valid_hdr/genlmsg_valid_hdr, requires genl cmd byte 1 (EVENT), then nla_parse(tb[7], maxtype=6, genlmsg_data, len, policy). Attr decode: attr2 = nla_get_u64 (event tv_sec, sign-extended s64), attr3 = nla_get_u64 (event tv_usec = tv_nsec/1000), attr4 = nla_get_u16 (event source), attr5 = nla_get_u16 (event info), attr6 = u32 mcgrp id (optional, not stored). Required-field mask is computed as {bit0:attr2, bit1:attr3, bit2:attr5, bit3:attr4}; mask != 0xf logs 'not all fields found in received message [0x%04X]' (the printed value is the found-mask) and fails. IS_VALID_HWEVENT bounds source<=0x3c and info<=0x30 (rejecting the '*' sentinels at 61/49). Output event struct is 24 bytes: {u32 msgType = 2 (EVENT; NOOP=0, OVERFLOW=1), u32 pad, u64 timestamp_usec = attr2*1000000 + attr3, u32 source, u32 info}.",
+    "Kernel corroboration from reference/public/files/modules/hwevent_queue.ko (has full .symtab): hwevtq_send_event (.text+0x5f0) issues nla_put with the same types {2:u64 ktime sec, 3:u64 nsec/1000, 4:u16 source, 5:u16 info, 6:u32 mcgrp}; hwevtq_policy (.data+0x1f0) = {0:unspec, 1:NLA_STRING len 256 (userspace->kernel TX, used by hwmessagelib_connection_sendMsgToKernel nla_put_string attr1), 2:NLA_U64/8, 3:NLA_U64/8, 4:NLA_U16/2, 5:NLA_U16/2, 6:NLA_U32/4}. Source/info name tables live in .rela.rodata+0x00/+0xf8; hwevtq_mcgrp_names = {reserved,audio,battery,button,btnpwr,capzone,ht,led,sensor,temp,wakeup,switch}.",
+    "Source->group routing in hwevtq_get_mcgrp_from_source (.text+0x550): default = u16 table .rodata+0x1c0 indexed by source (62 entries: button group <- {IR,BUTTON_PLAYPAUSE..BUTTON_MODE,BUTTON_MICMUTE,BUTTON_PAIRING,NFC}, btnpwr <- BUTTON_POWER, switch <- MICMUTE_SWITCH, audio <- {AMP,HEADPHONE,SUBWOOFER,LINEIN,DAC,ADC,AVTRIGGER,LINEOUT,SPDIF_OUT,HDMI,BANANA_PLUG}, temp <- {CPU,SOC,POWER,MCU1..4_AMP_L/R}, sensor <- {ORIENTATION,LIGHT_SENSOR,MOTION_DETECTOR}, capzone <- {CAPZONEA..CAPZONECAT,LEAN_UI_*}, battery <- {BATTERY,FUEL_GAUGE}, ht <- {SONGLE,SCI_BOARD,PSOC,CEC,UART,PMU}, wakeup <- {BLE,WIFI,LAN,CHARGER,RTC}); overrides: AMP + info in {TEMP_WARNING,TEMP_FAULT,TEMP_OK} -> temp; info == WAKEUP (0x26) + source in {IR, BUTTON_POWER, BUTTON_PAIRING, SOC, LAN(0x25), SCI_BOARD..PMU} -> wakeup group.",
+    "anacapad wiring: RHWEvtHandlerZP ctor f_103c4e64 builds 9 {group_name,err_out} pairs on the stack from hwmessagelib_multicast_group_*() string getters and calls hwmessagelib_connection_init(conn = this+0x80, pairs, 9, errbuf, cb = f_103c4cb0); failure iterates 'ERROR: NetLink multicastGrp init failure [%s] %s' with enumStr_hwmessage_multicastGroupAddFailure. RHWEvtHandlerZP::readEvent f_103c6718 calls hwmessagelib_connection_readNextMsg(conn+0x80, &raw24); on msgType 2 it repacks {source = raw+0x10, info = raw+0x14, age = f_10982b78/f_10982f7c(raw+8 timestamp) -> +8/+0xc, 0x7fffffff sentinel on conversion failure or >0x7ffffffe}, on msgType 1 it synthesizes {source = 0 (NO_SOURCE), info = 0x17 (QUEUE OVERRUN)}, other types log 'RHWEvtHandlerZP::readEvent() unknown [%d]'. The repacked {source,info} pair drives FSM handler f_103c854c."
    ]
   },
   "chirp_stack": {
@@ -214945,6 +215083,27 @@
      "build": "86.10-80260",
      "address": "0x10355884",
      "notes": "mulhwu/shift reconstructs a multiple of thirty for log-level selection, not a retry bound."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101222ac",
+     "notes": "Partner-side implementation reached by both 'BondedState' and 'ValidateBondedState' verbs through dispatch f_100e1654 (rc_impl 'SetEQ: %s %d', verb table 0x10e872a4): locks obj+0x318, copies the zone's bonded map from zone+0x1c88 (0x28c bytes), iterates entries via f_1053cc50 with uuid lookup f_10765a00 and is-local f_10762df8 plus role query f_1053c4c0, builds a role mask and compares it to the caller-supplied mask. Returns0 on match,0x409 on mismatch and0x1f5 when the zone uuid is not found ('validateBondedState ... %s uuid %s not found')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10355628",
+     "notes": "recoverBondedZone attempt step: cancellation-token gates f_1035d028/f_1053ce34/f_1053c370 early-out; delegate(this+0x1a80) vfunc+0x40 reads local 'BondedState' mask; vfunc+0x44 issues named remote verbs 'ValidateBondedState' (up to3 tries) and 'BondedState' (via setAVTransportURIOnSecondaries precondition f_10352848). Status0 = success ('%s sent to secondaries'); statuses{0x409,0x40a,1000,1001,1002} retry with ct++ at+0x1aec and deadline now+10s; status0x40b stops 'partner is incompatible. Stopping without recovering'; any other status logs 'recoverBondedZone hard failure: %d'. No attempt bound exists; ct only selects log level every30th attempt."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10356390",
+     "notes": "Recovery job step: local isBondedZoneConsistent f_10120118 first, logging 'Status from topology is: %d'. Status0x406 runs 'reducing bonded zone to %s' + map writes; 0x402/0x407 run 'separating this player from bonded zone' with an empty map; 0x404 returns early; 0/0x401 enter the remote attempt f_10355628. Deadline reschedules: +10s after unsettled retries, +1s on the0x404-adjacent path; an empty job name returns without work. 'result'/'state'/'availmap'/'newmap'/'othermap' event fields are built around the outcome."
     }
    ],
    "bonded_roles": "HT_BONDED_MASTER, HT_BONDED_SATELLITE, UNBONDED_DEVICE, BONDED_STEREOPAIR, BONDED_TO_SUB, BONDED_STEREOPAIR_AND_SUB; ZP_MODE_HT_SATELLITE; netmodes NETMODE_SATELLITE_V1/V1_WIRED/V2, STATION_SATELLITE*",
@@ -215027,13 +215186,17 @@
    },
    "topo_events_detail": "topology_events_report.cxx: change detectors {chmap,HTsat defn,wifi mode,connection type,ch frq,wifi on,eth link,sats of GMs,local grp role,plbk corr ctx type} + \"GroupCoordinator before/after: %u/%u\"/\"nRel b/a:%u/%u\"; fields gcuid,cid:%s/%s,in:%u/%u; rate-limit \"reported %ds ago:limit\"; \"fail:unparse cid. quit report\"; names TopologyEventsReport/topologyEventsReport",
    "coordinator_monitor": "Coordinator linkage: 'member list generated: [%s]', '%s linkage broken for %s: Local gID: %s; Other gID: %s', 'Coordinator %s linkage broken' -> topology monitor deschedule + ChangeTransport notify ('failed notifying %s of changed transport'); accepting-gate verbs startAcceptingGroupCommands/stopAcceptingGroupCommands; LocalGroupUUID + VirtualLineInGroupID + setVirtualLineInGroupID{Locked} local state.",
-   "todo": "Residual: resolve the concrete +0x1a80 topology delegate and ValidateBondedState +0x44 implementation, trace its status-producing settle conditions and the recovery caller termination/cancellation rules. The modulo-sixteen-bit retry bands, ten-second reschedule and every-thirtieth-attempt log selection are recovered; no dynamic retry-attempt bound is proven.",
    "resolved_findings": [
     "Resolved: Secondary linkage broken. Start recovery job is the stereo/satellite bond-monitor predicate - when the HT/satellite link drops, the topology monitor schedules a recovery job that re-establishes the bonded pair via the AddBondedZones path; the FSM is {bonded -> linkage-broken -> recovery-job -> rebonded-or-demoted}; bounded at the job scheduler.",
     "recoverBondedZone FSM decoded via the zonesmonitor vocabulary: RZonesMonitor runs periodic monitorTopology%d polls; on detection it logs Topology monitor: Secondary linkage broken. Start recovery job and fires bondedZonePartnerDefunct -> recoverBondedZone -> refreshSonarState; terminal cleanup emits DefunctDeviceRemovedEvent, and the monitor itself is shut down via Stop topology monitor. VLI-group awareness: Found ZP(%s, %s) in VLI Group gates recovery on whether the defunct partner sits in a virtual-line-in group.",
     "Retry/status arithmetic corrected against GNU e500 and the fixed repository disassembler. At 0x10355968-0x10355974 the retry branch tests (((status-0x409)&0xffff)<=1), not (status-0x409)>>16. The preceding band at 0x10355860-0x1035586c is (((status-1000)&0xffff)<=2). These accept low-sixteen-bit ranges, not broad upper-halfword classes; no upper-bit restriction is established at those tests. Other statuses reset this+0x1aec at 0x10355980; exact status 0x40b reaches the incompatible-partner diagnostic branch. The retry branch increments +0x1aec and sets the seconds word of the caller deadline to sonosClockGetTime(1)+10 at 0x10355904-0x10355924.",
     "The ValidateBondedState call identity remains proven: 0x10355824-0x10355840 invokes topology object +0x1a80 through virtual slot +0x44 with debug-name argument 0x10e885b0. Its return is treated as a status code, not simply a boolean. The old claimed dynamic attempt bound ct<(derived>>4)*30 is withdrawn: 0x10355884 uses mulhwu with 0x88888889, shifts right four and reconstructs 30*floor(ct/30); comparison with ct selects log level 3 or 5 through isel at 0x103558a8. This detects every thirtieth retry for logging, not a retry-limit exit. The same arithmetic is repeated for the diagnostic at 0x103558c4-0x103558dc. Actual success/settle semantics and cancellation/termination must be traced in the concrete delegate and its callers.",
-    "Constructor 0x1035ea84 copies a shared object pointer/control pair into +0x1a80/+0x1a84. This proves construction provenance, not that the delegate is absent or impossible to resolve statically: the concrete constructor argument and vtable still require tracing in the shipped ELF. Runtime installation alone is not a reason to stop."
+    "Constructor 0x1035ea84 copies a shared object pointer/control pair into +0x1a80/+0x1a84. This proves construction provenance, not that the delegate is absent or impossible to resolve statically: the concrete constructor argument and vtable still require tracing in the shipped ELF. Runtime installation alone is not a reason to stop.",
+    "Established: the +0x1a80 delegate is the bonded-partner RPC proxy held as a shared_ptr member of the group object (stored by ctor f_1035e5ac from the manager-supplied pair). Its vfunc+0x40 performs a local bonded-state query returning the local bonded byte (OR2) in an out u16, and vfunc+0x44 invokes a named verb on the partner with an integer mask argument and returns the partner status word. The partner side is the verb dispatch f_100e1654 (rc_impl 'SetEQ: %s %d', table0x10e872a4): 'ValidateBondedState' runs f_101222ac only, 'BondedState' runs f_101222ac then applies the mask locally through f_100e0e5c (writes bonded bytes +0x804/+0x80c, rebuilds channel map) and f_100d973c (role-map apply; mask bit0 selects the 'Solo ZP' arm, bits1/2 select map variants matching the stereo-pair/sub roles).",
+    "Established: settle semantics of validateBondedState f_101222ac. The partner locks its zone table (obj+0x318), copies the callee zone's bonded map at zone+0x1c88, iterates entries resolving each member uuid through f_10765a00 and locality through f_10762df8, and accumulates a role mask via f_1053c4c0. Return0 means the partner's computed mask equals the mask the recovering player sent, meaning both sides agree on the bonded roles, which is the settle condition. Return0x409 means the zone was found but masks disagree (topology not settled). Return0x1f5 means the zone uuid is unknown to the partner.",
+    "Established: recoverBondedZone job f_10356390 runs local isBondedZoneConsistent f_10120118 before any remote call and dispatches on its status: 0x406 reduces the bonded zone map ('reducing bonded zone to %s'); 0x402 and0x407 separate this player ('separating this player from bonded zone'); 0x404 ends the step early; 0 and0x401 proceed to the remote attempt. The remote attempt f_10355628 first checks a cancellation token and the local 'BondedState' mask via vfunc+0x40, then calls remote 'ValidateBondedState' up to3 times, then runs the setAVTransportURIOnSecondaries precondition f_10352848 (0x3ff guard fail;0x40a member-call failure; forwards0x3e9/0x3ea/0x1f5), then remote 'BondedState'. Status0 is the terminal success ('recoverBondedZone successful %s; %s sent to secondaries').",
+    "Established: retry and termination rules. Retry statuses are{0x409,0x40a} (partner mask mismatch, local member-call failure) and{1000,1001,1002} (generic retryable), each incrementing+0x1aec and rescheduling the attempt deadline by10s; the every-thirtieth-attempt severity switch only changes logging ('topology hasn't settled yet'), so no dynamic attempt bound exists. Terminal outcomes: status0x40b 'partner is incompatible. Stopping without recovering'; any other nonzero status 'recoverBondedZone hard failure: %d' (this includes remote0x1f5 uuid-not-found). Cancellation is by the job token checks at f_10355628 entry and by an empty job name at f_10356390 entry, both of which return without work; the caller-owned deadline word is the only reschedule channel (+10s retries,+1s on the0x404-adjacent job path).",
+    "Inferred: the delegate's C++ class is the inter-zone settings-verb proxy shared by remote bonded operations; its vfunc+0x40/+0x44 uniform (this, 0, verbName, intArg) signature and the matching name-dispatched server handlers establish the role even though the shared_ptr pointee ctor was not reached by a direct call site."
    ]
   },
   "ibt_plans": {
@@ -218478,7 +218641,6 @@
   "chsnk": {
    "crossfade": "sample-level xfade: \"attempting to crossfade with underflowed stream\"/\"recovered crossfade stream underflow\"; int16 crossfade; \"xfade corked stream: replace buffered data via non-xfade overlap\"; \"xfade timestamp too far in past, nst %d.%06d\"; \"xfadeable timestamp\"; \"set xfade lfnf\"; volume-norm ramp insert \"%d @time %d.%06d\"; \"xfade for %zu samples, %f seconds\"; gap tracking \"xfade gap, samples %zd\"",
    "metrics": "gauges {chsnkFillLevel=\"Amount of audio in stream buffer\",largeSyncErrors=\"Playback (see sync) and downstream errors\",\"Maximum sync mismatch with group coordinator\",\"Amount of output committed to driver\"} + {fillCodec,fillTimeMs,chsnkFill,chsnk-full}; window {windowPlayhead,includesBeginningOfQueue,includesEndOfQueue}; stream fmt {\"header magic mismatch\",\"md block loc\",\"md header len mismatch\",\"si pos mismatch\",\"si read failed\",fsAvail}",
-   "todo": "Residual: per-subframe bodies and flags beyond the recovered sixteen-byte framing, codec/type dispatch and resync prefix. In particular, fully trace the type-specific audio/encryption and boundary/control consumers; the packet class and replay nibbles are resolved and are not payload-type identifiers.",
    "resolved_findings": [
     "Resolved: crossfade sub-block = int16 sample-level crossfade with underflow handling (attempting to crossfade with underflowed stream/recovered/xfade corked stream); metrics emission = the gauges {chsnkFillLevel, largeSyncErrors, max sync mismatch} emitted through the status-report channel alongside the frame stats.",
     "Sink protocol proven via chsnk_detail: seamless handoff in both directions - remote source {sdbt packet rx, Old/New packet mismatch (no full frame/id:%u class:%u/%u offset:%u/%u/%u), delayed vs quick handoff, wait loop timed out, incompatible protocol version} and local source {itdbt, END_TX abort, no packets from old source?, Completed seamless transition to local src (id=%u)}; SNTP-validity gate (SNTP waiting for valid) precedes scheduled starts; LSE recovery recomputes play time from {tvPlay, tvLocalPlay, tvLocalNow, timeToPlayUSec}; source modes {local chsrc, local AI, local VLI, remote chsrc, stopped}; rx bookkeeping {pid, ob, lr, lcg, lrx} + skip-ahead + 11-bucket rx histogram; decoder control starts/stops %s audio decoder with {m_bCompressed, lNumChannels/lSampleFreq guards, WARNING! This model should not support Hi-Res Music}.",
@@ -218486,7 +218648,16 @@
     "HIGH nibble is the packet class, with operational producer meanings now bound rather than invented enum labels. Ordinary assembly f_1063777c calls packet producer f_106374cc with class=0 at 0x10637868-0x1063787c. Class=1 is explicitly used to flush a resynchronization-control packet: requestResync f_10637d2c appends a marker chosen from 0xfd/0xfb/0xfe, then calls f_10637ca8 with r4=1 at 0x10637eec-0x10637ef4; that routine pads the current packet and forwards the class to f_106374cc at 0x10637cec-0x10637d00. The producer places class in constructor r7 at 0x1063753c, and f_106337e4 stores it at record+5 at 0x10633838. Class=2 is a NACK request: f_1044ab7c builds it with r7=2 at 0x1044abc8 and emits via f_10633870 at 0x1044abe8. The nodetx NACK listener deserializes at 0x1063869c and accepts exactly record+5==2 at 0x106386a0-0x106386a8; the ordinary noderx path excludes that class at 0x1044ca68-0x1044ca74. Class mismatch is explicitly named by the logger at 0x1044d11c. These descriptions identify behavior, not canonical source enum spellings.",
     "LOW nibble is the transmission/replay discriminator, independently of packet class. Initial packet production passes zero in constructor r8 at 0x10637554. NACK servicing f_10638090 reserializes cached packets with low=1 at 0x106381d8-0x106381e4, 0x1063826c-0x10638274 and 0x106383f8-0x10638400, preserving their high class. Receiver low==1 reaches the startup continuity gate at 0x1044ca94-0x1044cab0, whose logs explicitly say NACK resend at 0x1044d084 and 0x1044d378. Low=2 is cached replay to a late joiner: f_10636574 passes r6=2 at 0x106365c4-0x106365cc. The resendToLateJoiner loop calls sender virtual +0x1c at 0x106cb188-0x106cb1a0; sender vtable 0x10efb75c contains f_10636574 in that slot at 0x10efb778. Thus value two in the low nibble is not a NACK class. No additional meaning is assigned to unused nibble values 3..15.",
     "Header u16 is a payload-relative first-full-frame offset, not a type code. The seamless sink reads it at 0x10309608, checks offset<=1023 and offset+16<=1024, then parses a subframe header at record+0xa+offset (0x10309614-0x103096c4). The normal receive path likewise tests <=0x3ef before reading sixteen bytes at 0x1044cba8-0x1044ce90. Offset above the payload range denotes no complete frame start in that packet. Both paths demonstrate the offset semantics independently of the diagnostic strings.",
-    "Body framing traced beyond the old opaque-1024-byte claim: f_1063311c copies a sixteen-byte subframe header, while f_106331a8 extracts {u8 type at 0, u8 auxiliary at 1, u16be body length at 2, two u32be words at 4/8, u32be word at 12}; serializer f_10633280 emits the matching layout. Packet diagnostic walker f_10633a98 advances by 16+bodyLength at 0x10633b24-0x10633b40 and 0x10633cd8-0x10633ce8. Its six-way relative dispatch at 0x10efb528 maps 0xfa=boundaryX, 0xfb=schedResyncX, 0xfc=boundary, 0xfd=immedResync, 0xfe=schedResync, 0xff=endTX. Ordinary type names use a mask clearing bits 0x60, then table 0x10efb558: 0=mp3,1=wav,2=wma,3=mp4,4=flac,5=ogg,6=alac,7=sbc,9=opus,11=ec3,31=encrypted; the other table slots say unknown. These are names and dispatch, not a claim that each codec payload has the same body grammar. The live noderx control path f_10449e78 consumes the sixteen-byte header, forwards body+0x10 and its length to f_10633400, which extracts a first u32 and an optional following pair of u32 words; the resync producer f_106334a4 emits the corresponding words. Full per-type consumers remain the residual."
+    "Body framing traced beyond the old opaque-1024-byte claim: f_1063311c copies a sixteen-byte subframe header, while f_106331a8 extracts {u8 type at 0, u8 auxiliary at 1, u16be body length at 2, two u32be words at 4/8, u32be word at 12}; serializer f_10633280 emits the matching layout. Packet diagnostic walker f_10633a98 advances by 16+bodyLength at 0x10633b24-0x10633b40 and 0x10633cd8-0x10633ce8. Its six-way relative dispatch at 0x10efb528 maps 0xfa=boundaryX, 0xfb=schedResyncX, 0xfc=boundary, 0xfd=immedResync, 0xfe=schedResync, 0xff=endTX. Ordinary type names use a mask clearing bits 0x60, then table 0x10efb558: 0=mp3,1=wav,2=wma,3=mp4,4=flac,5=ogg,6=alac,7=sbc,9=opus,11=ec3,31=encrypted; the other table slots say unknown. These are names and dispatch, not a claim that each codec payload has the same body grammar. The live noderx control path f_10449e78 consumes the sixteen-byte header, forwards body+0x10 and its length to f_10633400, which extracts a first u32 and an optional following pair of u32 words; the resync producer f_106334a4 emits the corresponding words. Full per-type consumers remain the residual.",
+    "Resolved: the sixteen-byte subframe header is {u8 type, u8 aux, u16be bodyLength, two u32be at +4/+8, u32be at +12}. receiveAudioFrame f_1044c14c exports each field through out-params (f_106331a8 arg order type,aux,bodyLen,pair8,word). The +4/+8 pair is the frame play timestamp forwarded to the synchronized-play scheduler f_104c2110 and the normalization tracker f_1030b468; the +12 word is forwarded verbatim to the receive loop caller (sp+0x2c -> caller out) and is not interpreted inside noderx.",
+    "Resolved: subframe type dispatch is a two-stage mapping. bufferNextProtocolFrame f_1044bc58 canonicalizes extended wire types: 0xfa is rewritten to 0xfc and 0xfb to 0xfe (isel at 0x1044bf00/0x1044c038), matching the 'X' suffix names in the diagnostic table. f_106348c4 then maps the (type+6)&0xff index through six-entry relative table 0x10efb540 into event codes {0xfa:3, 0xfb:8, 0xfc:3, 0xfd:2, 0xfe:8, 0xff:1} and returns 0 for any ordinary audio type.",
+    "Resolved: for audio subframes (type bit7 clear), type bits 0x20 and 0x40 are flag bits, not codec id. f_1044c090 and f_1044c14c strip them (rlwinm mask ~0x60 at 0x1044c134, andi. 0x9f at 0x1044c7c0) before the masked value is compared to the caller's expected codec; mismatch returns code 5 and logs 'request frame: audio type changed'. Bit6 (0x40) is stored to the flags out+2 at 0x1044c7c4 and, when nonzero at frame completion, the flag is cleared and the frame returns code 0xc, which the request-frame loop logs as 'request frame: logical track boundary at %u' with record+8-1. Bit5 (0x20) is gated by obj+0x2a4 through isel at 0x1044c7d0 and, when set, takes the 'forcing decoder reset at %u' branch.",
+    "Resolved: the aux byte is a signed per-frame volume-normalization index. The request-frame loop forwards it sign-extended (extsb at 0x1030cc1c) to f_1030b468, which early-returns on aux==-127 (absent), clamps the value to [-26,+48] through f_107fa6a8, logs 'found normalization change old: %d new: %d', stores it at sink+0x29a8 and keeps the previous {secs,usecs} pair at +0x29ac/+0x29b0.",
+    "Resolved: control subframe bodies and their consumers. A resync body is twelve bytes {u32be packetId, u32be secs, u32be usecs}; producer f_106334a4 serializes three caller words and returns 12; consumer f_1044b09c reads the first subframe at the buffered offset and f_10633400 splits body into u32 plus optional u64 pair (second pair zeroed when body<12). synchronizedPlay consumes event code 8 (schedResync, types 0xfe/0xfb) by logging 'scheduled resync frame @ pkt %d (%d.%06d)' and calling f_104c218c on the scheduler, then records pending kind (type+6)&0xff at sink+0x2a4c and sets +0x28c0. Code 3 (boundary, 0xfc/0xfa) calls f_104c2168 on the scheduler. Code 2 (immedResync, 0xfd) logs 'Processing immediate resync' inside receiveAudioFrame and calls scheduler entry f_104c21c8 with a freshly read clock pair. Code 1 (endTX, 0xff) builds a one-word event {1} through f_10314b4c; failure logs 'unable to fire end playback event'.",
+    "Resolved: requestResync f_10637d2c chooses the wire type by isel at 0x10637e08: type 0xfd when the bound packet id is zero (immediate resync), otherwise 0xfb when its flag argument is nonzero and 0xfe when zero. The 12-byte {packetId,secs,usecs} body is appended through the sender vtable +0x14 slot (f_10637a44 via table 0x10efb770).",
+    "Resolved: codec id 31 names 'encrypted' in the type-name table; no decryption happens in the chsnk packet layer. The AES decryption strings ('AES detected. Setting up audio framer decryption', 'encrypted buffer would read OOB', 'decrypt failure') live in the audio-framer path below this layer, so an encrypted subframe body is opaque codec data to noderx/nodetx.",
+    "Resolved: the nodetx flush loop f_106374cc scans each buffered subframe before transmission. Types {0xfa,0xfb} skip the sixteen-byte header and feed the next word to f_10636808; type 0xfd calls f_10636808 with a zero word and snapshots the current packet id into nodetx+0x128, marking the immediate-resync point for later NACK/replay bookkeeping.",
+    "Boundary: the semantic producer name for the +12 header word and the aux normalization's exact unit (the clamp is integer [-26,+48]) are data produced by the chsrc/tx side outside this record; within chsnk every field consumer is now bound."
    ],
    "evidence": [
     {
@@ -218537,6 +218708,102 @@
      "build": "86.10-80260",
      "address": "0x10efb528",
      "notes": "Relative special-type dispatch followed by ordinary codec-name pointer table at 0x10efb558."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106348c4",
+     "address": "0x10efb540",
+     "notes": "Six-entry relative table maps control types 0xfa..0xff to event codes {3,8,3,2,8,1}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1044bc58",
+     "address": "0x1044bf00",
+     "notes": "isel rewrites wire type 0xfb to 0xfe; preceding branch rewrites 0xfa to 0xfc (extended-to-base canonicalization)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1044c14c",
+     "address": "0x1044c7b8",
+     "notes": "Audio type flag extraction: bit5 via rlwinm 26 gated by obj+0x2a4 (isel 0x1044c7d0) drives 'forcing decoder reset'; bit6 via rlwinm 27 stored to flags out+2; codec masked with 0x9f."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1044c14c",
+     "address": "0x1044c2b4",
+     "notes": "Frame-complete flag check: out+2 nonzero is cleared and returns code 0xc, logged by the caller as 'logical track boundary at %u'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1030f8ac",
+     "address": "0x10310334",
+     "notes": "synchronizedPlay event-8 path: reads resync body {packetId,secs,usecs} through f_1044b09c, logs 'scheduled resync frame @ pkt %d (%d.%06d)', calls scheduler f_104c218c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1030f8ac",
+     "address": "0x10310a5c",
+     "notes": "endTX path: one-word event {1} via f_10314b4c; 'unable to fire end playback event' on failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1044c14c",
+     "address": "0x1044c4d4",
+     "notes": "Type 0xfd logs 'Processing immediate resync' and returns code 2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1030b468",
+     "address": "0x1030b4a0",
+     "notes": "aux byte consumer: early return on -127, clamp [-26,+48] via f_107fa6a8, 'found normalization change old: %d new: %d', stores sink+0x29a8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10637d2c",
+     "address": "0x10637e08",
+     "notes": "requestResync isel picks 0xfb (flag!=0) vs 0xfe (flag==0); prior branch picks 0xfd when bound packet id is zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106334a4",
+     "address": "0x106334a4",
+     "notes": "Resync body serializer emits three u32 caller words as a twelve-byte body; returns 0xc used as bodyLength."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1044c900",
+     "address": "0x1044cae8",
+     "notes": "Startup path loads subframe type at firstFrameOffset; (type & 0xfd)==0xfd clears delay counters for 0xfd/0xff arrivals."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106374cc",
+     "address": "0x106376b8",
+     "notes": "Flush scan: boundary-X types skip 16 bytes and pass the next word to f_10636808; type 0xfd passes zero and snapshots packet id to nodetx+0x128."
     }
    ]
   },
@@ -221776,12 +222043,9 @@
    ]
   },
   "rendering_control": {
-   "volume_engine": "per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math \"DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)\" + \"Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)\"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl; LastChange also carries SonarEnabled/SonarCalibrationAvailable; fast-volume path 'sonosAsyncFastStateCond'+'Unknown fast volume directive (%d)'+'type:%s, value:%d'; per-ch trace 'ch:%s, adj:%d, vol:%u','ch:%s, loudness:%d','ch:%s, type:%s','fixed:%d, level:%u','Ramp to %u, interval %u ms','Scaling factor set to %d'; event loop 'Queued %s(%u) from \"%s\": { %s }','Attempt to queue event %s(%u) from \"%s\" with no eventloop configured'; sonar calibration 'sonar consistency: %s','primary=%d enabled=%d, consistent=%d all_present=%d','Available Sonar Calibration ID changing: \"%s\" -> \"%s\"','Device has never been room_calibration-calibrated','AudioCore Sonar calibration load error'; safe-listening clamp restore: 'system volume being restored to safe listening level (%u)' / 'failed to restore system volume to safe listening level'; playback relay 'Error sending skipToNextTrack command to local: %s' + 'playback#skipToNextTrack response: %s' + 'executing play' + 'playback started (cid: %s)'",
+   "volume_engine": "per-zone FSM: {override|normal} volume + deferred volume/mute + ducking; math \"DuckVol=%d (%d%% of %d = %d, offset %0.2fdB due to %d channels in zone)\" + \"Unbounded ExtSrcVol=%d ExtSrcVolMusic=%d (boosted %0.2f dB based on # of channels, plus surround lvl gain of %0.2f dB)\"; audioSystemsTuning; persistentEQ.xml apply; DSPControlChProc/DSPControl; LastChange also carries SonarEnabled/SonarCalibrationAvailable; fast-volume path 'sonosAsyncFastStateCond'+'Unknown fast volume directive (%d)'+'type:%s, value:%d'; per-ch trace 'ch:%s, adj:%d, vol:%u','ch:%s, loudness:%d','ch:%s, type:%s','fixed:%d, level:%u','Ramp to %u, interval %u ms','Scaling factor set to %d'; event loop 'Queued %s(%u) from \"%s\": { %s }','Attempt to queue event %s(%u) from \"%s\" with no eventloop configured'; sonar calibration 'sonar consistency: %s','primary=%d enabled=%d, consistent=%d all_present=%d','Available Sonar Calibration ID changing: \"%s\" -> \"%s\"','Device has never been room_calibration-calibrated','AudioCore Sonar calibration load error'; safe-listening clamp restore: 'system volume being restored to safe listening level (%u)' / 'failed to restore system volume to safe listening level'; playback relay 'Error sending skipToNextTrack command to local: %s' + 'playback#skipToNextTrack response: %s' + 'executing play' + 'playback started (cid: %s)'; write chain SetVolume f_100d9d40 -> apply f_100d7f34 (SV=(V*K)/100, K=+0x7e2) -> f_102a54b8(SV,V) f_102a5484(bal,L/R mutes) f_102a54ec(+0x7e8 block) f_102a55d0(commit) on +0x3ac -> *(+0x34)+0xe0 f_107f7ea0/5aa4/700c/8640",
    "rc_impl_stp": "SetEQ action params {DesiredLoudness,DesiredBass,DesiredTreble,RampType} via RenderingControlSetEqActionEvent/RcSetEqActionEvt; VolumeSetActionEvent(vol,mute,ignoreProxy); primary-only gate \"This command is allowed only on primary\" + \"Muse command forwarding failed\"; volumeScalingFactor; RC propagation to {SUB,second SUB,SURROUND} (dual-sub support); signal-channel errors {invalid playId,failed to stop signal,incorrect playId,nothing is currently playing,couldn't create an audio stream,only one signal can run at any given time,invalid channel,disallowed by policy} + channelNumber",
    "led_feedback": "button feedback {\"in start music play feedback from 0x%x\",\"led feedback for timeout waiting to start play/pause\",\"waiting-to-play-music feedback:%d\",\"waiting-to-pause-music feedback\",\"unsupported/unhandled play feedback action:%d\",\"cleared fast volume zero after %s\",\"pause confirmed by PlaybackStateChangedEvent\"}; LocalPlayURI errors {RC control URI,mute+volume state,restore default volume,set AVTransportURI,start playback,coordinator transport state}; PLAYING/TRANSITIONING states",
-   "todo": [
-    "Established: static eight-pointer table and its dereferencing consumers, concrete setup f_10788928->f_10cad718/f_10cab92c, and exact boolean +0xe48 setter/error behavior. Remaining: trace the actual RenderingControl read/write volume paths from f_100da830 and their DSP submissions to these routines or the correct gain mapper; bind table constructors/writers, valid selector indices and each arithmetic operand before assigning gain units, table lengths or fractional formats. Start with receiver+4/+0x1c in f_10cab92c and the data fed by f_10cad718, and audit both +0xe48 initialization and setter callers. The old runtime-data-only,8169-float and Q28 claims are withdrawn. This is actionable static work."
-   ],
    "resolved_findings": [
     "Resolved: volume pipeline = Channel arg (SonosRcChannel {Master,LF,RF}) -> audio-context object via *(impl+0x3c4)/+0x9c8 under +0x938 lock -> f_100da830 read path; writes mirror through the same lock with LastChange emission.",
     "The channel-control, EQ, propagation and LED-feedback literals identify concrete tracing surfaces, not completion of the gain-table provenance question.",
@@ -221789,10 +222053,14 @@
     "The concrete setup path f_10788928 calls f_10cad718 at0x1078899c and then f_10cab92c at0x107889b4. The latter takes its table pointer from *(receiver+4)+0x1c and does index*4 loads and arithmetic shifts by table+0xe48 plus1. Its static-pointer helper f_10cad098 is called at0x10cabb98/0x10cabc50/0x10cabe80/0x10cabee0. These are real compiled producer/consumer edges; neither integer-volume indexing nor Q28 gain interpolation follows from them alone. The previous volume-object, fractional-layout and adjacent-volume-entry interpretation is withdrawn pending a join to actual RCS paths.",
     "f_10cadb70 sets +0xe48 to a boolean, not an arbitrary fractional-bit count. It reads table=receiver+0x1c and compares table word0 signed with64. When word0>64, a zero request stores0 and a nonzero request stores1. When word0<=64, a nonzero request returns-1 without storing; zero stores0. Successful paths return0. Raw isel0x7c80279e at0x10cadb90 selects literal0 versus1 using the saved zero comparison. Therefore the effective shifts at0x10caba48/50/58 are1 or2 on these setter paths, not proof of a Q-format or a runtime-generated volume curve.",
     "Channel-pair enum at 0x10e8b6a0: {L+R, L, R, S} - the stereo-pair channel selector.",
-    "Volume-level enum at 0x10fad834: {OFF=1, LOW=2, DEFAULT=3, MAX=4}."
+    "Volume-level enum at 0x10fad834: {OFF=1, LOW=2, DEFAULT=3, MAX=4}.",
+    "Resolved: volume write path = verb setter f_100d9d40 (rc_impl.cxx:0x5df lock on +0x938): DesiredVolume>100 -> 402, InstanceID!=0 gated by +0x7ff/+0x801 -> 501, channels 'Master'/'LF'/'RF' stage u16 +0x7da/+0x7dc/+0x7de then call apply f_100d7f34; 'Master' also mirrors +0x7da->+0x3c8 and clears +0x3d4 under a second lock (line 0xa28) as LastChange shadow state, and sets +0x7f0 dirty flag; apply failure -> 501.",
+    "Resolved: apply f_100d7f34 computes the submitted gain as SV = (V * K) / 100 with the signed div-by-100 idiom mullw/mulhw 0x51eb851f/srawi 5/srawi 31 at 0x100d8088..0x100d80c8: V is +0x7e0 when the deferred-volume flag +0x7ff is set, else master +0x7da; K is the u16 scaling field +0x7e2 (volumeScalingFactor). SV is masked to 16 bits and submitted with raw V by f_102a54b8; balance RF-LF plus LR/FocusMode mute bytes +0x7f2/+0x7f3/+0x3a8 go through f_102a5484, the eight-byte +0x7e8 block through f_102a54ec, and commit vs preflight through f_102a55d0 (arg 0 on success, 1 on the +0x801 path). All four wrappers forward to *(+0x3ac+0x34)+0xe0: f_107f7ea0/f_107f5aa4/f_107f700c/f_107f8640. Trace log 'Set volume V: (%d) SV: (%d) - Bal: %d MuteState: %d LRMutes: L%d - R%d FocusModeMute: %d' names each submitted operand; a sibling output path uses +0x3b4 -> f_10c8ecc8 -> f_1075d770(+0xbc8,+0x9c8) -> vfunc+0xc and stamps sonosClockGetTime into +0x898.",
+    "Resolved: f_100da830 is the SonarCalibrationMode verb handler, not the volume-path entry: 'spectral'/'spatial' arg, 'Will apply HT spatial coefficients' -> f_102a50a4(+0x3ac,1), otherwise 'Sonar CalibrationMode argument must be spectral or spatial' -> 402. Other vtable slots: f_100d9a48 writes LR-mute/FocusMode bytes +0x7f2/+0x7f3 (+0x7f5 flag), f_100d97fc is the SetEQ channel-map path ('Set EQ for %s%s with channel map %s+%s', Solo ZP/Stereo pair/+SUB) -> f_102a56dc/f_100d9628, f_100d90e8 is BONDED_TO_SUB sonar apply ('sonar %sACTIVE (t:%d e:%d ac:%d id:%s)') -> f_102a503c, f_100d9374 applies bonded default loudness and normalizes +0x7e0/+0x7dc/+0x7de clearing +0x7ff/+0x801/+0x7f1..+0x7f3, f_100d95cc logs 'Set real channel map to L: %u - R: %u' -> f_102a56c8.",
+    "Resolved: the eight-pointer table at 0x10fc0218, evaluator f_10cab92c, feeder f_10cad718 and +0xe48 setter f_10cadb70 are vorbis_dec codec machinery, not the RC gain path. The only call edges to f_10cad718 and f_10cab92c are 0x1078899c/0x107889b4 inside f_10788928, which is called only at 0x10788c34 inside f_10788b10 logging under 'vorbis_dec' ('vorbis_synthesis_read failed','no samples produced','decoding failed'). f_10cad098 is called only inside f_10cab92c plus a branch from 0x10cac3f4; f_10cadb70 has no call sites and no pointer word anywhere in the image. The gain-mapping question the table was suspected of answering is closed: volume gain is the (V * K) / 100 scaler feeding the +0x3ac channel object."
    ],
    "name": "RenderingControl engine",
-   "summary": "RenderingControl manages volume, mute, EQ and channel propagation. The previously claimed single static8169-float gain curve and runtime Q28 volume LUT are not established: the cited static base is an eight-pointer lookup and the +0xe48 setter is boolean. Concrete DSP setup and table-selection paths are recovered, but their connection to the RCS volume-domain mapping still needs tracing.",
+   "summary": "RenderingControl manages volume, mute, EQ and channel propagation. The volume write path is now traced end to end: the SetVolume verb setter f_100d9d40 stages Master/LF/RF into +0x7da/+0x7dc/+0x7de, and the apply f_100d7f34 computes a 16-bit scaled volume SV = (V * K) / 100 from the effective V (deferred +0x7e0 when +0x7ff is set, else master +0x7da) and the scaling field +0x7e2, then submits SV, balance and mute state to the audio-channel object at +0x3ac through the f_102a54xx wrappers into *(+0x34)+0xe0. The eight-pointer table at 0x10fc0218, evaluator f_10cab92c and the +0xe48 setter are vorbis_dec codec state with no edge to any rc_impl path; the earlier gain-curve claims stay withdrawn and the table question is closed at that boundary.",
    "evidence": [
     {
      "type": "firmware",
@@ -221811,6 +222079,33 @@
      "address": "0x10cadb70",
      "callsite": "0x10cadb7c / 0x10cadb90 / 0x10cadba8",
      "notes": "PPC objdump -M e500 and raw0x7c80279e confirm isel r4,0,r4,30 after cmpwi request,0; threshold is signed tableword0>64. Stores only0/1; rejects nonzero request at<=64. This disproves both equality-only guard and fractional-bit-count interpretation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100d9d40 / f_100d7f34",
+     "address": "0x100d9d40",
+     "callsite": "0x100d8088 / 0x100d80c8 / 0x100d80ec",
+     "notes": "SetVolume setter: DesiredVolume>100 -> 402; Master/LF/RF stage +0x7da/+0x7dc/+0x7de; apply takes V = +0x7ff ? +0x7e0 : +0x7da, multiplies by scaling field +0x7e2 and divides by 100 via mullw/mulhw 0x51eb851f/srawi5/srawi31; SV&0xffff + V submitted by f_102a54b8 into *(+0x3ac+0x34)+0xe0 -> f_107f7ea0; balance+mutes f_102a5484 -> f_107f5aa4; +0x7e8 block f_102a54ec -> f_107f700c; commit f_102a55d0 -> f_107f8640."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10788928 / f_10788b10",
+     "address": "0x10fc0218",
+     "callsite": "0x1078899c / 0x107889b4 / 0x10788c34",
+     "notes": "Only edges to f_10cad718 and f_10cab92c are inside f_10788928, called only from f_10788b10 which logs under 'vorbis_dec' ('vorbis_synthesis_read failed','no samples produced'). f_10cad098 called only inside f_10cab92c plus 0x10cac3f4; f_10cadb70 has no call sites and no pointer word in the image. Proven boundary: eight-pointer table and +0xe48 flag are vorbis synthesis state, not the RenderingControl gain mapper."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100da830",
+     "address": "0x100da830",
+     "callsite": "0x100da8d0",
+     "notes": "SonarCalibrationMode verb: 'spectral' or 'spatial', else 402 'Sonar CalibrationMode argument must be spectral or spatial'; spatial applies f_102a50a4(+0x3ac,1) after 'Will apply HT spatial coefficients'. Corrects the earlier assumption that it was the volume-path entry."
     }
    ]
   },
@@ -221904,15 +222199,84 @@
      "function": "0x10d552a0",
      "address": "0x10d55304",
      "notes": "Raw conditional branch 0x40beffe4 returns nonzero +0xe2 immediately in mode 2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103caf98",
+     "address": "0x103cb490",
+     "notes": "hw-event dispatcher (hwmessagelib conn at r31+0x80): AMP event code 0x1f reaches bl f_102a5254 with r4=0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103caf98",
+     "address": "0x103cb458",
+     "notes": "AMP event code 0x20 reaches bl f_102a5254 with r4=1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103caf98",
+     "address": "0x103cb5f0",
+     "notes": "AMP event code 0x21 reaches bl f_102a5254 with r4=2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x103caf98",
+     "address": "0x103cb1f0",
+     "notes": "type-1 'AMP' subdispatch: code-0x19 bounds 0..8 into REL32 table 0x10ec6b34; idx6(0x1f)->0x103cb470, idx7(0x20)->0x103cb438, idx8(0x21)->0x103cb5d0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef4fc8",
+     "notes": "hwmessagelib event-code name table: 0x1f='AMP_HI_RAIL', 0x20='AMP_LO_RAIL', 0x21='AMP_OFF'; type table 0x10ef4ed0 idx1='AMP'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102a5254",
+     "address": "0x102a5264",
+     "notes": "mode-set forwarding chain: f_102a5254 loads r3=*(this+0x34)+0xe0, tail-branches 0x107f6cd8 which loads *(r3+0xd4) and tail-branches f_10d565c8; r4 mode arg passes through."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d55904",
+     "address": "0x10d55940",
+     "notes": "word 0x7fe04f9e is isel r31,r0,r9,bi=30: returns (u8)(+0xf4 != 2); reached via thunk 0x107f6cc8 on the +0xd4 chain."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d552a0",
+     "address": "0x10d552e0",
+     "notes": "word 0x7d284d9e is isel r9,r8,r9,bi=22: merges +0xdd over +0xdc (prefer +0xdd when nonzero) for the OFF-state flag evaluation."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d565c8",
+     "address": "0x10d5667c",
+     "notes": "word 0x7f00c79e is isel r24,r0,r24,bi=30: r24 = (new state==2)?0:1, i.e. 'state is a rail' flag for later logic."
     }
-   ],
-   "todo": [
-    "Residual: trace all callers of f_10d565c8 to name modes 0, 1 and 2 and establish their policy semantics. Do not map manager+0xf4 to the unrelated AMP_HI_RAIL/AMP_LO_RAIL/AMP_OFF string order without a call-path binding. The +0xe2 software power latch is now traced through on/off writers; it is not a pending preemptive target."
    ],
    "resolved_findings": [
     "Rail transition order proven (ampManager.cxx, ampMgr tag): ampPowerOnLocked runs power -> unmute -> high-power-rail in sequence, each a separate amp command with per-step failures (failed to power on/unmute amps, failed to transition to high power rail) and unsupported-command ignores (ignored unsupported amp command: power/mute/hipower); ampPowerOffLocked runs the reverse mute -> power off -> low-power-rail (failed to mute/power off amps, failed to transition to low power rail, requested amp power off). Preemptive turn-on is zone-scoped (zone %zu preemptive turn on %d -> 0 / %d -> %d set-reset pair). Off is deferred (scheduling off in %d sec) gated on the condition bitmap roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d. Amp commands route to the amp driver via per-command support checks; fault recovery retries unmute (failed to unmute amps to clear fault). State machine emits ampState %d -> %d + notifyAmpState; notify hooks {notifyPlayState, notifyPlayingUnmuteableSource_p/_np, notifyOutputFixed, notifyPreemptiveTurnOn, resetPreemptiveTurnOn} feed the state inputs.",
     "Flag names recovered via the debug printf 'roff:%d canoff:%d ofx:%d nzvplay:%d pre:%d unm:%d' (0x10d5574c, amp domain): args bind roff=+0xf0, ofx=+0xe0, unm=+0xe1 (object bytes); canoff=r28, nzvplay=r30, pre=r27 are computed locals - +0xdd nonzero forces pre=1 (and r28=0), +0xdc gates the nzvplay computation off +0xd8. So the armed-check flag chain {+0xdc,+0xdd,+0xe1,+0xe2} reads {nzvplay-gate, pre-gate, unm, +0xe2} - the veto semantics are now named. Amp command vocabulary from the same region: {hipower, power, mute} dispatch arms, 'scheduling off in %d sec', 'requested amp power off', 'ampPowerOffLocked', 'ampState %d -> %d'/'notifyAmpState' transitions, kernel-side audiodev.ko controls {amp_power, amp-mute, tas5708_*, limelight hiz/pdn/reset}.",
-    "Correction from writer tracing: +0xe2 is a software power-on latch, not preemptive-turn-on armed state. The power-on path calls hal_amps_hipower(handle,1) at 0x10d55498 then stores 1 to +0xe2 at 0x10d554b4. The logged failure path also stores 1 at 0x10d555b4, so this byte does not prove hardware success. The power-off path calls hal_amps_hipower(handle,0) at 0x10d55aac and clears +0xe2 at 0x10d55ac8, including the logged failure path at 0x10d55bc8. Initialization at 0x10d56194 clears it and initializes +0xf4 to 2. f_10d565c8 compares and updates +0xf4, logs ampState, and at 0x10d56684 skips clearing +0xe2 only when the new mode equals 2. f_10d552a0 returns 1 unconditionally when +0xf4 differs from 2; in mode 2 it uses the input flags and latch. At 0x10d55304 raw word 0x40beffe4 is BO=5, BI=30, branching when the preceding +0xe2 comparison is NOT equal to zero; it returns the nonzero latch immediately, not when the latch is zero. Thus earlier descriptions of this function as a veto chain or a pending-target query were incorrect. The hardware event name table is not sufficient evidence to assign these policy modes rail-state names. +0xe1 is the unm input in the local decision diagnostic, not a proven target rail enum."
+    "Correction from writer tracing: +0xe2 is a software power-on latch, not preemptive-turn-on armed state. The power-on path calls hal_amps_hipower(handle,1) at 0x10d55498 then stores 1 to +0xe2 at 0x10d554b4. The logged failure path also stores 1 at 0x10d555b4, so this byte does not prove hardware success. The power-off path calls hal_amps_hipower(handle,0) at 0x10d55aac and clears +0xe2 at 0x10d55ac8, including the logged failure path at 0x10d55bc8. Initialization at 0x10d56194 clears it and initializes +0xf4 to 2. f_10d565c8 compares and updates +0xf4, logs ampState, and at 0x10d56684 skips clearing +0xe2 only when the new mode equals 2. f_10d552a0 returns 1 unconditionally when +0xf4 differs from 2; in mode 2 it uses the input flags and latch. At 0x10d55304 raw word 0x40beffe4 is BO=5, BI=30, branching when the preceding +0xe2 comparison is NOT equal to zero; it returns the nonzero latch immediately, not when the latch is zero. Thus earlier descriptions of this function as a veto chain or a pending-target query were incorrect. The hardware event name table is not sufficient evidence to assign these policy modes rail-state names. +0xe1 is the unm input in the local decision diagnostic, not a proven target rail enum.",
+    "Established: manager+0xf4 is the last amp rail state reported by hardware, named by call path. The only producers are boot init (stw 2 at 0x10d5619c, OFF) and setter f_10d565c8, reached exclusively through the hwmessagelib event dispatcher f_103caf98 ('buttons'/'hw_events' tags; connection object at this+0x80): event type 1 'AMP' sub-dispatches code-0x19 through REL32 table 0x10ec6b34 so that code 0x1f 'AMP_HI_RAIL' passes mode 0 (0x103cb490), code 0x20 'AMP_LO_RAIL' passes mode 1 (0x103cb458), and code 0x21 'AMP_OFF' passes mode 2 (0x103cb5f0). Names come from the libhwmessagelib event-code table at 0x10ef4fc8, so +0xf4 is enum {HI_RAIL=0, LO_RAIL=1, OFF=2}, not an abstract policy mode; the earlier warning against the rail-name mapping is superseded by this call-path binding. Policy semantics: any rail state (0 or 1) means energized. f_10d552a0 returns 1 immediately when +0xf4 != 2 and only evaluates +0xe2 latch, merged +0xdd/+0xdc flags (isel r9,r8,r9 at 0x10d552e0 prefers +0xdd), and +0xe1 in the OFF state; the public getter f_10d55904 returns (u8)(+0xf4 != 2). The setter logs 'ampState %d -> %d', stores +0xf4, clears +0xe2 only when the new state is a rail (isel r24 at 0x10d5667c), then notifies the +0xf8 subscriber via vfunc+8 with the f_10d552a0 result under name 'notifyAmpState'. So +0xe2 is the software power-on latch that covers the gap between issuing hal_amps_hipower and the hardware rail event; arrival of HI_RAIL/LO_RAIL clears it, while AMP_OFF leaves it untouched. Other AMP codes steer zone-object flags, not +0xf4: CLIP 0x40000 set+clear, HW_ERROR set 0x10000/clear 0x20000, HW_OK set 0x40000, TEMP_WARNING set 0x10000/clear 0x20000, TEMP_FAULT set 0x20000/clear 0x10000, TEMP_OK sets both, via vfuncs +0x7c/+0x80 on the r31+0x9c object."
    ]
   },
   "lla": {
@@ -222521,15 +222885,108 @@
      "build": "86.10-80260",
      "address": "0x1041e070",
      "notes": "Podcast/show positional tail and numeric conversion-success bookkeeping."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104209b4",
+     "function": "0x104202f4",
+     "notes": "+0x4 buffer emitted as dc:creator; +0x1eb as upnp:album at 0x10420cc4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104209dc",
+     "function": "0x104202f4",
+     "notes": "+0x248 emitted as r:podcast; +0x2a5 as r:releaseDate at 0x104209fc; +0x19e as r:narrator at 0x10420a20."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10420ae4",
+     "function": "0x104202f4",
+     "notes": "+0x3a9 flag gates %u of +0x3a0 = r:episodeNumber; +0x3a7 gates +0x398 = r:chapterNum at 0x10420b2c; +0x3a8 gates +0x39c = r:chapterCount at 0x10420a9c; +0x3a6 gates +0x388 = upnp:originalTrackNumber at 0x10420b74."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1042095c",
+     "function": "0x104202f4",
+     "notes": "+0x3a5 flag gates f_10c394f0(&u64 +0x390/+0x394) then '\" duration=\"' attribute inside <res>."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104207a4",
+     "function": "0x104202f4",
+     "notes": "u8 +0x3ab emitted as r:numSections via %hhu; +0x33a emitted as r:tags at 0x104207f4, suppressed when first byte == '0'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10420618",
+     "function": "0x104202f4",
+     "notes": "upnp:class precedence: arg flag > 'audio/x-sonos-recent' recentShow > +0x346 stored class > opaque-mime 'object.item' > musicTrack default."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1041bd0c",
+     "function": "0x1041bcb0",
+     "notes": "Constructor/copy bounds: +0x4:0x4d, +0x51:0x4d, +0x9e:0x100, +0x19e:0x4d, +0x1eb:0x5d, +0x248:0x5d, +0x2a5:0x19, +0x2be:0x65, +0x323:0x17, +0x33a:0xc, +0x346:0x41; +0x0 = mime default 'application/octet-stream'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1067450c",
+     "function": "0x106744fc",
+     "notes": "lwzx string table 0x10effd34; index 0x16 -> '(Compilations)' used for +0x3aa-gated r:albumArtist."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10147820",
+     "function": "0x101477e4",
+     "notes": "strncmp loop over 'x-sonosapi-stream:','x-sonosapi-hls:','x-sonosapi-hls-static:','x-sonosapi-radio:' prefixes decides dc:title fallback omission."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1041cd0c",
+     "function": "0x1041cd04",
+     "notes": "+0x3ac = source-metadata pointer; kind 0..3 dispatch copies albumArtist/creator from src +0x134/+0x4d/+0xe7/+0x9a and sets +0x3aa on sentinel path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1041ce24",
+     "function": "0x1041ce20",
+     "notes": "Getter returns flag +0x3a4 and writes u32 +0x38c; consumer at 0x100ff564 packs it clamped to 0xfffe into high halfword."
     }
    ],
-   "todo": "Residual: join the recovered compact extraMd selector/position outputs (+0x2be,+4,+0x1eb,+0x19e,+0x248,+0x2a5,+0x33a and numeric fields) to semantic DIDL names through their getters/XML serializers. The complete A..S selector dispatch is recovered; it selects output classes rather than branching on input XML class strings.",
    "resolved_findings": [
     "General metadata vocabulary (loadFromExtraMd pszTrackURI: %s pszExtraMd: %s, RTrackDIDLLiteMdExtractor): the XML metadata vocabulary includes {r:radioName, r:streamContent, r:audioInputIcon, r:radioShowMd, r:streamInfo, r:connotation, r:state, r:rating, r:trackGain, r:policies, r:isAd, r:linkUrl, r:podcast, r:episodeNumber, r:releaseDate, r:chapterCount, r:chapterNum, r:narrator, r:albumArtist, r:numSections} plus upnp:album + upnp:originalTrackNumber + duration=\" attribute; class names bound: {object.item.audioItem.podcast, object.item.audioItem.show, object.item.audioItem.audioBook.chapter, object.item.audioItem.musicTrack.recentShow, object.item}. The URI-scheme->service map is enumerable: https:, aac:, file:, rhap:, radio-rhap:, radio-radea:, radio-npsdy:, pndrradio-http://, pndrradioad://, lfmtrack:, x-sonos-dock:, hls-static://, x-sonosapi-iqradio:, x-rincon-buzzer, x-rincon-internal + service hosts sonos.com-{rtrecent,spotify,http,mms}, real.com-rhapsody-{direct,http-1-0}, sirius.com-sirradio, last.fm-radio-http, pandora.com-pndrradio{,-ad}. MIME extraction: extractMimeTypeFromHttpContentType with truncation guards; protocolInfo wildcard :*:; WAV/RIFF INFO tags {IART, IGNR, INAM, IPRD, itrk}; rtsp-rtp-udp transport; album art URL %s/AlbumArt_{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}_Large.jpg with folder.jpg/image-{jpg,gif} fallbacks.",
     "Metadata-ID-type enum at 0x10facf88: {DISCOGS=1, IPI=2, ISNI=3, ISRC=4, MBID=5, MUSICOBJECTID=6}.",
     "loadFromExtraMd f_1041dc78 is a compact comma-separated parser whose first byte selects the output class; it is not a branch on input DIDL class strings. It resets output strings and state at 0x1041dcec-0x1041dd74, tests null input at 0x1041dd80-0x1041dd88 (returns zero), and empty input at 0x1041dd8c-0x1041dd98 (returns zero). A leading B returns one immediately at 0x1041ddd0-0x1041ddd4. Other inputs extract a common field into owner+0x2be with bound 0x65, optionally another into +4 with bound 0x4d, then dispatch on firstByte-A using a nineteen-entry relative table at 0x10ecc7d0 (0x1041de04-0x1041de2c). Bytes outside A..S or unhandled entries return zero. Thus the old claim of no rejection anywhere based solely on literal absence is withdrawn.",
     "The full compact selector dispatch is {A -> 0x1041df20, C -> 0x1041def0, D -> 0x1041dec8, P/S -> 0x1041de88}; B is the earlier immediate-success case, and all other A..S slots target failure at 0x1041de30. A selects object.item.audioItem.musicTrack and optionally reads a field into +0x1eb; C selects object.item.audioItem.audioBook.chapter and optionally reads +0x19e; P selects object.item.audioItem.podcast and S selects object.item.audioItem.show, optionally reading +0x248. D reaches shared parsing without setting one of these class literals. Output class text is stored at +0x346, not used as the input switch key.",
-    "Shared optional tails are comma-gated, with absent fields cleared or left at reset defaults: a bound-12 temporary is parsed with strtol base ten into the pair at +0x390 and validity byte +0x3a5 (0x1041df68-0x1041df98 and 0x1041e0dc-0x1041e100). P/S optionally fill +0x2a5 with bound 0x19 and parse an unsigned integer into +0x3a0, recording conversion success at +0x3a9 (0x1041e070-0x1041e0d8). C optionally parses an unsigned integer into +0x398 with success byte +0x3a7 (0x1041e030-0x1041e114). The final optional bound-12 string goes to +0x33a. These offsets and bounds are established; their exact DIDL field-name binding still needs the XML getter/serializer chain. Reset and comma checks are not a proof of a universal required/optional DIDL schema."
+    "Shared optional tails are comma-gated, with absent fields cleared or left at reset defaults: a bound-12 temporary is parsed with strtol base ten into the pair at +0x390 and validity byte +0x3a5 (0x1041df68-0x1041df98 and 0x1041e0dc-0x1041e100). P/S optionally fill +0x2a5 with bound 0x19 and parse an unsigned integer into +0x3a0, recording conversion success at +0x3a9 (0x1041e070-0x1041e0d8). C optionally parses an unsigned integer into +0x398 with success byte +0x3a7 (0x1041e030-0x1041e114). The final optional bound-12 string goes to +0x33a. These offsets and bounds are established; their exact DIDL field-name binding still needs the XML getter/serializer chain. Reset and comma checks are not a proof of a universal required/optional DIDL schema.",
+    "Compact-selector field names bound through the rincon-md element serializer f_104202f4 (0x104202f4-0x10421020): the string slots are +0x4=dc:creator (bound 0x4d), +0x51=r:albumArtist (0x4d), +0x9e=upnp:albumArtURI (0x100), +0x19e=r:narrator (0x4d), +0x1eb=upnp:album (0x5d), +0x248=r:podcast (0x5d), +0x2a5=r:releaseDate (0x19), +0x2be=dc:title (0x65), +0x33a=r:tags (0xc), +0x346=upnp:class (0x41); the constructor/copy routine f_1041bcb0 (0x1041bcb0-0x1041c000) confirms identical buffer bounds.",
+    "Numeric slots and their presence flags, bound by the same serializer: +0x390/+0x394 u64 is the res@duration pair with flag +0x3a5 (f_10c394f0 formats it into the ' duration=' attribute); +0x388 is upnp:originalTrackNumber with flag +0x3a6; +0x398 is r:chapterNum with flag +0x3a7; +0x39c is r:chapterCount with flag +0x3a8; +0x3a0 is r:episodeNumber with flag +0x3a9; +0x3ab is a u8 emitted as r:numSections. This makes the compact selector semantics concrete: 'A' supplies album for musicTrack, 'C' supplies narrator and chapterNum for audioBook.chapter, 'P'/'S' supply podcast, releaseDate and episodeNumber, while title, creator, duration, tags and class are shared fields.",
+    "Serializer emission rules: res@duration is written only when flag +0x3a5 is set; r:tags is suppressed when the stored value is exactly '0'; upnp:class resolves in order: a playlist-container flag argument forces 'object.container.playlistContainer', mime 'audio/x-sonos-recent' forces 'object.item.audioItem.musicTrack.recentShow', a nonempty +0x346 wins, otherwise mime in {'application/octet-stream','audio/mpegurl','*'} maps to 'object.item' and all other mimes to 'object.item.audioItem.musicTrack' (0x104205f8-0x1042066c).",
+    "dc:title is +0x2be when nonempty; when empty the writer falls back to a whitespace-trimmed URI argument, but omits the element entirely when that URI carries an x-sonosapi-{stream,hls,hls-static,radio} service prefix per predicate f_101477e4 (0x104204e4-0x10420508).",
+    "albumArtist is dual-sourced: when flag +0x3aa is set the writer emits the sentinel string from lookup table 0x10effd34 via f_106744fc (index 0x16 = '(Compilations)') instead of the +0x51 buffer; derivation helper f_1041cd04 (kind 0..3) fills +0x51/+0x4 from a source-metadata pointer at +0x3ac, picking among the source object's +0x134/+0x4d/+0xe7/+0x9a fields and setting +0x3aa on the sentinel path.",
+    "Fields copied and reset but not emitted by f_104202f4: +0x323 is a 0x17-bound string gated by the f_1041c9e4 all-present predicate together with source-md pointer +0x3ac->byte0, +0x1eb and +0x2be; +0x38c is a u32 with presence flag +0x3a4 read by getter f_1041ce20 and packed at 0x100ff564-0x100ff5a0 as the 0xfffe-clamped high half of a u32 position word; +0x3ac and +0x3b0 are pointers to a second metadata object used for field derivation, not serializable strings."
    ]
   },
   "sharelist": {
@@ -226091,15 +226548,33 @@
      "build": "86.10-80260",
      "address": "0x1039ded8",
      "notes": "clrlwi 30 selects the low two bits of the state halfword."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1039e7d8",
+     "notes": "transitionValid: member with (flags&3)==3 && (flags&4)!=0 is counted once: t(+0xd28c)+=1; if member+0x693(fixed)==0 then c(+0xd28e)+=1 plus cv(+0xd294)+=member+0x690 and sv(+0xd296)+=member+0x68e, else f(+0xd290)+=1; if member+0x692(mute)!=0 then m(+0xd292)+=1. Names from log 'gvd: t:%d c:%d f:%d m:%d cv:%d sv:%d' at0x10ec3af0 and 'transitionValid: %s is now valid c:%d m:%d f:%d' at0x10ec3b50."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103a05d0",
+     "notes": "localRC updater names the staged member fields: source record bytes +0/+2/+3 are logged 'vol:%u mute:%d fixed:%d' then written via f_1039e958->member+0x68e/+0x690 (ori bit0), f_1039eac0->member+0x692 (ori bit1), f_1039ec5c->member+0x693 (ori bit2). Range/denominator guards: wrapper f_103a2ccc returns0x2be on null target and0x192 when target>100; f_103a2430 returns0x324 when c==0 and f!=0 ('all members use fixed volume')."
     }
    ],
-   "todo": "Residual: trace writers and semantic units of owner+0xd296/+0xd28e (the sg ratio operands), caller guarantees for valid volume range and nonzero denominator, and semantic names of member+0x68c low flag bits. The floating rescale, integer return narrowing and low-bit eligibility predicates are recovered, not Q16 shifts or top-bit classes.",
    "resolved_findings": [
     "Native entry f_1039dd7c loads unsigned halfwords from owner+0xd296 and owner+0xd28e, converts both with efscfui and divides the first by the second at 0x1039dd80-0x1039dd90. Call that floating ratio sg. It converts sg to unsigned integer with efsctuiz and retains its low sixteen bits at 0x1039dd94-0x1039dd98 before comparison with target argument r5. Equality returns the member snapshot halfword at record+0x68e unchanged (0x1039deac). Thus the sg load path is no longer an opaque SPE gap, but the producing aggregate fields still need semantic binding.",
     "For the non-equality path, GNU e500 disassembly establishes nv = sv + (ng-sg)*(cap-sv)/(cap-sg), where sv is unsigned halfword member+0x68e, ng is incoming r5, and sg is the ratio above. The comparison at 0x1039ddc8 selects cap=100.0 from 0x10ec3998 when sg<ng, otherwise cap=0.0 from 0x10ec399c. The arithmetic is efssub/efsmul/efsdiv/efsadd at 0x1039ddf0-0x1039de14. No explicit clamp to 0..100 or denominator-zero guard appears in this local calculation; caller constraints remain to be traced. The previous fixed-volume endpoint-selection and universal clamp assertions are withdrawn.",
     "Return conversion corrected independently of the audit report: 0x1039de70 calls roundf, 0x1039de78 executes efsctuiz, and 0x1039de94 is clrlwi r3,r3,16. The result is the low sixteen bits of the converted rounded integer, not a Q16 value shifted right sixteen. The direct snapshot return at 0x1039deac is an independent counterexample to the claimed universal fixed-point return convention.",
     "Member eligibility helper f_1039deb4 addresses records at stride 0x694. It requires a nonzero byte at record+0, then (halfword_at_0x68c & 3)==3 at 0x1039ded4-0x1039dee0 and (halfword & 4)!=0 at 0x1039deec-0x1039def0. This uses the LOW two bits, not the top two bits; no zone count is extracted. It exposes the record through the output pointer, rejects nonzero byte +0x693, otherwise computes and stores the target through f_1039dd7c at 0x1039df1c-0x1039df20. Missing/ineligible members return zero and clear outputs initially. Semantic names for the three low flag bits are not established by this helper.",
-    "The surrounding group-volume path snapshots member state, logs calculateVolume with sg/ng/sv/nv labels, applies local and remote changes and reports total/partial/fixed-volume/in-progress faults. These logs locate integration, but do not make unsupported arithmetic, mandatory range or individual flag-name claims. The source writes for both sg aggregate halfwords and all downstream acceptance conditions remain native tracing work."
+    "The surrounding group-volume path snapshots member state, logs calculateVolume with sg/ng/sv/nv labels, applies local and remote changes and reports total/partial/fixed-volume/in-progress faults. These logs locate integration, but do not make unsupported arithmetic, mandatory range or individual flag-name claims. The source writes for both sg aggregate halfwords and all downstream acceptance conditions remain native tracing work.",
+    "Established: the sg operands are the snapshot-volume sum and the contributing-member count. owner+0xd296 is the gvd 'sv' counter (sum of member+0x68e over contributing members) and owner+0xd28e is the gvd 'c' counter (members whose staged vol/mute/fixed values all arrived and whose fixed flag is0). sg=sv/c is therefore the mean snapshot volume of contributing members. The gvd log at0x10ec3af0 names all six owner counters: t=+0xd28c total valid, c=+0xd28e contributing, f=+0xd290 fixed, m=+0xd292 muted, cv=+0xd294 live-volume sum, sv=+0xd296 snapshot-volume sum.",
+    "Established: member+0x68c low bits are staged-value present bits, one per updatable field. bit0(0x1) is set by the volume writer f_1039e958 (stores member+0x690 live volume and +0x68e snapshot volume), bit1(0x2) by the mute writer f_1039eac0 (stores member+0x692), bit2(0x4) by the fixed writer f_1039ec5c (stores member+0x693). (flags&3)==3 means vol+mute arrived; bit2 means fixed arrived. The localRC caller f_103a05d0 supplies the semantic names: its source record logs 'vol:%u mute:%d fixed:%d' and forwards those three values into the three staged fields in order.",
+    "Established: member-state machine f_1039e7d8 runs exactly once when the final staged bit lands ('transitionValid: %s is now valid c:%d m:%d f:%d'). It increments t, then c (when fixed==0, simultaneously adding member+0x690 to cv and member+0x68e to sv) or f (when fixed!=0), and m when mute!=0. Subsequent updates take differential paths: volume writes adjust cv by (new-old) only for non-fixed members; mute writes adjust m and recompute m==t (all-muted) via xor/cntlzw purely as a gvd-log gate; fixed toggles move the member between c and f through f_1039df3c add/sub on both sums. Snapshot commit f_1039d714 copies member+0x690 into +0x68e and +0xd294 into +0xd296, logging 'snapshot %s: %u (was %u)' per member and 'snapshot sum for %u (of %u) zones: %u (was %u)'.",
+    "Established: the sg denominator and target range are caller-guaranteed. Eligibility helper f_1039deb4 additionally rejects members with nonzero +0x693, so every member reaching the division is itself counted in c, making c>=1 whenever a division executes. f_103a2430 returns0x324 before the member loop when c==0 while f!=0, matching the 'all members use fixed volume' fault string selected for code0x324 at0x1039eda4. The group target is validated by wrapper f_103a2ccc: null target returns0x2be and target>100 returns0x192. No separate 0..100 clamp exists inside the nv rescale; the u16 results feed per-member RenderingControl SetVolume requests (service urn:schemas-upnp-org:service:RenderingControl:1, args InstanceID, Channel 'Master', DesiredVolume) assembled in f_103a2430's loop over member indices0..31.",
+    "Established: member-field layout (stride0x694, indices0..31): +0x68c u16 staged bits, +0x68e u16 snapshot volume, +0x690 u16 live volume (printed as 'c' in transitionValid), +0x692 u8 mute, +0x693 u8 fixed. With nv = sv + (ng-sg)*(cap-sv)/(cap-sg), the operation linearly redistributes the difference between the requested group target ng and the contributing members' mean snapshot volume sg, proportional to each member's headroom to cap (cap=100.0 when ng>sg else0.0)."
    ]
   },
   "group_mgmt": {
@@ -226854,13 +227329,79 @@
      "function": "0x102d47c0",
      "address": "0x102d4844",
      "notes": "Action switch and relative jump table; END/SUSPEND/PAUSE build distinct internal completion records."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1041616c",
+     "address": "0x1041641c",
+     "notes": "Producer log names record fields 'vliType %s cookie %d fromSender %d'; record built at sp+0x20 as {action,vliType,cookie,fromSender} and posted via f_1040ad64."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d47c0",
+     "address": "0x102d48c0",
+     "notes": "PAUSE case calls f_102d0de4 then emits {cookie,code 5,result} via f_102f44dc(this+0x394)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d47c0",
+     "address": "0x102d49e0",
+     "notes": "END case calls f_102b2118(target,cookie,fromSender) then emits {cookie,result} via f_102f3e18(this+0x378) (VliSessionEndedEvt queue)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d47c0",
+     "address": "0x102d491c",
+     "notes": "SUSPEND case sets target+0xa214 to 1, calls f_1067c6ec(target+0x10), emits {cookie,code 2,1}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102d2e54",
+     "address": "0x102d2e54",
+     "notes": "STOP target: avt_impl vtable 0x10eaf2ec slot +0x28; journals 'stop' then calls f_102d2bec(this,1)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102b2118",
+     "address": "0x102b21c8",
+     "notes": "END dispatches on source mode this+0x4654: 1 -> cookie compare f_10688090(this+0x5dc), 0 -> f_102b1cc8 suspend path, else 'deactivating local VLI; success (%d)'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10688090",
+     "address": "0x106880d0",
+     "notes": "Cookie compare: returns 1 when the stored session word (f_10687e54 output) equals the event cookie."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102b1cc8",
+     "address": "0x102b1d0c",
+     "notes": "Suspend path: f_10395838(*(this+0x57c), arg3), sets +0xa214, signals f_1067c6ec(+0x10); the fromSender arg2 is not consumed."
     }
    ],
-   "todo": [
-    "Residual: trace construction and downstream consumers of the AvtHaltActionEvent fields at +8 and +0x10, and the delegated STOP/RESTORE/END implementations. The action enum and dispatch are now bound to internal events; no per-verb network body or source-specific wire grammar has been established."
-   ],
    "resolved_findings": [
-    "Correction: AHA is used as the AvtHaltActionEvent action enum. f_106a3420 accepts unsigned values 0 through 4 and indexes 0x10f0403c; larger values return AHA_NOT_VALID. The table maps 0=STOP, 1=RESTORE, 2=END_VLI_SESSION, 3=SUSPEND_VLI_SESSION, 4=PAUSE_VLI_SESSION. AHA_NOT_VALID is a fallback string, not an entry preceding STOP in the enum. In f_102d47c0, the event wrapper points at a record with target at +0, action at +4, an additional word at +8 and a byte at +0x10. Its five-way jump table at 0x10eaea5c contains offsets relative to the table base, decoded using lwzx (raw XO 23) at 0x102d485c. Targets are 0x102d49b8,0x102d49d4,0x102d49e0,0x102d491c,0x102d486c respectively. STOP calls target virtual +0x28 with argument zero; RESTORE calls f_102d46e0; END calls f_102b2118(target,word+8,byte+0x10) and emits a word/result-byte event via f_102f3e18. SUSPEND sets target+0xa214 to 1, calls f_1067c6ec(target+0x10), then emits completion via f_102f44dc with {word+8,2,true}. PAUSE calls f_102d0de4(target) and emits {word+8,5,result-byte} through the same completion helper. The log names VliSessionProcessingCompleteEvent. These are internal event payloads; the earlier description of distinct wire verbs, JWT binding, and a 74-byte session frame was not established by these call paths and is withdrawn."
+    "Correction: AHA is used as the AvtHaltActionEvent action enum. f_106a3420 accepts unsigned values 0 through 4 and indexes 0x10f0403c; larger values return AHA_NOT_VALID. The table maps 0=STOP, 1=RESTORE, 2=END_VLI_SESSION, 3=SUSPEND_VLI_SESSION, 4=PAUSE_VLI_SESSION. AHA_NOT_VALID is a fallback string, not an entry preceding STOP in the enum. In f_102d47c0, the event wrapper points at a record with target at +0, action at +4, an additional word at +8 and a byte at +0x10. Its five-way jump table at 0x10eaea5c contains offsets relative to the table base, decoded using lwzx (raw XO 23) at 0x102d485c. Targets are 0x102d49b8,0x102d49d4,0x102d49e0,0x102d491c,0x102d486c respectively. STOP calls target virtual +0x28 with argument zero; RESTORE calls f_102d46e0; END calls f_102b2118(target,word+8,byte+0x10) and emits a word/result-byte event via f_102f3e18. SUSPEND sets target+0xa214 to 1, calls f_1067c6ec(target+0x10), then emits completion via f_102f44dc with {word+8,2,true}. PAUSE calls f_102d0de4(target) and emits {word+8,5,result-byte} through the same completion helper. The log names VliSessionProcessingCompleteEvent. These are internal event payloads; the earlier description of distinct wire verbs, JWT binding, and a 74-byte session frame was not established by these call paths and is withdrawn.",
+    "Resolved: the AvtHaltActionEvent record is {+0 target avt_impl object, +4 action enum, +8 u32 cookie, +0x10 u8 fromSender}; the names come from the producer log 'firing AvtHaltActionEvent %s vliType %s cookie %d fromSender %d' at 0x1041641c and '%s:%d vliType: %s cookie: %d pbstate: %d' at 0x10416240 in the mpvlictrl onPlaybackStateChanged path f_1041616c, which posts {action, vliType, cookie, fromSender} events through f_1040ad64 to the object's +0x20 queue. The cookie is echoed verbatim into completion events; the only field consumed by exactly one verb is fromSender, which END forwards but the reached implementation drops.",
+    "Resolved: STOP (action 0) calls the avt_impl vtable 0x10eaf2ec slot +0x28 = f_102d2e54 with a zero argument. That method logs a 'stop' journal entry through f_102b8c44 (domain 'upnp', object +0xa21c), then calls f_102d2bec(this,1), which clears this+0x7778, runs session helpers f_102ae2d0/f_102931f0, and for source mode 2 invokes the transport helper f_10256a84(*(this+0x580),1,0,0,*(this+0xaa78)).",
+    "Resolved: RESTORE (action 1) runs f_102d46e0: it builds an empty string object at this+0x458 (fallback literal 0x10ea6a2c) and calls f_102d086c(this,&str); when that returns nonzero it calls f_102ceb40(this,&str,&zeroedRecord), the restore-defaults path shared with several other avt_impl operations.",
+    "Resolved: END (action 2) runs f_102b2118(this, cookie, fromSender). It first wraps *(this+0x3dc) into a string and posts the +0x458 functor through vtable f_100caad8. Then it dispatches on the source-mode word at this+0x4654: mode 1 calls f_10688090(this+0x5dc, cookie), which compares the stored session cookie (f_10687e54 output word equals the event cookie); on match it falls into f_102b1cc8(this, fromSender, 0), otherwise it deactivates the local VLI. Mode 0 goes straight to f_102b1cc8, which (when *(this+0x5a0) predicate holds) calls f_10395838(*(this+0x57c), 0), sets the suspend flag at this+0xa214 and signals through f_1067c6ec(this+0x10); the fromSender argument is plumbed but not consumed by the reached code. Any other mode logs 'endVLISession(): deactivating local VLI; success (%d)' through the same +0x458 functor. END then emits a VliSessionEndedEvt {cookie u32, result byte} via f_102f3e18(this+0x378).",
+    "Resolved: SUSPEND (action 3) sets this+0xa214 = 1, calls f_1067c6ec(this+0x10), then emits a VliSessionEndedProcessingCompleteEvt {cookie u32, code 2 u32, success u8 = 1} via f_102f44dc(this+0x394). PAUSE (action 4) runs f_102d0de4: it posts the +0x3dc-string functor, and for source mode 1 (when f_10688070(this+0x5dc) is nonzero) journals 'pause' through f_102b8c44 and calls f_102d0ac8(this,1,1,-1,-1), returning 1 when that call returns 0; otherwise it returns (mode==0). The PAUSE completion is {cookie u32, code 5 u32, success u8} through the same f_102f44dc. The completion record's second word is a VliSessionEndedProcessingCompleteEvt action code (2 and 5 observed), not the AHA enum."
    ]
   },
   "drm_content_keys": {
@@ -229960,7 +230501,7 @@
   },
   "zgt_errors": {
    "name": "ZGT error paths",
-   "summary": "\"Handling ReportUnresponsiveDevice %s/%s from %s:%hu\"; GetZoneGroupAttributes {\"No valid UUID in request server\",\"TServer is not valid for request\",\"TRequest is invalid in the control server\"}",
+   "summary": "GetZoneGroupAttributes error handling f_10733878: three log-and-return guards; request vfunc+0x14 is the emit-error slot on both request classes. Direct HTTP class (vtable0x10f10ea4) emits HTTP500 plus the compiled SOAP fault envelope via f_10731560->f_10731464->f_10563b08->f_1056383c; tunneled class (vtable0x10f10f20) delegates the code to the tunnel backend through f_1073029c and never builds XML. Code text is snprintf '%hu' into buf+0x28 by f_10562774; the fault has no errorDescription field.",
    "evidence": [
     {
      "type": "firmware",
@@ -229973,16 +230514,31 @@
      "build": "86.10-80260",
      "address": "0x10733878",
      "notes": "Guard branches0x10733a74/0x10733ab0/0x10733aec; provider+0x24 comparison0x1073395c and output-buffer call0x10733990 versus request+0x14 error dispatch. Default f_1012b9b4 returns0x1f5 without composing XML. Common fault literal0x10eebdcc is formed at0x105638e4 via base+0x148 and queued at0x10563ab4; this common serializer is not yet certified as the concrete request error receiver."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10731560",
+     "notes": "Direct-HTTP request emit-error: vfunc+0x14 slot of vtable0x10f10ea4 (ctor f_10730850 stores the vptr at0x10730880; the alternate vtable0x10f10f20/tunneled ctor f_10730a94 stores at0x10730aa0). sth code at request+0x10, then f_10731464(request+4=conn) writes headers: status via f_100b4614(conn,0x1f4) so every UPnP fault is HTTP500, CONTENT-LENGTH snprintf '%u' of f_105627e8 (=strlen(codetext)+0xdb+envelope-open-len+1), CONTENT-TYPE text/xml; charset=utf-8, empty EXT header at0x10ea6a2c. Then driver f_10563b08 loops serializer f_1056383c into <=0x1000-byte stack chunks and sends each via stream-object vfunc+8 f_107317fc -> socket writer f_100b434c on stream+4. Log: 'UPnP call: %s:%s returned %d to %s:%d' with severity split at code>999 (cmpwi0x3e7)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1056383c",
+     "notes": "SOAP fault serializer state machine on buf+8 (states0..7,8=done). State0 emits the124-byte '<s:Envelope xmlns:s=... s:encodingStyle=...>' when buf+4==0 (always, since f_10562774 stores0) else the64-byte xmlns-only variant. States1..6 emit '<s:Body>', the147-byte fault open at0x10eebdcc ending '<errorCode>', strlen(buf+0x28) code text, the43-byte '</errorCode></UPnPError></detail></s:Fault>', '</s:Body>', '</s:Envelope>'. Decimal formatting: f_10562774(buf,code) tail calls snprintf(buf+0x28,16,'%hu',code); the code arrives in r4 inherited from f_10731560's vfunc arg. No errorDescription element is emitted; faultcode is fixed 's:Client' and faultstring fixed 'UPnPError'. Sole consumer chain: f_10731560 -> f_10731464 -> f_10563b08 -> f_1056383c, reachable only through the direct-HTTP request class."
     }
-   ],
-   "todo": [
-    "Established: three non-fault guards, provider default501 versus request error emission, successful output-field path and compiled common SOAP fault fragments with a concrete serializer consumer. Remaining: bind the actual request implementation at f_10733878, its virtual+0x14 error method and response object constructor to the serializer around0x1056383c; recover numeric code formatting, buffer/error propagation and any action-specific description fields. Start with request+0x14 call0x1073390c and literal consumer0x10563ab4. The provider+0x24 stub is not the fault setter, and literal text is not unavailable. This remains actionable static work."
    ],
    "resolved_findings": [
     "GetZoneGroupAttributes handler f_10733878 has three log-and-return0 guards: null request branches to0x10733a74, null request+0x6c to0x10733ab0, and null server+0x178 to0x10733aec. The messages are TRequest is invalid in the control server, TServer is not valid for request, and No valid UUID in request server. These guards do not themselves emit a SOAP fault and must not be mapped individually to402/501.",
     "After those guards the handler calls request virtual+8. Its false path stages402; the true path stages501 as the default implementation outcome, compares the provider virtual+0x24 with f_1012b9b4, and otherwise invokes that provider with output buffers. f_1012b9b4 simply returns501; it is not a fault-envelope setter. A nonzero provider result reaches request virtual+0x14. Provider success instead supplies CurrentZoneGroupName, CurrentZoneGroupID, CurrentZonePlayerUUIDsInGroup and the household identifier through request virtual+0x24, then completes through request virtual+0xc. Those provider and request vtables have different roles.",
-    "A compiled common SOAP fault fragment exists at0x10eebdcc: <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>. The response serializer around0x1056383c constructs its pointer as Response literal0x10eebc84+0x148 and queues0x93 bytes through f_109bec4c at0x10563ab4. Other states queue the numeric-text buffer and </errorCode></UPnPError></detail></s:Fault> followed by body/envelope closures. This disproves the no-static-literal claim; the concrete GetZoneGroupAttributes request+0x14 binding into this serializer still requires a join.",
-    "ReportUnresponsiveDevice has its own request-handling diagnostic vocabulary. That fact does not establish that every unresponsive-device report is a SOAP fault or that the three attribute-request guard messages share its error policy."
+    "A compiled common SOAP fault fragment exists at0x10eebdcc: <s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>. The response serializer around0x1056383c constructs its pointer as Response literal0x10eebc84+0x148 and queues0x93 bytes through f_109bec4c at0x10563ab4. Other states queue the numeric-text buffer and </errorCode></UPnPError></detail></s:Fault> followed by body/envelope closures. This disproves the no-static-literal claim; the concrete join is established by the request-class findings below.",
+    "ReportUnresponsiveDevice has its own request-handling diagnostic vocabulary. That fact does not establish that every unresponsive-device report is a SOAP fault or that the three attribute-request guard messages share its error policy.",
+    "Established: the request object reaching f_10733878 implements vfunc+0x14 as the emit-error slot on two sibling request classes. On the direct HTTP class (vtable0x10f10ea4, vptr stored by ctor f_10730850) the slot is f_10731560, which stores the u16 code at request+0x10 and calls f_10731464(request+4) to synchronously write the HTTP500 fault response onto the connection. On the tunneled class (vtable0x10f10f20, vptr stored by ctor f_10730a94) the slot is f_1073029c, which forwards the code to the tunnel backend at request+0x3a78 vfunc+0x10 (f_109f0184 on vtable0x10f98734, marshaling message type0x3f through f_109db5c4) and emits no XML. Both paths log '%s:%s returned %d to %s:%d', distinguished by the 'Tunneled UPnP call' vs 'UPnP call' format strings at0x10f10f88/0x10f11078, and both pick log severity by code>999.",
+    "Established: handler f_10733878 is transport agnostic, so the XML fault serializer f_1056383c is bound to GetZoneGroupAttributes only through the direct-HTTP request class; the tunneled path propagates the numeric code as a tunnel message instead. The emitted fault body is exactly '<s:Envelope ...><s:Body><s:Fault><faultcode>s:Client</faultcode><faultstring>UPnPError</faultstring><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>%hu</errorCode></UPnPError></detail></s:Fault></s:Body></s:Envelope>' under HTTP status500. There is no errorDescription element and no action-specific fault text for this action; the only varying field is the decimal errorCode.",
+    "Established: buffer and propagation mechanics of the direct path. f_105627e8 computes CONTENT-LENGTH as strlen(codetext)+0xdb+envelope-open-len+1, matching the seven emitted literals plus the code text. f_10563b08 drives f_1056383c in a loop over <=0x1000-byte chunks and hands each chunk to the stream object (vtable0x10f10f70, embedded in the direct request class) whose vfunc+8 thunk f_107317fc tail calls socket writer f_100b434c on the connection pointer at stream+4; a send failure or serializer state8 ends the loop.",
+    "Inferred: the request class is chosen at request construction by the accepting front end, since ctor f_10730850 (direct) and ctor f_10730a94 (tunneled) have no direct bl callers and are reached through listener/factory tables. The class names are assigned from their behavior and log strings, not from a symbol or vtable comment."
    ]
   },
   "desired_settings": {
@@ -230035,10 +230591,87 @@
      "address": "0x1070345c",
      "callsite": "0x10703548 / 0x10703560 / 0x10703378 / 0x107033a0 / 0x107033c8 / 0x10702f24",
      "notes": "Both incoming element arms call parser; raw value pointers default null, no conversion at matches, forwarded to injected callback virtualc after required-field validation. This is not emit-site evidence."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10702f18",
+     "function": "0x10702cf8",
+     "notes": "Member-attr walker tail: lwz delegate ctx+8 -> obj -> vtable; bctrl to vfunc+0xc with 8 reg args + 23 stack args (raw char* values)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10703080",
+     "function": "0x10702cf8",
+     "notes": "Indirect name table 0x10f0be64..0x10f0be84 loads: ChannelMapSet->r20, HTSatChanMapSet->r19, MinCompatibleVersion->r21, BootSeq->sp+0x6c, WirelessMode->sp+0x70, BehindWifiExtender->sp+0x74."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1070352c",
+     "function": "0x1070345c",
+     "notes": "Element dispatch on ctx bytes +0xc..+0x10: ZoneGroupMember/Satellite->f_10702cf8, Device-in-Vanished->f_10702618, Device-in-Quarantined->f_107028cc, containers->delegate vfuncs +0x14/+0x20/+0x2c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10702358",
+     "function": "0x10702328",
+     "notes": "Parse-ctx ctor: base ctor f_10c3fcd4(ctx, f_10703664 open, f_107024e8 close); ctx+0 = 0x10f0be4c descriptor, ctx+8 = delegate arg, ctx+0xc..+0x10 state bytes cleared. Function has zero static references (no bl/b, no data word, no rela.dyn addend, no FDE, not in dynsym): whole parse chain is dead in this build."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074240c",
+     "function": "0x107423ac",
+     "notes": "Live member serializer: emits UUID/Location/ZoneName/[QuarantineReason]/Icon/Configuration and the gated attribute run documented in resolved_findings; conditional attrs are 'name=1' constants or omitted, never Deactivation*."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107429c8",
+     "function": "0x107423ac",
+     "notes": "VirtualLineInSource jump table 0x10f11fb8 (REL32): cases 1,2,3,6 -> airplay/spotify/bluetooth/uri; 0,4,5,7 and >=8 emit nothing; tvproxy arm unreachable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107433a0",
+     "function": "0x10743328",
+     "notes": "<ZoneGroupState><ZoneGroups> top-level writer; group blocks via f_10742a68/f_10742b98, quarantine block via f_10743168."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10168a90",
+     "function": "0x101687d4",
+     "notes": "deactivateZone stores u32 2 to member+0x298 and the f_108337b0(member+0x1dc) bonded query byte to +0x29c; 0 at 0x10168bec on 'deactivateZone failed', 3 at 0x10168c7c on 'primary unavailable'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101684e4",
+     "function": "0x101683dc",
+     "notes": "activateZone stores u32 1 to member+0x298 (+0x29c flag byte) before the activation op; 'joinZone rcvd on primary' also stores 1 at 0x1016a188; 4/5/6 stored under 'updating ActiveZone'/'primary change'/'offline primary' logs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10162d44",
+     "function": "0x10162d10",
+     "notes": "Getter copies member+0x298..+0x29c as five bytes into caller struct; setter f_10162da4 stores word+byte."
     }
-   ],
-   "todo": [
-    "Established: member and satellite parser reachability, null defaults and raw string-pointer forwarding for DeactivationState/TTL/DateTime, callback slot and required-field rejection. Remaining: bind parser context+8 callback virtual+0xc to its concrete implementation, follow outgoing stack+0x4c/+0x50/+0x54 to state/date/TTL conversion and validation, then trace its storage and actual XML writer for units, epoch/ISO format and omission rules. Recover0..6 writer predicates/original names only where a named consumer supports them; writer contexts are not proof of the accepted wire range. Start at0x10702f18 and f_1070345c callers/constructors. This is actionable static work, not a proven internal-name or external-schema limitation."
    ],
    "resolved_findings": [
     "Resolved: ZP record = the ops set {RTopologyImpl,new_or_updated_zp,upgrade_report,informReplicatedSettingsChange,informLocalSecureRegStateChange,informLocalIdleStateChange,updateLocalMoreInfo,getZPUUIDs,isLocalZPIdle} + emitted events.",
@@ -230046,7 +230679,13 @@
     "Known zones-manager writes to member+0x298 include0..6, with a separate byte at+0x29c. Literal2 is stored at0x10168a94 after the deactivating-zone path;3/4/5/6 occur in primary-unavailable, ActiveZone-update, primary-change and offline-primary contexts. These writer contexts are not original enum names and do not prove parser range validation or a complete accepted wire-value domain. The old no-state-name-literals assertion was not a demonstrated whole-image limit.",
     "Reachable parsing is established by f_1070345c: ZoneGroupMember name equality with active group state calls f_10702cf8 at0x10703548; its Satellite-state arm calls the same parser at0x10703560. This distinguishes incoming ZoneGroupState parsing from an XML emitter.",
     "DeactivationState/TTL/DateTime are matched by strcmp at0x10703378/0x107033a0/0x107033c8. Their attribute-value pointers are stored unconverted at stack+0xac/+0xb0/+0xb4. All three default to null at parser entry; omitted optional attributes therefore remain null at this layer. There is no epoch, ISO-date or integer conversion in these match arms.",
-    "At0x10702e70-0x10702e8c the DateTime/TTL/State pointers are copied to outgoing stack+0x54/+0x50/+0x4c. After required UDN/Location/Title/Icon validation, parser context+8 supplies a callback whose virtual+0xc is invoked at0x10702f24. Missing required fields take the invalid ZoneGroupState XML log path instead. Numeric/date interpretation, if any, belongs beyond this callback and is not established by the parser accepting a string."
+    "At0x10702e70-0x10702e8c the DateTime/TTL/State pointers are copied to outgoing stack+0x54/+0x50/+0x4c. After required UDN/Location/Title/Icon validation, parser context+8 supplies a callback whose virtual+0xc is invoked at0x10702f24. Missing required fields take the invalid ZoneGroupState XML log path instead. Numeric/date interpretation, if any, belongs beyond this callback and is not established by the parser accepting a string.",
+    "Full member-attribute callback signature recovered from f_10702cf8: the delegate vfunc at vtable+0xc is invoked with r4..r10 register args (UUID, ZoneName, Icon, Location, SoftwareVersion, MinCompatibleVersion, ChannelMapSet) plus 23 stack args in ascending order (HTSatChanMapSet, BootSeq, WirelessMode, BehindWifiExtender, WifiEnabled, RoomCalibrationState, Orientation, Invisible, IsZoneBridge, Configuration, HTBondedZoneCommitState, SecureRegState, VoiceConfigState, TVConfigurationError, AirPlayEnabled, VirtualLineInSource, MoreInfo, DeactivationState, DeactivationTTL, DeactivationDateTime, OpenPort, SSLPort, HHSSLPort). All are raw char* attribute values; the matcher stores each strcmp-matched pointer with no conversion.",
+    "Element dispatcher f_1070345c maps incoming SAX events by state bytes: context+0xc = inside ZoneGroup (arm calls f_107024f4 for group attrs Coordinator/ID), +0xd = member open (ZoneGroupMember -> f_10702cf8, Satellite -> f_10702cf8 when +0xd set), +0xe = satellite seen, +0xf = VanishedDevices (Device -> f_10702618 parsing UUID/ZoneName/Reason/ModelInfo/Mac -> delegate vfunc +0x14), +0x10 = QuarantinedDevices (Device -> f_107028cc parsing UUID/ZoneName/Icon/Location/QuarantineReason/SWGen -> delegate vfunc +0x20); a further delegate vfunc at +0x2c is invoked from close handling f_1070239c/f_107024e8.",
+    "Static reachability boundary proven: the parse-context constructor f_10702328 has no incoming reference of any kind in build 86.10-80260. No bl/b to it, no data word holding its address in any section, no .rela.dyn addend, no covering eh_frame FDE, and no dynsym export. Its chain (open thunk f_10703664 -> f_1070345c -> f_10702cf8, close f_107024e8 -> f_1070239c) is therefore dead code: the context+8 delegate object is never instantiated, so the concrete implementation behind delegate vfunc +0xc cannot be bound in this binary. The DeactivationState/TTL/DateTime parameters exist only as parser-side raw strings in this dead path.",
+    "Live member XML writer recovered: f_107423ac (topology_base.cxx) emits <Tag UUID= Location= ZoneName= [QuarantineReason=] Icon= Configuration= then, in order and only when each predicate holds: IsZoneBridge=\"1 (member+0x13b0 query nonzero), Invisible=\"1 (member+0x82c byte nonzero; never emitted as 0), SoftwareVersion=, SWGen=, MinCompatibleVersion=, LegacyCompatibleVersion=, one of ChannelMapSet=/HTSatChanMapSet=/ActiveZoneID= selected by member+0x1c88/+0x177c container emptiness then member+0x876 byte, BootSeq=u16(member+0x1f1c), TVConfigurationError=, HdmiCecAvailable=, WirelessMode=, ConnectionType=, ChannelFreq=, BehindWifiExtender= (member+0x1f24 byte gated by member+0x2568/+0x378 query, else literal 0), WifiEnabled=, EthLink=, Orientation=, RoomCalibrationState= (member+0xeac, or literal 5 when satellite-channel containers fail their secondary predicate), SecureRegState=, VoiceConfigState=, MicEnabled=, HeadphoneSwapActive=, AirPlayEnabled=, [VirtualLineInSource={airplay,spotify,bluetooth,uri} via jump table 0x10f11fb8 on member+0xeb6 enum cases 1,2,3,6; cases 0,4,5,7 and >=8 emit nothing; tvproxy arm at 0x10742a04 is unreachable], IdleState=, MoreInfo=, SSLPort=u16(+0x14f4), HHSSLPort=u16(+0x14f6). Self-closes '/>' when flag arg !=0, else writes '>' + Satellite children via f_10742d64 + '</Tag>'. No DeactivationState/TTL/DateTime attribute is emitted anywhere: the three strings are referenced only by the dead parser.",
+    "Outer document writer f_10743328 emits <ZoneGroupState><ZoneGroups> then per-group <ZoneGroup Coordinator= ID= ...> via f_10742a68/f_10742b98 (orphan form appends ':orphan' to the ID when the coordinator arg is absent), member list via f_10765b40/f_10765bb0 skipping members whose +0xde5 group id fails strcmp against the group, plus <QuarantinedDevices> via f_10743168 with <Device UUID= ZoneName= Reason= ModelInfo= Mac= LastKnownIP= LastSeenUTC= MoreInfo= [ActiveZoneID=]> emitted by f_10742ec8/f_107430cc, then </ZoneGroups></ZoneGroupState>. Reachable from GetZoneGroupState impl slot f_10752ce4, from f_1074d868, and from zonesmgr f_10129888.",
+    "member+0x298 is a u32 zone activation/deactivation transition state with a u8 companion at +0x29c; getter f_10162d10 returns the five bytes +0x298..+0x29c and setter f_10162da4 stores a word+byte pair. Writers and their named log contexts: 1 = activate op submitted in activateZone (0x101684e8) and 'joinZone rcvd on primary' (0x1016a188); 2 = 'deactivating %s zone: %s' bonded-zone deactivate entry (0x10168a94) with +0x29c = bonded/HT query result from f_108337b0(member+0x1dc); 3 = 'primary unavailable: sending Remove ops to secondaries' (0x10168c7c); 4 = 'updating ActiveZone: %s -> %s' (0x10169344); 5 = 'primary change: %s -> %s' (0x101694e4); 6 = 'offline primary: %s -> %s' (0x10169580); 0 = cleared on deactivateZone failure (0x10168bec), f_101695c0 (0x1016972c), f_101699b8 (0x10169a94), f_10169d2c (0x1016a0b8) and init (0x10162e54/0x10163328). These are internal transition markers named by their log contexts, not a compiled enum-name table; no name-table consumer exists."
    ]
   },
   "wireless_modes": {
@@ -230064,10 +230703,77 @@
      "build": "86.10-80260",
      "address": "0x1073ff9c",
      "notes": "Global0x110978c0 -> call0x1073ffb4 -> f_106adbc4 locking+0x68 and loading+0x1f0 -> r26/r5 -> XML formatter0x107400b8. BusyClients call0x1073ffc4 -> f_106adc60 -> seven byte indicators and0x10f04e58. Local state stores0x106adf58/0x106ae160 disprove an unavailable peer-only producer premise."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106adf58",
+     "function": "0x106addb8",
+     "notes": "Consumer stores entry quad {state,code,cnt,chan} to +0x1f0/+0x1f4/+0x1f8/+0x1fc when entry+0x15==0; zero-state entry clears; 0x106ae160 variant."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106ada48",
+     "function": "0x106ad9f8",
+     "notes": "bl _ZN14RZPWifiFuncsIf11setIdleScanEPKcijij on +0x204/+0x21c handles; caches submitted quad into handle+8..+0x14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106ae174",
+     "function": "0x106addb8",
+     "notes": "Submit-failure retry: sonosClockGetTime+0xa via global 0x11098e0c-area scheduler vptr, cb f_106b0738; retry bound r29<10."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b03e4",
+     "function": "0x106b0330",
+     "notes": "setBusyClient recompute loop over +0x1e9..+0x1ef: state=0x1e ANDN masks OR bits via tables 0x10f04e78/0x10f04e94; 'client %s is %s with primary chan %d' log."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f04e78",
+     "notes": "Per-client mask table {0x1e,0x1e,0x1a,0x2,0x8,0x1e,0x1e} and bits table 0x10f04e94 {1,0,0,0,0,0,2} aligned with names 0x10f04e58."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b0058",
+     "function": "0x106b0058",
+     "notes": "Generic enqueue: args -> entry {type,state,code,chan,cnt,retry}, ephemeral byte=0; deque push_back growth via 0x1f8 chunks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106aff8c",
+     "function": "0x106aff24",
+     "notes": "Scan-only producer: entry all-zero with +0x15=1 ephemeral; consumer submits setIdleScan(0) without recording."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f04df4",
+     "notes": "MI vtable: primary slots f_106b05cc,f_106ae1f8,f_106ae3c4,f_106b0624,f_106b05f4; -0x20 thunk f_106b06a4, -0x40 thunk f_106b061c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b0738",
+     "function": "0x106b0738",
+     "notes": "Retry callback: f_106b06ac re-enqueue then 0x7fffffff disarm into timer handle."
     }
-   ],
-   "todo": [
-    "Established: actual local 32-bit IdleState getter and XML chain, null-global output0, and separately enumerated BusyClients bytes/name table. Remaining: trace the state producers reaching stores0x106adf58/0x106ae160 to object+0x1f0, recover each bit predicate and its relation to radio/scan requests, then reconcile with the seven busy-client registrations without equating identifier ordinals to state bits. Start with global0x110978c0, f_106adbc4 and the local writer cluster. The old peer-computed-byte limitation is disproved; this is actionable static work."
    ],
    "resolved_findings": [
     "Resolved: mode FSM = {SONOSNET,INVALID,ETHERNET,STATION_SATELLITE,SONOSNET_SATELLITE_STATION_PRIMARY,STATION}; transitions driven by netconfig + <Wireless><WirelessInfo> dump.",
@@ -230076,7 +230782,12 @@
     "Resolved: the wifi-enabled FSM vocabulary is proven in enum_tables.10fadd94: INACTIVE=1, WIFI_ENABLING=2, ACK_AWAIT=3, WIFI_DISABLING=4, WIFI_DISABLED=5, ACK_NOT_RECEIVED=6.",
     "The actual WirelessInfo IdleState XML source is local: f_1073ff10 loads global0x110978c0, and when nonnull calls f_106adbc4 at0x1073ffb4. That getter locks object+0x68 and returns the full word at object+0x1f0; the caller passes it as r5 to the IdleState 0x%08x formatter at0x107400b8. A null global leaves the initialized output0. The old attribution to a peer byte at+0x82e and f_10761d40 struct copying is not this emit chain and is withdrawn.",
     "BusyClients is independently built by f_106adc60 using seven local client bytes at object+0x1e9..+0x1ef and the names table0x10f04e58: AUDIO_OUT, AUDIO_IN, LOCAL_SONOSNET, NO_SONOSNET_PEERS, NO_PRIMARY, UPGRADING and HT_SWAP; active names are comma-space separated. The companion name getter f_106adc2c also accepts index7=UNKNOWN_ID and returns an empty spelling above7. These client identifiers are not automatically the IdleState word bit positions.",
-    "Local writer stores to the getter member occur at0x106adf58 and0x106ae160, with initialization at0x106ae58c. This supplies a concrete static continuation into the producing logic. The dpUpdateIdleState reference at0x105b6c30 only constructs a named task and does not itself compute the state bits."
+    "Local writer stores to the getter member occur at0x106adf58 and0x106ae160, with initialization at0x106ae58c. This supplies a concrete static continuation into the producing logic. The dpUpdateIdleState reference at0x105b6c30 only constructs a named task and does not itself compute the state bits.",
+    "IdleState producer chain fully traced: object+0x1f0..+0x1fc is a 4-word recorded request {state@+0x1f0, code@+0x1f4, count@+0x1f8, chan@+0x1fc} plus retry marker +0x200, written only by queue consumer f_106addb8 (wifi_idle_mgr.cxx) at 0x106adf58/0x106ae160 and zeroed by ctor f_106ae408 at 0x106ae58c-0x106ae5a8. Entries are 0x18-byte deque records {u8 selector@0, u32 state@4, u32 code@8, u32 chan@0xc, u32 cnt@0x10, u8 retry@0x14, u8 ephemeral@0x15}: non-ephemeral entries record their quad to +0x1f0..+0x1fc (a zero-state entry therefore clears it), then every entry is submitted to the fronthaul radios.",
+    "Submission path: f_106addb8 forwards each entry through f_106ad9f8 to the two RZPWifiFuncsIf handles cached at +0x204 and +0x21c, invoking RZPWifiFuncsIf::setIdleScan(PKc,int,uint,int,int) with (ifname, state|1 on the record path, chan, code, cnt); the second handle receives chan=0. On a nonzero return the entry reschedules itself through the global+0x5f8c scheduler (vtable+0xc) with callback f_106b0738 at now+10 ticks for up to 9 attempts; the retry callback calls f_106b06ac and disarms the timer handle. 'Device set to %08x with primary chan %d code 0x%x cnt %u retry %u' and 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d' are the two log lines.",
+    "Enqueue producers: f_106b0058 is the generic append (args map 1:1 to entry fields, ephemeral=0); f_106aff24 appends an all-zero ephemeral entry = one-shot idle-scan request; f_106b01c4 appends the fixed startup request {selector0, state0x16, code1}; f_106b0624 (vtable slot +0x10) re-enqueues the recorded quad for link resync; f_106b06ac re-enqueues it with chan=0 only when +0x200 shows no retry pending; f_106b020c drains the queue under the +0x1e8 run flag.",
+    "BusyClients reconciliation: the state word is derived, not ordinal-mapped. setBusyClient f_106b0330 stores val at +0x1e9+id and recomputes state = (0x1e AND NOT union of per-client masks) OR union of per-client bits, and code = union of bits (forced to 1 when empty). Tables 0x10f04e78 (mask) and 0x10f04e94 (bits) are indexed by the same 0..6 ordinal as the name table 0x10f04e58: AUDIO_OUT{0x1e,0x1}, AUDIO_IN{0x1e,0x0}, LOCAL_SONOSNET{0x1a,0x0}, NO_SONOSNET_PEERS{0x2,0x0}, NO_PRIMARY{0x8,0x0}, UPGRADING{0x1e,0x0}, HT_SWAP{0x1e,0x2}. Idle with no busy clients reads 0x1e; AUDIO_OUT contributes bit0, HT_SWAP contributes bit1, NO_SONOSNET_PEERS strips bit1, NO_PRIMARY strips bit3, LOCAL_SONOSNET strips bits1+3+4.",
+    "Client registrations enter through the class vtable at 0x10f04df4 (three-subobject MI table, second/third base thunks f_106b06a4 -0x20 and f_106b061c -0x40): adapter f_106b05cc converts *(arg)!=0 into setBusyClient id1 and f_106b05f4 does id0 via f_106b0538, which forwards the recorded +0x1f8 count into the queue entry; per-client getter f_106adb4c reads +0x1e9+id under the +0x68 lock."
    ]
   },
   "audio_decoders": {
@@ -245462,9 +246173,6 @@
   "kmod_ath_wifi": {
    "name": "Atheros WiFi modules",
    "summary": "The Qualcomm Atheros 802.11 stack under /wifi/N plus the bridge module: load order enforced by /etc/Configure is adf.ko -> asf.ko -> ath_hal.ko -> dfs.ko (if present) -> ath_driver.ko, then /wifi/bridge.ko.",
-   "todo": [
-    "Established: the correct table base and REL32 formula reduce the supposed ~300 leaf cases to 119 non-default slots, with 117 distinct non-default entry PCs; two slots are epilogue-only, and 266 slots share the fallback after ath_lmac_ioctl declines. Outer ioctl framing and selected household-id, UUID, deauth and chain-count bindings are documented. Remaining: join the actual inline/marshal parameter arms to athconfig verbs and field meanings, and audit the other named-handler payloads rather than assign semantics from the first call. Candidate inline/marshal slots requiring that join are 0x4,0xc,0xe,0xf,0x15-0x17,0x19-0x1b,0x1d,0x1f-0x21,0x23,0x27,0x2d,0x2e,0x30,0x35-0x3a,0x49-0x4c,0x53,0x54,0x64,0x66,0x67,0x9b,0xce-0xd0,0xd3,0xdc,0xdd,0xe3-0xe5,0xe7,0xe8,0x137,0x13a-0x13c,0x164,0x16b,0x176,0x17e-0x180. Trace their corrected case entry PCs through shared copy paths and cross-reference the userspace five-word envelope builders. Lower-layer ath_lmac_ioctl handling precedes this switch and must also be checked before interpreting a fallback slot as globally unsupported."
-   ],
    "artifacts": [
     "wifi/N/adf.ko",
     "wifi/N/asf.ko",
@@ -245482,7 +246190,12 @@
     "Concrete reachability: Linux ioctl 0x89f0 reaches ath_do_ioctl (.text+0x12ddc). It reads the ifreq pointer at +0x10, copies a 20-byte envelope from userspace, and passes its five words as cmd,r5,r6,r7,r8 to ath_ioctl at .text+0x12e7c. This is distinct from outer requests 0x89f1 and 0x89f2. The switch values 0..0x180 are envelope command words, not Linux ioctl request numbers; .text+0x11524 is not an outer SIOCDEVPRIVATE dispatcher.",
     "Verified corrected handler bindings: envelope cmd 0x2 enters .text+0x11428 and calls ath_ioctl_set_hhid at +0x114a8; cmd 0x3b enters +0x10394 and reaches ath_ioctl_set_uuid at +0x11780; cmd 0x13 enters +0x114fc and calls ath_ioctl_set_nchains at +0x11504. Cmds 0x2a and 0x2b share +0x11118 and ath_ctl_deauth_sta_ioctl at +0x11120. Cmds 0x138 and 0x139 both enter the shared epilogue +0xfa18 without another operation after lower-layer decline. These examples independently check the relocation formula; reading each relocation addend as an absolute case PC, or using .rodata+0 as the table start, produces different and incorrect command bindings.",
     "Household-id input contract on cmd 0x2: envelope word 1 (r5) is an unsigned length checked <=32 at .text+0x11428. The arm zeroes a 33-byte local buffer, copies that length from the user pointer in envelope word 3 (r7), checks copy failure, and passes the buffer and low-byte length to ath_ioctl_set_hhid. It does not treat word 1 as a pointer. This is one concrete semantic binding across the shared marshalling paths, not evidence that every arm uses the same word layout.",
-    "Chain-count input contract on cmd 0x13: envelope word 1 is passed directly to ath_ioctl_set_nchains. Positive values 1,2,3,4 select masks 1,3,7,15. Negative inputs select the low eight bits of the negated word, accepted only when that result is <=15; this is not a general full-width negative-mask range check. Other nonnegative values return -22. The selected mask is compared with driver bytes +0x552c/+0x552d, then written to both, with spatial-stream counts written at +0x552e/+0x552f. A present HAL callback at +0x8c receives the masks; callback failure returns -22 after the stored bytes have already changed."
+    "Chain-count input contract on cmd 0x13: envelope word 1 is passed directly to ath_ioctl_set_nchains. Positive values 1,2,3,4 select masks 1,3,7,15. Negative inputs select the low eight bits of the negated word, accepted only when that result is <=15; this is not a general full-width negative-mask range check. Other nonnegative values return -22. The selected mask is compared with driver bytes +0x552c/+0x552d, then written to both, with spatial-stream counts written at +0x552e/+0x552f. A present HAL callback at +0x8c receives the masks; callback failure returns -22 after the stored bytes have already changed.",
+    "athconfig verb table (userspace): 93 {name_ptr,handler} pairs at .rodata 0x100051d4..0x100054b0, read as name-first not handler-first; the second word is a handler VA, the first points to the verb string at 0x10006b9c+. Each tiny stub handler loads r6=envelope cmd word, r7=usage string, r3=declared numeric-arg count, then tail-branches to the shared issuer 0x10001214, which atoi()s argv[3..] into a word array whose word[0]=cmd and calls the ioctl wrapper 0x10000b2c. That wrapper snprintf()s the netif name into a 16-byte ifreq, stores the word-array pointer as ifr_data at +0x10, and issues ioctl(fd,0x89f0,&ifr): exactly the five-word envelope ath_do_ioctl copies in. The earlier off-by-one risk is real: reading the table as {handler,name} pairs shifts every binding by one verb.",
+    "Complete athconfig verb -> envelope-cmd -> switch-arm join (athconfig handler -> cmd -> .text arm in ath_driver.ko): setchannel 0xb->0x112d8, getchannel 0xc->0x113c4 (helper 0x10000bc8 env {0xc,&out} returns word), getchannels 0x48->0x1037c (env {0x48,buf,0x404}), sethhid 0x2->0x11428 (env {0x2,len<=32,strptr} -> ath_ioctl_set_hhid), setwepkey 0x6->0x111fc (kernel copies 0x10 bytes from user pointer), ssidinbeaconenable 0x16->0x112b8, beaconenable 0x1c->0x110cc, psenable 0xe->0x11510, setantswitch 0x9 (LMAC returns -ENOSYS), csenable 0xd->0x111a8, phyerrcalenable 0x10 (LMAC stb 0x54e0), defofdmweak 0x18 (LMAC arg<=9 stb 0x54e3, matches usage 0|1..9), percalenable 0x11 (LMAC stb 0x54e1 plus rate 0x3c->0x5a94 when on), indicatenetstart 0x4->0x1124c (requires word1==dev+0x5500 magic, copies 6-byte MAC to +0x5518), settxtries 0x15->0x111c8, setlatencybucket 0x23->0x1102c (env {0x23,arg*1000,0}), setnchains 0x13->0x114fc, getnchains 0x21->0x11054 ({0x21,buf,0x10,0}), settxpower 0x17->0x1129c, noisecal 0x22 (LMAC reads noise floor, chan-set with cal flags via hook +0x1c), forcetxrate 0x1b->0x1113c, conttx 0xdc->0x10a24 (plus cmd 0x7->0x111dc in the same test sequence, embedded frame bytes 01 FE CA FE ...), setmcs 0x1f->0x110b0, getmcs 0x20->0x11064 ({0x20,&out}), deafmode 0xda (LMAC hook +0x1f0, result->0x4a0), ldpc 0x24 (LMAC bool->0x4a4), stbc 0x25 (LMAC bool->0x4a8), getqosedca 0x36->0x104d0 ({0x36,ac-idx,0x28-buf,arg}, userspace loops idx 0..6), setqosedca 0x37->0x10ef8 ({0x37,6,argblk,0,0,aifsn,cwmin,cwmax,-1}), setqosretries and sethptxqretries share cmd 0x38->0x1048c (envs {0x38,qosidx,ms,each,total} and {0x38,ms*1000,each,total,0}), sethptxqedca 0x39->0x10410, setbeaconperiod 0x1d->0x1112c, gettxbackpressure 0x1a->0x10f20 ({0x1a,&out}), getrxhistory 0x65->0x1014c, clearrxhistory 0x64->0x10170 (flag->0x4bb8, zeroes 0x4bac/0x4bb0/0x4bb4), setrxhistorylenfilter 0x66->0x10194 (->0x4bbc), setrxhistorytrigger 0x67->0x10130 ((arg!=0)->0x4bc0, 0->0x4bc4), txtrigger 0xdc->0x10a24 plus cmd 0x7 in sequence, qosenable 0x35->0x105e8, acs 0xc8->0x10744, acslmenable 0xcf->0x10638 ((arg!=0)->0x56a0), acslmconfig 0xd0->0x105f0 (24-byte per-index record at scan-ctx+0x2688, fields r27/r26/r24 = blocksize/blocks/thresh), getacs 0xce->0x1064c (copies 48-byte-per-channel ACS table from ctx+0x1a28 gated by flag bit 0x40 in dev+0xcc), setuuid 0x3b->0x10394 (env {0x3b,ptr,strlen} -> ath_ioctl_set_uuid), scanenable 0xd1->0x109a4, scaninterval 0xd3->0x10880 (arg*250ms bound by 0xdbba0, jiffies stored ctx+0x1a18/0x1a24), setprimaryadvert 0xdd->0x10a0c (flag byte->0x53b9), idlescan 0xd2->0x108ec, cacenable 0xcb->0x10718, cactimeout 0xd5->0x10018, cacreset 0xd4->0x107d4, nolenable 0xc9->0x10734, nolclear 0xca->0x10728, setnoltimeout 0x163->0xfcb4, bangradar 0x4a->0x10464 (indirect call via ops+0x70 with arg 7), forcewdreset 0xe1 (LMAC counter 0x4ac, jiffies->0x4b0, atomic bit or->0x4c2c, stoprecv path), getlinkstats 0x2e->0x10d60 -> ath_ioctl_get_link_stats at +0x10dc ({0x2e,0,0x32,bufptr,0}), getwirelesscnx 0x55->0x102b4 ({0x55,&out}), directenable 0x49->0x10484 (->0x5a64), settestpoint 0xd8->0xff74 ({0xd8,strlen,strptr,ints}), gettestpoints 0xd9->0xff28 ({0xd9,buf,0x500,out}), settestpointneighbor 0xe6->0x10028, keycache 0xdb->0x10a58, setnladdthresh 0x4b->0x1045c (->0x5a70), setnldelthresh 0x4c->0x10454 (->0x5a74), setnladdthreshht 0x53->0x1022c (->0x5a78), setnldelthreshht 0x54->0x10224 (->0x5a7c), stasetenable 0x12d->0x1077c, stassidlistclr 0x13a->0xfd80 (memset 0x228 at dev+0x2974), stassidlistadd 0x13b->0xfcfc (<=16 slots of 0x20 bytes at +0x2978, len<=0x20), stagetstate 0x12e->0xff0c ({0x12e,arg,0x434,0}), stadisassoc 0x12f->0xfefc, stasetnogcint 0x136->0xfd70, stasetwmm 0x137->0xfd68 (->0xafc), staroamscanint 0x13c->0xfcc4 (arg1 in [0x3c,0x93a44], arg2 in [0x78,0x127488], arg1>=arg2, else -22), forcegtkrekey 0x9c->0x10078, bgprotect 0x164->0xfc78 ((arg!=0)->0xb00 plus ops hook +0xa0 with flag byte 0x325e), scanstart 0x50->0x102c8 ({0x50,atoi,0x50,0x50}), scanabort 0x51->0x1024c, scanclear 0x56->0x1029c, scanclearssid 0xe9->0x10ee0 ({0xe9,strptr,strlen,0}), scangetresults 0x52->0x10234 ({0x52,arg,0xf28-buf,0,0}), senddeauth 0x58->0x10208 (parsed MAC + numeric args), nsprobeenable 0xdc->0x10a24 ({0xdc,atoi,1,0,0}), setintrmitig 0xe2 (LMAC enable bits ->dev+0x44c/0x450 then four hook calls via +0x23c types 0..3 = rxfirst rxlast txfirst txlast), setnetsettings 0xe5->0x10b94 (word2 must be ptr, word3==4; kernel copies 4 bytes {u16==2,u8,u8} into +0x4c40..0x4c44), getmibcc 0xe7->0x10e18 (word3==0x18; returns six clear-channel counter bytes +0x5d35/0x5e11/0x5eed/0x5d36/0x5e12/0x5eee indexed by channel byte +0x6010), blockadvertisedpath 0x175->0xfb24, lmlenient 0x17c->0xfaac, ignorenonsatprobes 0x17e->0xfa84 (printk then flag->0x5644), setopenmode 0x4d->0x10324 ({0x4d,strlen,strptr,1}).",
+    "ath_lmac_ioctl first-stage dispatch at .text+0x27f18 (0x3ac bytes): writes 1 to the caller's handled out-word on entry, then switches on cmd. Handled set: 0x10 -> stb arg!=0 at dev+0x54e0; 0x11 -> stb at +0x54e1 and stw 0x3c->+0x5a94 when arg nonzero; 0x18 -> arg<=9 stb +0x54e3 else -22; 0x22 -> noise-floor read then channel-set via lmac hook +0x1c with cal flag word; 0x24 -> bool +0x4a4; 0x25 -> bool +0x4a8; 0xda -> indirect hook at [dev+0x300]+0x1f0 with bool arg, result stored +0x4a0 and printed; 0xe1 -> increments wd counter +0x4ac, stores jiffies +0x4b0, atomic-ORs bit 1 at +0x4c2c, and if the bit was already set drives the stop-recv path; 0xe2 -> combine-enables to lmac dev +0x44c/+0x450 and calls hook +0x23c four times (types 0,1,2,3) with the four numeric args. cmds 0x9 and 0x12 return -ENOSYS (-38). Any other cmd writes 0 to the handled out-word and returns 0, which is exactly what drops the request into the documented ath_ioctl jump table. So the 0x11524 fallback inside the switch only sees cmds that LMAC explicitly declined.",
+    "Switch arms with no athconfig/wpa_supplicant verb in this build (still real entry PCs, semantics from the arm bodies): cmd 0x7 ->0x111dc and 0x8->0x112f4 (numeric stores used inside conttx/txtrigger sequences); 0xf->0x114b4 copies dev+0x54f8 blob to user when flag +0x54f4 set; 0x19->0x10f74 stw arg->+0x54d8; 0x27->0x10f7c returns a 0x40-byte status struct (0x10 at +0xc, fields at +0x20/+0x24); 0x28->0xf904, 0x29->0x1114c, 0x2c->0x11104, 0x2f->0x10c60; 0x2d->0x10d7c printk then sth (arg!=0)->+0xa48; 0x30->0x10c0c returns 0x84 bytes from scan ctx +0xbb60 under local_bh_disable; 0x3a->0x10400 stores {word->+0x9a8, byte->+0x9ac, byte->+0x9ad}; 0x9b->0x100ac sets len<=0x101 at +0x5634, memsets +0x5530 and copies the user string, flag->+0x5528; 0xe3->0x10b68 copies the word at dev+0x5438 to user; 0xe4->0x10b04 indirect hook via ops+0x3c returning 0x40 bytes; 0xe8->0x10dcc requires word3==2 and marshals 2 bytes from the user buffer; 0x130->0x10da8 and 0x132->0xfe38 (issued by wpa_supplicant {0x130,&out},{0x132,&out}); 0x133->0xfdd0; 0x16b->0xfbf8 returns flag (dev+0x5504)!=0; 0x176->0xfad8 copies 6-byte MAC from +0xb76 or [[+0x300]+0x150]; 0x17f->0xfa5c printk then flag->+0x5648; 0x180->0xfdb0 calls ath_ioctl_set_channel_simple.part.19 (+0x534c) with u16 arg.",
+    "wpa_supplicant issues the same 0x89f0 envelope through its own builder at 0x10037cb0: it memcpy()s the 16-byte ifreq name from priv+4, stores {r4,r5,r6,r7,r8} as the five-word data block (word[0]=cmd), and calls ioctl. Its three call sites send cmds 0x12e (stagetstate, also used by athconfig), 0x130 with an out pointer, and 0x132 with an out pointer. Neither 0x130 nor 0x132 has an athconfig verb. sta-assoc and wpaconfig are scripts, and netstartd/wacd contain no 0x89f0 immediate, so every other unbound arm above has no in-build issuer."
    ],
    "evidence": [
     {
@@ -245527,6 +246240,66 @@
      "function": "ath_ioctl_set_nchains",
      "address": "0x827c",
      "notes": "Rotate audit of .text+0x827c: raw 0x549e063e has SH=0,MB=24,ME=31,Rc=0: r30=(-input)&0xff after neg at +0x8278, not (-input)>>8. Unsigned compare <=15 at +0x8280 follows this byte mask. The previously documented negative-input contract already describes low-byte truncation and remains unchanged."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "address": "0x100051d4",
+     "notes": "93-entry verb table {name_ptr,handler} (name first). Stub convention proven by embedded usage strings: each handler's r7 string names itself (for example 0x10001644 loads 'stasetwmm netif 0|1' for the stasetwmm entry), and 'setnchains' handler 0x10001884 issues cmd 0x13 matching kernel-verified set_nchains."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "function": "issuer",
+     "address": "0x10001214",
+     "notes": "Shared stub tail: r6=cmd stored at env word[0] (+0x18(r1)), argv ints atoi'ed into following words, then bl 0x10000b2c. Wrapper 0x10000b2c builds ifreq{name[16],data=envptr+0x10} and calls ioctl(fd,0x89f0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "address": "0x10001cb4",
+     "notes": "sethhid handler: env {0x2,len<=32-checked,strptr} confirms kernel arm contract for cmd 2. Adjacent bodies give setuuid env {0x3b,ptr,strlen} (cmd 0x3b), gettestpoints env {0xd9,buf,0x500,out}, settestpointneighbor {0xe6,...}, getwirelesscnx {0x55,&out}, getnchains {0x21,buf,0x10,0}, getmcs {0x20,&out}, gettxbackpressure {0x1a,&out}."
+    },
+    {
+     "type": "firmware",
+     "binary": "athconfig",
+     "build": "86.10-80260",
+     "address": "0x10000d60",
+     "notes": "getlinkstats env {0x2e,0,0x32,bufptr,0}; arm .text+0x10d60 calls ath_ioctl_get_link_stats (symtab). getmibcc env {0xe7,ptr,0x18}; scanstart env {0x50,atoi,0x50,0x50}; scangetresults env {0x52,arg,0xf28,0,0}."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_lmac_ioctl",
+     "address": ".text+0x27f18",
+     "notes": "First-stage dispatch before the switch: handled cmds 0x10/0x11/0x18/0x22/0x24/0x25/0xda/0xe1/0xe2 with per-cmd field writes (0x54e0/0x54e1+0x5a94/0x54e3/chan-set hook/0x4a4/0x4a8/hook+0x1f0->0x4a0/wd-counter+atomic bit/enable pair +0x44c+0x450 with 4 hook calls); cmds 9 and 0x12 return -ENOSYS; all others write 0 to handled out-word, dropping to the 385-entry switch."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl",
+     "address": ".text+0x10f7c",
+     "notes": "Representative arm bodies: 0x27 returns 0x40-byte status struct to user; 0x30 copies 0x84-byte block from scan ctx +0xbb60; 0x9b string-set len<=0x101 ->+0x5634/+0x5530; 0x16b returns flag +0x5504; 0x176 returns 6-byte MAC (+0xb76 or [[+0x300]+0x150]); 0xe5 marshals 4 user bytes {u16==2,u8,u8}->+0x4c40..0x4c44; 0xe8 requires len==2 marshal."
+    },
+    {
+     "type": "firmware",
+     "binary": "wpa_supplicant",
+     "build": "86.10-80260",
+     "address": "0x10037cb0",
+     "notes": "Sonos driver wrapper issues ioctl 0x89f0 with same five-word envelope {r4..r8} (word[0]=cmd, ifreq.name=priv+4 via 16-byte memcpy, ifr_data=env). Call sites send 0x12e, 0x130, 0x132."
+    },
+    {
+     "type": "firmware",
+     "binary": "ath_driver.ko",
+     "build": "86.10-80260",
+     "function": "ath_ioctl",
+     "address": ".text+0x1124c",
+     "notes": "cmd 0x4 indicatenetstart arm: requires envelope word1 == dev+0x5500 stored magic (else -22 path 0x12ad8), then copies 6 bytes from the user pointer in word2 into dev+0x5518 and sets flag +0x5520. Matches athconfig 'indicatenetstart netif 0|1' issuing {0x4,arg} with kernel reading a following pointer word."
     }
    ]
   },
