@@ -220634,7 +220634,7 @@
      ]
     },
     "normalized_schema": {
-     "description": "Capability bit 0x400000 controls presentation suppression in the normalized catalog emitter: its extraction at 0x100cb784 stores per-service byte +0x1434, which gates Presentation, Strings and PresentationMap callbacks. The separate Manifest callback remains available when a manifest URI is present. Nested URI elements are serialized as Version/Uri attributes by f_100c757c; this helper performs no network fetch. Policy carries Auth and PollInterval. The normalized BuiltInService callback emits Type and Name. It appends a type to the available-trials comma list when (type &0x81)==0x80 and type!=0x84. These are literal mask/equality tests; no named enum assignment is inferred here. The accumulated list has its final comma removed before successful return and is later passed to the R_AvailableSvcTrials update helper. Full field inventory is in payload_formats.music_service_catalog.",
+     "description": "Capability bit 0x400000 controls presentation suppression in the normalized catalog emitter: its extraction at 0x100cb784 stores per-service byte +0x1434, which gates Presentation, Strings and PresentationMap callbacks. The separate Manifest callback remains available when a manifest URI is present. Nested URI elements are serialized as Version/Uri attributes by f_100c757c; this helper performs no network fetch. Policy carries Auth and PollInterval. The normalized BuiltInService callback emits Type and Name. It appends a type to the available-trials comma list when (type & 0x81)==0x80 and type!=0x84. These are literal mask/equality tests; no named enum assignment is inferred here. The accumulated list has its final comma removed before successful return and is later passed to the R_AvailableSvcTrials update helper. On the parse side, the SAX adapter f_105528ac drives descriptor-table builder vtable 0x10ee9e64 into 0x138-stride rows: +0 Name, +0x20 SecureUri packed, +0x60 Strings, +0xa0 PresentationMap, +0xe0 Manifest, +0x120/+0x122 service/secure versions, +0x124/+0x126/+0x128 resource versions, +0x12a PollInterval (clamped to 30 by f_105540d4), +0x12c Auth byte, +0x130 Capabilities, +0x134 Id. beginService f_10554e00 refuses rows at capacity and logs 'Skipping service SID %u (%s) because beginService failed (URLs too long?)'; commit is f_10554f0c; row-equality f_1055453c compares Id, the three version hwords at +0x120/+0x124/+0x128, Capabilities, PollInterval and the high half of Auth plus the four URI strings, ignoring +0x122, +0x126, the Auth low byte and Name. URI strings are prefix-packed: marker table 0x10ee9eb0 maps 'https://www.'->tag 0x1000000, 'http://www.'->0x2000000, 'https://'->0x3000000 and 'http://'->0x4000000 through f_10553994 strncasecmp matching, and f_10553ab0 expands them back with '%s%s'. Auth names resolve through f_10554090 where byte +0x12c minus 1 indexes ['Stateless','Anonymous','DeviceLink','AppLink'], else 'UserId'. Manifest load f_10552c20 is gated by devmode option 7 (f_1054bdc8 on global 0x110a0374): with the option clear the manifest URI must match strncmp 'https' (5) or it logs 'Manifest URL must use HTTPS: %s'; with it set any URI is accepted, and a handler failure logs 'Failed to load manifest %s (URLs too long?)'. f_105543d0 expands the manifest URI and replaces a leading '{device}' placeholder with 'zp' when it fits. Emission composes each element in a 0x2000 stack writer: markup raw, attribute values through the five-entity escaper f_105779c8. Full field inventory is in payload_formats.music_service_catalog.",
      "evidence": [
       {
        "type": "firmware",
@@ -220649,9 +220649,36 @@
        "build": "86.10-80260",
        "address": "0x100cb2a8",
        "notes": "BuiltInService trial mask/equality predicates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ee9e64",
+       "notes": "Descriptor builder vtable consumed by SAX adapter f_105528ac; begin f_10554e00 capacity skip log; commit f_10554f0c; row-equal f_1055453c field set."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ee9eb0",
+       "notes": "URI scheme marker table: four prefix/tag pairs; pack f_10553994, expand f_10553ab0, {device}->'zp' substitution f_105543d0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10553504",
+       "notes": "Manifest HTTPS gate inside f_10552c20: devmode option-7 check f_1054bdc8(0x110a0374,7) selects strncmp 'https' enforcement vs free-form; failure logs."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10554090",
+       "notes": "Auth name table 0x10ee9eec = Stateless/Anonymous/DeviceLink/AppLink else UserId; PollInterval clamp-to-30 in f_105540d4."
       }
-     ],
-     "todo": "Established: normalized emitter callbacks and their field vocabulary are mapped. Remaining: exhaust generic parser dispatch, escaping and URI expansion; verify every existing descriptor/manifest resolved claim against its own parser."
+     ]
     }
    }
   },
