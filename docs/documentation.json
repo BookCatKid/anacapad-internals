@@ -223847,38 +223847,86 @@
      ]
     },
     "transport_preflight": {
-     "description": "Executor f_106ff03c invokes f_106fdf60 with selector zero. That chooses f_1053b724 rather than f_1053b6b0; both first call shared URI/setup helper f_1053b4a4 and return any nonzero result unchanged. Their following f_1054a158 calls differ by selector0 versus1. f_106fdf60 calls request-header builder f_106fdca0 for either return0 or11, but preserves that return value. The executor only enters its HTTP core when the preflight result equals0; even11 therefore skips the core and leaves executor result1001. Header construction alone does not prove submission. f_106fdca0 emits a POST request with HTTP/1.1, CONNECTION: close, ACCEPT-ENCODING: gzip, HOST, USER-AGENT, extra headers, CONTENT-LENGTH, CONTENT-TYPE: text/xml; charset=\"utf-8\", and quoted SOAPACTION. The action is formed from stored namespace, an optional # separator selected by request+0xa46, and stored method. If request+0xa11 has target text it also formats X-SONOS-TARGET-UDN: uuid:<text> with capacity128. The complete request-header buffer at request+0xa4c has capacity32768. An unsigned comparison of snprintf return>32767, including negative returns interpreted as unsigned, only logs Failed to fill request headers; the code still stores strlen of the resulting buffer at+0x8a4c and continues. Extra name/value headers are assembled into a7918-byte scratch buffer through snprintf_append; its capacity/return behavior still needs independent analysis.",
+     "description": "Executor f_106ff03c always calls preflight f_106fdf60 with selector0; a nonzero selector would choose f_1053b6b0 instead of f_1053b724 but no caller supplies one. Both wrappers first run shared URI parser f_1053b4a4 on the request+0x410 URI string and return its result unchanged on failure. f_1053b4a4 accepts only exact 'http' or 'https' schemes, storing flag0/1 at request+0x40b and rejecting any other or missing scheme or empty host with 0x80000002. It copies the host into request+0xa and the caller's1024-byte buffer, parses an optional ':port' with strtoul into request+0x8 defaulting to80 or443 by scheme, and copies the path into the caller's8193-byte buffer, cutting at '#' and defaulting to '/'. On parse success each wrapper calls resolver f_1054a158 on the stored host, writing the IPv4 result to request+4; they differ only in the third argument,0 versus1. The resolver returns1 with an address for inet_aton literals, 'localhost' (mapped to127.0.0.1 then reported through f_10548e80 type7), or a positive hit from DNS-provider cache singleton0x11097370 (f_10578e98 result1). Provider results3 (quiet decline),2 (negative hit) and0 (miss) return0 immediately when the selector argument is nonzero; with selector0 a miss or decline falls through to the manual path, while a negative hit logs at level4 and still returns0. The manual path is skipped entirely when policy hook f_100af05c returns nonzero, also a log-only0. Otherwise 'localhost' goes to gethostbyname_r and other names to f_10549514 (source code2), f_105495f4 (code3) and finally gethostbyname_r (code1). A manual success is inserted into the provider cache with TTL capped at900 via f_10579160, takes the type7 report and returns1; total failure inserts a negative entry through f_105790a0 and returns0. f_1053b724 maps a zero resolve to0x81000003; f_1053b6b0 maps it to11. f_106fdf60 calls request-header builder f_106fdca0 for wrapper results0 or11 yet preserves the code, and the executor enters its HTTP core only on0, so any parse failure or unresolved host ends as result1001. Header construction alone does not prove submission. f_106fdca0 emits 'POST <path> HTTP/1.1' with CONNECTION: close, ACCEPT-ENCODING: gzip, HOST, USER-AGENT from f_10550ffc, an extra-headers block, CONTENT-LENGTH from f_105621a4 on the serializer object, CONTENT-TYPE: text/xml; charset=\"utf-8\", an optional 'X-SONOS-TARGET-UDN: uuid:<+0xa11>' line, and quoted SOAPACTION \"<ns><sep><method>\" from+0x811 and+0x911. The separator is '#' when+0xa46 is set; the constructor always sets it and no code clears it. Extra headers come from the+0x8a50 name/value list populated through request vfunc+0x30 (f_106fd270, which parses 'Name: value' lines via f_10551678) and are rendered into a7918-byte scratch buffer by the external snprintf_append import; that import's truncation semantics are not statically visible, so list overflow cannot be excluded from the binary alone. Independently, when the parsed host with any ':port' removed equals127.0.0.1 exactly, f_106fdbbc and f_106fd87c compose 'x-sonos-upnp-loopback-token: <token>' and inject it into the same+0x8a50 list through vfunc+0x30; the token comes from f_10c3c65c, which reuses a singleton value or lazily hex-encodes fresh random bytes. The finished header block lives at request+0xa4c with capacity32768 and its strlen stored at+0x8a4c; an snprintf result above32767, including negative values through the unsigned compare, only logs 'Failed to fill request headers' and processing continues. The connection core pulls the finished block through request vfuncs+0x1c and+0x20 (f_106ffb3c/f_106ffb4c). Two other callers share the same parse/resolve wrappers: f_10713ed4, a UPnP/direct HTTP path with its own GET and form-urlencoded POST templates, applies the identical0/11-proceed convention; and f_1038ca40 tail-calls f_1053b724 after composing a '%s%s%s' URL for a secure download. f_106fe02c, which re-parses request+0x410 through f_10c3a920 and rebuilds headers without re-resolving, has no callers in this build and is dead code. Socket submission, TLS and the nonblocking exchange belong to the connection core f_1053a060 (see the http_poll_loop record); the executor performs exactly one attempt and contains no redirect-following loop.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fdf60",
-       "notes": "Selector-zero call0x1053b724, preservation of r31 return, and exact0/11 header-construction gates0x106fdfc4/0x106fdfcc; raw0x419e0044/0x419e003c."
+       "notes": "Selector branch at0x106fdfb4 chooses f_1053b6b0 (arg!=0) or f_1053b724 (arg0); results0/11 run f_106fdca0 at0x106fe008-0x106fe014 with stack host buffer0x14 cap0x400 and path buffer0x418 cap0x2001; raw0x419e0044/0x419e003c gates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053b4a4",
+       "notes": "URI parser: scheme byte to+0x40b, host to+0xa and caller buffer cap0x400, strtoul port to+0x8 with 80/443 defaults, '#' truncation and '/' default for path; 0x80000002 on bad scheme or empty host."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054a158",
+       "notes": "Resolver: inet_aton, 'localhost', provider query f_10578e98 on singleton0x11097370, selector gating at0x1054a268-0x1054a2cc, restricted-mode skip via f_100af05c at0x1054a304, manual chain f_10549514/f_105495f4/gethostbyname_r, provider insert f_10579160 with TTL cap0x384 at0x1054a400, negative insert f_105790a0 at0x1054a4d8."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x1053b724",
-       "notes": "Shared setup then f_1054a158 selector0; selector1 counterpart0x1053b6b0."
+       "notes": "Selector0 wrapper: resolve0 ->0x81000003 via isel at0x1053b788; selector1 counterpart f_1053b6b0 maps0->0xb at0x1053b70c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fdca0",
-       "notes": "Extra header assembly, target header and32768-byte request formatting. Unsigned attempted-length test0x106fde40; continuation0x106fde7c."
+       "notes": "Header builder: extra-header scratch at sp+0xcc cap0x1eee via external snprintf_append at0x106fdda4, loopback branch0x106fdd14->vfunc+0x30 at0x106fdf4c, TARGET-UDN format0x10f0b960 cap0x80, main POST template0x10f0b980; unsigned attempted-length test0x106fde40, continuation0x106fde7c, length store to+0x8a4c at0x106fde88."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fd87c",
+       "notes": "Loopback check compares parsed host addr to0x7f000001 and builds 'x-sonos-upnp-loopback-token' plus ': ' plus token from f_10c3c65c (singleton reuse or fresh random hex)."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x10f0b980",
-       "notes": "Literal POST template with close/gzip/host/user-agent/content-length/XML content type/quoted SOAPAction."
+       "notes": "Literal POST template with close/gzip/host/user-agent/extra/content-length/XML content type/TARGET-UDN/quoted SOAPACTION."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10713ed4",
+       "notes": "Second preflight consumer: UPnP/direct HTTP path; calls f_1053b724 at0x107143f0 and proceeds on0 or0xb at0x107143f4-0x10714400 into GET template0x10f0e1c4 or form POST template0x10f0e22c selected by sp+0x521c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1038ca40",
+       "notes": "Third consumer: composes URL then tail-calls f_1053b724 at0x1038cb70; used by five download helpers0x1038f70c/0x1038f960/0x1038fb54/0x1038fd48/0x1038ff94."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fe02c",
+       "notes": "Header-rebuild helper re-parsing request+0x410 via f_10c3a920 then calling f_106fdca0 at0x106fe0e4; no direct, indirect or tail callers found in this build."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff03c",
+       "notes": "Executor: selector0 constant at0x106ff0d4, preflight gate0x106ff0e4, result1001 preset at0x106ff0dc, HTTP core entry only at0x106ff330."
       }
-     ],
-     "todo": "Established: preflight0/11 distinction, header layout and logging-only full-buffer check are decoded. Remaining: reverse shared URI/setup f_1053b4a4 and f_1054a158 to assign exact result meanings and resolution/TLS effects; trace snprintf_append truncation, header injection/escaping and socket submission; audit redirected/tunneled URI paths and nonzero preflight handling in other callers."
+     ]
     },
     "request_transport_flags": {
      "description": "Constructor f_106fd704 clears request+0xa45 and+0xa47 and initializes HTTP-status word+0xa48 to0xffffffff. The shared request vtable0x10f0b7ec binds slot+0xc to f_106fd1ec, slot+0x10 to f_106fd260 and slot+0x28 to f_106fd164. f_106fd1ec sets+0xa45=1 before invoking SOAP serializer f_10564540 through request+0xa3c and copying its produced-byte count to the optional caller out pointer. Thus this flag records serializer entry, not response completion. f_106fd260 forwards response input to f_10562cac through request+0xa40. f_106fd164 recognizes only exact HTTP/1.1-space or HTTP/1.0-space prefixes, calls strtol(base10) from byte9 without an end pointer, range check or errno check, stores the result at+0xa48 and returns true; unmatched prefixes return false without changing the status word. Setter f_106fd828 writes+0xa47 from its input byte. The shared header helper calls this setter with1 after adding a bearer header. When+0xa45 is set, executor success from the I/O loop can still become1037 if+0xa47 is set and status==401, or a parser/result error. A set serializer-entry flag is insufficient evidence of a received or accepted response.",
