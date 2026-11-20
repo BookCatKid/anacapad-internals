@@ -228870,7 +228870,7 @@
      "todo": "Established: credential field conditions, missing-provider/retrieval-false behavior,1045 state gate and getDeviceAuthToken failure ordering are decoded. Remaining: bind certificate provider construction, enumerate state writers, trace issuance/renewal/trust and device identifier initialization, and audit other direct callers0x10724dcc/0x107250cc for buffer and error effects."
     },
     "shared_executor_boundaries": {
-     "description": "Shared request constructor f_106fe328 stores incoming timing parameters r8/r9 at request+0xc6a8/+0xc6ac and clears elapsed storage+0xc6b0. getDeviceAuthToken passes20000 and10000. Executor f_106ff03c calls f_1054b444 with those values; that helper reads sonosClockGetTime(1), copies the base time and uses timevalAddMs to produce two deadlines, one base+20000ms and one base+10000ms for this call. Which HTTP phase consumes each deadline still needs tracing. The executor initializes result1001. A nonzero f_106fdf60 result skips the main HTTP call and retains1001. Otherwise it constructs the shared HTTP objects and calls f_1053a060. Only when request byte+0xa45 is set does it interpret that return: nonzero is translated through f_10c3b8ac; zero enters response-result processing. On that zero path, byte+0xa47 plus HTTP status401 at+0xa48 returns1037, otherwise f_10562e6c supplies the result. If+0xa45 is clear,1001 is retained. The result is returned after telemetry/logging and cleanup. This function contains no local retry loop; lower transport execution and callers can still retry. The byte meanings require their writer census before these branches can be assigned stronger protocol semantics. The callback/writer trace below identifies+0xa45 as serializer entry rather than response completion, and+0xa47 as a setter-controlled401 translation flag. The HTTP core zero result means no remaining I/O interest, not SOAP success. Preflight11 can construct headers yet skip execution with1001.",
+     "description": "Shared request executor f_106ff03c(this=req) runs the full call. f_106fe160 first builds a0x39-byte session blob from req+0xa918 through f_109bc0cc and attaches it through request vfunc+0x30 (f_106fd338). f_1054b444 converts the stored millisecond values req+0xc6a8/req+0xc6ac (constructor args, e.g. getDeviceAuthToken passes20000/10000) into two absolute deadlines via sonosClockGetTime(1) and timevalAddMs; the poll loop consumes them as phase deadlines (second while connecting or handshaking, first once established). sonosClockGetTime(1) also stamps tvStart. When the global hook provider at0x11097910 is nonnull, its vfunc+8 runs a pre-hook(provider, expectedNs req+0x811, expectedName req+0x911, url req+0x410) before any transport work; the provider pointer is runtime-injected with no static store in the binary. Result starts at1001. f_106fdf60(req,0) runs preflight selector0 (f_1053b724: shared URI parse f_1053b4a4 plus resolve f_1054a158 selector0, so failures are0x80000002 or0x81000003) and invokes header builder f_106fdca0 whenever the preflight result is0 or11 while preserving that result; selector1 (f_1053b6b0, only caller the arg4!=0 path) maps resolve failure to11, which builds headers but still skips the core. A nonzero preflight skips the entire HTTP core and keeps1001. On the zero path the executor constructs the processor at sp+0x50 (f_1053a390) and connection at sp+0x8ec (f_10538ed0) and calls f_1053a060(&conn,&deadline1,&deadline2). After it returns: req+0xa45 still0 keeps1001 (serializer never entered); a nonzero poll return is mapped through f_10c3b8ac (0->0;0x81000003-0x81000005 and0x82000001 ->1001;0x80000025 ->1002; anything else ->1000); a zero poll return produces1037 when req+0xa47 is set and status word+0xa48 equals401, otherwise f_10562e6c on the embedded parser (req+0xc040) supplies the result. Teardown runs f_10538f00(conn) and f_1053881c(proc). Both exit paths merge for telemetry: feature blob f_10557fa8 on the stack receives 'tunnel'=req+0xa93d, 'secure'=(url begins 'https://') and 'loopback'=req+0xa3b through f_105580ac; the provider post-hook vfunc+0xc then runs with (ns,name,url,0,0,req+0xa918,blob,req+0xa940,result,&tvStart); elapsed timevalDiff(now,tvStart) is stored at req+0xc6b0. When req+0xa44 is clear and result nonzero a 'control_client' failure line is emitted at level4 for results below1037 and level5 otherwise: '<host> <name> failed, ret = %hu, httpRes = %d, tvStart = %d s %d us, m_tvConnectDone = %d s %d us, m_tvDone = %d s %d us, tvNow = %d s %d us' (0x10f0bac8) with the host formatted through f_105499c8/f_109bc028 and the four stored timevals. The executor returns the result halfword. Boundaries: no retry loop, no redirect or Location handling and no cancellation/interruption check exist here; transport errors that only collapse poll interests exit as0 from f_1053a060 and resolve through the parser result path, while deadline expiry is the only nonzero loop return (0x80000025->1002). Response acceptance, descriptor flags (+0x30 optional caller-set, +0x31 finalized, +0x32 secure) and fault/errorCode conversion behave exactly as in the response-parser record; conn phase bytes+0x4424..+0x442a are written only inside the0x1053xxxx transport cluster plus the single out-of-cluster clear0x102b5a98. A sibling larger request class (ctor0x106ff3b8, vtable0x10f0b854, parser embedded at+0x498, result field+0x2722) drives the same parser through chunked driver f_10562d64 at0x106ffb24; it is separate machinery from this executor.",
      "evidence": [
       {
        "type": "firmware",
@@ -228891,143 +228891,335 @@
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106ff03c",
-       "notes": "Default1001 and preflight branch0x106ff0e0..0x106ff0e8; deadline helper call0x106ff098."
+       "function": "0x106ff03c",
+       "notes": "session attach f_106fe160(req,req+0xa918,0) at0x106ff084; deadlines f_1054b444(+0xc6a8/+0xc6ac) at0x106ff098; tvStart sonosClockGetTime(1) at0x106ff0a4; provider0x11097910 pre-hook vfunc+8(ns+0x811,name+0x911,url+0x410) at0x106ff0a8-0x106ff0d0; result1001 at0x106ff0dc; f_106fdf60(req,0) at0x106ff0e0 nonzero ->skip."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106ff330",
-       "notes": "HTTP core0x1053a060; byte/status gates through0x106ff390 and error translation0x106ff3a8."
+       "function": "0x106ff03c",
+       "notes": "HTTP core: proc f_1053a390 at0x106ff338, conn f_10538ed0 at0x106ff344, f_1053a060(&conn,&d1,&d2) at0x106ff354; +0xa45==0 keeps1001 at0x106ff360; poll!=0 ->f_10c3b8ac at0x106ff3a8; ==0 ->(+0xa47&&+0xa48==401 ->1037) else f_10562e6c(req+0xc040) at0x106ff388; cleanup f_10538f00/f_1053881c at0x106ff394-0x106ff3a0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fdf60",
+       "function": "0x106fdf60",
+       "notes": "preflight dispatch: scheme pair 'https'0x10ec1eb0/'http'0x10e77b84, uri=req+0x410; arg4==0 ->f_1053b724 at0x106fe01c else f_1053b6b0 at0x106fdfb8; result0 or11 ->f_106fdca0(req,&resolved,&schemes) at0x106fe014 preserving r31."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fe160",
+       "function": "0x106fe160",
+       "notes": "f_109bc0cc(obj,&tmp,0x39) copies0x39-byte session blob then req->vfunc+0x30(tmp) attaches it."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff0ec",
+       "function": "0x106ff03c",
+       "notes": "telemetry tail: f_10557fa8 blob init0x106ff0f0; 'tunnel'=req+0xa93d at0x106ff104; 'secure'=strncmp(url,'https://',8)==0 at0x106ff118-0x106ff130; 'loopback'=req+0xa3b at0x106ff144; provider post-hook vfunc+0xc at0x106ff154-0x106ff190; timevalDiff->req+0xc6b0 at0x106ff1ac; +0xa44/result gates0x106ff1b0-0x106ff1c4; isel level4vs5 at0x106ff1d4; log '%s %s failed, ret = %hu, httpRes = %d, ...' 'control_client' at0x106ff218-0x106ff27c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ffb24",
+       "function": "0x106ff454",
+       "notes": "sibling larger request class (vtable0x10f0b854): result->this+0x2722 init1000 at0x106ff4ac; parser embedded at this+0x498 (dtor0x106ff3ec); chunked driver f_10562d64 used for its response feed - separate machinery sharing the parser/result layer."
       }
-     ],
-     "todo": "Established: outer executor, serializer/status callbacks, preflight0/11 distinction, poll-loop and result-scan boundaries are decoded. Remaining: reverse shared URI/setup and socket/TLS state transitions, phase-state and parser/descriptor flag writers, fault/result conversion, complete XML acceptance, redirects/gzip/length handling, interruption and higher-level retries."
+     ]
     },
     "transport_preflight": {
-     "description": "Executor f_106ff03c invokes f_106fdf60 with selector zero. That chooses f_1053b724 rather than f_1053b6b0; both first call shared URI/setup helper f_1053b4a4 and return any nonzero result unchanged. Their following f_1054a158 calls differ by selector0 versus1. f_106fdf60 calls request-header builder f_106fdca0 for either return0 or11, but preserves that return value. The executor only enters its HTTP core when the preflight result equals0; even11 therefore skips the core and leaves executor result1001. Header construction alone does not prove submission. f_106fdca0 emits a POST request with HTTP/1.1, CONNECTION: close, ACCEPT-ENCODING: gzip, HOST, USER-AGENT, extra headers, CONTENT-LENGTH, CONTENT-TYPE: text/xml; charset=\"utf-8\", and quoted SOAPACTION. The action is formed from stored namespace, an optional # separator selected by request+0xa46, and stored method. If request+0xa11 has target text it also formats X-SONOS-TARGET-UDN: uuid:<text> with capacity128. The complete request-header buffer at request+0xa4c has capacity32768. An unsigned comparison of snprintf return>32767, including negative returns interpreted as unsigned, only logs Failed to fill request headers; the code still stores strlen of the resulting buffer at+0x8a4c and continues. Extra name/value headers are assembled into a7918-byte scratch buffer through snprintf_append; its capacity/return behavior still needs independent analysis.",
+     "description": "Executor f_106ff03c always calls preflight f_106fdf60 with selector0; a nonzero selector would choose f_1053b6b0 instead of f_1053b724 but no caller supplies one. Both wrappers first run shared URI parser f_1053b4a4 on the request+0x410 URI string and return its result unchanged on failure. f_1053b4a4 accepts only exact 'http' or 'https' schemes, storing flag0/1 at request+0x40b and rejecting any other or missing scheme or empty host with 0x80000002. It copies the host into request+0xa and the caller's1024-byte buffer, parses an optional ':port' with strtoul into request+0x8 defaulting to80 or443 by scheme, and copies the path into the caller's8193-byte buffer, cutting at '#' and defaulting to '/'. On parse success each wrapper calls resolver f_1054a158 on the stored host, writing the IPv4 result to request+4; they differ only in the third argument,0 versus1. The resolver returns1 with an address for inet_aton literals, 'localhost' (mapped to127.0.0.1 then reported through f_10548e80 type7), or a positive hit from DNS-provider cache singleton0x11097370 (f_10578e98 result1). Provider results3 (quiet decline),2 (negative hit) and0 (miss) return0 immediately when the selector argument is nonzero; with selector0 a miss or decline falls through to the manual path, while a negative hit logs at level4 and still returns0. The manual path is skipped entirely when policy hook f_100af05c returns nonzero, also a log-only0. Otherwise 'localhost' goes to gethostbyname_r and other names to f_10549514 (source code2), f_105495f4 (code3) and finally gethostbyname_r (code1). A manual success is inserted into the provider cache with TTL capped at900 via f_10579160, takes the type7 report and returns1; total failure inserts a negative entry through f_105790a0 and returns0. f_1053b724 maps a zero resolve to0x81000003; f_1053b6b0 maps it to11. f_106fdf60 calls request-header builder f_106fdca0 for wrapper results0 or11 yet preserves the code, and the executor enters its HTTP core only on0, so any parse failure or unresolved host ends as result1001. Header construction alone does not prove submission. f_106fdca0 emits 'POST <path> HTTP/1.1' with CONNECTION: close, ACCEPT-ENCODING: gzip, HOST, USER-AGENT from f_10550ffc, an extra-headers block, CONTENT-LENGTH from f_105621a4 on the serializer object, CONTENT-TYPE: text/xml; charset=\"utf-8\", an optional 'X-SONOS-TARGET-UDN: uuid:<+0xa11>' line, and quoted SOAPACTION \"<ns><sep><method>\" from+0x811 and+0x911. The separator is '#' when+0xa46 is set; the constructor always sets it and no code clears it. Extra headers come from the+0x8a50 name/value list populated through request vfunc+0x30 (f_106fd270, which parses 'Name: value' lines via f_10551678) and are rendered into a7918-byte scratch buffer by the external snprintf_append import; that import's truncation semantics are not statically visible, so list overflow cannot be excluded from the binary alone. Independently, when the parsed host with any ':port' removed equals127.0.0.1 exactly, f_106fdbbc and f_106fd87c compose 'x-sonos-upnp-loopback-token: <token>' and inject it into the same+0x8a50 list through vfunc+0x30; the token comes from f_10c3c65c, which reuses a singleton value or lazily hex-encodes fresh random bytes. The finished header block lives at request+0xa4c with capacity32768 and its strlen stored at+0x8a4c; an snprintf result above32767, including negative values through the unsigned compare, only logs 'Failed to fill request headers' and processing continues. The connection core pulls the finished block through request vfuncs+0x1c and+0x20 (f_106ffb3c/f_106ffb4c). Two other callers share the same parse/resolve wrappers: f_10713ed4, a UPnP/direct HTTP path with its own GET and form-urlencoded POST templates, applies the identical0/11-proceed convention; and f_1038ca40 tail-calls f_1053b724 after composing a '%s%s%s' URL for a secure download. f_106fe02c, which re-parses request+0x410 through f_10c3a920 and rebuilds headers without re-resolving, has no callers in this build and is dead code. Socket submission, TLS and the nonblocking exchange belong to the connection core f_1053a060 (see the http_poll_loop record); the executor performs exactly one attempt and contains no redirect-following loop.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fdf60",
-       "notes": "Selector-zero call0x1053b724, preservation of r31 return, and exact0/11 header-construction gates0x106fdfc4/0x106fdfcc; raw0x419e0044/0x419e003c."
+       "notes": "Selector branch at0x106fdfb4 chooses f_1053b6b0 (arg!=0) or f_1053b724 (arg0); results0/11 run f_106fdca0 at0x106fe008-0x106fe014 with stack host buffer0x14 cap0x400 and path buffer0x418 cap0x2001; raw0x419e0044/0x419e003c gates."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053b4a4",
+       "notes": "URI parser: scheme byte to+0x40b, host to+0xa and caller buffer cap0x400, strtoul port to+0x8 with 80/443 defaults, '#' truncation and '/' default for path; 0x80000002 on bad scheme or empty host."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054a158",
+       "notes": "Resolver: inet_aton, 'localhost', provider query f_10578e98 on singleton0x11097370, selector gating at0x1054a268-0x1054a2cc, restricted-mode skip via f_100af05c at0x1054a304, manual chain f_10549514/f_105495f4/gethostbyname_r, provider insert f_10579160 with TTL cap0x384 at0x1054a400, negative insert f_105790a0 at0x1054a4d8."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x1053b724",
-       "notes": "Shared setup then f_1054a158 selector0; selector1 counterpart0x1053b6b0."
+       "notes": "Selector0 wrapper: resolve0 ->0x81000003 via isel at0x1053b788; selector1 counterpart f_1053b6b0 maps0->0xb at0x1053b70c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fdca0",
-       "notes": "Extra header assembly, target header and32768-byte request formatting. Unsigned attempted-length test0x106fde40; continuation0x106fde7c."
+       "notes": "Header builder: extra-header scratch at sp+0xcc cap0x1eee via external snprintf_append at0x106fdda4, loopback branch0x106fdd14->vfunc+0x30 at0x106fdf4c, TARGET-UDN format0x10f0b960 cap0x80, main POST template0x10f0b980; unsigned attempted-length test0x106fde40, continuation0x106fde7c, length store to+0x8a4c at0x106fde88."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fd87c",
+       "notes": "Loopback check compares parsed host addr to0x7f000001 and builds 'x-sonos-upnp-loopback-token' plus ': ' plus token from f_10c3c65c (singleton reuse or fresh random hex)."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x10f0b980",
-       "notes": "Literal POST template with close/gzip/host/user-agent/content-length/XML content type/quoted SOAPAction."
+       "notes": "Literal POST template with close/gzip/host/user-agent/extra/content-length/XML content type/TARGET-UDN/quoted SOAPACTION."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10713ed4",
+       "notes": "Second preflight consumer: UPnP/direct HTTP path; calls f_1053b724 at0x107143f0 and proceeds on0 or0xb at0x107143f4-0x10714400 into GET template0x10f0e1c4 or form POST template0x10f0e22c selected by sp+0x521c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1038ca40",
+       "notes": "Third consumer: composes URL then tail-calls f_1053b724 at0x1038cb70; used by five download helpers0x1038f70c/0x1038f960/0x1038fb54/0x1038fd48/0x1038ff94."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fe02c",
+       "notes": "Header-rebuild helper re-parsing request+0x410 via f_10c3a920 then calling f_106fdca0 at0x106fe0e4; no direct, indirect or tail callers found in this build."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff03c",
+       "notes": "Executor: selector0 constant at0x106ff0d4, preflight gate0x106ff0e4, result1001 preset at0x106ff0dc, HTTP core entry only at0x106ff330."
       }
-     ],
-     "todo": "Established: preflight0/11 distinction, header layout and logging-only full-buffer check are decoded. Remaining: reverse shared URI/setup f_1053b4a4 and f_1054a158 to assign exact result meanings and resolution/TLS effects; trace snprintf_append truncation, header injection/escaping and socket submission; audit redirected/tunneled URI paths and nonzero preflight handling in other callers."
+     ]
     },
     "request_transport_flags": {
-     "description": "Constructor f_106fd704 clears request+0xa45 and+0xa47 and initializes HTTP-status word+0xa48 to0xffffffff. The shared request vtable0x10f0b7ec binds slot+0xc to f_106fd1ec, slot+0x10 to f_106fd260 and slot+0x28 to f_106fd164. f_106fd1ec sets+0xa45=1 before invoking SOAP serializer f_10564540 through request+0xa3c and copying its produced-byte count to the optional caller out pointer. Thus this flag records serializer entry, not response completion. f_106fd260 forwards response input to f_10562cac through request+0xa40. f_106fd164 recognizes only exact HTTP/1.1-space or HTTP/1.0-space prefixes, calls strtol(base10) from byte9 without an end pointer, range check or errno check, stores the result at+0xa48 and returns true; unmatched prefixes return false without changing the status word. Setter f_106fd828 writes+0xa47 from its input byte. The shared header helper calls this setter with1 after adding a bearer header. When+0xa45 is set, executor success from the I/O loop can still become1037 if+0xa47 is set and status==401, or a parser/result error. A set serializer-entry flag is insufficient evidence of a received or accepted response.",
+     "description": "Constructor f_106fd704 initializes+0xa44 from its eighth argument and+0xa46 to1, clears+0xa45,+0xa47,+0xa3a and+0xa3b, and writes HTTP-status word+0xa48 to0xffffffff. A whole-image store census shows these are the only writers:+0xa44 is never rewritten after construction,+0xa46 keeps its constructor1 on every request (the '#' namespace separator is therefore always emitted by this class),+0xa45 is set only inside f_106fd1ec,+0xa47 only inside setter f_106fd828, and+0xa48 is stored only by the constructor and status parser f_106fd164. The shared request vtable0x10f0b7ec binds slot+0xc to f_106fd1ec, slot+0x10 to f_106fd260, slot+0x28 to f_106fd164, slot+0x30 to f_106fd270, and buffer accessors+0x1c/+0x20 to f_106ffb3c (returns&+0xa4c) and f_106ffb4c (returns+0x8a4c). None of these slots has a direct caller; the connection core invokes them indirectly through the peer-adapter object the executor installs via f_1053a390 (adapter vtable0x10ee6ad8). Body production is driven by adapter helper f_1053b274, which loads the request pointer from adapter+8 and loops on request vfunc+0xc until the produced count fills the outgoing window or a call returns0; it first compares the installed slot to default producer0x105386d0 and silently drains via f_10538a88 when equal, a path this vtable never takes. f_106fd1ec sets+0xa45=1 on entry, then invokes SOAP serializer f_10564540 through request+0xa3c and copies its produced-byte count to the caller out pointer; it performs no error check on the serializer result, so a short or empty production simply ends the loop while still marking the flag. In the executor,+0xa45 therefore means the exchange reached the body-production stage (connected, headers sent), not merely that serialization was attempted, and a transport loop that finishes with the flag clear is collapsed to result1001 even on a clean0. Response input arrives through request vfunc+0x10: f_106fd260 forwards bytes to f_10562cac through the+0xa40 sink, and buffered parsing is finalized by f_10562d64, which is invoked through the+0x40c object's vtable slot+0x3c (f_106ff898) and by f_10730364; at end-of-feed it returns parser status+0x2e2 when nonzero, runs f_1055f358 when+0x2e4 is clear, else produces1000, and logs 'error parsing XML returned from SOAP request' on feed failure. Status-line parsing is f_106fd164: it recognizes only exact 'HTTP/1.1 ' or 'HTTP/1.0 ' prefixes, runs strtol(base10) from byte9 with no end pointer, range check or errno check, stores the result at+0xa48 and returns true; unmatched prefixes leave the constructor0xffffffff untouched. Header-side it also harvests 'X-Sonos-ErrorType: ' values through adapter helper f_1053a404, but that helper skips the request vfunc+0x14 delivery when the slot equals0x105386c4, which is exactly what this class installs, so the captured error-type string never reaches the request object. Setter f_106fd828 writes+0xa47 and has exactly one caller: bearer-header builder f_1071e208 at0x1071e4b0, which itself is called by precisely the15 SMAPI action builders f_10724f50,f_10725488,f_10725a88,f_107267c8,f_10726c30,f_107271c4,f_107277f4,f_10727db4,f_10728248,f_10728964,f_10728dc8,f_1072a2a4,f_1072a9b4,f_1072b348 and f_1072bbb0. The call happens only when 'AUTHORIZATION: Bearer <token>' was actually added (descriptor+0x130 bit0x8 set and token nonempty, over https or the feature-flag25 insecure override), so+0xa47 marks bearer-credentialed requests exactly. In the executor,+0xa45 set plus a clean transport0 yields result1037 only when+0xa47 is also set and+0xa48==401; otherwise the parse/finalize result f_10562e6c(+0xc040) is returned, and any nonzero transport code passes through f_10c3b8ac (RmapStatusToUPNPRESULT: 0x81000003-05 and0x82000001 to1001, deadline0x80000025 to1002, high-word flags clear to low16, else1000). With+0xa45 clear the result is always1001. Two remaining flag readers complete the contract:+0xa44 enables request-failure detail logging (when set and the result is nonzero the executor logs 'upnputil' at level5 for1037 else4 with the request host), and+0xa46 pins the '#' separator on. An optional observer singleton at0x11097910, when installed, receives vfunc+8 (namespace, method, URI) before preflight and vfunc+0xc in the shared report path with the result, elapsed milliseconds stored at request+0xc6b0, an 'https://' scheme flag and the+0xa3b byte.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fd704",
-       "notes": "Initialization stores0x106fd798/0x106fd79c/0x106fd7ac."
+       "notes": "Constructor stores at0x106fd748(+0xa44=arg8),0x106fd790-0x106fd79c(+0xa3a/+0xa3b/+0xa45/+0xa47 cleared),0x106fd7a8(+0xa46=1),0x106fd7ac(+0xa48=0xffffffff). Whole-image stb/stw census found no other writers to+0xa44/+0xa46 and only f_106fd1ec/f_106fd828/f_106fd164 for the remaining bytes."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fd1ec",
-       "notes": "Flag set at0x106fd21c before SOAP serializer0x10564540; optional produced-count copy at0x106fd230."
+       "notes": "+0xa45 set at0x106fd21c before serializer f_10564540 at0x106fd220; produced-count copy at0x106fd230; no serializer error check."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x10564540",
-       "notes": "Stateful SOAP XML serializer, including envelope/body literal emission; not a response completion check."
+       "address": "0x1053b274",
+       "notes": "Body-produce loop through request vfunc+0xc: default-impl compare0x105386d0 at0x1053b2c8-0x1053b2d0 skips to drain f_10538a88; bctrl produce calls at0x1053b32c with out-count at sp+0x18."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106fd260",
+       "notes": "Response feed tail-calls f_10562cac on the+0xa40 sink; buffered finalize f_10562d64 reached via+0x40c vtable slot+0x3c f_106ff898."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fd164",
-       "notes": "HTTP prefix tests, decimal strtol and status store0x106fd1cc."
+       "notes": "HTTP/1.x prefix tests, decimal strtol from byte9 and status store at0x106fd1cc; no range or errno check."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x106fd828",
-       "notes": "Byte setter for401 translation control; bearer setup calls it at0x1071e4b0."
+       "notes": "Byte setter for+0xa47; sole caller0x1071e4b0 inside bearer builder f_1071e208 immediately after the AUTHORIZATION add."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e208",
+       "notes": "Bearer/cert/group header builder; f_106fd828(request,1) call at0x1071e4b0 reachable only from the15 SMAPI action builders."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff03c",
+       "notes": "Executor result binding: +0xa45 test0x106ff358, +0xa47 plus+0xa48==0x191 ->0x40d at0x106ff36c-0x106ff384, f_10562e6c at0x106ff388, f_10c3b8ac at0x106ff3a8, failure logging +0xa44 gate0x106ff1b0 with level select0x106ff1d4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053a404",
+       "notes": "'X-Sonos-ErrorType: ' harvest: extracts value into adapter+0x18 cap0x7ff, delivers via request vfunc+0x14 only when the slot differs from0x105386c4 (0x1053a4dc-0x1053a4e4); this class binds exactly that impl."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x10f0b7ec",
-       "notes": "Concrete vtable callback slots for serializer, response-input and HTTP status handling."
+       "notes": "Concrete vtable: +0xc f_106fd1ec,+0x10 f_106fd260,+0x14 0x105386c4,+0x1c/+0x20 f_106ffb3c/f_106ffb4c header-buffer accessors,+0x28 f_106fd164,+0x30 f_106fd270."
       }
-     ],
-     "todo": "Established: constructor state, shared callback slots, serializer-entry flag and401-translation setter are decoded. Remaining: census all aliases and indirect setters/callback invocations, finish HTTP line parsing and response-input dispatch, trace short/failed serialization and body transfer, and bind status/transport errors through every caller."
+     ]
     },
     "http_poll_loop": {
-     "description": "f_1053a060 initializes the HTTP object through f_10539c64 and repeatedly queries virtual slots+0xc and+0x10 for two I/O-interest values. Both zero returns0 immediately; it does not itself establish a successful HTTP status or parsed SOAP result. The normal implementations have direct-call fast paths f_10538998 and f_10538918. It uses the second supplied deadline by default. If object byte+0xc is nonzero, it uses the first deadline, except that byte+0x4424 nonzero and byte+0x4425 zero select the second deadline again. These are phase-state selectors whose writer meanings remain open. It reads clock1 and returns0x80000025 when now>=selected deadline. Otherwise it polls one descriptor until that deadline, requesting the low-halfword of the first interest plus bit4 when the second interest is nonzero. Descriptor retrieval uses virtual slot+8, with a fast field+8 path. Returned event bit1 invokes slot+0x18 and bit4 invokes slot+0x1c, then interests are queried again. The poll return value is not separately tested here, and other returned event bits have no independent branch in this loop. Errors and completion must therefore also be interpreted through the underlying object state and caller. This is an I/O-progress loop; it does not rebuild and resubmit a SOAP request as a local retry policy.",
+     "description": "f_1053a060 drives the entire nonblocking exchange. It first runs f_10539c64, which resets the connection object through f_10538e14 (frees the ssl session at+0x442c, closes fd+8, clears err+0x10, connected+0xc, TX cursors+0x441c/+0x4420, local port+0x418, host+0x14[0] and every phase byte+0x4424..+0x442a/+0x4484/+0x4485/+0x4430), then asks the embedded peer object at+4 through its vfunc+0x18 (implementation f_105388bc) to fill the remote sockaddr, port+0x416, host+0x14 (cap0x401) and the TLS-scheme byte+0x4424. It opens socket(AF_INET,SOCK_STREAM), sets TCP_NODELAY(6,1), applies O_NONBLOCK through fcntl(4,0x800) and calls connect: an immediate success sets+0xc, runs f_10538f68 (getsockname stores the local port at+0x418 and invokes the peer vfunc+0x1c notification), logs 'Immediate connect on %d' at 'asyncio' level8 and continues into f_10539bd8 for TLS or f_10539304 for plain; errno115 (EINPROGRESS) leaves the connection pending for POLLOUT; any other connect failure stores+0x10=0x81000004. socket or fcntl failure stores+0x10=0x80000007. The loop then repeatedly reads two I/O-interest values through peer vfunc+0xc and vfunc+0x10, using direct-call fast paths f_10538998 and f_10538918 when the installed vfunc matches. f_10538998 (read interest) returns0 when fd==-1, err+0x10 is nonzero or connected+0xc is clear; a plain connection or an established TLS session returns the app want-read byte+0x4484, an unfinished TLS handshake returns+0x4426, and a closing TLS session (+0x4428) returns+0x4429. f_10538918 (write interest) returns0 on fd==-1 or error, returns1 while disconnected so POLLOUT finishes the connect, +0x4485 for plain or established TLS, +0x4427 mid-handshake and+0x442a while closing. Both interests zero returns0 immediately; the loop never maps conn+0x10 into its own return, so a connect or I/O failure exits as a clean0 with the code left only in the object. Deadline selection: the second supplied deadline applies while disconnected or while TLS is up but+0x4425 is clear (handshake), the first deadline applies on established connections (byte+0xc set, and for TLS+0x4425 set). If now>=selected deadline the loop returns0x80000025. Otherwise it computes a millisecond timeout via timevalSubtract and calls poll on the fd from vfunc+8 (fast path f_10538664 returns conn+8) with events=readInterest | (writeInterest? bit4:0), bracketed by 'asio.poll' scope logs at level4. The poll return value is ignored; revents bit1 invokes vfunc+0x18 (f_10539e04) and bit4 invokes vfunc+0x1c (f_10539e78), then interests are queried again. POLLERR, POLLHUP and POLLNVAL are never tested, so a failed descriptor with no callback-visible error spins until the deadline; EINTR or a zero return is indistinguishable. Read dispatch f_10539e04: plain ->f_10539304, TLS handshake unfinished ->f_10539a80, established TLS ->f_105399d8, closing TLS ->f_105393a4. Write dispatch f_10539e78: while disconnected it reads SO_ERROR through getsockopt (syscall failure, len!=4 or a nonzero socket error all store+0x10=0x81000004); a clean connect sets+0xc, runs f_10538f68, and falls into the connected path where TLS performs one-time setup: query the peer+4 subobject vfunc+8 for TLS parameters, run sonosCertvalSetSSLToSonosDevice on ctx+0x4430 when the query so indicates, then f_10539bd8 creates the session through f_105431a4 (stored+0x442c, failure ->+0x10=0x80000007), binds conn+8 as the BIO fd with mbedtls_net_send/mbedtls_net_recv and enters f_10539a80. Established connections call f_10539304 (plain) or f_105399d8 (TLS) and closing TLS calls f_105393a4. f_10539a80 steps mbedtls_ssl_handshake through f_1056c72c: return0 sets+0x4425 and, unless the negotiated version field equals772, detours through f_105394c4 before entering f_105399d8; WANT_READ/WANT_WRITE (-26880/-26752) set+0x4426/+0x4427; a new-session-ticket return -31488 logs 'Received new session ticket during mbedtls_ssl_handshake.' at 'ssl' level6 and retries through f_105394c4; other failures log 'connect' through f_105431b8 and store+0x10=0x80000007. f_10539304 loops the plain pumps f_10539058 (read) and f_105391ac (send) while both report progress and+0x10 stays0, finishing with f_10538e14 when both want-bytes are clear. The read pump clears+0x4484, tests peer vfunc+8 wants-input (fast path f_10538674: processor state3 or4), recv()s up to0x4000 and feeds peer vfunc+0x10; recv==0 only logs 'Remote close hostname %s FD %d' at 'asyncio' level8 and leaves interests clear so a FIN drains interest without error; errno11 or107 re-arms+0x4484; other errno stores+0x10=0x80000007. The send pump clears+0x4485, sends the buffered span+0x4420..+0x441c of the0x4000 TX buffer+0x41a, refills through peer vfunc+0x14 when drained and stops when peer vfunc+0xc (f_10538694: processor state1 or2) reports no output; errno11/107 re-arm+0x4485, others store+0x10=0x80000007. f_105399d8 is the same driver over TLS pumps f_10539648/f_105397dc whose mbedtls WANT_READ/WANT_WRITE codes re-arm the same+0x4484/+0x4485 bytes and whose0 or -30848 returns act as EOF; when both bytes clear it sets+0x4428 and calls f_105393a4, which runs mbedtls_ssl_close_notify: return0 or -80 finishes with f_10538e14, WANT_READ/WANT_WRITE set+0x4429/+0x442a, other values log 'shutdown' and store+0x10=0x80000007. Phase-state writer census: every phase byte is written inside the0x1053xxxx cluster - f_10538e14 clears all, the scheme byte+0x4424 is filled only through the peer vfunc+0x18 out-parameter, +0x4425 only at handshake success0x10539b24, +0x4426/+0x4427 and+0x4429/+0x442a only by the handshake and close_notify return codes, +0x4428 by pump completion0x10539a64, and the want-bytes only by their pumps; the single out-of-cluster write0x102b5a98 clears+0x4428 on a conn-shaped embedded object elsewhere. gzip is confined to the body path (Content-Encoding gzip sets+0x860 plus inflateInit2 wbits31; f_10538bec inflates before the feed call). Content-Length, chunked Transfer-Encoding and Content-Range bound the body through+0x854..+0x85c; no Location or redirect handling exists anywhere, so a3xx status is delivered to the caller like any other. There is no retry scheduling inside the loop or its driver functions; repetition is entirely a caller policy.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
        "address": "0x1053a060",
-       "notes": "Initialization, interest queries and zero/zero completion0x1053a118..0x1053a124; normal getters and virtual fallbacks."
+       "function": "0x1053a060",
+       "notes": "init call0x1053a0e0; interest queries vfunc+0xc/+0x10 with fast paths at0x1053a0f0/0x1053a108; both-zero->0 at0x1053a2f8; deadline isel ops0x1053a150/0x1053a198 select arg2 when !connected or TLS&&!hsdone else arg1; now>=deadline ->0x80000025 at0x1053a29c; pollfd build0x1053a1a4-0x1053a1ec, poll at0x1053a1f0; revents bit1->vfunc+0x18 at0x1053a26c, bit4->vfunc+0x1c at0x1053a214; poll ret and POLLERR/HUP/NVAL untested."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x1053a128",
-       "notes": "Deadline state selection. Raw0x7ebcb79e at0x1053a150 is isel r21,r28,r22,30: byte4425==0 selects second argument deadline."
+       "address": "0x10539c64",
+       "function": "0x10539c64",
+       "notes": "reset via f_10538e14; peer+4 vfunc+0x18 fills sockaddr,+0x416 port,+0x14 host cap0x401,+0x4424 TLS; socket(2,1,0)->+0x8, setsockopt(6,1) at0x10539d0c, fcntl(4,0x800) at0x10539d20; connect==0 ->+0xc+f_10538f68+'Immediate connect on %d' lvl8 then TLS f_10539bd8 or f_10539304; errno115 pending; else +0x10=0x81000004 at0x10539d8c; socket/fcntl fail ->+0x10=0x80000007 at0x10539d2c."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x1053a154",
-       "notes": "Clock1 deadline compare and timeout0x80000025 at0x1053a29c."
+       "address": "0x10538998",
+       "function": "0x10538998",
+       "notes": "read interest: fd==-1/err/+0xc==0 ->0; +0x4424==0 or hsdone&&!closing ->+0x4484; TLS&&!hsdone ->+0x4426 (0x10538a04); +0x4428 ->+0x4429 (0x10538a0c)."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x1053a188",
-       "notes": "Event mask selection. Raw0x7fde4f9e at0x1053a198 is isel r30,r30,r9,30, retaining first interest when second is zero or OR-ing bit4 otherwise."
+       "address": "0x10538918",
+       "function": "0x10538918",
+       "notes": "write interest: fd==-1/err ->0; !connected ->1 (0x10538944); plain or hsdone&&!closing ->+0x4485; !hsdone ->+0x4427 (0x10538988); +0x4428 ->+0x442a (0x10538990)."
       },
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x1053a1f0",
-       "notes": "poll call, ignored direct return, returned event tests and callback slots through0x1053a280."
+       "address": "0x10539e78",
+       "function": "0x10539e78",
+       "notes": "POLLOUT: !connected ->getsockopt(1,4,&err,&len4) at0x10539f30; ret!=0/len!=4/err!=0 ->+0x10=0x81000004 at0x1053a004; clean ->+0xc=1 at0x1053a02c +f_10538f68; TLS one-time: peer+4 vfunc+8 query at0x10539fe0, sonosCertvalSetSSLToSonosDevice(+0x4430) at0x1053a054, f_10539bd8; plain ->f_10539304; !hsdone ->f_10539a80; closing ->f_105393a4; else f_105399d8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10539e04",
+       "function": "0x10539e04",
+       "notes": "POLLIN: plain ->f_10539304 (0x10539e60); TLS&&!hsdone ->f_10539a80 (0x10539e70); hsdone&&!closing ->f_105399d8 (0x10539e68); +0x4428 ->f_105393a4 (0x10539e54)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10539bd8",
+       "function": "0x10539bd8",
+       "notes": "TLS bio: f_105431a4(host/port/ctx+0x4430)->+0x442c session, 0 ->+0x10=0x80000007 at0x10539c44; mbedtls_ssl_set_bio(ssl,&conn+8,net_send,net_recv,0) at0x10539c28; tail f_10539a80."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10539a80",
+       "function": "0x10539a80",
+       "notes": "handshake step: clears+0x4426/+0x4427; ret0 ->+0x4425 at0x10539b24, ssl+8!=772 ->f_105394c4, else f_105399d8; -26880 ->+0x4426 (0x10539b9c); -26752 ->+0x4427 (0x10539bbc); -31488 ->'Received new session ticket during mbedtls_ssl_handshake.' 'ssl' lvl6 at0x10539b7c then f_105394c4; other ->'connect' log f_105431b8 +0x10=0x80000007."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10539304",
+       "function": "0x10539304",
+       "notes": "plain driver: loops f_10539058 read +f_105391ac send while either returns nonzero and+0x10==0 (0x1053931c-0x10539354); both+0x4484/+0x4485 clear ->f_10538e14 at0x105393a0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10539058",
+       "function": "0x10539058",
+       "notes": "read pump: clears+0x4484 at0x1053908c; wants-input peer vfunc+8 fast f_10538674 at0x105390dc; recv(fd,sp,0x4000) at0x105390b0; >0 ->peer vfunc+0x10 feed at0x105390d4; ==0 ->'Remote close hostname %s FD %d' 'asyncio' lvl8 at0x10539184 no error; errno11/107 ->stb1+0x4484 at0x10539160; else +0x10=0x80000007 at0x10539154."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105391ac",
+       "function": "0x105391ac",
+       "notes": "send pump: clears+0x4485; TX buf+0x41a cursors+0x441c(end)/+0x4420(pos); send(fd,buf+pos,end-pos) at0x10539274 advances+0x4420; drained ->peer vfunc+0xc has-output (fast f_10538694) then vfunc+0x14 produce ->+0x441c/reset+0x4420 at0x10539250; errno11/107 ->+0x4485 re-arm at0x105392fc; else +0x10=0x80000007 via r28."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105393a4",
+       "function": "0x105393a4",
+       "notes": "close_notify: clears+0x4429/+0x442a; mbedtls_ssl_close_notify ret0 or-80 ->f_10538e14 at0x1053943c; -26880 ->+0x4429 at0x1053947c; -26752 ->+0x442a at0x10539458; other ->'shutdown' log f_105431b8(host,+0x416,+0x418,ret,errno) +0x10=0x80000007."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105399d8",
+       "function": "0x105399d8",
+       "notes": "TLS driver: loops f_10539648/f_105397dc while progress and+0x10==0; both want-bytes clear ->stb1+0x4428 at0x10539a64 +f_105393a4. f_10539648: mbedtls_ssl_read 0x4000, -30848/0 EOF, -26880 ->+0x4484 (0x105397c0), -26752 ->+0x4485 (0x105397cc), else 'read' log +0x10=0x80000007."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10538e14",
+       "function": "0x10538e14",
+       "notes": "shutdown/reset: frees+0x442c session (f_1056d97c+delete), close(fd) if!=-1, clears+0x10,+0xc,+0x441c/+0x4420,+0x14,+0x418,+0x4424..+0x442a,+0x4430,+0x4484/+0x4485 (0x10538e6c-0x10538eb4) - the sole writer for most phase bytes besides their pump sites."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10538f68",
+       "function": "0x10538f68",
+       "notes": "getsockname(fd,&sa,&16) ->+0x418 local port at0x10538fcc, fail logs 'Failed to get ip address.' 'asyncio' lvl4 and proceeds; then peer+4 vfunc+0x1c(&sa) connect notification at0x10538fe4."
       }
-     ],
-     "todo": "Established: poll-interest completion criterion, exact deadline-selector bytes, timeout code and callback/event order are decoded. Remaining: reverse f_10539c64/f_10538998/f_10538918 and callback implementations, census phase-state writers, trace connect/TLS/send/receive/EOF/error transitions, poll-error handling through object state, gzip/length/redirect handling and higher-level retry scheduling."
+     ]
     },
     "soap_result_acceptance": {
-     "description": "Response-input callback f_106fd260 forwards through request+0xa40 to f_10562cac. A zero-length chunk returns true without calling the XML engine. Nonzero input is fed to f_10c3fc68 through parser+0x14; that boolean is returned and a false parse prints diagnostics. This wrapper alone does not finalize the parser on EOF. Result helper f_10562e6c first returns a nonzero unsigned halfword at parser+0x2e2. If that halfword is zero but byte+0x2e4 is nonzero, it returns1000. Otherwise it calls f_1055f358. That scans descriptors in collection order through virtual slot+8, accepting a descriptor when byte+0x31 or byte+0x30 is nonzero; if both are zero it returns1000 immediately. Empty collections and a complete scan return0. Flag writers, nested propagation, required/optional meaning and whole-document completion must be traced before describing this as full schema validation. In particular neither a zero I/O-loop result nor a zero-length feed independently proves a complete accepted SOAP response.",
+     "description": "Response-input callback f_106fd260 forwards through request+0xa40 to f_10562cac. A zero-length chunk returns true without calling the XML engine. Nonzero input is fed to expat-style engine f_10c3fc68 through the SAX context embedded at parser+0x14 (ctor f_10562830, vtable 0x10eec0a0). A false parse prints a multi-line diagnostic ending 'error parsing XML returned from SOAP request' and '(utf8 issue?)' and propagates false; body-sink callers f_1053ae94 (Content-Length path) and f_1053af0c (chunked path) translate a false feed into the same f_10538a88 body-done transition as a completed body, so a lexical error ends the body phase without storing any result code and the parser state alone decides the outcome. SAX context fields: +8 parser object, +0xc suffix-selector byte (1 for this request class), +0xd fault-logging flag, +0x10 aux fault object, +0x14/+0x15 Envelope/Body open, +0x16 response-element seen, +0x17 inside a response child element, +0x18 depth below a matched descriptor element, +0x1c active descriptor index (-1 none), +0x128 secure-parameter verification stack (f_1054e824), +0x148..0x14d open flags for Fault/detail/UPnPError/errorCode/faultcode/faultstring, +0x14e/+0x1ce/+0x24e three 0x80 text accumulators, +0x2ce result halfword (parser+0x2e2), +0x2d0 abort byte (parser+0x2e4). Registered handlers start f_1055f8fc, end f_105612ac and chardata f_10560a38 all test +0x2d0 first and no-op once abort latches. Start handler f_1055f41c receives names as 'nsURI|local'. The first element must be 'http://schemas.xmlsoap.org/soap/envelope/|Envelope' or +0x2d0 aborts; inside Envelope only '|Body' opens Body while other elements are ignored; inside Body the literal envelope-Fault name opens Fault and stores 1000 at +0x2ce, otherwise the name must equal expectedNs|expectedName plus a suffix ('Response' when ctx+0xc is nonzero, alternate string 0x10ea6a2c when zero). Response children are matched against bound descriptors by name (desc+0x34 via desc vfunc+0xc) storing the index at +0x1c and setting +0x17; unmatched children set +0x17 with +0x1c=-1 and their subtrees are skipped through the depth counter. A child opening under +0x17 requires the active descriptor type to be 9 (nested) and delegates to desc vfunc+0xc, else aborts. Inside Fault only detail, faultcode and faultstring open; inside detail only 'urn:schemas-upnp-org:control-1-0|UPnPError'; inside UPnPError only 'urn:schemas-upnp-org:control-1-0|errorCode'; each opener clears its accumulator, and detail children are additionally offered to aux vfunc+8 unless default f_10564a34. An element arriving while errorCode, faultcode or faultstring is open aborts. Chardata f_105607e0 appends to the open accumulator capped at 0x7f bytes with silent truncation; with an active descriptor a type9 delegates to the desc+8 object vfunc+0x10, a secure descriptor (+0x32) pushes the text through the ctx+0x128 stack in 0x400 chunks (f_1054ea08) before f_10560708 applies it, and other descriptors append through f_10560708 into the descriptor buffer (24-byte inline buffer for leaf types, caller-supplied buffer for type7 binds). End handler f_10560d60: at depth>0 it decrements depth and forwards the close to the active descriptor vfunc+0x14; at depth 0 under +0x17 it clears +0x17, resets +0x1c and finalizes the descriptor: secure descriptors pop the ctx+0x128 stack (f_1054ea68), apply f_10560708 and verify with f_1054e97c, logging 'Invalid secure param %s' at 'soap' level 3 on mismatch; plain descriptors run f_10560a58 which sets desc+0x31 then converts by type (strtol to halfword, strtol to word, strtoul to word, strtoul to halfword, case-insensitive '1'/'true'/'yes' to byte, paranoid_strtoll; type7 needs no conversion since text already landed in the caller buffer; type8 calls the desc+8 object vfunc+8; type9 calls its vfunc+0x18 unless default f_10564a58). Fault children close by clearing their flags; errorCode close writes strtol(ctx+0x14e,0,10)&0xffff to +0x2ce then normalizes: <=999 plus 1001, 1028 and 1034 pass unchanged, 1042-1045 pass via f_10c3ba54, 1010-1019/1036/8000-8999 pass via f_10c3ba14, and anything else (including a zero or empty errorCode) becomes 1000. On Fault close, ctx+0xd selects an extra 'soap' level-4 log '<name> faultcode: <x>, faultstring: <y>', then aux vfunc+0x14(faultcode text, faultstring text) supplies +0x2ce; when that result is 1000 and the previously recorded code passes f_10c3ba14 the prior code is restored. A close arriving after Envelope has closed sets +0x2d0. Result helper f_10562e6c, and the identical triage at the end of chunked driver f_10562d64 (which pulls a source object through its vfunc+8 in 0x1000-byte reads and feeds each through f_10562cac), first return a nonzero halfword at parser+0x2e2, else return1000 when parser+0x2e4 is set, else call f_1055f358. That scans parser+4 bound descriptors through vfunc+8 and returns1000 on the first descriptor whose byte+0x31 (element seen; set unconditionally by f_10560a58) and byte+0x30 are both zero, returning0 for empty collections and clean scans. Descriptor +0x30 is written by action binding code immediately after each successful name bind through f_10563384 (e.g. the stb 1,0x30(desc) sites around0x10725f3c-0x107386d4), so it marks optional response fields; required bound descriptors absent from the document fail the scan. The parser itself never writes +0x30. Net acceptance: unknown or duplicated response children are tolerated, oversized text truncates into each field capacity, a lexical error or truncated body stops feeding but keeps every already-converted value, and a document that satisfied all non-optional descriptors before the failure still returns0. The check is post-parse required-field presence plus the fault/errorCode conversion; there is no value-domain validation beyond the fixed numeric and boolean conversions.",
      "evidence": [
       {
        "type": "firmware",
@@ -229049,9 +229241,96 @@
        "build": "86.10-80260",
        "address": "0x1055f358",
        "notes": "Collection scan and bytes+0x31/+0x30; missing-both returns1000 at0x1055f3e0, scan success/empty returns0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10562830",
+       "function": "0x10562830",
+       "notes": "SAX ctx ctor: f_10c3fe28(ctx,ctx,0x7c,f_10560a38,f_1055f8fc,f_105612ac) registers handlers; ctx+8=arg2(parser),+0xc=arg3,+0xd=arg4,+0x10=arg5; +0x1c=-1 at0x105628b0; +0x2ce sth0 at0x10562924; +0x2d0 stb0 at0x10562928; env/body/resp flags and0x148..0x14d zeroed."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055f41c",
+       "function": "0x1055f41c",
+       "notes": "Start grammar: Envelope-required abort0x1055f5cc via0x1055f88c; Body match0x1055f854; Fault opens with sth 1000 at+0x2ce (0x1055f824); response suffix 'Response'0x10eebc84 vs alt0x10ea6a2c gated by ctx+0xc at0x1055f8c8; desc name-match loop0x1055f604-0x1055f66c; type9 delegate0x1055f75c/0x1055f790; detail/UPnPError/errorCode opens0x1055f85c/0x1055f714/0x1055f754; text-element nesting abort0x1055f5c8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560d60",
+       "function": "0x10560d60",
+       "notes": "End dispatch: depth>0 desc vfunc+0x14 at0x10560df0; depth0 desc finalize secure-chain0x10560e90 or f_10560a58 at0x10561018; errorCode strtol&0xffff at0x10560fb4, 0/invalid->1000 at0x10561094, pass sets0x10560fe8; Fault close aux vfunc+0x14 at0x105611bc result->+0x2ce at0x105611d0, prior-code restore via f_10c3ba14 at0x105611d8-0x105611e8; ctx+0xd fault log '%s faultcode: %s, faultstring: %s' 'soap' lvl4 at0x10561258-0x10561298; post-Envelope close +0x2d0 at0x1056124c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105607e0",
+       "function": "0x105607e0",
+       "notes": "Chardata: accumulator select0x1056080c(+0x14b->+0x14e)/0x10560974(+0x14c->+0x1ce)/0x10560984(+0x14d->+0x24e), append cap0x7f at0x10560834; desc type9->vfunc+0x10 nested at0x105609d4; +0x32 secure->0x400 chunk feed f_1054ea08 then f_10560708 at0x105608e4; plain f_10560708 at0x10560a0c; detail aux vfunc+0x10 override0x10560858."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560a58",
+       "function": "0x10560a58",
+       "notes": "desc+0x31=1 at0x10560a74 before conversion; type8->desc+8 obj vfunc+8 at0x10560bf8; type9->vfunc+0x18 skip default f_10564a58 at0x10560c30; type0 returns; jtable0x10eebbdc cases1-6: strtol>sth0x10560adc, strtol>stw0x10560b24, strtoul>stw0x10560b40, strtoul>sth0x10560b5c, bool '1'/'true'/'yes'0x10560b78-0x10560bcc, paranoid_strtoll0x10560bd4; type7 no conversion (text already in caller buf)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055f8fc",
+       "function": "0x1055f8fc",
+       "notes": "Abort gate: all three registered handlers lbz +0x2d0 and no-op when set (start0x1055f900, end0x105612b0, chardata0x10560a3c); parse continues lexically but no semantic state changes."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1053ae94",
+       "function": "0x1053ae94",
+       "notes": "Feed-false -> done: f_1053ae3c result0 at0x1053aed8 (identity) and0x1053af64 (chunked f_1053af0c) both branch to f_10538a88 body-done transition; consumed counters advance regardless, so malformed/truncated XML ends the body phase like a clean EOF."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10563384",
+       "function": "0x10563384",
+       "notes": "Nested-matcher name bind: count at this+0x2a4 cap0xb overflow reuses last slot0x105633f0; stores name at element+0x38 (=desc+0x34) inline when sub-obj setter==f_1055eb4c else calls it; returns &desc. Caller stb 1,0x30(desc) sites e.g.0x10725f3c mark bound response fields optional."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10562d64",
+       "function": "0x10562d64",
+       "notes": "Chunked driver: source->vfunc+8 pulls min(remain,0x1000) into0x1000 stack buf, feeds f_10562cac, loops while pull==request and feed true; falls into same triage at0x10562e08 (+0x2e2 else +0x2e4->1000 else f_1055f358)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10c3ba14",
+       "function": "0x10c3ba14",
+       "notes": "Code validator: returns1 iff code in1010-1019 or==1036 or in8000-8999 (addi -0x3f2/0x9, xori0x40c, addi -0x1f40/0x3e8, isel at0x10c3ba3c). f_10c3ba54 returns1 iff code in1042-1045."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10561414",
+       "function": "0x10561414",
+       "notes": "Descriptor ctor: +0x30/+0x31/+0x32 all cleared at0x10561428-0x10561434; +0x30 is never written by parser code, only by action binds, so it encodes optionality."
       }
-     ],
-     "todo": "Established: response feed zero-length behavior, numeric-result precedence and descriptor-byte scan are decoded. Remaining: census parser+0x2e2/+0x2e4 and descriptor+0x30/+0x31 writers, recover SOAP fault/code conversion and field requirement policy, trace nested and unknown/duplicate/oversized responses, XML finalization/lexical errors, malformed-tail partial outputs and caller-visible failure translation."
+     ]
     }
    }
   },
