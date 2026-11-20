@@ -231028,7 +231028,7 @@
      "todo": "Established: authentication-method gate, body/header construction, response destination bindings and execution/result forwarding are decoded. Remaining: finish XML writer escaping, userInfo fields, missing/duplicate/oversized response acceptance and partial-output effects; bind all public inputs and direct callers0x101b8f6c/0x1028b0f8; trace shared HTTP execution, faults, retries and account continuation."
     },
     "device_auth_manifest_header": {
-     "description": "During getDeviceAuthToken setup, descriptor capability0x400000 causes an optional call to global interface0x11097928 slot+0x28 with accountType=(descriptor SID<<8)|7 and a129-byte destination. The destination begins empty, and the return value is ignored. The resulting text is passed as the raw-header argument to f_1071e208. That helper adds this text through request slot+0x30 only when the URI begins with the exact case-sensitive first5 bytes https or the setting read through f_1054bdc8(index25) is nonzero. It does not prepend an API-key header name to this text. If a nonempty raw header is supplied for another URI with that setting false, it only logs the HTTPS warning and continues later setup; it does not return an error. getDeviceAuthToken supplies null bearer/signature/certificate/group strings to the other helper arguments. The exact header extraction and whether the supplied text already contains a name/value line remain separate questions.",
+     "description": "During getDeviceAuthToken setup, descriptor capability0x400000 causes an optional call to global interface0x11097928 slot+0x28 with accountType=(descriptor SID<<8)|7 and a129-byte destination (stack buffer, first byte pre-cleared); the return value is ignored. The resulting text is passed as the raw-header argument to f_1071e208. Interface binding:0x11097928 stores &RZP[0x293dc] written at0x1019a20c in RZonePlayer init f_101981f0 and is zeroed at0x101924b8 in ~RZonePlayer f_101921a0; the containing member+0x293d0 is registered as impl index6 on the embedded registrar at+0x2900c by f_10651bd4 at0x101993ec, so the concrete provider class is attached by DI wiring (f_101afaa4) at runtime. The same interface exposes slot+0x2c(provider,serviceId)->bool, consulted before emitting 'X-Sonos-GroupAttribute'. A second caller f_107174c8 forwards to slot+0x28 with accountType=(req+0x13b0<<8)|7 and destination req+0x11e8 cap0x81; the getSessionId builder passes req+0x11e8 as its raw header, so that member buffer is the manifest-header slot for that action. f_1071e208 is the shared request-header builder(req,desc,bearer,unused,rawHeader,msSig,deviceCert,groupCap,groupAttr). It reads devmode bit25 via f_1054bdc8 on global0x11097374 (bit array at+0x404 through f_1054bd60, devmode.cxx; the blob is XOR-applied by writer f_1054beb0) and a5-byte case-sensitive strncmp of req+0x410 against 'https'. On the secure path a nonempty rawHeader is appended verbatim through request vfunc+0x30 (f_106fd270->f_10551678); cap+0x130&8 then enters the auth section, which emits 'AUTHORIZATION: Bearer %s' (cap0x819) when arg3 is nonempty and sets req+0xa47 via f_106fd828, then under cap0x20000 emits 'X-Sonos-MS-Sig: %s' (cap0x2bf) from arg6 and 'X-Sonos-DeviceCert: %s' (cap0x1017) from arg7. On a non-https URI with the flag clear, a supplied nonempty rawHeader (or cap8 plus bearer) only logs 'SMAPI uri must be HTTPS: %s, method=%s' (uri,method=req+0x911) and continues; the raw text is never attached and no error is returned. The tail emits 'X-Sonos-GroupCapability: %s' (cap0x3c) when arg8 is nonempty, evaluates global0x11097920 vfunc+0x20 for sid204 logging 'Apple Music HLSv7 enabled from FCS', and under cap0x400000 emits 'X-Sonos-GroupAttribute: %s' (cap0x3b) only when arg9 is nonempty and provider slot+0x2c(serviceId) returns nonzero. f_1071e208 returns void: the HTTPS gate, provider calls and every header emission are advisory only. Attach-time revalidation: vfunc+0x30 (f_106fd270) calls f_10551678 which requires 'name:value' form, a colon after position0 with no preceding space; the text is stored as name plus ' ' plus value into the bounded header blob at req+0x8a50 by f_105514ec, which on overflow clears flag+0xc and returns0, producing only the level4 log 'Failed to add custom header -- buffer is full?'. So the manifest producer must supply a complete name-colon-value line within its129-byte cap; malformed text or a full blob is log-only. getDeviceAuthToken supplies null bearer/signature/certificate/group strings; the TLS endpoint itself is selected in the transport layer and this helper performs no TLS.",
      "evidence": [
       {
        "type": "firmware",
@@ -231050,9 +231050,69 @@
        "build": "86.10-80260",
        "address": "0x1071e568",
        "notes": "Raw text passed unchanged to request slot+0x30. Non-HTTPS warning path0x1071e3b0 joins continued setup at0x1071e2c4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019a20c",
+       "notes": "0x11097928 stores &RZP[0x293dc] (addi r9,-0x6c24(r28), r28=RZP+0x30000); sibling globals0x1109792c/0x11097930 stored at0x1019a220/0x1019a214. Registrar member+0x2900c gets impl index6=&RZP[0x293d0] via f_10651bd4 at0x101993ec. ~RZonePlayer zeroes it at0x101924b8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1072a544",
+       "notes": "Slot+0x28 call: provider load0x1072a548, vfunc+0x28 at0x1072a564, accountType rlwinm sid<<8|7 at0x1072a568, dest sp+0x120f4 cap0x81 at0x1072a558/0x1072a560, first byte pre-cleared by stbu at0x1072a53c; result untested."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107174c8",
+       "notes": "Alternate slot+0x28 wrapper: tail-calls provider+0x28 with accountType=(req+0x13b0<<8)|7, dest=req+0x11e8, cap0x81; no static callers (indirect dispatch); getSessionId reads req+0x11e8 as rawHeader at0x1072505c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e2e4",
+       "notes": "cap0x400000 and arg9(groupAttr) nonempty -> provider vfunc+0x2c(serviceId) at0x1071e308-0x1071e324; nonzero emits 'X-Sonos-GroupAttribute: %s' cap0x3b at0x1071e528; arg8 emits 'X-Sonos-GroupCapability: %s' cap0x3c at0x1071e590."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e3f8",
+       "notes": "sid==204 path: global0x11097920 vfunc+0x20 at0x1071e408-0x1071e414, nonzero logs 'Apple Music HLSv7 enabled from FCS' at0x1071e440."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054bd60",
+       "notes": "devmode bit getter (devmode.cxx:0xf7): bit array at this+0x404, count+0x408, ZZ0018 bit test, result negated+normalized; reader wrapper f_1054bdc8 locks+0x568. Writer f_1054beb0 (devmode.cxx:0x10e) XOR-applies a flag blob at0x1054bf88-0x1054bfa4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e458",
+       "notes": "cap8 auth section: 'AUTHORIZATION: Bearer %s' cap0x819 attach at0x1071e474-0x1071e4a4, f_106fd828 sets req+0xa47 at0x1071e4b0; cap0x20000 gate at0x1071e4b4 ->'X-Sonos-MS-Sig: %s' cap0x2bf at0x1071e5d0, 'X-Sonos-DeviceCert: %s' cap0x1017 at0x1071e4f0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10551678",
+       "notes": "addCustomHeader revalidation (vfunc+0x30 f_106fd270): strchr ':' required at0x105516b0, reject at pos0 or space-before-colon via0x105517b0; name stored then ' ' plus value by f_105514ec into bounded blob req+0x8a50; overflow clears flag+0xc and returns0 ->'Failed to add custom header -- buffer is full?' level4 log at0x106fd2e4."
       }
      ],
-     "todo": "Established: manifest-capability lookup arguments, raw-header forwarding and local HTTPS/setting predicate are decoded. Remaining: bind interface construction and slot+0x28 implementation to manifest API-header extraction; trace header parsing/limits and setting meaning/writers, and verify actual HTTP/TLS behavior and failure propagation."
+     "resolved_findings": [
+      "The concrete manifest provider class is bound at runtime through DI registration: member+0x293d0 is only registered (impl index6 on registrar+0x2900c) and its interface at+0x293dc is exported via0x11097928; no static vtable assignment exists in the binary. Slot+0x28 is therefore identified by contract: it must write a complete 'name: value' header line within the0x81 cap because the request-side attach revalidates that form.",
+      "Which header name the producer emits (for example a key derived from the manifest 'apiKey'/'accountTiers' fields) is runtime manifest data: the binary does not pin the producer to a specific header name.",
+      "TLS termination and endpoint selection happen in the transport layer (executor f_106ff03c, connection f_10538ed0); this helper only gates on the5-byte 'https' URI prefix and performs no TLS itself."
+     ]
     },
     "shared_device_credentials": {
      "description": "Credentials builder f_1071f0c0 adds zonePlayerId when descriptor capability0x40000 is set and the supplied zone-player string is non-null/nonempty. If a certificate destination exists and capability0x20000 is set, it consults optional global certificate provider0x1109792c. Provider slot+8 returning numeric1 yields result1045 and bypasses certificate retrieval. It still appends deviceId and deviceProvider before returning that error. Other provider states attempt slot+0xc retrieval into the caller buffer; true adds deviceCert, while false merely omits it and returns zero. Missing provider also omits the certificate and returns zero. After these branches it always adds deviceId from global text0x110a9ab0 and deviceProvider literal Sonos. In getDeviceAuthToken the certificate scratch capacity is4097 and the caller stops before request execution on any nonzero builder result. Provider binding:0x1109792c is stored at0x1019a220 inside RZonePlayer init f_101981f0 from member+0xc7c; ctor f_1018d27c passes &RZP[0xc7c] inside a member-address table into DI wiring call f_101afaa4 at0x1018f114, so the concrete provider is attached at runtime. ~RZonePlayer f_101921a0 clears sibling globals0x11097928 and0x11097930 but never0x1109792c. Registered providers are the devicecertmanager family (devicecertmanager.cxx/certmanager.cxx): vtables0x10ef1e60 (ctor f_105a7034) and0x10efc818 (ctor f_1064aca0) share slot+8 state f_10390274, slot+0xc retrieval f_106b1e04, slot+0x10 install f_105a6e44 (URN strings 'urn:sonos:hhid' and 'urn:sonos:user') and slot+0x1c presence f_106b1d64 reporting member+0x9c!=0. state() returns1 when byte+0x10d0 is set, else2 when+0x9c is set, else0;1045 therefore means denylisted. +0x10d0 is cleared by the class ctor at0x105a70e0, assigned by metadata evaluator f_105a7b48 (stored 'state' field: 'denylisted'->1, absent or empty->0, other nonempty logs 'Unknown cert metadata state' and schedules a refresh job through scheduler global0x110a5f8c slot+0xc before clearing it), set at0x105a86cc when refresh routine f_105a7e74 sees HTTP403 plus 'X-Sonos-Denylisted: true' (the same path stores 'state'='denylisted' through setter f_105a7dac) and cleared on the refresh success path at0x105a84e8. Retrieval f_106b1e04 strlcpy's cert text from provider+0xa0 only when+0x9c is nonzero and reports success only when it fits the caller capacity. deviceId source:0x110a9ab0 is a zero-initialized0x20-cap buffer heading a static identity block (further strings at+0x20 cap0x21,+0x44 cap0xc0,+0x104 cap0xc0,+0x1c4 cap0x21; the+0x20 string is filled during init via f_10719e40 at0x10198724). Its only setter is strlcpy thunk f_10719e24; all four callers (f_100c6248, f_100c7c6c, f_100c8230, f_104b1e48) copy the 'R_TrialZPSerial' setting text into it, and f_104b1e48 logs 'Trial ZP has changed from %s to %s'. The emitted deviceId is therefore the last applied R_TrialZPSerial value, or empty when that setting was never applied. Caller audit: shared helper f_10724d78 (call site0x10724dcc, used by ~10 action builders including refreshAuthToken f_10725488 with stack cap0x1001) returns a nonzero builder result unchanged and skips all login-credential work; on zero it dispatches on credential-type word+0x13b4 (state0, or3 with flag+0x11a7, calls vfunc+0x10; byte+0x124 set calls f_1071ee0c; otherwise 'username'/'password'/'login' elements; cap+0x13ac&0x10000 adds tail call f_10724cac). The getSessionId builder call at0x107250cc passes stack capacity0x1001 and stored member+4 as the zonePlayer string, then ignores the builder result entirely and continues to 'username'/'password' emission, so a denylisted device still emits a getSessionId request whose credentials carry only deviceId/deviceProvider. Certificate issuance and renewal run inside refresh routine f_105a7e74, which posts a 'Registration' JSON event ('certType'='deviceCert','secureReg') and consumes 'requestTimeMS','downloadStatusCode','httpResultCode','newETag','previousETag','downloaded','unchanged','state','etag' fields plus the 'X-Sonos-Muse-Household-Id' header, staging results through a '.tmp' file; the concrete backend endpoint is runtime configuration.",
