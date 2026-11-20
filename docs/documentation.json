@@ -220601,7 +220601,7 @@
      ]
     },
     "local_overrides": {
-     "description": "The normalized catalog suppresses downloaded Service entries whose numeric ID matches any supplied local descriptor row. Callback f_100cb88c marks that row skipped through byte +0x1025, including nested elements and the closing Service. After the remote stream completes, f_100cc4f4 appends supplied local rows only when both name and expanded secure URI are nonempty. Therefore a matching empty local row can suppress the downloaded entry without appending a replacement. Local row identity overrides the remote row before validating whether the local replacement is usable.",
+     "description": "The normalized catalog suppresses downloaded Service entries whose numeric ID matches any supplied local descriptor row. Callback f_100cb88c marks that row skipped through byte +0x1025, including nested elements and the closing Service. After the remote stream completes, f_100cc4f4 appends supplied local rows only when both name and expanded secure URI are nonempty. Therefore a matching empty local row can suppress the downloaded entry without appending a replacement. Local row identity overrides the remote row before validating whether the local replacement is usable. The supplied rows come from an inline collection loop in the fetch worker at 0x100c9814: it calls service vtable slot +0x20 (f_100c6068) to fill 0x138-stride rows, requesting selector 0xff on the first call and service types 0xf0 through 0xfd on subsequent calls, with the cumulative count capped at 0xff. The rows are passed to f_100cc4f4 with the HTTP object, deadline and temporary path. Local built-ins are also re-serialized on the backstop/boot path through serializer-run helper f_100cc34c, which builds the vtable-0x10e767fc processor on the stack with the destination writer, the ServiceTypeList buffer at source+0x34 (cap 0x800), the installed array at source+4 and counter state, then parses the stored catalog fd through adapter f_105528ac and pump f_10c4009c.",
      "evidence": [
       {
        "type": "firmware",
@@ -220616,9 +220616,22 @@
        "build": "86.10-80260",
        "address": "0x100cc81c",
        "notes": "Name and expanded secure-endpoint emptiness gates for appended local entries."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c9814",
+       "notes": "Supplied-row collection loop: vt +0x20 fill, selector 0xff first call then types 0xf0..0xfd, cumulative cap 0xff, hands rows to f_100cc4f4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100cc34c",
+       "notes": "Serializer-run helper: stack processor fields, adapter build and fd pump for the local re-serialization."
       }
-     ],
-     "todo": "Established: remote ID-match suppression and local append eligibility are decoded. Remaining: trace the supplied-row collection at 0x100c9814 and the customsd writer to bind all supported local IDs, deletion and persistence behavior."
+     ]
     },
     "normalized_schema": {
      "description": "Capability bit 0x400000 controls presentation suppression in the normalized catalog emitter: its extraction at 0x100cb784 stores per-service byte +0x1434, which gates Presentation, Strings and PresentationMap callbacks. The separate Manifest callback remains available when a manifest URI is present. Nested URI elements are serialized as Version/Uri attributes by f_100c757c; this helper performs no network fetch. Policy carries Auth and PollInterval. The normalized BuiltInService callback emits Type and Name. It appends a type to the available-trials comma list when (type &0x81)==0x80 and type!=0x84. These are literal mask/equality tests; no named enum assignment is inferred here. The accumulated list has its final comma removed before successful return and is later passed to the R_AvailableSvcTrials update helper. Full field inventory is in payload_formats.music_service_catalog.",
