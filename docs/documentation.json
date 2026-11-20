@@ -226179,15 +226179,29 @@
      "function": "envelope fields",
      "address": "0x109f6bc4",
      "notes": "namespace, response, success, type, cmdId (optional), async (conditional), apiVersion (optional), event name; all envelope fields, not body members."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "event registry init f_10098d34 producer join",
+     "address": "0x10098dcc",
+     "callsite": "0x10098dcc mtctr / 0x10099040+0x10099160 mfctr / per-row sth prod sites",
+     "notes": "73 inline rows at 0x110b8ce8 stride 0x14. Producer values read as immediates: zones trio 0x52, upnp* 0x40-0x4e, hardwareStatus family 0xf, positioning 0x23, topology 0x3c (cloudRegistration, via mfctr), trueplay 0x3d, trueroom 0x3e. All +0xc values are valid namespace indices 1-82."
     }
    ],
-   "todo": "Residual: for the 48 topics without a literal f_10677b94 construction site, bind each concrete producer class (vtable installed at event+4 by subsystem constructors) or raw-body writer, and recover per-body member lists and per-site emission predicates. Mechanism, registry and send contract are resolved; remaining work is the per-class body census.",
+   "todo": [
+    "Established: the producer of every topic is now bound to its namespace class through the registry +0xc index join (all 73 rows decode to valid namespace indices, so the 48 non-literal sites are bound too), and payload model identity is the row type-id through the member-name table. Remaining: decode each payload model's member list (the field-level schema for each type-id, shared with the muse_semantics model work), pin the concrete ns+4 instance that emits each topic (the muse_engine implementation residual), and recover the per-site emission predicates. This is actionable static work."
+   ],
    "resolved_findings": [
     "Registry layout recovered end to end: 73 rows of 20 bytes built at 0x110b8ce8 by f_10098d34 with fields {descriptive tag, name ptr, type id <=0x142, sub-index u16, selector s8, format class u32}. Every topic, type, schema name, sub-index and class is enumerated in the registry field; ctr-sourced stores make row17 type and row21 sub-index 0x3c, and the tag field is quirky (row56=3, row60=60).",
     "Format classes decoded: +0x10 picks the body family - 0 simple/version-changed, 2 playback family (f_109e12b4 is a ==2 predicate covering extendedPlaybackStatus, groupVolume, playbackMetadataStatus, playbackStatus, playbackError, sleepTimerStatus), 3 session pair, 4 UPnP/status family, 5 household/upgrade, 6 entitlements, 8 groupCoordinatorChanged.",
     "Sub-index pair decoded: +0xc u16 is the producer sub-index inside a class (UPnP service indices 0x3f..0x52, device-status group 0xf, trueroom 0x3e, speakerPresence 0x3d, positioning 0x23, diagnostics 8, settings 9/0x26); +0xe s8 is the selector resolved by f_109e1044 (-1 = none) and reverse-matched by f_109e10d8.",
     "Construction bound: shared ctor f_10677b94 (r5 = literal topic) wraps generic event f_10677970 (vtable 0x10e87040); header type comes from f_109e8780(obj+0x20, topic). Twenty-seven literal-topic call sites bind 25 topics including the five playback events inside f_102cb860; groupVolume and playbackStatus also get inline type-assigns at 0x1039caf8 and 0x102e3d60. Topics without a typed site are covered by subsystem-specific constructors not exhaustively inventoried here.",
-    "Send contract confirmed: event+0xc nonzero selects the raw writer over event+8 (exact byte length, null pointer with nonzero length throws), zero selects the typed producer path whose vfunc+8 call is skipped for a null producer leaving an empty object; formats 4/5 prepend the shared envelope either way."
+    "Send contract confirmed: event+0xc nonzero selects the raw writer over event+8 (exact byte length, null pointer with nonzero length throws), zero selects the typed producer path whose vfunc+8 call is skipped for a null producer leaving an empty object; formats 4/5 prepend the shared envelope either way.",
+    "Producer binding completed without per-site call analysis: the registry row +0xc field is the muse namespace descriptor index. Verified against the namespace name table for all 73 topics: zones family 0x52, homeTheater pair 0x12, UPnP services 0x40-0x4e matching their upnp* class indices, hardwareStatus family 0xf, positioning trio 0x23, trueplay trio 0x3d, trueroom trio 0x3e, alarms/areas/audioClip version topics 1/2/3, householdUpdate pair 0x14, sleepTimer 0x34, playbackSession pair 0x20, playback trio 0x1d/0x1e, playbackExtended 0x1e... and cross-namespace cases: cloudRegistration -> topology (0x3c), groupCoordinatorChanged -> global (0xc), localDevices -> devices (6), musicServicesChanged -> musicServiceAccounts (0x19), upgradeManager -> householdUpdate (0x14). Every topic resolves to a real namespace class; none is orphaned.",
+    "Registry constructor quirks confirmed at the store level: f_10098d34 keeps 0x3c in CTR across the function (mtctr at 0x10098dcc, no decrement) and reads it back via mfctr for row17 type (0x3c=60), row18 tag (0x3c) and row60 tag (0x3c); row56 tag uses a pre-set immediate 3. Selector byte +0xe is 0 on all 73 rows, so f_109e1044's row path (+0xc) is always taken.",
+    "Producer interpretation: the +0xc index names the namespace class whose implementation (the object injected at namespace+4) owns the event stream; the emitted body is written by that producer's vfunc+8 through the f_109f6fb0 typed path, or by the raw writer f_109f6d7c when event+0xc is nonzero. Payload model identity is the row +8 type-id resolved through the member-name table (e.g. versionChanged, upnpEvent, playbackStatus, sessionInfo)."
    ],
    "registry": {
     "base": "0x110b8ce8",
@@ -226781,6 +226795,449 @@
      ]
     ],
     "note": "row[topic,name,type,schemaName,subIndex,formatClass]; row17 type 0x3c and row21 subIndex 0x3c arrive via mfctr (ctr loaded once with 0x3c at the initializer head); the descriptive +0 tag is quirky: row56 sessionError stores 3 and row60 settingsPlayerSettingsChanged stores 60 via ctr"
+   },
+   "producer_join": {
+    "method": "row +0xc producer sub-index is the namespace descriptor index (same 0-82 space as the factory jump table and name table 0x10f96aa4). All 73 rows decode to a valid namespace, including the 48 topics that have no literal f_10677b94 call site.",
+    "topics": {
+     "accessorySwapStatus": {
+      "type": 3,
+      "type_name": "accessorySwap",
+      "producer": "homeTheater",
+      "format": 4
+     },
+     "tvAudioSignalStatus": {
+      "type": 4,
+      "type_name": "tvAudioSignalStatus",
+      "producer": "homeTheater",
+      "format": 4
+     },
+     "activeZonesChange": {
+      "type": 12,
+      "type_name": "activeZonesChange",
+      "producer": "zones",
+      "format": 0
+     },
+     "zoneDefinitionsChange": {
+      "type": 13,
+      "type_name": "zoneDefinitionsChange",
+      "producer": "zones",
+      "format": 0
+     },
+     "zoneError": {
+      "type": 14,
+      "type_name": "zoneError",
+      "producer": "zones",
+      "format": 0
+     },
+     "alarmClock": {
+      "type": 20,
+      "type_name": "upnpEvent",
+      "producer": "upnpAlarmClock",
+      "format": 4
+     },
+     "alarmVersionChange": {
+      "type": 24,
+      "type_name": "versionChanged",
+      "producer": "alarms",
+      "format": 0
+     },
+     "areasVersionChange": {
+      "type": 34,
+      "type_name": "versionChanged",
+      "producer": "areas",
+      "format": 0
+     },
+     "audioClipStatus": {
+      "type": 38,
+      "type_name": "audioClipStatus",
+      "producer": "audioClip",
+      "format": 4
+     },
+     "audioInput": {
+      "type": 40,
+      "type_name": "upnpEvent",
+      "producer": "upnpAudioIn",
+      "format": 4
+     },
+     "availableSoftwareUpdate": {
+      "type": 51,
+      "type_name": "availableSoftwareUpdate",
+      "producer": "update",
+      "format": 4
+     },
+     "avTransport": {
+      "type": 52,
+      "type_name": "upnpEvent",
+      "producer": "upnpAVTransport",
+      "format": 4
+     },
+     "batteryStatus": {
+      "type": 55,
+      "type_name": "battery",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "wirelessNetworkStatus": {
+      "type": 56,
+      "type_name": "wirelessNetworkStatus",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "microphoneSwitchStatus": {
+      "type": 57,
+      "type_name": "microphoneSwitch",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "waterStatus": {
+      "type": 58,
+      "type_name": "waterState",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "bluetoothPairingStatus": {
+      "type": 59,
+      "type_name": "bluetoothPairing",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "bluetoothConnectionStatus": {
+      "type": 60,
+      "type_name": "bluetoothConnection",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "poeStatus": {
+      "type": 61,
+      "type_name": "poeState",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "lineInStatus": {
+      "type": 62,
+      "type_name": "lineInStatus",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "wiredSubConnectionStatus": {
+      "type": 63,
+      "type_name": "wiredSubStatus",
+      "producer": "hardwareStatus",
+      "format": 4
+     },
+     "cloudRegistration": {
+      "type": 74,
+      "type_name": "cloudRegistrationStatus",
+      "producer": "topology",
+      "format": 0
+     },
+     "connectionManager": {
+      "type": 77,
+      "type_name": "upnpEvent",
+      "producer": "upnpConnectionManager",
+      "format": 4
+     },
+     "contentDirectory": {
+      "type": 80,
+      "type_name": "upnpEvent",
+      "producer": "upnpContentDirectory",
+      "format": 4
+     },
+     "deviceProperties": {
+      "type": 90,
+      "type_name": "upnpEvent",
+      "producer": "upnpDeviceProperties",
+      "format": 4
+     },
+     "diagnosticSubmissionResults": {
+      "type": 95,
+      "type_name": "diagnosticSubmissionResults",
+      "producer": "diagnostics",
+      "format": 4
+     },
+     "diagnosticMetadata": {
+      "type": 96,
+      "type_name": "diagnosticMetadata",
+      "producer": "diagnostics",
+      "format": 4
+     },
+     "effectiveSettingsDataChanged": {
+      "type": 101,
+      "type_name": "settingsChanged",
+      "producer": "effectiveSettings",
+      "format": 4
+     },
+     "entitlementsVersionChanged": {
+      "type": 106,
+      "type_name": "versionChanged",
+      "producer": "entitlements",
+      "format": 6
+     },
+     "extendedDeviceStatus": {
+      "type": 110,
+      "type_name": "extendedDeviceStatus",
+      "producer": "devicesExtended",
+      "format": 0
+     },
+     "extendedPlaybackStatus": {
+      "type": 111,
+      "type_name": "extendedPlaybackStatus",
+      "producer": "playbackExtended",
+      "format": 2
+     },
+     "favoritesVersionChange": {
+      "type": 115,
+      "type_name": "versionChanged",
+      "producer": "favorites",
+      "format": 0
+     },
+     "groups": {
+      "type": 133,
+      "type_name": "groups",
+      "producer": "groups",
+      "format": 0
+     },
+     "groupCoordinatorChanged": {
+      "type": 134,
+      "type_name": "groupCoordinatorChanged",
+      "producer": "global",
+      "format": 8
+     },
+     "groupManagement": {
+      "type": 136,
+      "type_name": "upnpEvent",
+      "producer": "upnpGroupManagement",
+      "format": 4
+     },
+     "groupRendering": {
+      "type": 137,
+      "type_name": "upnpEvent",
+      "producer": "upnpGroupRenderingControl",
+      "format": 4
+     },
+     "groupVolume": {
+      "type": 138,
+      "type_name": "groupVolume",
+      "producer": "groupVolume",
+      "format": 2
+     },
+     "hdmiStatus": {
+      "type": 140,
+      "type_name": "hdmiStatus",
+      "producer": "hdmi",
+      "format": 4
+     },
+     "historyVersionChanged": {
+      "type": 141,
+      "type_name": "versionChanged",
+      "producer": "history",
+      "format": 0
+     },
+     "householdUpdateStatus": {
+      "type": 147,
+      "type_name": "householdUpdateStatus",
+      "producer": "householdUpdate",
+      "format": 5
+     },
+     "upgradeManager": {
+      "type": 148,
+      "type_name": "upgradeManager",
+      "producer": "householdUpdate",
+      "format": 5
+     },
+     "htControl": {
+      "type": 149,
+      "type_name": "upnpEvent",
+      "producer": "upnpHTControl",
+      "format": 4
+     },
+     "indexerStatus": {
+      "type": 152,
+      "type_name": "indexerStatus",
+      "producer": "localContentLibrary",
+      "format": 0
+     },
+     "localDevices": {
+      "type": 160,
+      "type_name": "localDevices",
+      "producer": "devices",
+      "format": 0
+     },
+     "musicServices": {
+      "type": 166,
+      "type_name": "upnpEvent",
+      "producer": "upnpMusicServices",
+      "format": 4
+     },
+     "musicServicesChanged": {
+      "type": 167,
+      "type_name": "musicServicesChanged",
+      "producer": "musicServiceAccounts",
+      "format": 0
+     },
+     "playbackMetadataStatus": {
+      "type": 181,
+      "type_name": "metadataStatus",
+      "producer": "playbackMetadata",
+      "format": 2
+     },
+     "playbackStatus": {
+      "type": 184,
+      "type_name": "playbackStatus",
+      "producer": "playback",
+      "format": 2
+     },
+     "playbackError": {
+      "type": 185,
+      "type_name": "playbackError",
+      "producer": "playback",
+      "format": 2
+     },
+     "playerVolume": {
+      "type": 192,
+      "type_name": "playerVolume",
+      "producer": "playerVolume",
+      "format": 4
+     },
+     "playlistsVersionChange": {
+      "type": 195,
+      "type_name": "versionChanged",
+      "producer": "playlists",
+      "format": 0
+     },
+     "positioningSessionStatus": {
+      "type": 211,
+      "type_name": "positioningSessionStatusInfo",
+      "producer": "positioning",
+      "format": 4
+     },
+     "positioningSessionError": {
+      "type": 212,
+      "type_name": "positioningSessionErrorInfo",
+      "producer": "positioning",
+      "format": 4
+     },
+     "positioningDeviceStatus": {
+      "type": 213,
+      "type_name": "positioningDeviceStatusInfo",
+      "producer": "positioning",
+      "format": 4
+     },
+     "queue": {
+      "type": 223,
+      "type_name": "upnpEvent",
+      "producer": "upnpQueue",
+      "format": 4
+     },
+     "renderingControl": {
+      "type": 237,
+      "type_name": "upnpEvent",
+      "producer": "upnpRenderingControl",
+      "format": 4
+     },
+     "sessionError": {
+      "type": 246,
+      "type_name": "sessionError",
+      "producer": "playbackSession",
+      "format": 3
+     },
+     "sessionInfo": {
+      "type": 247,
+      "type_name": "sessionInfo",
+      "producer": "playbackSession",
+      "format": 3
+     },
+     "settingsVersionChanged": {
+      "type": 252,
+      "type_name": "versionChanged",
+      "producer": "settings",
+      "format": 0
+     },
+     "settingsDataChanged": {
+      "type": 253,
+      "type_name": "settingsChanged",
+      "producer": "settings",
+      "format": 0
+     },
+     "settingsPlayerSettingsChanged": {
+      "type": 254,
+      "type_name": "playerSettingsEvent",
+      "producer": "settings",
+      "format": 0
+     },
+     "sleepTimerStatus": {
+      "type": 259,
+      "type_name": "sleepTimerStatus",
+      "producer": "sleepTimer",
+      "format": 2
+     },
+     "systemProperties": {
+      "type": 274,
+      "type_name": "upnpEvent",
+      "producer": "upnpSystemProperties",
+      "format": 4
+     },
+     "timers": {
+      "type": 276,
+      "type_name": "timers",
+      "producer": "timers",
+      "format": 4
+     },
+     "trueplayStatus": {
+      "type": 288,
+      "type_name": "trueplayStatus",
+      "producer": "trueplay",
+      "format": 4
+     },
+     "speakerPresenceStatus": {
+      "type": 289,
+      "type_name": "speakerPresenceResultList",
+      "producer": "trueplay",
+      "format": 4
+     },
+     "speakerPresenceRateChange": {
+      "type": 290,
+      "type_name": "speakerPresenceEffectiveRate",
+      "producer": "trueplay",
+      "format": 4
+     },
+     "trueroomAdaptationStatusEvent": {
+      "type": 292,
+      "type_name": "trueroomAdaptationStatus",
+      "producer": "trueroom",
+      "format": 4
+     },
+     "trueroomCalibrationStatus": {
+      "type": 293,
+      "type_name": "trueroomCalibrationStatus",
+      "producer": "trueroom",
+      "format": 4
+     },
+     "trueroomStatusEvent": {
+      "type": 294,
+      "type_name": "trueroomStatus",
+      "producer": "trueroom",
+      "format": 4
+     },
+     "virtualLineIn": {
+      "type": 309,
+      "type_name": "upnpEvent",
+      "producer": "upnpVirtualLineIn",
+      "format": 4
+     },
+     "voiceAccountsVersionChange": {
+      "type": 313,
+      "type_name": "versionChanged",
+      "producer": "voice",
+      "format": 4
+     },
+     "zoneGroupTopology": {
+      "type": 322,
+      "type_name": "upnpEvent",
+      "producer": "upnpZoneGroupTopology",
+      "format": 4
+     }
+    }
    }
   },
   "circuit_breaker": {
