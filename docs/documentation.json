@@ -215039,7 +215039,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
@@ -227919,7 +227919,7 @@
   },
   "psk_hierarchy": {
    "name": "4-PSK household crypto hierarchy + rotation",
-   "summary": "Household-related PSKs are concrete0xb0-byte records containing an identifier,32 raw random key bytes and generation metadata, with current/backup pairs. Identifiers use sonos.<purpose>.1.<context>.<random suffix>. Diagnostic XML emits IDs, but the local netsettings.json writer also emits a transformed key field. The former opaque-keystore and IDs-only-everywhere claims are withdrawn; replication and inverse-loading joins remain unfinished.",
+   "summary": "Household-related PSKs are concrete 0xb0-byte records containing an identifier, 32 raw random key bytes and generation metadata, with current/backup pairs. Identifiers use sonos.<purpose>.1.<householdID>.<8-hex-random suffix>; the context field is the device HouseholdID setting value. The settings-file key field is transformed material: base64 of a 0x01 marker, a 4-byte generation word, and ciphertext produced under a 16-byte key derived from a 16-byte household master with label HHSettings and the HouseholdID context. Replication transfers the whole wrapped file to peers; the replicated XML inventory and diagnostic XML carry identifiers only. The netstartd push delivers the sonosnet master, plaintext network credentials, and the current household PSK identifier plus raw key.",
    "evidence": [
     {
      "type": "firmware",
@@ -227961,17 +227961,114 @@
      "address": "0x1062dd60",
      "callsite": "0x1062dd64 / 0x1062c47c",
      "notes": "HH Base64 source owner+921 = record8a0+81; length20hex and error diagnostic at0x1062dd90. Rotation invokes generator for purpose control into temporary record at0x1062c47c, with separate failure/update handling. These paths contradict key-bytes-never-leave-record assertions but do not alone certify full replicated wire format."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10630580",
+     "address": "0x10630580",
+     "notes": "Whole-netsettings JSON writer: fileVersion/lastUpdateDevice/fileSchemaVersion, sonosnet {Disable,Frequency}, networks[] {ssid,pass(ZZ0197-wrapped),flags} stride0x74, then eight conditional PSK arms. Fields psk/backupPsk/controlPsk/backupControlPsk/roomEncPsk/backupRoomEncPsk/lanSwapPsk/backupLanSwapPsk map to image+0x74c/+0x7fc/+0x8ac/+0x95c/+0xa0c/+0xabc/+0xb6c/+0xc1c, each emitted only when record byte0 (id) is nonzero; any f_1062e668 failure aborts with false."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062e668",
+     "address": "0x1062e668",
+     "notes": "Per-record JSON arm: copies id(record+0) into 0x130-byte buffer, sonosBase64Encode(record+0x81,0x20) into stack+0x14c, calls ZZ0197(arg3..arg6 passthrough,'netsettings','key',b64,out stack+0x9d,0x69). Emits {id,key,genVersion,genTime}: genVersion via f_1090c4a8(record+0xa4) into 0x40 buffer, genTime = record+0xac. ZZ0038 wipes the b64 buffer before return. Returns 0 on encode/ZZ0197/version failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0197",
+     "address": "0xbf9c",
+     "notes": "Setting-value wrap: requires (arg1 & ~4)==2 (hierarchy selector 2 or 6), nonzero output and capacity args. snprintfs '<arg5>:<arg6>' into 0x1021 buffer ('netsettings:key'), writes byte0x01 then the 4 bytes at arg6 (=owner+0xf8 word) after the name, calls ZZ0043(hier,arg2,arg3,name,namelen+5,plaintext,ptlen,out,&remaining,1), then mbedtls_base64_encode(out,arg11cap) over marker+word+ciphertext. Output = base64(0x01||be32(word)||ciphertext)."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0198",
+     "address": "0xc168",
+     "notes": "Exact inverse of ZZ0197: same hierarchy check and '<arg5>:<arg6>' name, mbedtls_base64_decode of input, requires decoded byte0==1, optional memcmp(arg4,decoded+1,4) when arg4 nonzero, then ZZ0043(...,flag=0) decrypts decoded+5 into caller buffer. The 0x1062f574 call passes arg4=0 so the generation word is embedded but not verified on this read path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062f1c4",
+     "address": "0x1062f574",
+     "notes": "Per-record inverse loader: JSON {id,key,genVersion,genTime} -> ZZ0198(*(r26),*(r26+4),*(r26+8),0,'netsettings','key',keyfield,out,0x2d) -> plaintext base64 -> sonosBase64Decode into record+0x81 raw key; id strlcpy into record+0 cap0x81; genVersion parse f_1090c360 into record+0xa4; genTime into record+0xac. Missing object arm clears id byte and resets record+0xa4 flag bits/+0xa8. r26 points at the {hierarchy,wrapkey,16} triple."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10627b14",
+     "address": "0x10627c40",
+     "notes": "Writer supplies the crypto context to f_10630580 as *(owner+0xe4) hierarchy, owner+0xe8 key pointer, constant16, owner+0xf8 generation-word pointer; writes '<dir>/netsettings.json' through a '.tmp' file plus rename; on success memcpys the 0x25-byte version block to owner+0x12c and the 0xccc image to owner+0x154."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10627da8",
+     "address": "0x10627e6c",
+     "notes": "Constructor: strlcpy(arg8 r10 -> owner+0xfd, 0x21) = identifier context; nonzero context required for record generation. ZZ0215(owner+0xe20,0x10,'HHSettings',owner+0xfd,ctxlen,owner+0xe8,0x10) derives the wrap key; ZZ0058(3,owner+0xe8,0x10,out) fetches the 4 bytes stored at owner+0xf8..0xfb. Per-purpose regeneration of missing current records at 0x106280e8/0x10628110/0x10628138/0x10628160 sets owner+0x150 dirty."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105e701c / f_105ad854",
+     "address": "0x105e7044",
+     "notes": "Context semantics bound: f_105e701c reads the 'HouseholdID' setting via f_109bd6e4 and installs a shared singleton (deleter vtable0x10ef7b6c) at 0x110a74f0; accessor f_105ad854 returns it under mutex to stack+0x154 in startup f_101981f0, which passes it as constructor arg r10. owner+0xfd is therefore the household ID string, and sonos.<purpose>.1.<hhid>.<rand> identifiers embed it."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0215",
+     "address": "0x7144",
+     "notes": "SP800-108 counter-mode KDF over f_6f68: ZZ0215(master,masterlen,label,context,ctxlen,out,outlen) produces outlen bytes in 0x20-byte blocks with a {label,context,counter,Lbits} info struct. Constructor uses master=owner+0xe20[0x10], label 'HHSettings', context=household ID -> owner+0xe8. Same-context derivations with labels 'HHDK'/'SIGN' at f_1066134c feed static buffers 0x110a6034/0x110a6044."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062a418",
+     "address": "0x1062a524",
+     "notes": "Replication consume: copies crypto ctx {owner+0xe4,+0xe8,16} to stack, parses the offered file through f_10630404 (the f_1062f728/f_1062f1c4 per-record chain), renames it over netsettings.json, memcpys the parsed image into owner+0x154, logs 'Settings Replication changed SN Disable from %d to %d (source: %s)', pushes to netstartd and re-saves via f_106294dc. Reject/fail arms log 'Rejected %s remote settings'; success logs 'Accepted %s remote settings' and 'Pending netsettings.json update discarded after replicating'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062d948",
+     "address": "0x1062d948",
+     "notes": "Netstartd push payload: type0x3f message containing base64(owner+0xe20 16B sonosnet master, 'Encoding SonosNet key failed' on error), mapped disable flag (image+0, switch 1/2/other -> 'Unknown SonosNet disable setting: %d'), one {ssid, plaintext record+0x2d pass} pair per network row (stride0x74,count image+8), and when owner+0x8a0 present the hhPsk id field plus base64(record+0x81 0x20) at 'Encoding DTLS HH PSK failed'. Control/roomenc/lanswap PSKs are not in this push."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062a080",
+     "address": "0x1062a080",
+     "notes": "Replicated/status XML emits only id attributes for all eight PSK records <HhPsk|BackupHhPsk|ControlPsk|BackupControlPsk|RoomEncPsk|BackupRoomEncPsk|LanSwapPsk|BackupLanSwapPsk id=\"%s\"/> plus SonosNet Disable/Frequency and Network SSID/Flags; no key, genVersion or genTime fields leave through this channel."
     }
-   ],
-   "todo": [
-    "Established: exact generated identifier format, four purpose strings, in-process key/metadata layout, RNG boundary, ID-only diagnostic XML versus material-bearing local JSON, and concrete HH material encoding. Remaining: bind identifier context owner+0xfd back through constructor r10/startup0x10199150 to its semantic source; trace inverse key loading and ZZ0197/its decode counterpart, then join replication/netstartd serializers and receiving consumers for each current/backup pair. Start with f_1062e668, f_10630580, f_1062d948 and settings replication callbacks. Do not infer IDs-only replication or an opaque external key store from diagnostic XML. This is actionable static work."
    ],
    "resolved_findings": [
     "Generator f_10626df8 builds sonos.%s.%d.%s.%s from purpose r3, literal1, context r4 and an8-character random hexadecimal suffix. It requests8 characters from alphabet0123456789abcdef through ZZ0154 and32 random key bytes through ZZ0071 into record+0x81. Record+0 holds the identifier (bounded0x81-byte destination),+0xa4/+0xa8 hold generation-version words from f_1090b418 and+0xac holds generation time. A zero result from either random call or invalid generation-version state returns failure. Time uses time() with a lower bound0x6a8f3ce0; this is generation metadata, not evidence of expiration or periodic rotation.",
     "Purpose literals are hh/control/roomenc/lanswap at calls0x106280f8/0x10628120/0x10628148/0x10628170. Current records are at netsettings-owner+0x8a0/+0xa00/+0xb60/+0xcc0, backups at the next0xb0-byte record. Context in this path is owner+0xfd, copied with bound0x21 from constructor f_10627da8 argument r10 at0x10627e78. Startup caller0x10199170 loads that argument from stack+0x154. Its earlier producer and semantic identity are not yet bound; it must not be guessed to be a household ID or a key-store handle.",
     "Raw material is held in anacapad memory, not only behind a crypto key-store boundary. In the shipped libsonoscrypto.so.3, ZZ0071 at0x75c0 calls mbedtls_ctr_drbg_random at0x75ec; ZZ0154 at0x7780 calls ZZ0153, which also reaches ZZ0071. The four purpose strings select independent generator invocations, not a proven derivation chain from a registration-signing key. The earlier secure-registration/device-discovery/settings-auth consumer map is withdrawn; the registration JWT key has its separately traced lifecycle.",
     "The identifiers-only claim conflated different outputs. Diagnostic XML f_1062a030 formats <HhPsk id=\"%s\"/> and backup counterparts using record starts. In contrast persistence f_10627b14 calls JSON writer f_10630580 at0x10627c5c; its conditional PSK arms invoke f_1062e668. That helper reads32 bytes at record+0x81, Base64-encodes them, passes the result through ZZ0197 with netsettings/key context labels, then emits an object with id,key,genVersion,genTime. The key value is transformed material, not merely another identifier. The outer file path uses temporary-file writing and rename; transformation/Base64/version failures return failure rather than emitting a completed PSK object.",
-    "Concrete consumer preparation f_1062d948 separately Base64-encodes the HH key from owner+0x921 (=current HH record+0x81) at0x1062dd64 and has the Encoding DTLS HH PSK failed guard. This disproves an IDs-only handoff assumption, but the transport serializer and receivers still require a full join before claiming exactly which bytes replicate. Rotation f_1062c2cc invokes the same generator into temporary records and reports generation/settings-update failure paths; no fixed periodic rotation interval follows from these strings."
+    "Concrete consumer preparation f_1062d948 separately Base64-encodes the HH key from owner+0x921 (=current HH record+0x81) at0x1062dd64 and has the Encoding DTLS HH PSK failed guard. This disproves an IDs-only handoff assumption, but the transport serializer and receivers still require a full join before claiming exactly which bytes replicate. Rotation f_1062c2cc invokes the same generator into temporary records and reports generation/settings-update failure paths; no fixed periodic rotation interval follows from these strings.",
+    "Resolved the wrap transform end to end: the netsettings.json 'key' field is base64(0x01 || 4-byte generation word || ZZ0043 ciphertext of the base64 form of the raw 32-byte PSK). ZZ0197 at libsonoscrypto 0xbf9c builds the name 'netsettings:key', appends marker+word from owner+0xf8, encrypts and re-encodes; ZZ0198 at 0xc168 is the exact inverse with an optional 4-byte word check that the PSK load path skips (arg4=0 at 0x1062f574). The same pair wraps network 'pass' fields.",
+    "Resolved identifier context: owner+0xfd is a 0x21-bounded copy of the constructor's arg8, which startup f_101981f0 loads from the HouseholdID singleton installed by f_105e701c (f_109bd6e4 'HouseholdID' setting read). Generated identifiers are therefore sonos.<purpose>.1.<householdID>.<8 hex chars>; an empty context skips generation entirely.",
+    "Resolved the crypto context: owner+0xe4 is the hierarchy selector constrained to 2 or 6 by both ZZ0197 and ZZ0198 (arg1 masked ~4 must equal 2); owner+0xe8 is the 16-byte wrap key derived by ZZ0215 (SP800-108 counter KDF) from the 16-byte master at owner+0xe20 with label 'HHSettings' and the household ID context; owner+0xf8 is a 4-byte generation word fetched via ZZ0058(3,key,16). The {selector,key,16} triple at owner+0xe4 is what both file I/O and the replication consumer pass to the wrap/unwrap functions.",
+    "Resolved replication and netstartd joins: inter-player replication offers and consumes the entire wrapped netsettings.json (consumer f_1062a418 runs the same parse chain, replaces the local image, re-pushes and re-persists), so key material crosses peers only inside the wrapped file; the ReplicatedNetSettings XML/status emits identifiers only. The local netstartd push (f_1062d948 via f_10628f4c) carries plaintext sonosnet master, plaintext per-network {ssid,pass} pairs, and the current hhPsk {id,raw-key base64}; control, roomenc and lanswap records have no netstartd push arm and remain in-process state."
    ]
   },
   "unlock": {
