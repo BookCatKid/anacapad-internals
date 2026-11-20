@@ -230436,7 +230436,7 @@
     "manifest_uri_expansion": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a placeholder it also uses strlcpy. The function returns the destination pointer and does not report truncation or placeholder substitution as a separate status. Other placeholders and subsequent occurrences are unchanged by this helper."
    },
    "auth_and_poll_storage": {
-    "description": "f_10553f3c maps exact strings UserId, Stateless, Anonymous, DeviceLink and AppLink to byte values 0,1,2,3,4 at descriptor+0x12c. An unmatched string leaves the prior byte unchanged. f_10554044 calls that mapper and stores PollInterval at +0x12a as the input when unsigned (value-1)<=28, otherwise 30. Thus 1 through 29 are preserved; zero and values >=30 normalize to 30.",
+    "description": "f_10553f3c maps exact strings UserId, Stateless, Anonymous, DeviceLink and AppLink to byte values 0,1,2,3,4 at descriptor+0x12c; an unmatched string leaves the prior byte unchanged. Constructor f_10554350 clears the four packed URI fields then tail-calls f_10554218, which stores +0x134=id(arg), name at +0x00 cap0x20, sscanf('%d.%d') version into +0x120/+0x122 (0.0 when unparseable), packs secureUri (a false pack aborts the remaining defaults and returns false), containerType enum at +0x12d ({null,empty,MService:0, SoundLab:1, Preload:2, Preinstall:3}, unmatched preserved via f_10554148), +0x130=arg9 caps word, +0x124/+0x126/+0x128=0xffff, +0x12c=1 (Stateless) and +0x12a=30. Reset f_10553b9c instead zeroes the name, URIs, all version fields, +0x12a, +0x12c, +0x12d, +0x130 and +0x134, so a reset descriptor reads UserId/poll0 while a constructed one reads Stateless/poll30. The only semantic writer of +0x12c is f_10553f3c; +0x12a is written by the ctor (30), reset (0), standalone f_105540d4 and the storage-processor Policy slot, all using the same (v-1)<=28?v:30 clamp. f_10554044, the equivalent combined auth+poll entry point taking the descriptor directly, has no bl/b caller and no pointer formation anywhere in this build (dead entry; the live storage path is vtable slot 0x10554d9c -> f_10554db0 which prefixes a *+0x14c==+0x144 early return). Writers to these fields are: catalog XML <Policy> handling (SAX adapter defaults Auth='UserId' and PollInterval=30, converts PollInterval through saturating u16 f_105527f8, then invokes processor vfunc+0x14), the storage processor vtable 0x10ee9e64 whose +0x14 entry 0x10554d9c gates on the service counter and falls into f_10554db0 (f_10553f3c enum store plus clamped halfword at +0x12a of this+0x13c), and the line-form path f_100c8900 which maps 'authType' through f_10553f3c and 'pollInterval' through strtol then f_105540d4. Consequences: XML <Policy> present without Auth yields enum0 UserId, absent <Policy> keeps the constructed enum1 Stateless; the form's absent authType keeps enum1 as well. Normalized-XML emitter f_100cc4f4 converts +0x12c back to a string through f_10554090 (0 or >4 yields 'UserId', 1..4 yield Stateless/Anonymous/DeviceLink/AppLink via table 0x10ee9eec) and +0x12d through f_1055438c (0 or >3 yields 'MService', 1..3 yield SoundLab/Preload/Preinstall via table 0x10ee9efc), so an out-of-enum byte renders as UserId/MService while the raw byte persists in the descriptor. Per-enum authentication behavior is a five-entry class table {UserId:3, Stateless:3, Anonymous:1, DeviceLink:2, AppLink:2} instantiated twice at 0x10e9b0b4 (account worker f_101b6efc) and 0x10f0e4a4 (getDeviceAuthToken): only class2 admits the device-token action (UserId and Stateless share class3 treatment, Anonymous is class1), the worker dispatches class2 entries to the account-entry probe f_10570e34((serviceId<<8)|7) at 0x101b72ec, and the rejection warning prints the class value as 'credentialType' at 0x1072a3e8.",
     "evidence": [
      {
       "type": "firmware",
@@ -230451,9 +230451,79 @@
       "build": "86.10-80260",
       "address": "0x10554064",
       "notes": "Subtract-one unsigned compare and isel before halfword store at 0x10554074."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554218",
+      "function": "0x10554218",
+      "notes": "Descriptor init: +0x134=id at0x10554258, name cap0x20 at0x10554264, sscanf '%d.%d' -> +0x120/+0x122 at0x1055429c-0x105542a4, secureUri pack gate at0x105542b0, containerType f_10554148 at0x105542c0, +0x130=caps at0x105542c8, sth -1 to +0x124/+0x126/+0x128 at0x105542d0-0x105542f0, stb 1 to +0x12c at0x10554304, sth 30 to +0x12a at0x1055430c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10553b9c",
+      "function": "0x10553b9c",
+      "notes": "Reset clears +0x00..+0x20 name/URIs at0x10553bac-0x10553c2c, +0x60/+0xa0/+0xe0 at0x10553c34-0x10553c3c, halfwords +0x120..+0x12a at0x10553c40-0x10553c54, bytes +0x12c/+0x12d at0x10553c58-0x10553c5c, words +0x130/+0x134 at0x10553c60-0x10553c64."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554d9c",
+      "function": "0x10554d9c",
+      "notes": "Storage-processor Policy slot (vtable 0x10ee9e64+0x14): *+0x14c==+0x144 early-return prelude then f_10554db0 body - f_10553f3c(desc=this+0x13c, authString) at0x10554dd0 and clamped sth poll at0x10554de4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x100c8e04",
+      "function": "0x100c8900",
+      "notes": "Line-form path: 'pollInterval' value strtol at0x100c8e04 then f_105540d4 clamp store at0x100c8e10; 'authType' value to f_10553f3c at0x100c8e20; 'caps' names OR'd via 22-entry table 0x10e769cc into f_10553f2c(+0x130) at0x100c8b9c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554044",
+      "function": "0x10554044",
+      "notes": "Combined auth+poll variant taking desc directly: dead in this build - no bl/b caller found in .text and no pointer formation found by image-wide xref scan."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554090",
+      "function": "0x10554090",
+      "notes": "Auth enum->string: (v-1)<=3 indexes table 0x10ee9eec {Stateless,Anonymous,DeviceLink,AppLink}, else 'UserId'; sole caller f_100cc4f4 emitter at0x100cc9a8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1055438c",
+      "function": "0x1055438c",
+      "notes": "ContainerType enum->string: (v-1)<=2 indexes table 0x10ee9efc {SoundLab,Preload,Preinstall}, else 'MService' at0x105543c0; sole caller f_100cc4f4 at0x100cc860."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10e9b0b4",
+      "notes": "Auth-class table {3,3,1,2,2} indexed by +0x12c byte: UserId/Stateless class3, Anonymous class1, DeviceLink/AppLink class2. Second copy at 0x10f0e4a4 used by getDeviceAuthToken; rejection log formats the class value as credentialType at0x1072a3e8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x101b7190",
+      "function": "0x101b6efc",
+      "notes": "zpserviceaccounts.cxx worker loop over +0x138-stride descriptor array: lbz +0x12c, cmplwi 4, lwzx class from r27=0x10e9b0b4; class==2 branches at0x101b7178 to f_10570e34 probe with (serviceId<<8)|7 at0x101b72f4-0x101b7304; second per-entry read at0x101b7370 repeats the class2 gate before caps&0x100000 (userInfo) and entry operations."
      }
-    ],
-    "todo": "Established: exact auth enum mapping, unmatched-string preservation and polling normalization are decoded. Remaining: trace descriptor constructor defaults and every setter/caller to establish public-form, JSON and XML differences and authentication behavior for each enum."
+    ]
    },
    "todo": "Established: catalog input/callback state, normalized XML and nested JSON are separated; schema/ID/version/auth/poll gates, Ratings/Icon retention, namespace-disabled setup and packed URI storage/manifest substitution are instruction-traced. Remaining: exhaust processor return/error effects, descriptor projections, malformed/repeated states, call-site URI capacities and failure propagation. Bind customsd/form inputs, capability tests, presentation/string grammar, authentication enum and Ratings/Icon consumers to concrete behavior. Nested JSON parser/consumer work remains in svc_manifest.",
    "service_manifest_json": "The actual nested service-manifest JSON parser is f_10239c48 with static table 0x10ea5bec; emitter f_10239dc0 writes schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. The structures are documented in payload_formats.music_service_manifest and differ from catalog XML fields.",
