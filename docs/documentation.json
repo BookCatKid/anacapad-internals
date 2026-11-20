@@ -220548,17 +220548,51 @@
      "todo": "Established: f_100c72e8 reads R_AvailableSvcTrials into a 1024-byte buffer, substitutes an empty string when lookup fails and compares it with the incoming trial string. It writes the setting through the settings object slot +8 only when strcmp differs. The fetch worker calls this after successful processing but before final installation, so a later install failure can occur after trial-setting mutation. Remaining: Trace trial-string SAX generation and the settings write/notification method to establish exact grammar and persistence."
     },
     "notification_wakeup": {
-     "description": "The concrete install-to-GENA scheduling edge is f_100c7898 at 0x100c7b7c -> f_1067c6ec -> f_1067c46c. The event source is the catalog secondary object at primary+8. The notifier sets source pending byte +0x110, obtains a live sender through source+0xb8 and, when its payload and source+0xb4 are present, calls f_10678c50. That helper locks the sender, sets sender+0x10e and signals sender+0xb8. If no usable sender is present it logs the event-source no-sender diagnostic. This proves a sender wakeup; it does not prove a subscriber received a packet.",
+     "description": "The subsystem-internal chain from install to event emission is fully traced. Installer f_100c7898 sets dirty byte +0x1d5 at 0x100c7b78 and calls f_1067c6ec(&this+8) on the embedded shared-state base. That dispatcher reaches f_1067c46c, which atomically installs the pending marker on event source +0x110, obtains the refcounted notification sender at +0xb8 (refcounts at +4/+8 with stwcx) and, when the sender and the source payload at +0xb4 are both present, calls f_10678c50; otherwise it logs 'Event source %s has no notification sender' with the +0xbc name. f_10678c50 locks sender +0x28, sets sender+0x10e=1 and signals the condvar at sender+0xb8, which wakes the GENA sender thread. On the emission side, the service object exposes the state-variable enumerator at primary vtable (0x10e768a4) slot +0x4c = f_100c71d0: it acquires shared table this+0x128 via f_10557afc with release callback f_100caad8 (vtable 0x10e766f0), calls f_100c7084 for each nonnull builder argument, copies the 8-byte variable descriptor from .bss global 0x1109b010 into the out parameter, and releases the table. f_100c7084 emits '<ServiceListVersion>' content '<+0x1d7 id>:<+0x1f0 version>' (name written with length 0x12, id string, ':' separator, decimal version). With the consume flag nonzero it emits only when +0x1d5 is set, then calls f_101b7cd4(&this+0x1c8) and clears +0x1d5; with the flag zero it emits unconditionally, the initial full-state form. +0x1d5 is written nowhere else in the binary: constructor f_100c69xx zeroes it with +0x1d4/+0x1d6/+0x1d7 at 0x100c6a68, the installer is its only setter, and f_100c7084 its only clearer, so a ServiceListVersion delta event is queued exactly once per accepted install through f_100c7898 (whether the list arrived by local fetch or by replication) and cleared the next time the variable is read out. The sender thread itself, its registration, retry and packet delivery, and any WSS producers live in the eventing/notification code outside this subsystem; the hand-off proven here is the sender condvar signal at f_10678c50 plus the +0x10e pending byte.",
      "evidence": [
       {
        "type": "firmware",
        "binary": "anacapad",
        "build": "86.10-80260",
-       "address": "0x100c7b7c",
-       "notes": "Notify wrapper, sender lookup and f_10678c50 stores/signals."
+       "address": "0x100c7b78",
+       "notes": "Installer dirty set then f_1067c6ec(&this+8) before the field stores."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1067c46c",
+       "notes": "Atomic pending set on source +0x110, refcounted sender lookup +0xb8, payload gate +0xb4, no-sender diagnostic."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10678c50",
+       "notes": "Sender lock +0x28, +0x10e=1 store, condvar +0xb8 signal."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c71d0",
+       "notes": "Enumerator at service vtable slot +0x4c: shared-table acquire via f_10557afc + release cb f_100caad8, per-builder f_100c7084 calls with consume=1 then consume=0, .bss descriptor 0x1109b010 copied to out arg."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x100c7084",
+       "notes": "Dirty-gated emit of ServiceListVersion '<id>:<ver>' at 0x100c70ac-0x100c7118; f_101b7cd4 on +0x1c8 then +0x1d5 clear at 0x100c7130; unconditional form when consume=0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10e768a4",
+       "notes": "Primary vtable: +8=f_100c997c poll orchestrator, +0x1c=f_100c7c34 replication thunk, +0x20=f_100c6068 supplied-row fill, +0x4c=f_100c71d0 event enumerator."
       }
-     ],
-     "todo": "Established: The concrete install-to-GENA scheduling edge is f_100c7898 at 0x100c7b7c -> f_1067c6ec -> f_1067c46c. The event source is the catalog secondary object at primary+8. The notifier sets source pending byte +0x110, obtains a live sender through source+0xb8 and, when its payload and source+0xb4 are present, calls f_10678c50. That helper locks the sender, sets sender+0x10e and signals sender+0xb8. If no usable sender is present it logs the event-source no-sender diagnostic. This proves a sender wakeup; it does not prove a subscriber received a packet. Remaining: Trace sender-thread callback registration, payload generation and subscriber send/retry paths, plus WSS producer bindings."
+     ]
     },
     "local_overrides": {
      "description": "The normalized catalog suppresses downloaded Service entries whose numeric ID matches any supplied local descriptor row. Callback f_100cb88c marks that row skipped through byte +0x1025, including nested elements and the closing Service. After the remote stream completes, f_100cc4f4 appends supplied local rows only when both name and expanded secure URI are nonempty. Therefore a matching empty local row can suppress the downloaded entry without appending a replacement. Local row identity overrides the remote row before validating whether the local replacement is usable.",
