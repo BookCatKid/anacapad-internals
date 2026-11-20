@@ -217764,7 +217764,7 @@
   },
   "audio_rate_ctrl": {
    "name": "Audio Rate Controller (ASRC) + timesync drift",
-   "summary": "ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, \"Rate Maxed\"/\"Rate Inv Maxed\" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; \"time went back; try again\"; \"Thread descheduled for %uus. Limit %uus\"; SRC mute on |drift| \"(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u\"; \"Out of bounds. drift: %f mute count: %d\"",
+   "summary": "ARC: setCoefficients StdQ ASRC; guards {adjust rate of 0,unsupported channels,Unsupported Input Audio/Line Rate,Over Excursion error,sample rate converter error read}; reconfig on rate/channel-count/line-rate change; timesync: databurst LockTime, \"Rate Maxed\"/\"Rate Inv Maxed\" rails m_dOverallRate/m_dIntegratedRate, iter dump {LE,LEP,IC,ICP,IL,RT,err,errf,dOut,dIn,AP,RL}; \"time went back; try again\"; \"Thread descheduled for %uus. Limit %uus\"; SRC mute on |drift| \"(Should) Mute SRC. dAbsoluteError = %f, current canonical rate = %u\"; \"Out of bounds. drift: %f mute count: %d\"; upstream filtered error = 2nd-order lowpass IIR in f_107fbd54 (delay lines +0x140..+0x168, y[n]=x[n]+2x[n-1]+x[n-2]+1.8059334142y[n-1]-0.8181059933y[n-2], x[n]=int64 tick delta/328.6074362) feeding +0x120; R divisor +0x10 fixed 44100.0; output railed [0.9524,1.05] unlocked, bang-bang +-1000 biases",
    "evidence": [
     {
      "type": "firmware",
@@ -217799,17 +217799,64 @@
      "build": "86.10-80260",
      "address": "0x107fc734",
      "notes": "SPE output consumer multiplies integer rate by +0x130 and converts to float."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fbd54",
+     "address": "0x107fbd80",
+     "notes": "Filter delay-line shift + IIR: evlddx/evstddx taps +0x140..+0x168; int64 +0x110 -> /328.6074362; y[n]=x[n]+2x[n-1]+x[n-2]+1.8059334142y[n-1]-0.8181059933y[n-2] -> +0x120."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fc2f8",
+     "address": "0x107fc400",
+     "notes": "measureDrift: 64-bit tick deltas stored +0x100/+0x104 and +0x110/+0x114; calls f_107fbd54 then f_107fba34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fb414",
+     "address": "0x107fb488",
+     "notes": "ctor: +0x10 = 44100.0 (0x10eb4830); +0x118/+0x120 = 0.0; +0x128/+0x130 = 1.0; +0x80 = 2116.5; +0x88 = 2304.0; +0x190 halfword 2400; +4/+8 = -1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fb8a4",
+     "address": "0x107fb8d0",
+     "notes": "applyRails: clamps +0x130 to [0.9523809523809523,1.05] when lock state +0 != 2; locked rail excursions log 'Rate Maxed!!!'/'Rate Inv Maxed!!!' gated by +0x174 counter."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107fc6b0",
+     "address": "0x107fc798",
+     "notes": "Out-of-bounds accounting: |e| > global 0x110927f8 (100.0; 200.0 on 32000 path) increments +0x174 and sets latch +0x170 (1.016->1.011); count 500 or log paths set mute byte +0x18."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f2b8e8",
+     "notes": "Filter constants: 328.6074362 tick divisor; -0.8181059933 / 1.8059334142 IIR feedback; bias constants +1000.0 (0x10ea2398), -1000.0 (0x10f2b918), thresholds +-1e6 (0x10eb4858, 0x10f2b940)."
     }
-   ],
-   "todo": [
-    "Residual: establish the upstream filtered-error update producing double +0x120 and the units of +0x10/+0x120, including why the decoded piecewise bias uses -1000 in its middle branch. The local SPE recurrence, cubic/difference terms, clamp limits and output consumption are now decoded. Do not infer a standard PI controller from telemetry names."
    ],
    "resolved_findings": [
     "Servo decoded: a timesync DPLL (TimeSync Reset with TS_DPLL_STATE_NO_LOCK) drives the ASRC - m_dOverallRate is the proportional term, m_dIntegratedRate the integral accumulator, dAbsoluteError the measured drift, current canonical rate = %u the group canonical rate (the coordinator's audio clock is canonical; members servo to it via remoteToLocal regression). Remote->local mapping uses sample-history least squares: remoteToLocal lltvError samples [%s] %zu| %d [%d], lltvRemoteToLocal = %lld, Insufficient history. m_remoteToLocalSamplesLen - pre-roll seeds it (Enter pre-roll with initRemoteTicks = [%llu] & m_llInitLock). Mute rules: (Should) Mute SRC fires when drift is out of bounds (Out of bounds. drift: %f mute count: %d) or error exceeds threshold (mute adj.), (Should) Un-Mute SRC. Counter was %d on re-lock - the SRC-mute-on-drift rule. Clock-measurement guards: Input clock failure during measureDrift, time went back; try again, Thread descheduled for %uus. Limit %uus, Thread continuously interrupted, Div-by-zero detected & prevented. Line Rate = %u & Audio Rate = %u. Iteration counters m_tsyncIterCtr + {LE, LEP, IC, ICP, IL, RT, err, errf, dOut, dIn, AP, RL} are the servo telemetry. TV Locktime [%i].[%i] tracks HT databurst lock.",
     "Coefficient-address correction from GNU e500 disassembly: 0x107fc508 materializes 0x10f2b918, not 0x10f2b8e8, because signed addi -18152 is added to lis 0x10f3. That literal is -1000.0, not 328.6074362. Likewise lis 0x10ec plus signed addi 0x9ee0 is 0x10eb9ee0 (1.0), not 0x10ec9ee0. Prior named gain attribution based on the linear listing is superseded by the explicit recurrence below. The 32000-rate branch writes gains 2e-8 and 1e-5 to globals 0x110927e8/+8, and bias multiplier 35 to 0x110b6830; other rates retain the global gains (image initializers 4e-8 and 0.0001) and set bias multiplier 30. This proves writable globals, not a user-facing tuning interface.",
     "Initialization and mute-path scope corrected: constructor starts 0x107fb414, with 0x107fb418 only its stack setup. It stores r7 to +0x118/+0x120 but r8, not a copy from +0x118, to +0x128/+0x130 at 0x107fb4f4-0x107fb50c. f_107fc6b0 calls update f_107fc46c at 0x107fc6d0; non-32000 paths select the literal 1.016 (0x10f2b948) or 1.011 (0x10f2b950) depending on byte +0x170, before calling f_107fb8a4. The 32000 path loads 200.0 from 0x10f2b928 at 0x107fc870. Therefore 1.016/1.011 cannot be described as universal thresholds for every input rate. The counter +0x174 and latch +0x170 are updated at 0x107fc798-0x107fc7a8 on the out-of-bounds path. The earlier exact PI/member-binding interpretation is withdrawn; the telemetry names alone do not establish those equations.",
     "Local SPE recurrence in f_107fc46c decoded with GNU objdump -WN -M e500, including branch polarity: let e be double +0x120, p previous e at +0x118, I prior +0x128, R double +0x10, and K1/K2 globals 0x110927e8/+8. Form q=(e>0 ? 1 : -1)*e*e. Bias b is 1000 if q>1000000, q/1000 if q<-1000000, otherwise -1000, as the actual loads and branches at 0x107fc4c0-0x107fc510, 0x107fc5e0 and 0x107fc69c specify. Compute u=clamp(e*e*e,-100,100), v=clamp(e-p,-200,200), store e to +0x118, then Inew=clamp(I+K1*u+K2*v,0.9746588693957114,1.026) and store +0x128. Store output +0x130=Inew+M*b/R, where M is 30 or 35 as above. These are equations from instructions, not a claim about physical units or intended control theory. The ordinary-input middle bias is explicitly negative, rather than silently substituting a conventional symmetric cubic law. The lower and upper I clamp paths and no-clamp path all store +0x128 before adding the bias.",
-    "Output-consumer check: f_107fc6b0 unconditionally invokes f_107fc46c at 0x107fc6d0; its normal return at 0x107fc710-0x107fc734 multiplies integer member +8 by double +0x130 and converts that double to single with efscfd. This establishes +0x130 as the multiplicative rate output, but does not itself establish the units or upstream definition of e. It also prevents describing +0x130 simply as the integrator: the bounded I term is +0x128 and output includes a separate bias. No error/null-input branch is implied for this object method; zero R would reach division without a guard here."
+    "Output-consumer check: f_107fc6b0 unconditionally invokes f_107fc46c at 0x107fc6d0; its normal return at 0x107fc710-0x107fc734 multiplies integer member +8 by double +0x130 and converts that double to single with efscfd. This establishes +0x130 as the multiplicative rate output, but does not itself establish the units or upstream definition of e. It also prevents describing +0x130 simply as the integrator: the bounded I term is +0x128 and output includes a separate bias. No error/null-input branch is implied for this object method; zero R would reach division without a guard here.",
+    "Established (GNU e500 SPE decode): the upstream filtered-error update producing double +0x120 is f_107fbd54, invoked at 0x107fc424 as the last step of measureDrift f_107fc2f8. measureDrift keeps signed 64-bit drift state at +0xd0..+0x114: each call it forms the newest tick delta into +0x110/+0x114 and a second delta into +0x100/+0x104 from the timestamp arguments (r5-r8) against the prior reference at +0xf0/+0xf4, with the 'Input clock failure during measureDrift' guard. f_107fbd54 maintains two 3-tap double delay lines - input taps {+0x140,+0x148,+0x150} and output taps {+0x158,+0x160,+0x168} - shifts both, normalizes the +0x110 int64 delta by literal 328.6074362 (0x10f2b8e8, ticks per canonical sample) into x[n], and computes the second-order lowpass y[n] = x[n] + 2*x[n-1] + x[n-2] + 1.8059334142*y[n-1] - 0.8181059933*y[n-2] (feedback constants 0x10f2b8f0, 0x10f2b8f8), storing y[n] to +0x168 and to the servo error +0x120. The filter is a biquad with numerator (1+z^-1)^2 (double zero at Nyquist) and complex poles of magnitude sqrt(0.8181059933) = 0.9045.",
+    "Established: units of the servo inputs are now fixed by the constants. +0x10 is the canonical rate divisor 44100.0 (double at 0x10eb4830), stored only by the ctor at 0x107fb488 and never rewritten elsewhere in .text, so the R in output = I' + M*b/R is 44100.0 samples/sec. +0x120 is filtered clock drift in normalized sample units: the raw input is a signed 64-bit timestamp-tick delta at +0x110 (the 'diff in sample unit time %llu' measure), scaled by the fixed 328.6074362 ticks-per-canonical-sample divisor (implied tick clock 328.6074362 x 44100 = 14.4916 MHz), so e expresses drift in sample-period units and the e^3 / Delta-e update clamps of +-100 and +-200 bound those same units. Related members from the ctor: +8 integer input rate (32000-specialized), +0x80 = 2116.5 and +0x88 = 2304.0 (0x10f2b8a0/0x10f2b8a8), +0x190 halfword 2400, +0x18 SRC-mute flag byte, +0x170 rail-select latch, +0x174 out-of-bounds counter.",
+    "Established + Inferred: the piecewise bias is now explainable from the rail structure. Output +0x130 = clamp(I + K1*clamp(e^3,-100,100) + K2*clamp(e-prev,-200,200), 0.9746588693957114, 1.026) + M*b/44100.0, where K1/K2/M are 4e-8/1e-4/30 by default and 2e-8/1e-5/35 on the 32000 path (written to globals 0x110927e8, 0x110927f0, 0x110b6830 every call), and b = +1000.0 when sign(e)*e^2 > 1e6, sign(e)*e^2/1000.0 when < -1e6, else -1000.0 (constants 0x10ea2398, 0x10f2b918; thresholds 0x10eb4858, 0x10f2b940; sign const -1.0 at 0x10ec5760). f_107fb8a4 then clamps +0x130 to [0.9523809523809523, 1.05] (0x10f2b8d8, 0x10f2b600) whenever lock state +0 is not 2, and when locked only logs 'Rate Maxed!!!'/'Rate Inv Maxed!!!' (0x10f2b9dc, 0x10f2ba2c) on rail excursions while +0x174 != 0. The +-1000 biases are ~14x wider than the +-4.8% rail half-band: with b=-1000 the dead-band output I' - 0.680 always lands below the low rail, with b=+1000 it lands above the high rail, and q/1000 scales the deep-negative regime. Inferred consequence: the correction is a two-level (bang-bang) drive that dwells at the rails and lets the sign of the filtered drift pick the rail, while the I' accumulator (clamped [0.9747,1.026]) and the cubic/difference terms set the dwell balance; +0x174 counts consecutive out-of-bounds iterations (|e| > global 0x110927f8, 100.0 default, forced 200.0 for 32000) with the latch +0x170 tightening the detection threshold 1.016->1.011 once counting, and a count of 500 or the log paths raising the +0x18 mute byte ('(Should) Mute SRC', '(Should) Un-Mute SRC' on return to bounds). The float product rate_int(+8) x +0x130 returned by f_107fc6b0 is computed at 0x107fc734 but dropped by the sole callsite at 0x107faa38, so +0x130 is the applied ratio consumed outside this call (the SRC engine receives the drift double via f_107c72c4 when lock state is 2)."
    ]
   },
   "amp_manager": {
