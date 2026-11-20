@@ -502802,8 +502802,8 @@
       "ERROR": 5
      }
     },
-    "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with optional household path scope. It does not list general add/edit/remove-account routes in this resource. Nearby field strings and candidate vtables do not establish an exact request/response schema or every operation result.",
-    "todo": "Established: all seven routes bound to their command classes and exec entries, and the three input models fully decoded with required/optional/context flags; scope fields are context-injected not body-parsed; match response member musicServiceAccount with globalError set. Remaining: the musicServiceAccount output-model member list (produced by a different serializer path, not the f_109cc8f4 registry), the concrete impl actor for the match/preferred/direct-control calls, match-to-account persistence semantics, and exact event emission predicates for musicServicesChanged.",
+    "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with optional household path scope. It does not list general add/edit/remove-account routes in this resource. Work functions dispatch through the request-context actor at ctx+0x64 (not the namespace impl at cmd+0x7c): the actor's +0xc method returns {status, flag, vector} into the result object. The namespace's backing implementation is the ZPServiceAccounts zoneplayer component (zpserviceaccounts.cxx), constructed once during master registration and stored in a shared engine-context slot; it registers listeners for household-id and location-id events and is the producer of the musicServicesChanged event. Response declarations in the spec pools: match and getPreferredMusicServiceAccount emit member musicServiceAccount (HTTP 200) or globalError (HTTP 400/499); setPreferredMusicServiceAccount emits ok or globalError; the direct-control pair adds a groupCoordinatorChanged member asserted with HTTP 404, consistent with coordinator-scoped semantics.",
+    "todo": "Established: route inventory, input models with required/optional/context flags, the actor dispatch mechanism (request-ctx+0x64 -> actor->vfn+0xc), the ZPServiceAccounts backing component (ctor, registration site, event listeners), response member/status declarations per verb, and the musicServicesChanged producer binding. Remaining: the musicServiceAccount output-model member list is not in the f_109cc8f4 registry (verified: no builder registers the account field group) and needs its member descriptor isolated in the response model machinery; the concrete +0x64 actor-adapter vtable binding each verb to a ZPServiceAccounts method is the shared muse_engine actor-enumeration residual; the account store write-through inside the component (whether match persists or only looks up) needs the f_101b869c member-visit consumers traced; and the internal emission predicates that trigger musicServicesChanged are unproven. This is actionable static work.",
     "evidence": [
      {
       "type": "firmware",
@@ -502834,6 +502834,60 @@
       "address": "0x10b008f4",
       "callsite": "0x10b00930 cmd+0x7c impl read / 0x10b009dc impl vfunc+0xc call / model ctors 0x10aff404/0x10aff848/0x10affc44",
       "notes": "Exec +0xc entries 0x10b01aac..0x10b01afc bound to the seven verbs subscribe/unsubscribe/match/setPreferred/getPreferred/startDirectControlEx/endDirectControl via consecutive command vtables 0x10fa32ec..0x10fa356c. Field models registered through f_109cc8f4 with tag=5 strings and flag required/optional/context."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "match work function f_10b008f4",
+      "address": "0x10b009c0",
+      "callsite": "0x10b009c0 ctx+0x64 actor load / 0x10b009cc-0x10b009e0 actor->vfn+0xc bctrl / 0x10b00b08 'Namespace has no actor' error path",
+      "notes": "The work function validates the impl type via f_109dafc8 (descriptor word -1 = skip check for this verb), then loads the actor pointer from request-context +0x64 and calls its +0xc method with (out=r1+0x1c, cmd). Null actor produces status 0x59 with 'Namespace has no actor'. The +0x64 slot is filled by the request pipeline ctx builder f_106d9c38 under f_100d2e18."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "ZPServiceAccounts component ctor f_101b6174",
+      "address": "0x101b6174",
+      "callsite": "ctor call 0x1018e5d4 inside master registration f_1018d27c; instance stored into a shared engine-context slot and wrapped by handle vtable 0x10e9877c",
+      "notes": "Ctor sets name 'RZPServiceAccounts' and multiple listener vtables (obj+0=0x10e9ae18, +0xc=0x10e9ae40, +0x28=0x10e9ae60). Log strings prove it handles NewMuseHHIDEvent and NewLocationIdEvent; source path ../anacapa-1.0/oc/zone/zoneplayer/zpserviceaccounts.cxx embedded at 0x10e9b254. This is the namespace backing component for match/preferred/direct-control."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "spec pools for the resource",
+      "address": "0x10fa3648",
+      "callsite": "pool run 0x10fa3638..0x10fa36c0 terminated by ffffffff,ffffffff",
+      "notes": "{member,status} declarations: match {musicServiceAccount 0xa8,0x34->200}{globalError,0x48->400}{globalError,0x3f->499}; setPreferred {ok,0x34}{globalError,0x3f}{globalError,0x48}; getPreferred {musicServiceAccount,0x34}{globalError,0x20->499}{globalError,0x1f->499}; startDirectControlEx {musicServiceAccount,0x34}{groupCoordinatorChanged 0x86,0x42->404}{globalError,0x3f}{globalError,0x48}; endDirectControl {ok,0x34}{groupCoordinatorChanged,0x42}."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "musicServicesChanged producer binding",
+      "address": "0x110b8ce8",
+      "callsite": "event registry row 45; producer sub-index 0x19",
+      "notes": "musicServicesChanged is topic 45, payload type 0xa7 (member name musicServicesChanged), format class 0, produced by namespace index 0x19 = musicServiceAccounts. The namespace actor emits it on account mutations."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "account-identity field comparators",
+      "address": "0x10718760",
+      "callsite": "f_10718760/f_1071a2d0/f_1071a3cc consume {userIdHashCode,nickname}; f_1072a2a4 consumes {linkCode,linkDeviceId}, called at 0x101b8f6c inside f_101b869c and at 0x10286f40/0x10287000/0x1028b0f8",
+      "notes": "Field-string comparators strncmp a stored member (+0x84 buf,+0x488 len) against the request field. Account identity for match = {userIdHashCode, nickname}; direct-control link identity = {linkCode, linkDeviceId}. Caller f_101b869c is a large member-visit routine in the ZPServiceAccounts family."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "actor presence predicate f_10afeaa8",
+      "address": "0x10afeaa8",
+      "callsite": "last cell of the resource model vtable at 0x10fa3600",
+      "notes": "Returns [arg+0x64]!=0: the resource model object's predicate checks that the request context carries a resolved actor. Adjacent cells mix shared serializers f_109eac1c/f_109eb04c with per-resource fns f_10afedc8/f_10b01b1c/f_10b01b0c."
      }
     ],
     "executor_binding": {
@@ -502846,7 +502900,13 @@
      "scope_fields": "householdId and groupId are flag-2 context-injected fields (from the command header model f_10a30b3c), never body members",
      "response": "match's declared response member is musicServiceAccount plus globalError set (spec pool 0x10fa3648); preferred/direct-control ops return ok",
      "events": "musicServicesChanged is produced by this namespace (event registry prod index 0x19)"
-    }
+    },
+    "resolved_findings": [
+     "Actor dispatch proven at instruction level: work fns take the actor from the request context at +0x64 (filled by ctx builder f_106d9c38 in the request pipeline) and call actor->vfn+0xc(out,cmd); a null actor fails with status 0x59 'Namespace has no actor'. The namespace impl at cmd+0x7c is only used for routing/parse, confirming the layered dispatch (impl context vs per-request actor).",
+     "The namespace backing implementation is identified by name and site: ZPServiceAccounts (zoneplayer component, zpserviceaccounts.cxx), ctor f_101b6174 invoked once at 0x1018e5d4 inside master registration f_1018d27c, instance parked in a shared engine-context slot. It registers NewMuseHHIDEvent and NewLocationIdEvent listeners and is the registry-bound producer of musicServicesChanged (topic 45, type 0xa7, format 0).",
+     "Response declarations decoded from spec pools: match and getPreferred emit musicServiceAccount on 200 and globalError on 400/499; setPreferred emits ok/globalError; startDirectControlEx and endDirectControl additionally declare a groupCoordinatorChanged member at HTTP 404, marking the coordinator-scoped failure mode.",
+     "Match identity fields are bound to comparators: {userIdHashCode,nickname} select the account (field-string strncmp family f_10718760/f_1071a2d0/f_1071a3cc) and {linkCode,linkDeviceId} select the direct-control link (f_1072a2a4), so match is an account-lookup-by-identity rather than a free-text search."
+    ]
    },
    "networkTest": {
     "ops": [
