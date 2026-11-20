@@ -92380,14 +92380,42 @@
          "function": "0x10461e04",
          "address": "0x10462034",
          "notes": "asx spills the callback to sp+0x24 for the f_10461048 calls"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10462f54",
+         "address": "0x10463094",
+         "notes": "thunk f_10463b84 loaded into r5 for SAX registration"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10462f54",
+         "address": "0x104630a4",
+         "notes": "f_10c3fcd4 registers start/end handlers f_10463b84/f_104638dc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104639c0",
+         "address": "0x10463b4c",
+         "notes": "media src -> f_10461048 emit"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10460a50",
+         "address": "0x10460bc4",
+         "notes": "tail call callback->v[+8] = f_100d1218 (uncounted)"
         }
        ],
        "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
        "buf_cap": null,
-       "todo": [
-        "Established: tokens are bounded to 0..inserted count (402 otherwise) and are not passed to the commit; job+0x1464 holds a single-value argument and job+0x1468 counts items before it. The number of tokens (not their values) sets how many existing tracks the pre-commit trim f_102f7798 keeps (see side_effects).",
-        "Residual: f_1015108c counts every item on the f_10144f10 and f_1014b700 expansion paths. Entries from m3u, pls, asx/wax, x-file-cifs:// and .rsq files are traced to callback paths that never reach it. Whether wpl entries are counted is not established. In the wpl parser f_10462f54, the callback (r25, 0x10462fa4) is stored at sp+0x20 on the success path (0x104630c0). That slot is word +0x8 of a local object at sp+0x18, whose first word is vtable 0x10ed1770 (0x104630a0..0x104630b0) and whose flag bytes sit at +0xc..+0x11. Between 0x104636f0 and 0x10463c00, the only call to the shared emitter f_10461048 is in f_104639c0. It loads r5 from r31+0x8 at 0x10463b38, passes r6 = r31+0x11, and calls f_10461048 at 0x10463b4c, which leads to the uncounted f_10460a50 path. f_104639c0 is entered only from the thunk f_10463b84 (0x10463b8c). No call, address constant or data word referencing f_10463b84 was found, so it is not established that the wpl parse reaches this handler."
-       ],
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
         "Resolved (binding): bound as a string by f_1056157c into job+0x1420 (parse site 0x104654bc). f_102f7634 strchr's it for ',' and, when absent, strtol's it into job+0x1464 (0x102f7774); f_102f7798 splits it on ',' with f_10c39f14 and strtoul's every token with errno checking (0x102f77fc), counting the valid tokens; the success path tokenises it with f_10c39f14 and range-checks each value against the inserted count u16 job+0x1478, returning 402 when out of range (0x102f7f08).",
@@ -92399,7 +92427,8 @@
         "Established (pls and x-file-cifs:// entries): the callback is traced register by register to the same emitter. In the pls parser, f_10463164 keeps it in r22 and passes it to f_104611c8 (0x104632e8, 0x1046347c). f_104611c8 keeps it in r26 and passes it to f_10461130 (0x1046135c, 0x10461414), which keeps it in r30 and passes it to f_10461048 (0x10461190). In the x-file-cifs:// parser, f_10460814 keeps it in r27 and passes it to f_103d5250 (0x10460930), which keeps it in r30 and passes it to f_10461048 (0x103d5328). In plain terms: entries from pls playlists and from x-file-cifs:// playlist files are also added without being counted, the same as m3u.",
         "Established (.rsq entries): f_104634c4 passes the callback to f_1047851c (0x104636b0), which stores it at ctx+0x1084 in a local parse context (sp+0x2c, stored at 0x1047857c) and parses through f_1047d8dc (0x104785b4). The only code that loads ctx+0x1084 is in f_1047bbc8 and f_1047bd28. Those functions call callback slots +0x10 (0x1047bc40), +0x14 (0x1047bc50), +0x1c (0x1047bc8c), +0xc (0x1047bdbc) and +0x8 (0x1047be00), and never +0x20. In table 0x10e93668 those slots are f_10150fdc, f_10150fe8, f_10152eac, f_10150fcc and f_100d1218. None of them calls f_1015108c or writes row+0x780. In plain terms: tracks loaded from a saved Sonos queue file (.rsq) also do not update the counter that the NewCurrentTrackIndices trim relies on.",
         "Established (pls entries, register path): the pls branch of f_104634c4 sets r5 = r29, the callback (0x10463634), and tail-jumps to the pls parser f_10463164 (0x1046365c). f_10463164 keeps r5 in r22 (0x104631c0) and passes it as r5 to f_104611c8 (0x104632dc, 0x104632e8). f_104611c8 keeps it in r26 (0x10461200), and its only uses are as r5 to f_10461130 (0x10461354, 0x1046140c). f_10461130 forwards r5 to f_10461048, which sets r5 = r29 (0x1046110c) and tail-jumps to f_10460a50 (0x1046112c). That is the same shared emitter as the m3u path: the callback's slot +0x8 is used, and the inlined f_100d1218 body never reaches f_1015108c. The same parser body is also entered from callback code at 0x10152e70 with r5 = the callback object. The 0x104632f8 store and the 0x547c offset belong to f_10463164's own frame, not to a separate callback consumer. In plain terms: this confirms register by register that tracks from .pls playlists do not update the counter that the NewCurrentTrackIndices trim relies on.",
-        "Established (asx/wax entries): the asx branch of f_104634c4 passes the callback in r5 = r29 to f_10461e04 (0x104635f0). f_10461e04 copies it to r27 (0x10461e58) and spills r27 to sp+0x24 (0x10462034). The only other r27 definition before that point is an epilogue restore at 0x10461f68, on an early return that ends at the blr at 0x10461f80. No other direct store to sp+0x24 exists in 0x10461e04..0x10462c80. The only nearby stack address the parser takes is sp+0x20, which it passes to f_10544040 at 0x104620cc, and f_10544040 only reads that pointer's first word (0x10544178). Writes through addresses formed in some other way were not ruled out exhaustively. All four emitter calls in the parser, at 0x104623d4, 0x104628ac, 0x10462984 and 0x10462ae4, load r5 from sp+0x24 and call f_10461048, which forwards r5 to f_10460a50 (0x1046110c, 0x1046112c). So asx/wax entries take the same slot +0x8 path as m3u, which never reaches f_1015108c. In plain terms: tracks from .asx and .wax playlists also do not update the counter that the NewCurrentTrackIndices trim relies on."
+        "Established (asx/wax entries): the asx branch of f_104634c4 passes the callback in r5 = r29 to f_10461e04 (0x104635f0). f_10461e04 copies it to r27 (0x10461e58) and spills r27 to sp+0x24 (0x10462034). The only other r27 definition before that point is an epilogue restore at 0x10461f68, on an early return that ends at the blr at 0x10461f80. No other direct store to sp+0x24 exists in 0x10461e04..0x10462c80. The only nearby stack address the parser takes is sp+0x20, which it passes to f_10544040 at 0x104620cc, and f_10544040 only reads that pointer's first word (0x10544178). Writes through addresses formed in some other way were not ruled out exhaustively. All four emitter calls in the parser, at 0x104623d4, 0x104628ac, 0x10462984 and 0x10462ae4, load r5 from sp+0x24 and call f_10461048, which forwards r5 to f_10460a50 (0x1046110c, 0x1046112c). So asx/wax entries take the same slot +0x8 path as m3u, which never reaches f_1015108c. In plain terms: tracks from .asx and .wax playlists also do not update the counter that the NewCurrentTrackIndices trim relies on.",
+        "Resolved (wpl entries are reachable and are not counted): the 'no reference' premise was a scan miss - at 0x10463094 the wpl parser computes the thunk address into r5 and registers it as the SAX start-element callback through f_10c3fcd4 (0x104630a4) on the local handler object at sp+0x18 (vtable 0x10ed1770 at +0, second handler f_104638dc, the action's callback object at +8, flag bytes +0xc..+0xf cleared, +0x10/+0x11 set to 1 at 0x104630a8..0x104630e0). Inside the handler f_104639c0, bytes +0x10 and +0x11 must still be nonzero (0x104639d8, 0x104639f0; +0x10 is later overwritten by each emitter result at 0x10463b50, so a failed emit suppresses further media handling), and the 'smil'/'body'/'seq' flags +0xc/+0xd/+0xe track the SMIL element nesting. On a 'media' element whose attribute list contains 'src' (0x10463a14, 0x10463a3c) it copies the value with backslashes folded to '/' (0x10463a68..0x10463aa4), trims it and calls f_10461048(buf, uri, callback=*(handler+8), flagptr=handler+0x11, 0) at 0x10463b4c. f_10461048 gates on f_10147bf4 (0x10461080) and tail-calls f_10460a50 (0x1046112c), or the f_10460c0c variant when the flag byte at +0x1078 is set (0x1046108c). f_10460a50 validates the URI through f_10147da8 ('trackValidateURI detected unplayable queue entry: %s', 0x10460afc), rejects URIs containing '\\n' (0x10460aa0..0x10460b38), and when the callback's slot +0x8 is the standard f_100d1218 (compare at 0x10460b50) it tail-calls that slot with (callback, uri, flagptr, extra) at 0x10460bc4 - the same uncounted per-item adder used by the m3u, pls, asx/wax, x-file-cifs:// and .rsq paths. Slot +0x20 f_1015108c is never reached. In plain terms: wpl 'media src' entries are emitted into the queue like every other playlist-file entry, through the uncounted add slot, so they are never counted by f_1015108c."
        ]
       },
       "NumberOfURIs": {
