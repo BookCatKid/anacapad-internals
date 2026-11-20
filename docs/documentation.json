@@ -201113,15 +201113,58 @@
   "audioin_impl": {
    "files": "ai_impl_base.cxx + spotify/ai_spotify.cxx",
    "semantics": "Spotify is an AudioIn impl source (ai_spotify): Connect playback flows through the AudioIn service impl",
-   "todo": [
-    "Residual: precise semantic name for slots +0x18/+0x30/+0x34/+0x3c whose bodies lack distinctive literals; secondary vtables at +0x4c/+0x6c (object +0x4/+0x8 bases) are interface slices with 6 and 2 slots respectively."
-   ],
-   "impl_contract": "ai_impl_base (f_102926ac/27f8/2eb8) supplies the shared AudioIn machinery: a zone-group tracker ('Adding group with coord %s demoMode %d' / 'Removing group with coord %s' - impls track groups keyed by coordinator UUID with a demoMode flag) and a WORKER THREAD, f_10292eb8: mutex +0x58, run flag +0x1d8, blocks on condvar +0xe8 and on each wake calls VFUNC +0x20 - the single per-tick process slot each derived impl must fill. ai_spotify (zoneplayer/spotify/ai_spotify.cxx, fns f_104dbe84/4dc4a4/4dd600/4dd744+) is the Spotify Connect impl: its internals handle transport ('Pausing track, offset %u ms') and stream transitions ('Logical Track Boundary') under tag 'spot'. Registration: ai_spotify's functions have NO external bl callers and no static vtable slots in rodata - it is reached only virtually, and its derived vptr is installed by a ctor that builds the vtable at runtime (same pattern as the zp-aa composite: .data-resident tables initialized by the ctor, not rodata). So the contract narrows to: ctor installs derived vptr on the ai_impl_base subobject; the base's worker thread then drives the impl via vfunc +0x20.",
+   "impl_contract": "ai_impl_base (f_102926ac/27f8/2eb8) supplies the shared AudioIn machinery: a zone-group tracker ('Adding group with coord %s demoMode %d' / 'Removing group with coord %s' - impls track groups keyed by coordinator UUID with a demoMode flag) and a WORKER THREAD, f_10292eb8: mutex +0x58, run flag +0x1d8, blocks on condvar +0xe8 and on each wake calls VFUNC +0x20 - the single per-tick process slot each derived impl must fill. ai_spotify (zoneplayer/spotify/ai_spotify.cxx) is the Spotify Connect impl: RSpotifyAudioInput ctor f_104db630 statically stores primary vtable 0x10ed9c94 at obj+0, secondary 0x10ed9ce0 at obj+4 and marker 0x10ed9d00 at obj+8. Primary slot map: +0x00/+0x04 dtors f_104e16f8/f_104e1a68 (reinstall all three vptrs during destruction); +0x08 f_104dfb10 returns member +0xb8 (ctor-injected stream/presentation interface); +0x0c f_104dee78 installs the listener pair {+0xbc raw, +0xc0 refcounted} with atomic incref/decref swap and registers the +0x8 event base via f_104e0b20; +0x10 f_104dd904 eSDK VLI flush ('Ignore eSDK vli flush during byte offset seek (already flushed)'); +0x14 f_104dfb20 returns constant 0x4b=75; +0x18 f_104da2f4 returns constant 1; +0x1c f_104de170 status/session formatter (locks +0x28, 0x5d0-byte frame, copies pause flag +0x11c to an out byte); +0x20 f_104dfb30 returns 0 - the base worker-tick slot left as a no-op since eSDK pushes data through the secondary slice; +0x24 f_104dc5a8 seek ('Seeking to position %u ms, streamId: %u' under f_104dc4a4); +0x28 f_1021cd78 empty stub; +0x2c f_104dfa08 'Full reset'; +0x30 f_104dc040 mutex-guarded pause-state commit -> f_104dbe84 stores pause flag +0x11c and kind byte +0x11b, wakes member +0x288 via f_1058940c, logs 'Pausing track, offset %u ms' with +0x100, posts via f_104eb1b8 on +0x120 and arms resync flag +0x116; +0x34 f_104de748 the media-data/presentation delivery pump (framer): resync flag +0x116 short-circuits 'Resync pending, not processing audio.. exiting framer' returning 3, pulls a presentation timestamp from member +0xb8 vfunc+0xc, pulls stream data from member +0x57f0 vfunc+0x8, accumulates byte offset +0xec/+0xf0 and sample count +0x110, tracks the +0xcc/+0xd0 presentation pair ('New presentation time, %d.%06d (delay %lld ms)'), posts position and event notifications to listener +0xbc vfuncs +0x30/+0xc, and records per-frame quality through f_104db20c on member +0x57f4 ('update last quality to %u %u %d'); +0x38 f_104dfb40 void no-op; +0x3c f_104dca78 event post - gates member +0x5880 via f_1098c9d4, bumps counter +0x58a8, builds triple {arg,1,arg} and calls listener +0xbc vfunc+0x10; +0x40 f_104da304 forwarder tail-calling listener +0xbc vfunc+0x8. Secondary slice 0x10ed9ce0 (obj+4) carries four this-4 thunks: f_104dee70->+0x34, f_104dfb4c->+0x38, f_104dce3c->+0x3c, f_104da320->+0x40, i.e. a restricted data-delivery/notification interface without the control methods. Marker vtable 0x10ed9d00 (obj+8) has only the this-8 dtor pair f_104e1a60/f_104e1dc4: zero real methods, a lifetime/tag base; the +0x8 subobject is driven concretely by f_104e0b20 ('inprocess-events', 'Change in event loop detected'), the eSDK in-process event-loop binding.",
    "resolved_findings": [
     "Resolved: ai_impl_base provides the group tracker (coord-keyed, demoMode flag) + a worker thread that pumps vfunc +0x20 per condvar wake; ai_spotify fills the slot and handles 'Pausing track, offset %u ms' + 'Logical Track Boundary' internally; its vtable is runtime-built (no rodata slots, no direct callers).",
     "Resolved: ai_spotify.cxx implements class RSpotifyAudioInput (log domain 'spotifyAudioInput') over the ai_impl_base.cxx base - Spotify Connect registers as an AudioIn source alongside ai_vli (VLI-backed audio input). The AudioIn service surface is urn:schemas-upnp-org:service:AudioIn:1 with actions {GetAudioInputAttributes, SetAudioInputAttributes}, state fields {XAudioInputName, AudioInputIcon, AudioInputLevel, AudioInputLatency}, events {AudioInputAttributesEvent, AudioInputDisconnectedEvent}, HTAudioInCode status XML, and cloud proxy routes v1/players/{playerId}/upnpAudioIn {call,subscribe,renew,unsubscribe}. SupportsAudioIn is the capability gate; AudioInputZP/audioinzoneplayer is the zone-player binding; 'Clearing AudioInput session on line-in disconnect' ties session teardown to line-in state.",
     "Resolved: ai_spotify per-vfunc bodies are present in .text (the vtable is runtime-installed, so slots bind at construction) - the scheme matcher @0x1020c8e8 accepts {spotify:, x-spotify-file://} via strncasecmp(8/17); a second vfunc @0x1020ca08 byte-swaps *(arg+4) as a length and rejects sizes {9,12} - consistent with a token/field-length gate on the incoming request.",
-    "ai_spotify vtable is NOT runtime-injected: the RSpotifyAudioInput ctor (f_104db6xx, domain spotifyAudioInput) statically stores three vptrs - primary 0x10ed9c94 at +0x0, plus sub-vtables 0x10ed9ce0 at +0x4 and 0x10ed9d00 at +0x8. Primary slot order: +0x00 f_104e16f8, +0x04 f_104e1a68 (dtor pair), +0x08 f_104dfb10 / +0x14 f_104dfb20 / +0x20 f_104dfb30 / +0x38 f_104dfb40 (SpotifyInternalEvent sink family emitting \"Final track samples received\"), +0x10 f_104dd904 (eSDK vli flush, guards byte-offset seek), +0x18 f_104da2f4, +0x1c f_104de170 (sn_ session-id formatter), +0x24 f_104dc5a8 (Seek \"Seeking to position %u ms, streamId: %u\"), +0x28 f_1021cd78 (playback-command dispatcher emitting RSpotifyPlayback{Play,Pause,Seek,SeekRelative}), +0x2c f_104dfa08 (Full reset), +0x30 f_104dc040, +0x34 f_104de748, +0x3c f_104dca78, +0x40 f_104da304."
+    "ai_spotify vtable is NOT runtime-injected: the RSpotifyAudioInput ctor (f_104db6xx, domain spotifyAudioInput) statically stores three vptrs - primary 0x10ed9c94 at +0x0, plus sub-vtables 0x10ed9ce0 at +0x4 and 0x10ed9d00 at +0x8. Primary slot order: +0x00 f_104e16f8, +0x04 f_104e1a68 (dtor pair), +0x08 f_104dfb10 / +0x14 f_104dfb20 / +0x20 f_104dfb30 / +0x38 f_104dfb40 (SpotifyInternalEvent sink family emitting \"Final track samples received\"), +0x10 f_104dd904 (eSDK vli flush, guards byte-offset seek), +0x18 f_104da2f4, +0x1c f_104de170 (sn_ session-id formatter), +0x24 f_104dc5a8 (Seek \"Seeking to position %u ms, streamId: %u\"), +0x28 f_1021cd78 (playback-command dispatcher emitting RSpotifyPlayback{Play,Pause,Seek,SeekRelative}), +0x2c f_104dfa08 (Full reset), +0x30 f_104dc040, +0x34 f_104de748, +0x3c f_104dca78, +0x40 f_104da304.",
+    "Established: slot +0x18 (f_104da2f4) is a constant-true predicate - a three-instruction 'return 1' capability/readiness probe, not a data-bearing method.",
+    "Established: slot +0x30 (f_104dc040 -> f_104dbe84) is the pause-state commit: under the +0x28 lock it stores the pause flag (+0x11c) and pause-kind byte (+0x11b), signals the +0x288 waiter through f_1058940c, logs 'Pausing track, offset %u ms' reading position +0x100, posts on the +0x120 helper and sets the resync flag +0x116 consumed by the delivery pump.",
+    "Established: slot +0x34 (f_104de748) is the media-data/presentation delivery entry (the framer pump): resync-pending byte +0x116 aborts with status 3 before any processing, member +0xb8 vfunc+0xc supplies the play timestamp, member +0x57f0 vfunc+0x8 supplies the stream data, byte offset +0xec/+0xf0 and sample counter +0x110 accumulate, and the +0xbc listener receives position (vfunc+0x30) and event (vfunc+0xc) notifications. Its literals ('Delegation buffering has completed at byte offset (%zu) @ sample %zu, play %d.%06d, now %d.%06d', 'New presentation time, %d.%06d (delay %lld ms)', 'Resync pending, not processing audio.. exiting framer') place it in the eSDK media-delivery path (nts_stream_callbacks data/position family).",
+    "Established: slot +0x3c (f_104dca78) is an event-notification post: it acquires the +0x5880 gate via f_1098c9d4, increments the +0x58a8 sequence counter, builds a {arg,1,arg} triple and invokes the installed listener's vfunc+0x10 through member +0xbc.",
+    "Established: the secondary vtable 0x10ed9ce0 (object+4 base) is a restricted push slice - its four real slots are this-4 thunks landing on the delivery pump (+0x34), the +0x38 no-op, the event post (+0x3c) and the listener forwarder (+0x40). Callers holding only the +0x4 pointer can push stream data and notifications but cannot seek, pause or reset. The third vtable 0x10ed9d00 (object+8 base) carries only a this-8 dtor pair - a marker/lifetime base; the +0x8 subobject is exercised non-virtually by f_104e0b20, the 'inprocess-events' eSDK event-loop binding ('Change in event loop detected')."
+   ],
+   "evidence": [
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104db630 RSpotifyAudioInput ctor",
+     "address": "0x104db6e8",
+     "notes": "Statically stores primary vtable 0x10ed9c94 at obj+0, secondary 0x10ed9ce0 at +0x4, marker 0x10ed9d00 at +0x8; +0xb8 = *(arg2+4) injected stream interface; log domain 'spotifyAudioInput'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10292eb8 ai_impl_base worker",
+     "address": "0x10292f14",
+     "notes": "Worker thread pumps vfunc+0x20 per condvar wake; ai_spotify fills that slot with f_104dfb30 'return 0', so its tick is a no-op under the eSDK push model."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104de748",
+     "address": "0x104deb78",
+     "notes": "Delivery-pump literals: 'Resync pending, not processing audio.. exiting framer' (0x10eda508), 'Delegation buffering has completed at byte offset (%zu) @ sample %zu, play %d.%06d, now %d.%06d' (0x10eda624), 'New presentation time, %d.%06d (delay %lld ms)' (0x10eda540)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104dbe84",
+     "address": "0x104dbf2c",
+     "notes": "Pause commit body logs 'Pausing track, offset %u ms' (0x10eda004) under log domain 'spot' with source file ../zoneplayer/spotify/ai_spotify.cxx (0x10ed9fc8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ed9ce0",
+     "notes": "Secondary slice: slots {f_104e1a58, f_104e1dbc, f_104dee70, f_104dfb4c, f_104dce3c, f_104da320} then offset-to-top -8; all four real slots are this-4 thunks into primary +0x34/+0x38/+0x3c/+0x40. Marker table 0x10ed9d00 = {f_104e1a60, f_104e1dc4} this-8 dtor thunks only."
+    }
    ]
   },
   "sonos_libs": {
