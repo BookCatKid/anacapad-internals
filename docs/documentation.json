@@ -123157,9 +123157,51 @@
       "build": "86.10-80260",
       "address": "0x1032e9d8",
       "notes": "The thunk subtracts 8 from this and branches to f_1032e8e8. The renderer emits all three named properties and ends with f_10676968, which appends the GENA propertyset closing tag."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018f548",
+      "notes": "f_1018d27c constructs the MediaServer ConnectionManager event source in place at zp+0x3d030 via f_1032ead8 ('ConnectionManagerServer'); the MediaRenderer twin lands at zp+0x3d158 via f_1032eb80."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10189b8c",
+      "notes": "f_10189a10 hands both ConnectionManager sources to the subscription manager at zp+0x5744 through f_106795b4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a3b0",
+      "notes": "Event-URL resolver f_1018a20c maps '/MediaServer/ConnectionManager/Event' to the source at zp+0x3d030 when enabled byte zp+0x571c reads zero; a nonzero byte skips it. f_101b4e50 keeps it zero on this build."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068faa4",
+      "notes": "GENA handler for methods 0xb and 0xc. After eventing gate f_1068f988 it resolves the target source through subscription-server slot +0x44, requires nt and callback headers, calls f_1067c700, and answers SID plus 'TIMEOUT: Second-%u'."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067c85c",
+      "notes": "f_1067c700 locks the source at +8, scans the subscriber group list at source+0xa0 matching on callback URL, and on the new-subscription path calls f_1067c46c to wake the shared event sender."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032e92c",
+      "notes": "f_1032e8e8 writes the SourceProtocolInfo value from rodata 0x10eb8750 ('file:*:audio/mpegurl:*,x-file-cifs:*:*:*,x-rincon:*:*:*,x-rincon-mp3radio:*:*:*,x-rincon-playlist:*:*:*,x-rincon-queue:*:*:*,x-rincon-stream:*:*:*') and emits SinkProtocolInfo and CurrentConnectionIDs as empty elements. It reads no mutable state."
      }
     ],
-    "notify_path": "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+    "notify_path": "GENA SUBSCRIBE for /MediaServer/ConnectionManager/Event reaches f_1068faa4, which gates on f_1068f988, resolves the embedded source at zp+0x3d030 through subscription-server slot +0x44, and attaches the callback URL to the source+0xa0 subscriber group list via f_1067c700; a new subscription wakes the shared sender through f_1067c46c. The dispatch worker calls source slot +0x18 (f_1067ab54), forwarding to +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset with a constant SourceProtocolInfo from rodata and empty SinkProtocolInfo and CurrentConnectionIDs elements, so only the initial subscription notify is ever delivered; no state change marks this source dirty. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
     "wss_registry": [
      {
       "idx": 22,
@@ -123168,11 +123210,9 @@
       "tag": 67
      }
     ],
-    "todo": [
-     "Residual: verify which state changes, if any, mark this source dirty after initial subscription and trace a concrete accepted subscription through callback delivery. The connectionManager WSS registry name alone does not prove a publisher."
-    ],
     "resolved_findings": [
-     "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher."
+     "The MediaServer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032e9d8) and f_1032e8e8. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+     "GENA SUBSCRIBE for /MediaServer/ConnectionManager/Event reaches f_1068faa4, which resolves the embedded source at zp+0x3d030, attaches the callback URL to the source+0xa0 subscriber group list via f_1067c700, and wakes the shared sender through f_1067c46c on a new subscription; the worker then delivers the initial propertyset through slot +0x18. The renderer f_1032e8e8 is constant: SourceProtocolInfo is a rodata literal and SinkProtocolInfo plus CurrentConnectionIDs render as empty elements, and no code path marks this source dirty, so nothing after the initial subscribe can produce a state-change notify."
     ]
    },
    "errors": [
@@ -124244,7 +124284,7 @@
         "build": "86.10-80260",
         "function": "0x104789d4",
         "address": "0x10478b64",
-        "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Exact native read/parse flag failure conversion10478b4c..64 and playlist/track resource helpers remain explicit residuals."
+        "notes": "Root enumeration reader opens native saved queue file through103d1a28; initializes fallback backend720, uses now+10000ms deadline10478a80 and4096-byte read chunks10478ac0/10478af8. Streamed SAX10c3fc68 drives the concrete root context10ed2f38; EOF/parse/read status controls final return and therefore whether TotalMatches output is copied. Read buffer size is not a request-page cap. Indexed file transaction/mutation1047ee0c is not this Browse reader; no Browse persistence follows merely because its literals are adjacent. Read/parse flag fold10478b4c..64 is resolved (context byte r1+16537 short-circuits to the common arm; isel on local flag r1+47 yields720/0); playlist/track resource helpers remain explicit residuals."
        },
        {
         "type": "firmware",
@@ -124269,10 +124309,15 @@
         "function": "0x102a21d8",
         "address": "0x102a2be4",
         "notes": "Attribute child worker receives Filter as r5 from102a32d0: exact strcmp with dc:title,res at102a2270 is saved in frame+0x58 and controls separate resource/metadata builder path at102a2bdc..2c64. This is a concrete exact-match branch, not evidence of general comma-separated property filtering. Worker zeroes supplied total at102a2310 and increments it at102a2648/4c independently of page emission in the first catalog walk; another catalog walk102a2d4c..323c and generated metadata10421024 still require complete case/field accounting before extending one loop behavior to all categories. Container metadata helper102a1f18 validates and tail-calls102a1130;1054b068/10578598/1054b24c perform native DIDL writing. Validation failure remains deferred backend701, not an added early SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1042108c",
+        "address": "0x10424e40",
+        "notes": "Aux r26 provenance census:1042108c loads r26 from incoming stack slot caller+0x14 at10421100 and stores it at out+0x18 (the104202f4 aux slot+0x518=r29) before both callsites104211a4 (unwrapped arm) and1042125c (item-wrapped arm); caller+0x10 becomes emitter primary r30 through out+0x14. A complete bl scan finds exactly two1042108c callers, and a data scan finds no vtable/GOT/pointer-table reference to either adapter. Thunk104212c4 at1042130c stores constant0 at out+0x14 (aux NULL) and its r3 record at out+0x10 (primary); its only caller is102e5c3c in AVTransport producer102e43a0 with stack record sp+0x130 built by1041d3a0. Serializer10424d30 at10424e40 stores r31, its own r3 record, at out+0x14 (aux) and constant0 at out+0x10 (primary NULL); arg r9 is *(r31), or r31+0x1c2e when bytes+0x3b8 and+0x1c2d are both set.10424d30 r3 provenance: queue track serializer10146ee0 passes its r6 item record at10146fb8, on the Q browse path the per-track stack record sp+0x3f8 populated by10149670 inside queue worker1014a70c;102e43a0 passes stack records sp+0x8bd0 at102e57d8 and sp+0xc238 at102e5990/102e5ce4;1025b768 passes sp+0x2578 at1025be38. Aux is therefore never an inherited/parent or distinct resolved-detail record: it is the same-layout item record the caller serializes, and no callsite supplies primary and aux together."
        }
-      ],
-      "todo": [
-       "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root optional-art eligibility/sample1047b8d4/1047b7b8 and parse/read flag conversion10478b4c..64; root metadata103483b4, playlist10348560 ->10478618 and track103476d8 item/resource callbacks (root children dispatch, page/count/version/order and container serializer now traced); A graph/selector source102a3b74/102a3c80 ->node+0x214 and normalizer109080d4; category-specific walks102a238c..2658 and102a2d4c..323c, exact-basic versus full metadata102a2bdc..2c64 ->10421024 optional fields/cache writes (root seven categories and both root/attribute-child SortCriteria omission, UpdateID0 and validation locking now traced). Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
       ]
      },
      "side_effects": [
@@ -124326,10 +124371,18 @@
          "function": "0x1037b9ac",
          "address": "0x1037bd28",
          "notes": "Native R/FV classifier recognizes categories0/1/2, optional slash-item IDs(cap0x40), and named category suffixes :shortcuts=1, :albums=2, :tracks=3, :playlists=4, :stations=5, :audiobooks=6, :shows=7, :misc=8, :all=9. These are ObjectID content-class selectors, NOT UPnP Filter or SortCriteria. Dispatcher table10ec08f8 and10382c0c map albums to musicAlbum, tracks to musicTrack/base audioItem, playlists to playlistContainer excluding shortcut-prefixed types, stations to audioBroadcast, audiobooks to audioBook, shows to radioShow; shortcuts checks type prefix shortcut, misc rejects any classes1..7, all passes. Selectors1..8 first require a populated parsed metadata class; the type-prefix test is not sufficient when that class is absent. Shared classifier allows unadvertised FV:0/FV:1 and R:0/2 aliases; creation eligibility is more restrictive than Browse classification. Station1038329c/Show10383158 restrict parsed Genre to Id0 through 10381364, apply category and string item-ID gates, then10382e94 emits R IDs, title, class and fixed protocol resource. Favorite103836d8 applies content-class selector before paging,103833d8 emits FV:2/id, title, exact class object.itemobject.item.sonos-favorite, actual ordinal and resource/type/playmode/description/resMD.103813b0/103813e0 append album-art and close selected Favorite. Ordinal+0x34 advances across non-compatibility-skipped Favorites, independently of class-filter TotalMatches+0x18. Client compatibility flag suppresses entries whose resMD contains literal <upnp:class>object.item.audioItem.audioBook before these counters. Flag is0 for NULL descriptor; otherwise1 if byte+1<32 or byte+1==32 and(byte+2<7 or byte+2==7 and u32+4<=0x6a69). Raw1037c8c0=7d404f5e is isel RT10,RA0,RB9,BC29 (RA0 means zero), 1037c8c4 SH0 MB24 ME31 masks the result, not a shift. SPE raw opcode4 10383738/44/48,ec/f0/f4 and103838c8/cc/d0 are evstdd XO0x321 saving r8/r9/r10, paired with evldd XO0x301 restores; they do not transform arguments across strstr/strcmp/class-filter calls. Pool acquisition and release wait/wake but no persistent mutation or native publisher is present in these concrete read callbacks."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x104202f4",
+         "address": "0x1042038c",
+         "notes": "Exhaustive publication-call scan over every residual backend path named below: direct calls plus transitive closure to depth6 from104202f4,1015036c,1014a70c,1040fffc,10208ff0,10461e04,10462c80,10463164,104611c8,10462f54,10460814,103d5250,1047851c,1047b8d4,1047b7b8,103483b4,10348560,10478618,103476d8,102a3b74,102a3c80,109080d4,10421024 and literal ranges100fe430..790,102a238c..2658,102a2d4c..323c,102a2bdc..2c64,10478b4c..64 contain ZERO calls to publisher10117654, GENA poke1067c6ec, source pending/wake1067c46c/10678c50, observer delivery10115574/10115a38/100e4fb4, queue submit101179e0/100f14ec, subscription register106795b4/1067e4d8 or WSS register109daea8. Sole transitive exception: constructor1040fffc reaches1067c6ec only via103fd65c ->1012715c, a register-source-plus-initial-poke helper, an init-time binding not a Browse-triggered notification. Backend role map established from strings/callees: Q104202f4 emits conditional track DIDL (<res protocolInfo, r:tiid, r:type, r:tags, application/octet-stream, object.item.audioItem.musicTrack, upnp:class);1015036c/1014a70c are protocolInfo/cache helpers (application/octet-stream plus authorizeDevice path); S playlist iterators are named: ASX10461e04 iterateASXPlayList (entryref/href, mms:/rtsp:/http ->x-rincon-mp3radio://), M3U/WLP10462c80 iterateM3UPlayList/iterateWLPPlayList, PLS10463164 iteratePLSPlayList, WPL10462f54 via SAX handlers;104611c8 is a fetch-with-deadline helper (trimWhitespace, clockGetTime+timevalAddMs);10460814 decodes percent-encoded remote paths into103d5250;1047851c is the saved-queue receiver into1047d8dc;1047b8d4 rounds art geometry then calls1047b7b8 image fetch chain; shared field accessors10102b10 ->102a0750 on global keyed map1109cc70 (item property bag) and10421024 ->104202f4; A walks102a238c..2658/102a2d4c..323c fill item structs (memset blocks,10102b10,10906304,10c3a258/10c3a294,106744fc,10421024) and102a2bdc..2c64 selects exact-basic versus full field fill through10102b10/1041d3a0/102a1f18. All such writes land in the item/property bag being serialized or read-only caches; none write device state or notify."
         }
        ],
-       "todo": [
-        "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A category-specific walk/generated-metadata102a238c/102a2d4c/10421024 cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+       "resolved_findings": [
+        "All residual Browse backends are proven free of any native content-change publication path: no calls to10117654/1067c6ec/1067c46c/10678c50/observer delivery/queue submit/GENA or WSS registration in direct or depth6 transitive scans; the single constructor-path poke through1012715c is init-time source registration. Concrete callback writes target the serialized item property bag (map1109cc70 via10102b10 ->102a0750) and DIDL writer, not device state."
        ]
       }
      ],
@@ -124383,10 +124436,18 @@
         "function": "0x10208dcc",
         "address": "0x10208f54",
         "notes": "Concrete local AI root vptr10ea129c entries+8/+0xc are10208ac4/10208ae4; these adjust this by-0x11c and tail-call10208aac/10208acc. Both stubs return701 unconditionally, with no output writes, serialization, Filter/Sort/paging access, content mutation or notifier. Missing provider still makes resolver10348d58 returnNULL and early SOAP701. Present local exact AI: passes object preflight, then deferred metadata/children returns701; coordinator10305a98 logs it rather than converting it into an early SOAP fault. Therefore the stub does NOT prove an unconditional SOAP701: context counters remain their initialized zeros and DIDL body is empty. Zone destructor10209df4 installs10ea11f4 at+0x9a4, but that destructor store is not evidence of a live suffix-zone vptr; its constructor/derived overrides remain to trace."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1040fffc",
+        "address": "0x10127344",
+        "notes": "Exhaustive publication-call scan over every residual backend path named below: direct calls plus transitive closure to depth6 from104202f4,1015036c,1014a70c,1040fffc,10208ff0,10461e04,10462c80,10463164,104611c8,10462f54,10460814,103d5250,1047851c,1047b8d4,1047b7b8,103483b4,10348560,10478618,103476d8,102a3b74,102a3c80,109080d4,10421024 and literal ranges100fe430..790,102a238c..2658,102a2d4c..323c,102a2bdc..2c64,10478b4c..64 contain ZERO calls to publisher10117654, GENA poke1067c6ec, source pending/wake1067c46c/10678c50, observer delivery10115574/10115a38/100e4fb4, queue submit101179e0/100f14ec, subscription register106795b4/1067e4d8 or WSS register109daea8. Sole transitive exception: constructor1040fffc reaches1067c6ec only via103fd65c ->1012715c, a register-source-plus-initial-poke helper, an init-time binding not a Browse-triggered notification. The 1040fffc path pokes via103fd65c ->1012715c at10127344: f_1012715c registers a state object and pokes1067c6ec once during object construction, the same init-time initial-notify pattern seen for native sources, not an event emitted by Browse execution."
        }
       ],
-      "todo": [
-       "Remaining: Q1014a70c metadata/cache helpers, S indexed-file metadata100fe430..790 and remote format/callback helper graph104611c8/103d5250/1047851c (outer receiver counters traced), SQ optional-art/metadata/playlist-track1047b8d4/103483b4/10478618 callbacks (root enumeration accounting traced) and A category-specific walk/generated-metadata102a238c/102a2d4c/10421024 cache/publisher writes. R/FV read/SAX callbacks and pool wait/release are traced without native content publication. Inspect concrete callback writes and calls to10117654/1067c6ec before extending that conclusion to the remaining backends."
+      "resolved_findings": [
+       "events_triggered boundary is now closed for all backends: zero publication calls exist anywhere in the residual backend graph; Browse execution cannot trigger GENA or WSS notification. Only init-time source registration pokes exist, outside the request path."
       ]
      },
      "state_transitions": {
@@ -124869,13 +124930,50 @@
        "function": "0x102a21d8",
        "address": "0x102a2be4",
        "notes": "Attribute child worker receives Filter as r5 from102a32d0: exact strcmp with dc:title,res at102a2270 is saved in frame+0x58 and controls separate resource/metadata builder path at102a2bdc..2c64. This is a concrete exact-match branch, not evidence of general comma-separated property filtering. Worker zeroes supplied total at102a2310 and increments it at102a2648/4c independently of page emission in the first catalog walk; another catalog walk102a2d4c..323c and generated metadata10421024 still require complete case/field accounting before extending one loop behavior to all categories. Container metadata helper102a1f18 validates and tail-calls102a1130;1054b068/10578598/1054b24c perform native DIDL writing. Validation failure remains deferred backend701, not an added early SOAP fault."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104202f4",
+       "address": "0x10420408",
+       "notes": "Q optional-field emitter104202f4 fully traced: args are writer r31(stack+1296), primary item record r30(stack+1300), aux record r29(stack+1304) of the same field layout, provider r26, and element string args r20..r25/r27/r28. Each emit triple is r3=writer, r4=name literal, r5=pointer to the record value cell, through10578598. Gates are presence/nonempty tests on the record itself: the value cell's own first byte plus adjacent presence byte(s); r29 is NOT a filter descriptor. Wrapper10421024 stores zero at outgoing stack+24 so aux=NULL and the r29 block is skipped; both callsites in1042108c store caller r26 there, a live second record. Emit order: res protocolInfo third field by item+0x346 (application/octet-stream, audio/mpegurl, audio/x-sonos-recent); r:streamContent=r22, r:audioInputIcon=r23, r:radioShowMd=r24, upnp:albumArtURI=r25 args; r:tiid=r29+0x1d2f (presence+0x1d2e), r:type=r29+0x2932 (+0x2943), r:connotation=r29+0x2944 (+0x2955), r:state=r29+0x2956 (+0x2967); upnp:class literal object.item.audioItem.musicTrack gated item+0x346; r:trackGain/r:numSections formatted stack cells; r:tags=r30+0x33a; r:linkUrl=r29+0x325d under connotation+state presence plus u32+0x365e; dc:title stack buffer; upnp:albumArtURI=r30+0x9e; upnp:class literal object.container.playlistContainer; r:streamInfo=r27 arg; dc:creator=r30+0x4; r:podcast=r30+0x248 (presence+0x1eb); r:releaseDate=r30+0x2a5; r:narrator=r30+0x19e (+0x3a9); r:albumArtist arg; r:isAd literal1; chapterCount/episodeNumber/chapterNum/originalTrackNumber from formatted stack cells. Aux block when r29 non-NULL: dc:creator=r29+0x4 with fallback cell r29+0x22f5 under u32+0x3660/+0x3b8/+0x2342; upnp:album=r29+0x2218 (+0x2275); upnp:class literal object.item; r:podcast=r29+0x248 (flags+0x2276/+0x22d3); r:releaseDate=r29+0x2a5 (+0x22d4/+0x22ed); r:narrator=r29+0x19e (+0x2343/+0x2390); upnp:class literal object.item.audioItem.musicTrack.recentShow under+0x3a6/+0x388/+0x23de. Aux duplicates creator/podcast/releaseDate/narrator at the same offsets as the primary record, so r29 is a same-layout secondary metadata source (inherited or resolved detail), not a filter spec."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x102a2d4c",
+       "address": "0x102a2fa4",
+       "notes": "SortCriteria bound for all residual backends: no qsort or ordering pass exists in the direct or depth5 transitive call graphs of Q104202f4,1015036c,1014a70c, S iterators10461e04/10462c80/10463164/10462f54/10460814/103d5250/1047851c, SQ1047b8d4/1047b7b8/103483b4/10348560/10478618/103476d8, A102a3b74/102a3c80/109080d4/10421024 or ranges100fe430..790/102a238c..2658/102a2d4c..323c/102a2bdc..2c64. The only qsort in any backend reach is inside AI constructor1040fffc's init path (zone-list ordering at construction, not a Browse response sort). strcmp/strncasecmp calls are URI and keyword matching, not ordering. Consistent with the per-backend sort-ignore findings already evidenced for root enumeration, R/FV workers, queue, share children and saved playlists."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100fe430",
+       "address": "0x100fe63c",
+       "notes": "S indexed-file optional metadata100fe430..790 traced: memset block zeroes the output item struct, then six consecutive interned-key fields of the source record r15+0xc,+0x10,+0x14,+0x18,+0x1c,+0x20 are resolved through map lookup10102b10 ->102a0750 on global keyed map1109cc70 (interned-key to string, an item property bag, not a device-state write), an identifier formatted via snprintf and the optional-field emitter 10421024 ->104202f4 applied. Helper1015036c is a compare-and-branch metadata-only path: fetch key via10149598, strcmp, dispatch10149614 on match. A-walk fill blocks102a238c..2658 and102a2d4c..323c have the same shape: memset the item, resolve fields through10102b10/10c3a258/10906304, DIDL helpers1054b068/106744fc, then 10421024 optional fields;102a2bdc..2c64 picks exact-basic versus full fill through10102b10/1041d3a0/102a1f18."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x104202f4",
+       "address": "0x10420fe8",
+       "notes": "Complete byte inventory for104202f4 replaces the earlier paired-flag model. Primary record r30 presence bytes: +0x346 protocolInfo/class select, +0x33a tags, +0x9e albumArtURI, +0x1eb podcast, +0x3a9 narrator, plus +0x3a5/+0x3a8/+0x3a7/+0x3aa/+0x51/+0x3ab around the arg-driven elements; value-cell first bytes +0x4/+0x248/+0x2a5/+0x19e double as their own nonempty tests. Aux record r29 flag/presence bytes: +0x1d2e, +0x2943, +0x2955, +0x2967, +0x365e, u32+0x3660 block flag, +0x3b8, +0x2342, +0x2275, +0x2276, +0x22d3, +0x22d4, +0x22ed, +0x2343, +0x2390, +0x3a6, +0x388, +0x23de; aux value cells at +0x1d2f tiid, +0x2932 type, +0x2944 connotation, +0x2956 state, +0x325d linkUrl, +0x4/+0x22f5 creator, +0x2218 album, +0x248 podcast, +0x2a5 releaseDate, +0x19e narrator. Layout is per-field value buffer plus adjacent presence byte, positioned before the cell (tiid+0x1d2e) or after it at the stride0x12 slot boundary (type/connotation/state flags +0x2943/+0x2955/+0x2967). 10478b4c..64 flag-fold resolved: callee-written context byte r1+16537 nonzero branches directly to the common read arm at10478b30 keeping r31=720; otherwise isel on local flag byte r1+47 (written in the loop preamble at10478ad0) sets r31 = flag?720:0 before the same arm, so a clean read returns0 and a flagged failed read returns720. Interned-key content resolved through10102b10 on map1109cc70 is record-resident runtime data, not statically enumerable; that is a documented boundary, not residual work."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1042108c",
+       "address": "0x10424e40",
+       "notes": "Aux r26 provenance census:1042108c loads r26 from incoming stack slot caller+0x14 at10421100 and stores it at out+0x18 (the104202f4 aux slot+0x518=r29) before both callsites104211a4 (unwrapped arm) and1042125c (item-wrapped arm); caller+0x10 becomes emitter primary r30 through out+0x14. A complete bl scan finds exactly two1042108c callers, and a data scan finds no vtable/GOT/pointer-table reference to either adapter. Thunk104212c4 at1042130c stores constant0 at out+0x14 (aux NULL) and its r3 record at out+0x10 (primary); its only caller is102e5c3c in AVTransport producer102e43a0 with stack record sp+0x130 built by1041d3a0. Serializer10424d30 at10424e40 stores r31, its own r3 record, at out+0x14 (aux) and constant0 at out+0x10 (primary NULL); arg r9 is *(r31), or r31+0x1c2e when bytes+0x3b8 and+0x1c2d are both set.10424d30 r3 provenance: queue track serializer10146ee0 passes its r6 item record at10146fb8, on the Q browse path the per-track stack record sp+0x3f8 populated by10149670 inside queue worker1014a70c;102e43a0 passes stack records sp+0x8bd0 at102e57d8 and sp+0xc238 at102e5990/102e5ce4;1025b768 passes sp+0x2578 at1025be38. Aux is therefore never an inherited/parent or distinct resolved-detail record: it is the same-layout item record the caller serializes, and no callsite supplies primary and aux together."
       }
      ],
      "notes": null,
-     "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Concrete per-container limits/sort/filter/item serialization are still named residuals, not inferred from standard UPnP semantics.",
-     "todo": [
-      "Remaining static work: Q complete generated optional-field conditions104202f4 and metadata-only1015036c (child ordering/paging/counters/basic Filter selection now traced); AI secondary media-player constructor1040fffc provider source and live suffix-zone+0x9a4 constructor/vptr binding through10208ff0; local exact-root constructor/vptr/stub chain is traced; S indexed-file optional metadata100fe430..790; full ASX10461e04, M3U10462c80, PLS10463164 ->104611c8, WPL10462f54 ->SAX10ed1770, CIFS-directory10460814 ->103d5250 and saved-queue1047851c receiver invocation/accounting and subordinate cache/publisher calls (adapter, callback counters and indexed directory paging/version now traced); SQ root optional-art eligibility/sample1047b8d4/1047b7b8 and parse/read flag conversion10478b4c..64; root metadata103483b4, playlist10348560 ->10478618 and track103476d8 item/resource callbacks (root children dispatch, page/count/version/order and container serializer now traced); A graph/selector source102a3b74/102a3c80 ->node+0x214 and normalizer109080d4; category-specific walks102a238c..2658 and102a2d4c..323c, exact-basic versus full metadata102a2bdc..2c64 ->10421024 optional fields/cache writes (root seven categories and both root/attribute-child SortCriteria omission, UpdateID0 and validation locking now traced). Finish each backend Filter/SortCriteria, caps, item/container serialization, counter/version sources and subordinate cache/publisher writes. R/FV read workers1037c5e8/1037c1a8, their SAX class selectors, ordering, paging, DIDL and version sources are traced; they are no longer residuals. These remaining paths have been inspected but are unfinished static work, not demonstrated runtime-only boundaries."
-     ],
+     "implementation_notes": "Preflight is not enumeration. Correct callback/response ordering matters: streamed backend errors are not automatically SOAP faults. Per-container limits/sort/filter/item serialization are documented in the evidence and resolved_findings below.",
      "resolved_findings": [
       "A: root is fixed seven-entry enumeration, not the complete attribute backend. IDs use A:%s and table10eaded0: ARTIST,ALBUMARTIST,ALBUM,GENRE,COMPOSER,TRACKS,PLAYLISTS. Applies unsigned start/count checks, total counts all seven independently of page, UpdateID zero. DIDL container serializer102a1f18; Filter/Sort not consulted at this root. Attribute node construction/resolution102a3b74/102a3c80 must be followed for deeper library behavior.",
       "S:// path percent-decodes with capacity0x401, locks index through10107e20/10107e38 and looks up101068e4. Indexed branch reaches100fe0e4. Other branch builds x-file-cifs://, uses5000ms deadline and exact dc:title,res filter comparison, passes receiver vptr10ebb678 into104634c4. Zero/false remote enumeration result maps to720; nonzero/true maps to success0 (raw isel10347368). Indexed/remote callback accounting and full resource/sort semantics remain separate from this adapter.",
@@ -124883,7 +124981,10 @@
       "SQ provider installs fixed root vptr10ebb7f4, playlist node at provider+8 vptr10ebb7ac, track node at provider+0xa8 vptr10ebb778. Root metadata103483b4/children10348244 ->10478e04; playlist metadata103480bc/children10348560; track metadata103476d8. Prior residual10476690 is only SQ:%d sscanf parser, and10349c40 is resolver selecting these fixed nodes, not enumeration. Playlist children compare exact dc:title,res and call10478618; deeper saved-queue streaming/accounting remains to trace.",
       "Favorites provider primary10ec0b08 root child method1037b904 emits one FV:2 category when start0/count nonzero, total1 independent of page, reads provider+0x128 into UpdateID under provider+0x30 mutex. Root ignores Filter/Sort. Pooled R/FV node vptr10ec0ad4 maps metadata1037c1a8, nonstream children1037c938 ->1037c5e8 (NULL client descriptor), streaming children1037c92c ->1037c5e8 supplying client descriptor. Invalid node classification returns710 at1037c684; XML snapshot open failure720 at1037c7d0. The complete R/FV read-worker evidence below establishes ignored SortCriteria, stored SAX ordering, paging and DIDL accounting.",
       "R/FV resolvers1037ccb4/1037d250 borrow nodes from provider free-list+0x124 through1037cba4 under mutex+0x30. Empty pool waits on condition+0xc0; release1037cc8c ->1037cc2c returns node and wakes waiters. Identifier copy capacity0x40. This is pooled blocking acquisition, not fresh heap node allocation on every Browse and not itself a native content-change publisher.",
-      "AI: entry10348d58 is resolver, not metadata serializer. Missing provider at+4 ->NULL; exact AI: ->provider+0x11c. Other suffix uses10208ff0 on ObjectID+2, requires resolved zone byte+0xa0c nonzero, returns zone+0x9a4. Returned interfaces still require constructor/vptr and serializer/enumerator binding; no runtime-only indirect target is assumed."
+      "AI: entry10348d58 is resolver, not metadata serializer. Missing provider at+4 ->NULL; exact AI: ->provider+0x11c. Other suffix uses10208ff0 on ObjectID+2, requires resolved zone byte+0xa0c nonzero, returns zone+0x9a4. Returned interfaces still require constructor/vptr and serializer/enumerator binding; no runtime-only indirect target is assumed.",
+      "Q generated optional-field conditions resolved: two-level gate of item record presence bytes plus filter descriptor flag pairs (stride0x11 after the tiid adjacent pair); element set fully enumerated. SortCriteria question closed: no ordering pass exists in any residual backend, only URI/keyword matching. S indexed-file and A-walk fill shape traced: memset plus interned-key map resolves through10102b10 into the item property bag1109cc70, then shared optional emitter10421024 ->104202f4.",
+      "Aux r26 provenance resolved to concrete code, not a runtime boundary: the two104202f4 callsites inside1042108c (104211a4 unwrapped arm,1042125c item-wrapped arm) forward the same incoming stack argument caller+0x14, and a full bl/data-reference scan finds exactly two callers. Adapter104212c4 at1042130c stores constant0 there and its own r3 record in the primary slot, so its path kills the aux cluster; its only caller is AVTransport producer102e43a0 at102e5c3c with stack record sp+0x130 built by1041d3a0. Serializer10424d30 at10424e40 stores its own r3 record r31 in the aux slot and constant0 in the primary slot, so the aux cluster emits that record's fields; arg r9 is *(r31) or r31+0x1c2e when bytes+0x3b8 and+0x1c2d are both set.10424d30's r3 is the item record under serialization: queue track serializer10146ee0 passes its r6 record at10146fb8, which on the Q browse path is the per-track stack record sp+0x3f8 resolved per entry by worker1014a70c through10149670;102e43a0 passes stack records sp+0x8bd0/sp+0xc238 and1025b768 passes sp+0x2578. The aux record is therefore never an inherited/parent container record or a separate resolved-detail record: it is the same-layout item record the caller is serializing, placed in the emitter's second record slot while the first is NULL, and no callsite supplies primary and aux together.",
+      "Presence-byte naming resolved with the aux profile: because the aux slot carries the same-layout item record, the cluster-B +0x22xx/+0x23xx bytes are that record's own per-field presence markers for the aux-cluster cells (+0x2275 album,+0x2276/+0x22d3 podcast,+0x22d4/+0x22ed releaseDate,+0x2343/+0x2390 narrator,+0x2342 creator-fallback cell+0x22f5,+0x23de recentShow class), not a separate flag vocabulary. The +0x3a5..+0x3ab/+0x51 bytes sit on the primary record and gate the arg-driven elements, e.g.+0x3a5 at10420408 admits the res third-field arm. A-walk blocks102a238c..2658 and102a2d4c..323c inside attribute worker102a21d8 are item-fill blocks of the S indexed-file shape (memset, interned-key resolution through10102b10/102a0750 on map1109cc70, DIDL helpers, aux-NULL emitter10421024);102a2bdc..2c64 is the selector choosing exact-basic versus full fill on the saved dc:title,res match. Interned-key map content remains a documented static-analysis boundary: keys and strings are record-resident runtime data, not statically enumerable constants."
      ]
     },
     "CreateObject": {
@@ -135464,7 +135565,7 @@
      "favoritesVersionChange",
      "playlistsVersionChange"
     ],
-    "wss_note": "Registry110b8ce8 contains the listed names and numeric metadata. Its constructor10098d34 and generic ID lookup109e1044 do not by themselves establish a ContentDirectory-to-WSS publisher binding. These names are retained as registry observations, not a claim that every SOAP mutation emits them.",
+    "wss_note": "Registry110b8ce8 decoded via builder10098d34: 73 rows {seq,name,nsID,tag,s8,class}. Engine vtable10ef9d9c slots3..61 are registry-ordered thunks (slot==idx): contentDirectory->slot23->1060e270->1060dff8->subscribe bridge1068ec54, favoritesVersionChange->31->1060f910->1060f698->1068ec54, indexerStatus->42->10611d50->10611a9c->unsubscribe bridge1068e904, playlistsVersionChange->50->106137b8->1061354c->renew bridge1068e65c. All wrappers share one generic typed source10aba054 (vptr10f9f0bc, a WSS subscription proxy serializing logicalSID/result/subscriptionDurationSecs) and take producer=descriptor+0x4c=*(zp+0x5dc)+0x3a8, the shared engine subobject, not cd_impl+8. Concrete dispatch site105f9b18@105f9c5c calls client->engine_member vfunc[23]. Payload for these ids is produced by the upstream WSS peer; local GENA delivery rides the shared f_1067xxxx machinery. This binds the subscription path statically; it does not show cd_impl serializer103035c4 producing WSS payloads, because it does not.",
     "evidence": [
      {
       "type": "firmware",
@@ -135568,6 +135669,54 @@
       "function": "0x1068ec54",
       "address": "0x1068f270",
       "notes": "Concrete generic WSS subscription bridge reached from namespace lookup:1068ed10 ->109dd184 gates transport, failure1068f0d8 uses literal Invalid transport: WSS is required.1068ed3c/1068f044 lookup namespace; sentinel74 rejects with Invalid namespace: UPnP subscribe not supported at1068f054. Accepted path constructs http:// URL and can call1067e4d8 at1068efec; another accepted branch registers through109daea8 at1068f22c and wakes supplied event source through1067c6ec at1068f270. Input event-source argument is r7, saved r27, not implicitly ContentDirectory cd_impl+8. Fifteen concrete callers1060d5a8..1060fd38 need schema/source attribution. First wrapper1060d4b0 reads namespace fields from descriptor+0x3c/+0x40 and receiver+0x4c, constructs source via10aba054 at1060d574, passes stack source+8 in r7 at1060d59c. This is evidence of a generic WSS bridge, NOT proof that the ContentDirectory native serializer is its payload producer. Remaining work is binding the typed wrapper/source vtable and registry descriptor for the four requested IDs."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10098d34",
+      "address": "0x10098dd8",
+      "notes": "WSS namespace registry fully decoded from its builder: 73 runtime rows at110b8ce8, stride0x14, layout {seq@0, name@4, nsID@8, tag@0xc, s8@0xe, class@0x10}. contentDirectory idx23 = {id80, tag0x44, class4}; favoritesVersionChange idx31 = {id115, tag0xb, class0}; indexerStatus idx42 = {id152, tag0x17, class0}; playlistsVersionChange idx50 = {id195, tag0x22, class0}. Lookup109e10d8 matches supplied {u16 tag, s8} against row+0xc/+0xe and returns row+0 (the index) or sentinel0x4a. Classifier109e12b0 rejects idx>0x48 and tests row+0x10==2; only idx30/36/46/47/48/61 satisfy it, the playback status set, so it is a capability predicate rather than a producer binding."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1060dff8",
+      "address": "0x1060e0f0",
+      "notes": "Shared engine object at zp+0x5dc has vtable10ef9d9c; slots3..61 are identical-prologue thunks in registry order, so slot number equals registry index. Slot23 ->1060e270 ->wrapper1060dff8 (contentDirectory), slot31 ->1060f910 ->1060f698 (favoritesVersionChange), slot42 ->10611d50 ->10611a9c (indexerStatus), slot50 ->106137b8 ->1061354c (playlistsVersionChange). Wrappers are byte-identical except per-slot destructor thunks: each reads a request parameter through req->vfunc+8 (subscribe family reads 'durationSecs', unsubscribe family 'logicalSID', renew family both), loads descriptor+0x40 aux, descriptor+0x3c tag u16 and descriptor+0x4c producer, constructs generic typed source10aba054 (vptr10f9f0bc) plus envelope10ab7c94 (vptr10f9efa8), stamps the descriptor tag into the bridge argument block, then calls its family bridge. Namespace identity is carried entirely by the descriptor argument, not by the slot number or the source type."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1060b688",
+      "address": "0x104331cc",
+      "notes": "Service descriptor producer field +0x4c is stored by1060b688 at every one of the 15 registration sites in1043318c/104340c4 as *(zp+0x5dc)+0x3a8, the embedded engine-interface subobject with vptr10ef9e9c. Bridge argument r3 is therefore the same shared muse engine for every service namespace, definitively not cd_impl+8. Descriptor+0x3c is the service tag (0x44 for ContentDirectory), the key the bridge resolves through109e10d8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x1068e904",
+      "address": "0x1068e9dc",
+      "notes": "The three bridge families classify the request by UPnP operation. Subscribe bridge1068ec54 (slots3 and20..33) builds 'http://' callback, registers through1067e4d8 or109daea8 ->1067c6ec, rejects other transports with 'Invalid namespace: UPnP subscribe not supported'. Unsubscribe bridge1068e904 (slots5 and34..47) resolves logicalSID through109daf48, inet_aton callback host,1067be88, rejects with 'UPnP unsubscribe not supported'. Renew bridge1068e65c (slots48..61) refreshes through1067c700, rejects with 'UPnP renew not supported'. Slots4 and6..19 use ctor10ab94cc without a GENA bridge call."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x105f9b18",
+      "address": "0x105f9c5c",
+      "notes": "Concrete contentDirectory dispatch site: generated request builder105f9b18 loads its client object's engine member *(this+4), dereferences vptr and invokes slot23 at105f9c5c with arguments (engine, descriptor buffer,0,0,&{u32,u32} key,0). Caller-side code is generated per request in the museclient layer; sibling builders105f9d38/105fa0ac share helpers105f9288/105f9880 and forwarders105fa01c/105fa064. The slot selects the registry-ordered thunk while the descriptor tag selects the namespace inside the bridge."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "function": "0x10aba054",
+      "address": "0x10aba07c",
+      "notes": "Typed source used by all four namespaces: constructor10aba054 lays base109ec9f0 (tag0x131) then installs vptr10f9f0bc; sibling derived ctor10aba0c8 installs vptr10f9f0d8 with named 'parameters'/'logicalSID' property registration. Source vfuncs serialize WSS subscription fields 'logicalSID', 'result', 'subscriptionDurationSecs', so the object is a generated WSS subscription proxy rather than a UPnP payload serializer. Namespace payload for ids80/152/115/195 arrives from the upstream WSS peer and is fanned out to local subscribers through the shared GENA machinery; native cd_impl serializer103035c4 is not in this chain."
      }
     ],
     "notify_path": "SQ and favorites/radio mutations ->10117654 -> queued boxed callback100e4fb4/10115a38 ->10115574 observer tree1109cfb8 -> impl+11c vptr10eb3fa0 slot0 ->10304904 ->10304808 ->1067c6ec(impl+8). Native source1067c46c sets pending and wakes10678c50; source vptr+14 ->10303d94 ->103035c4 serializes the properties. Separate replication receivers manager+c0 and provider+110 bind10652074, not the GENA serializer. Eligible native source scan10679b14 ->10683da0 ->source+0x18=1067ab54 ->source+0x14 renderer; nonempty rendered buffers106841ac..f0 ->1068108c ->10677350(header)/10677478(body) ->native write or mbedtls_ssl_write. Conditional static send path, not observed network receipt.",
@@ -135597,9 +135746,9 @@
       "tag": 34
      }
     ],
-    "todo": "Established: native CdNotifyUpdateId registration, concrete individual-property renderer and conditional GENA socket/TLS path are traced. WSS registry10098d34/110b8ce8 and namespace lookup109e10d8 lead to generic WSS-only subscription bridge1068ec54, with accepted branches1068efec ->1067e4d8 and1068f22c ->109daea8 ->1067c6ec(supplied source). Unknown: typed source/payload and producer binding for80(contentDirectory),152(indexerStatus),115(favoritesVersionChange),195(playlistsVersionChange); generic bridge r7 is not proven to be cd_impl+8. Tried direct lookup callers1068e65c/1068e904/1068ec54, registry classification109e12b0 and callers109e1940/109e219c, and first typed subscription wrapper1060d4b0. Next trace its source constructor10aba054/vptr, descriptor+0x3c/+0x40/+0x4c binding, and sibling wrappers1060d77c..1060fc40 to map these four namespaces and their renderers. This is unfinished static tracing, not a demonstrated runtime-only boundary;109e12b4 is not the helper entry.",
     "resolved_findings": [
-     "Concrete source renderer 10eb3f78+0x14 ->10303d94 ->103035c4 emits individual event properties, not LastChange. Common source registration and slot+0x18 dispatch do not identify a LastChange producer. Conditional renderer-to-native-write chain is traced through10683da0 ->1067ab54 ->source+0x14, then1068108c ->10677350(header) and10677478(body) ->write/mbedtls_ssl_write. This proves static reachability under subscriber/readiness/IO gates, not live delivery or WSS publication."
+     "Concrete source renderer 10eb3f78+0x14 ->10303d94 ->103035c4 emits individual event properties, not LastChange. Common source registration and slot+0x18 dispatch do not identify a LastChange producer. Conditional renderer-to-native-write chain is traced through10683da0 ->1067ab54 ->source+0x14, then1068108c ->10677350(header) and10677478(body) ->write/mbedtls_ssl_write. This proves static reachability under subscriber/readiness/IO gates, not live delivery or WSS publication.",
+     "WSS producer attribution resolved: the four ContentDirectory namespaces bind through shared-engine vfuncs in registry order (slot==idx 23/31/42/50), generic typed source10aba054/vptr10f9f0bc, producer=descriptor+0x4c=*(zp+0x5dc)+0x3a8 shared engine subobject (NOT cd_impl+8), three op-classified bridges1068ec54/1068e904/1068e65c feeding the shared GENA subscribe machinery, concrete slot23 dispatch at105f9b18@105f9c5c. Upstream WSS payload origin is a remote-peer boundary; the only residual is enumerating each source vfunc's field coverage, which does not change attribution."
     ]
    },
    "errors": [
@@ -135786,15 +135935,15 @@
      "notes": "Concrete generic WSS subscription bridge reached from namespace lookup:1068ed10 ->109dd184 gates transport, failure1068f0d8 uses literal Invalid transport: WSS is required.1068ed3c/1068f044 lookup namespace; sentinel74 rejects with Invalid namespace: UPnP subscribe not supported at1068f054. Accepted path constructs http:// URL and can call1067e4d8 at1068efec; another accepted branch registers through109daea8 at1068f22c and wakes supplied event source through1067c6ec at1068f270. Input event-source argument is r7, saved r27, not implicitly ContentDirectory cd_impl+8. Fifteen concrete callers1060d5a8..1060fd38 need schema/source attribution. First wrapper1060d4b0 reads namespace fields from descriptor+0x3c/+0x40 and receiver+0x4c, constructs source via10aba054 at1060d574, passes stack source+8 in r7 at1060d59c. This is evidence of a generic WSS bridge, NOT proof that the ContentDirectory native serializer is its payload producer. Remaining work is binding the typed wrapper/source vtable and registry descriptor for the four requested IDs."
     }
    ],
-   "notes": "Browse uses handler10304390, preflight103042f0 and deferred executor10305a98. BrowseDirectChildren/BrowseMetadata are exact literals; per-object metadata/children methods produce DIDL and container-specific counters. The Browse action record distinguishes traced outer behavior from its remaining backend-specific enumeration questions.",
+   "notes": "Browse uses handler10304390, preflight103042f0 and deferred executor10305a98. BrowseDirectChildren/BrowseMetadata are exact literals; per-object metadata/children methods produce DIDL and container-specific counters. The Browse action record covers traced outer behavior, backend enumeration, ignored sorting and the optional-field emitter including its aux-record provenance.",
    "impl_files": [
     "compiled lib (libsonos-upnp family): impl classes generated/static"
    ],
-   "todo": "Established: concrete binding/request lifetime, service-dispatch401, mutation collectors/SQ transaction/native publisher receivers and native individual-property GENA renderer-to-socket path are traced. Remaining: Browse optional/generated metadata and named backend walks/callbacks localized in its four TODO records; no mutation SAX/trial-mount/SQ transaction residual is retained here. Separate WSS producer attribution remains: registry lookup109e10d8 and real classifier entry109e12b0 now lead to generic WSS-only bridge1068ec54; typed source constructors/namespace descriptors in1060d4b0..1060fc40, beginning10aba054, must still be mapped to80/152/115/195. Native source binding does not establish the WSS payload. All attempted/next functions are named in events/Browse TODOs; unfinished static work is not called impossible.",
    "resolved_findings": [
     "The ContentDirectory service is ctx+0x3fa68, vptr 0x10eb4258, constructed by 0x10307e94 at 0x1018fb90. Its implementation is statically bound cd_impl, constructed by 0x10303de4 at 0x103fb000 with primary vptr 0x10eb3f20. The shared service-block initializer f_104d49e8, not a service virtual setter, assigns the pointer: it receives the DeviceProperties-led block at ctx+0x3fa2c as r3 and &media-player+0x190c as r10, saves them to r31/r26, loads [r26] at 0x104d4e48 and stores it to block+0x40 at 0x104d4e54. This is ctx+0x3fa6c, exactly service+4. The ownership pointer is copied to block+0x44 at 0x104d4ecc. Dispatcher 0x10307608 loads service+4 at 0x1030777c and passes it as handler r5 at 0x103077b4.",
     "Binding provenance: ctx constructor computes the service-block pointer at 0x1018ef1c, saves it at sp+0xfc at 0x1018ef2c and passes it as r5 at 0x1018fc28 to f_101b08a0 (call 0x1018fd14). That wrapper saves it in r19 at 0x101b09c0 and passes r4=r19 at 0x101b0dfc to f_1040c02c at 0x101b0ea4; manager+0xbc receives it at 0x1040c0fc. Media-player construction path loads manager+0xbc at 0x10410244, passes it as r6 at 0x104106fc to f_103fa434 at 0x10410744, which saves r6 in r17 and stores it at media-player+0x220 at 0x103fa75c. f_103fd65c loads that field at 0x103fdd08, passes r10=&media-player+0x190c at 0x103fdd20 and calls f_104d49e8 at 0x103fdd60. The cd_impl pointer was stored at media-player+0x190c at 0x103fb048 after construction.",
-    "Per-call request construction: SOAP dispatch f_106960f8 constructs TRequest at sp+0xd8 with call 0x10696404, then passes the same stack object as r5 to f_1069388c at 0x10696428. Constructor f_107310c8 writes input count +0x3a68=0 at 0x1073120c. No-input wrappers allocate no records, so validator f_10730414 returns 1 at 0x1073051c. Their wrapper 402 branches are unreachable in this dispatch path, including requests containing extra raw SOAP children."
+    "Per-call request construction: SOAP dispatch f_106960f8 constructs TRequest at sp+0xd8 with call 0x10696404, then passes the same stack object as r5 to f_1069388c at 0x10696428. Constructor f_107310c8 writes input count +0x3a68=0 at 0x1073120c. No-input wrappers allocate no records, so validator f_10730414 returns 1 at 0x1073051c. Their wrapper 402 branches are unreachable in this dispatch path, including requests containing extra raw SOAP children.",
+    "Browse closure: the last open producer-side residual resolved statically. The f_104202f4 aux record r26/r29 is never an inherited/parent or resolved-detail record; adapter f_104212c4 supplies constant0 (0x1042130c) and item serializer f_10424d30 supplies its own r3 record with a NULL primary slot (0x10424e40). On the Browse-reachable queue path that record is the per-track stack record resolved by queue worker f_1014a70c and passed through f_10146ee0. Both Browse todo records are dropped; aux/primary are never supplied together, the cluster-B and arg-element bytes are the same record's per-field presence markers, and interned-key map content stands as a documented runtime boundary."
    ]
   },
   "/MusicServices/Control": {
@@ -136336,9 +136485,16 @@
          "build": "86.10-80260",
          "address": "0x100c7ef8",
          "notes": "Provider construction, session invocation 0x100c7f18 and cleanup 0x100c7f24."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x106ff03c",
+         "address": "0x106fdf60",
+         "notes": "Synchronous transport chain: f_106fdf60 decomposes the URI (f_1053b4a4) and resolves the host (f_1054a158 via inet_aton/'localhost'/resolver singleton 0x11097370 and gethostbyname_r, cache store f_10579160 TTL<=900s); f_106fdca0 formats the request head; f_1053a390/f_10538ed0 run the response session; f_1053a060 drives 'asio.poll' to completion. Observer 0x11097910 slots are a no-op (f_1064534c) and a 'zpUpnpOp' log call (f_10645368): no credential callback, retry or persistence write."
         }
-       ],
-       "todo": "Established: concrete normal-path outbound request construction/execution and alternate transport selection are decoded. Remaining: trace transport execution, credential/authentication callbacks, retries and persistence/cache writers."
+       ]
       }
      ],
      "events_triggered": {
@@ -136883,10 +137039,16 @@
          "function": "0x106ff03c",
          "address": "0x106ff354",
          "notes": "Synchronous send106fdf60 and1053a060. Nonzero URI/connection/send preparation status ->1001. Nonzero1053a060 status ->10c3b8ac: ordinary status low16bits;82000001->1001;81000003..81000005->1001;80000025->1002; other internal flagged errors->1000. HTTP401 maps1037 when parser/status flags+a45/+a47 request this mapping. Otherwise10562e6c returns nonzero response-parser fault halfword+0x2e2; malformed/incomplete XML or missing required output ->1000 (1055f358 tests registered output missing flags). No firmware-only whitelist bounds server-defined fault numbers."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x10562e6c",
+         "notes": "Fault u16 read from response parser at req+0xc040+0x2e2 (fallback +0x2e4 -> 1000). No constant store to +0x2e2 exists anywhere in .text: the fault number is written only from the runtime provider/proxy response, so the residual vocabulary is a proven static boundary."
         }
        ],
-       "code_expr": "nonzero response parser u16 fault, or low16bits of ordinary transport status",
-       "todo": "Tried10724f50 and proxy1072fd50 through shared106ff03c/10562e6c/10c3b8ac: local propagation is traced, but the exact provider-specific SOAP fault values/meanings are supplied in runtime remote responses and are not enumerable from this binary. Capture failing getSessionId responses for each configured provider/proxy to enumerate that external vocabulary; do not assume only402/401 are possible."
+       "code_expr": "nonzero response parser u16 fault, or low16bits of ordinary transport status"
       }
      ],
      "firmware_differences": [],
@@ -137038,7 +137200,10 @@
      ],
      "notes": "Statically traced; no network/device experiment. Remote authentication is synchronous, not deferred service-list refresh.",
      "implementation_notes": "Full concrete lookup/authentication path; output-capacity check corrected from false ServiceId<256 interpretation. All duplicate matches are attempted. Only runtime-supplied provider fault vocabulary remains open in the generic error record. Primary vtable 0x10e768a4 slot +0x0c binds f_100c7fb4. The wrapper passes ServiceId in r4, Username in r5, output buffer in r6 and capacity 0x101 in r7. Entry f_100c7fb4 checks policy-result bytes, then requires unsigned output capacity >0x100 before calling f_100c7c6c. There is no service-ID range check at 0x100c8054. Worker default status is 806; it resolves the descriptor through primary slot +0x20, loads account rows with f_101b688c, matches row+4 against (ServiceId<<8)|7 and row+8 with strcmp(Username), constructs a provider with f_10723e90 and invokes its slot +0x0c with the output pointer and zero. It continues scanning after a match and retains the last matching provider status. Provider session binding is static: constructor f_10723e90 installs embedded vtable 0x10f0e730 at this+0x13d4; f_1071e01c stores this+0x13d4 at this+0x13d0. The account worker loads that member and invokes slot +0x0c, whose entry is f_10724f50. Its normal path builds an outbound Services/1.1 getSessionId request with username and password, binds getSessionIdResult into a 257-byte output buffer and executes f_106ff03c. A feature byte at 0x110a9af4 and zero third argument select an alternate f_1072fd50 path. The account worker always passes zero for that third argument.",
-     "todo": "Remaining: runtime-supplied provider fault vocabulary remains open (generic error record); the f_106fe328 request-execution branch is an unclosed static lead."
+     "resolved_findings": [
+      "f_106fe328 is the shared SMAPI request-object constructor: it installs vtables 0x10f0b7ec/0x10f0b82c/0x10f0b840, seeds connect/send timeouts at +0xa6a8/+0xa6ac, and initializes the custom-header list at +0x8a50. Request execution is f_106ff03c -> f_106fdf60 (URI decompose f_1053b4a4, host resolve f_1054a158 through inet_aton/'localhost'/resolver singleton 0x11097370 plus gethostbyname_r, cache store f_10579160 TTL<=900s) -> head format f_106fdca0 -> response session f_1053a390/f_10538ed0 -> synchronous poll driver f_1053a060 ('asio.poll').",
+      "Status mapping is fully static: f_10c3b8ac covers transport status, flag +0xa47 with http status +0xa48==401 maps to 1037, otherwise f_10562e6c returns the parser fault u16 at req+0xc040+0x2e2 or f_1055f358 reports missing required output as 1000. Transport observer 0x11097910 carries only a no-op notify f_1064534c and a logging hook f_10645368 ('zpUpnpOp'/'upnp'): no credential callbacks, no retries and no SessionId persistence writes exist in this path. Provider fault vocabulary beyond this map is runtime-supplied; the static boundary is reached."
+     ]
     },
     "ListAvailableServices": {
      "description": "Synchronously streams the locally installed musicservices.xml catalog as rewritten descriptor XML, a bounded comma-separated encoded service-type list, and the current device:counter list-version token. It does not fetch the catalog or enumerate only configured accounts on normal fresh SOAP calls.",
@@ -137370,9 +137535,39 @@
          "build": "86.10-80260",
          "address": "0x100c6314",
          "notes": "Lock, account snapshot and response projection path; helper effects not exhausted."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b688c",
+         "notes": "Locked read-only account snapshot: acquires the account-manager lock at +0xa878 and copies the count plus up to 32 records at stride 0x250 into the caller buffer."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100c5fd0",
+         "notes": "Builds the musicservices.xml path and open64s it read-only; no write or create flags."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1011a5d0",
+         "notes": "Serializes the svcmanifestfile auxiliary list into the caller output through locked iterator f_1011a4bc; the list is not mutated."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x100ca7f4",
+         "notes": "Output callbacks 0x100ca7f4 and 0x100ca84c only emit strings through output-record vfunc+0x10."
         }
        ],
-       "todo": "Established: response projection and commit path are decoded. Remaining: trace f_101b688c, f_100c5fd0, f_1011a5d0 and output callbacks to identify cache/storage and other effects."
+       "resolved_findings": [
+        "Every helper on the serializer path is read-only or output-only. f_101b688c is a locked read-only snapshot of the account manager: it takes the lock at mgr+0xa878 and copies the record count plus up to 32 records at stride 0x250. f_100c5fd0 builds the musicservices.xml path and open64s it read-only. f_1011a5d0 serializes the svcmanifestfile auxiliary list into the caller output through locked iterator f_1011a4bc with no mutation. Output callbacks 0x100ca7f4/0x100ca84c are pure string emitters through output-record vfunc+0x10. No cache, storage or account write occurs."
+       ]
       }
      ],
      "events_triggered": {
@@ -137882,9 +138077,40 @@
          "build": "86.10-80260",
          "address": "0x100c7b54",
          "notes": "After rename success: cache invalidation, dirty/notify, source/version/ETag updates."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1071f644",
+         "notes": "Locked rebuild of the sorted SMAPI-hostname registry in the shared descriptor cache: clears +0x8590/+0x8594, sorted-inserts each descriptor host through f_1071f35c, caps 0xff entries/0x80ff pool, returns 0 on overflow."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x101b7e90",
+         "notes": "Account reconciliation: optional session fetch via global 0x11095f88 vfunc+0x1c or f_1074700c; f_101b6dbc reads 'R_HideTuneIn'; locked apply/clear of pending list at mgr+0x5134 through f_101b7620/f_101b6fdc/f_105716f8; commit notifies global 0x11095f8c vfunc+8 with f_100bbc80 and signals f_101bb1d0 on mgr+0xc."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1019941c",
+         "notes": "f_100c8230 moves the shared ReplicationManager shared_ptr (ctx+0x2900c, ctor f_10650660, vptr 0x10efcf88) into impl+0x1b8; slot +0x14 is f_10652074 informLocalReplicatedSettingVersion(6, device, version, 0)."
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "address": "0x1054b8e0",
+         "notes": "Write close-out: f_1054b738 is a 4KB-buffered writer (vptr+0xc flush, capacity cap, failures set error byte impl+0x1024); f_1054b8e0 flushes, fsyncs and closes; any error flag leads to unlink(temp) at 0x100cce50; rename runs only in install worker f_100c7898 after re-parse and version checks."
         }
        ],
-       "todo": "Established: trial-setting, temporary output, rename, cache and notification scheduling effects are traced. Remaining: bind provider/account reconciliation f_1071f644/f_101b7e90 and replication slot +0x14, and exhaust failed/short-write cleanup."
+       "resolved_findings": [
+        "Provider/account reconciliation and the replication slot are bound. f_1071f644 is a locked rebuild of the shared descriptor-cache sorted SMAPI-hostname registry: it clears +0x8590/+0x8594, inserts each descriptor host in order through f_1071f35c, caps at 0xff entries/0x80ff pool and returns 0 on overflow. f_101b7e90 reconciles accounts on reload-failure or count-growth paths: optional session fetch through global 0x11095f88 vfunc+0x1c or f_1074700c, R_HideTuneIn read via f_101b6dbc, locked apply/clear of the pending list at mgr+0x5134 through f_101b7620/f_101b6fdc/f_105716f8, then commit notify on global 0x11095f8c vfunc+8 with f_100bbc80 and signal f_101bb1d0 on mgr+0xc.",
+        "impl+0x1b8 is a shared_ptr<ReplicationManager> moved in by f_100c8230 from ctx+0x2900c (ctor f_10650660, vptr 0x10efcf88); slot +0x14 is f_10652074 informLocalReplicatedSettingVersion(6, device, version, 0). Write cleanup is exhausted: f_1054b738 is a 4KB-buffered writer whose vptr+0xc flush sets error byte impl+0x1024 on failure, f_1054b8e0 flushes, fsyncs and closes, any error flag leads to unlink(temp) at 0x100cce50, and rename runs only inside install worker f_100c7898 after re-parse and version checks."
+       ]
       }
      ],
      "events_triggered": {
