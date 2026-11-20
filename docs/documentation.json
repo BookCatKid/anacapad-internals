@@ -223072,7 +223072,7 @@
   },
   "dolby_decoder": {
    "name": "Dolby decoder + DAP config",
-   "summary": "config {\"unable to parse %s\",app/debug/dsp/dolby_config.json (JFFS override),\"override dolby config with jffs\",/opt/dsp/dolby_config.json,\"loaded player dolby json config\",\"unable to load player dolby json config, loading defaults\",\"Config %s not found, loading default\"}; decoder {dlbdec,\"dolby decoder unable to decode\",\"<DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount>\"}; parse errors {mode state,bass extraction mode,dap profile mode}; staticparams {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; dynamicparams {oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal}; modes {/default,movie,disable,night,sonosdolbyconfig,\"drc config is invalid\"}; DRC cutoffs 100HZ-200HZ in 10Hz steps; LRR EQ {lrrse,lrrs1,lrrs2}; PCM decoder {decoder_pcm,\"Invalid frame size detected %zu\",\"Unsupported input rate detected %zu\",\"Invalid number of input samples detected %zu\",\"<DEC_SampleRate>%zu</DEC_SampleRate>\"}",
+   "summary": "config {\"unable to parse %s\",app/debug/dsp/dolby_config.json (JFFS override),\"override dolby config with jffs\",/opt/dsp/dolby_config.json,\"loaded player dolby json config\",\"unable to load player dolby json config, loading defaults\",\"Config %s not found, loading default\"}; decoder {dlbdec,\"dolby decoder unable to decode\",\"<DEC_SampleRate>%u</DEC_SampleRate><LFEPresence>%s</LFEPresence><DEC_ChanCount>%zu</DEC_ChanCount>\"}; parse errors {mode state,bass extraction mode,dap profile mode}; staticparams {boost,speakers,directdec,virt_mode,frontangle,heightangle,rearsurrangle}; dynamicparams {oarBassExtraction,dapCutOff,hfilt,vlamp,vmcal}; modes {/default,movie,disable,night,sonosdolbyconfig,\"drc config is invalid\"}; bass-extraction cutoff vocabulary {OFF:-1, 45/50/55/60/70/80/90/100/110/120/130/140/150/160/170/180/190/200 HZ -> 0..17}; mode enum {movie:0,music:1,night:2,OFF:-1}; speakers channel-name list -> 64-bit layout mask; drc record {mode enable/disable/auto, cut/boost doubles [0,1], disable requires both zero}; LRR EQ {lrrse,lrrs1,lrrs2}; PCM decoder {decoder_pcm,\"Invalid frame size detected %zu\",\"Unsupported input rate detected %zu\",\"Invalid number of input samples detected %zu\",\"<DEC_SampleRate>%zu</DEC_SampleRate>\"}",
    "evidence": [
     {
      "type": "firmware",
@@ -223106,14 +223106,76 @@
      "build": "86.10-80260",
      "address": "0x10d5d858",
      "notes": "Fallback stores are not a complete semantic schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe6ce8",
+     "notes": "Mode enum table: movie 0, music 1, night 2, OFF -1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe6d08",
+     "notes": "Cutoff vocabulary 18 entries: 45..60Hz step5 then 70..200Hz step10 mapped to enum 0..17."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe6da8",
+     "notes": "/drc mode table: enable 0, disable 1, auto 2."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fe6ba8",
+     "notes": "Channel vocabulary 20 names lr..cs with per-channel 64-bit mask constants at 0x10fe6c48."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d608e4",
+     "address": "0x10d60a24",
+     "notes": "speakers list OR-accumulates per-channel mask constants into a 64-bit layout mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d5ec08",
+     "address": "0x10d5ecc0",
+     "notes": "oarBassExtraction reader delegates to the cutoff-frequency enum mapper f_10d60c08 (OFF default -1)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10d5ed14",
+     "address": "0x10d5ed78",
+     "notes": "mode reader maps through f_10d60b04 on the mode table; failure logs 'error parsing dap profile mode'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107cfad8",
+     "address": "0x107cfb40",
+     "notes": "decoderset ctor seeds the named-config map (+0x120) with the compiled 'default' entry via f_10d5d990."
     }
    ],
-   "todo": "Residual: map the remaining staticparams/dynamicparams numeric readers and decoder consumers to units, scales and accepted ranges, including the mode enum and DRC cut/boost member binding. The native DRC validator is recovered; an external JSON file is not required to trace the remaining checks.",
    "resolved_findings": [
     "The shipped ELF contains numeric validation, not merely defaults awaiting an external JSON schema. In f_10d60f0c the record mode at +0 is checked against 1. Mode 1 requires both doubles at +8 and +0x10 to equal zero (0x10d60ff8-0x10d61020). Other modes require each double to be in the inclusive interval [0,1] (0x10d60f30-0x10d60fa0); the first comparison result is retained and checked at 0x10d61024. e500/SPE efdcmpgt/efdcmplt/efdcmpeq decoding and constants 0.0 at 0x10e87718 and 1.0 at 0x10eb9ee0 establish the bounds. Failure logs drc config is invalid and returns zero. This is a native DRC-record check, not proof of universal Dolby parameter units.",
     "The /drc parse path is bound by f_10d5ee28 loading /drc at 0x10d5ee54. The encompassing f_10d5f1e4 constructs /staticparams and parses frontangle/heightangle/surrangle/rearsurrangle via f_109d024c into stack+0x19c/+0x1a0/+0x1a8/+0x1ac at 0x10d5f9a4-0x10d5fb30. It separately parses oarBassExtraction through f_10d5ec08, dapCutOff through f_109d024c, and upmix/hfilt through f_10d5eaf0 (0x10d5fa2c-0x10d5fc18). These are distinguishable typed-reader paths; adjacent literals do not establish angle units, Hz scaling or all accepted ranges.",
     "Constructor f_10d5d6f4 initializes the object, attempts the constructed JFFS app/debug/dsp/dolby_config.json path, then /opt/dsp/dolby_config.json, then the fallback block at 0x10d5d858. The fallback stores +0x24=63, +0x58=1 and +0x70=-1, with many zero members. Calling those three values level/enable/unset without consumer bindings was inference and is withdrawn. The object constructor also contains nonzero seeds outside that partial list; the list is not the complete schema.",
-    "Artifact verification: recursive reference inventory and the embedded package rootfs.squashfs directory listing contain /opt/dsp/S9_array.xml and the engineering DSP UI, but no dolby_config.json. This proves absence from the shipped filesystem artifact, not that every live device necessarily uses compiled defaults: JFFS overrides can be installed later. Surround/downmix/dialog labels from nearby decoder vocabulary are not substituted for the actual JSON parser keys."
+    "Artifact verification: recursive reference inventory and the embedded package rootfs.squashfs directory listing contain /opt/dsp/S9_array.xml and the engineering DSP UI, but no dolby_config.json. This proves absence from the shipped filesystem artifact, not that every live device necessarily uses compiled defaults: JFFS overrides can be installed later. Surround/downmix/dialog labels from nearby decoder vocabulary are not substituted for the actual JSON parser keys.",
+    "Vocabulary tables recovered: string-valued keys all map through the enum bank at 0x10fe6ba8. Config 'mode' accepts {movie:0, music:1, night:2, OFF:-1} (f_10d5ed14 -> f_10d60b04 on table 0x10fe6ce8; failure logs 'error parsing dap profile mode'). 'oarBassExtraction' accepts OFF(-1) or a cutoff-frequency enum 0..17 named by table 0x10fe6d08: 45,50,55,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200 Hz (f_10d5ec08 -> f_10d60c08). This corrects the earlier 'DRC cutoffs 100HZ-200HZ in 10Hz steps' claim: it is the bass-extraction cutoff vocabulary and the set is nonuniform (5 Hz steps through 60, then 10 Hz steps from 70). 'speakers' is a channel-name list compiled to a 64-bit layout mask by f_10d608e4: channel ids 0..19 {lr,c,lfe,lrs,lrrs,lrw,lrtm,lrtf,lrtr,lre,lrrh,lrfh,lrse,lrrse,lrs1,lrrs1,lrs2,lrrs2,lrcs,cs} each OR a per-channel mask constant from table 0x10fe6c48; the compiled default 63 at config+0x24 selects {lr,c,lfe,lrs}. directdec, virt_mode, dap, lm, upmix, hfilt, post and vlamp are enable/disable enums via f_10d5eaf0 -> f_10d60d34 ({disable:0, enable:1} vocabulary plus literal name checks).",
+    "DRC record binding decoded: /drc carries {mode,cut,boost}. 'mode' maps through f_10d60e08 on table 0x10fe6da8 {enable:0, disable:1, auto:2} with disable as the written default. f_10d60f0c then validates: mode disable(1) requires cut and boost to equal 0.0; enable/auto require each double inside the inclusive interval [0.0,1.0]; failure logs 'drc config is invalid' and returns zero. So cut and boost are normalized gain fractions, not Hz or dB, and the disable mode is the no-gain control.",
+    "Numeric-key boundary established: frontangle/heightangle/surrangle/rearsurrangle and dapCutOff are read by the generic integer reader f_109d024c and vmcal by the double reader f_109d01ec; neither helper takes bound arguments, so the JSON layer accepts unclamped numerics. Parsed fields land in the named-config registry that decoderset seeds with the compiled 'default' entry (f_10d5d990 at 0x107cfb40, stored via f_10d5e08c) before decoder instances consume them; the member-to-licensed-decoder parameter binding is DSP-side and not statically recoverable from this ELF. That bounds the residual: all string vocabularies, the DRC record rule and the unclamped-numeric passthrough are established, while per-parameter clamping inside the licensed decoder is the remaining runtime boundary."
    ]
   },
   "dts_decoder": {
