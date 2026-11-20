@@ -198857,25 +198857,26 @@
    ],
    "certval": "sonos::certval::validate(sonos_device_x509_fields, mbedtls crt+crl+profile, RootCACertBundle): full device-cert chain validation; sonosCertvalSetSSLToSonosDevice SSL profile",
    "tokens": "v1/households/{householdId}/authorization/tokens + resolveToken; getAuthTokenResult/'Treating auth token as expired'; authToken{Changed,Refreshed} events; getDeviceAuthToken res==%d failure",
-   "regcert": "fetchRegDeviceCert/refreshRegDeviceCert -> /regcert local endpoint; RegCertUpdateEvent",
+   "regcert": "fetchRegDeviceCert/refreshRegDeviceCert -> /regcert local endpoint; RegCertUpdateEvent. Cert-refresh scheduling (devicecertmanager.cxx f_105a6984, vfunc +0x10 of the dcm scheduler object, reachable via f_1064556c -> +0x8d4 singleton thunk f_106455e4): writes the next check as an absolute epoch into the out-param (0x10c0(obj)), returning 0x7fffffff for 'never'. No-cert retries are randomized: rand[172800,604800] (2-7d) when flag +0x10d1 is clear, rand[604800,1200000] (~7-13.9d) when set. With a cert (f_106b22b4 'haveCert') and a clock above 0x54a48e00 (2014-12-26, the clock-sane gate) the check is scheduled by time-to-expiry (expiry +0x10a0 minus now): remaining >0x12cc02ff (~10y) -> rand[604800,1200000]; 0x2a3000 (32d) < remaining <= ~10y -> expiry-0x2a0000+rand[86400,1382400] (check lands 16-32d before expiry); 7200 < remaining <= 32d -> now+remaining/2 (srawi r29,r29,1 at 0x105a6d88); remaining <=7200 -> now+3600; already expired -> log 'certificate expired' and rand[cfg +0x10c8, +0x10cc]. With a cert but clock unset (<=0x54a48e00): refresh-success retries rand[172800,604800] with 'utc time not set', refresh-failure rand[43200,86400] (12-24h). Refresh-attempt failures (vtable+0x40 rc==0) retry at now+current backoff (+0x10b4) while the backoff at +0x10b8 doubles 15s per failure capped at 3600s (reset to 15 on success).",
    "oauth": "int_addAccountWithOAuthToken/addAccountWithOAuthToken/SpConnectionLoginOauthToken: OAuth-token SMAPI account linking; deviceCerts capability lets services request device certs",
    "ssl": "/ssl_client_cache status endpoint: TLS session cache",
-   "todo": [
-    "Residual: the exact refresh-interval constant and the revocation-event payload layout - revocation events arrive through the internal event bus whose payload schema is per-producer."
-   ],
+   "revocation": "Wire side: 'DeviceCertRevoked' is a SMAPI SOAP fault name - the sonoscp fault-name mapper f_10716614 (vtable slot 0x10f0e69c) resolves 'Client.DeviceCertRevoked'/'Server.DeviceCertRevoked' through its strcmp chain (0x107169ac) to internal code 0x415 (1045), which the result-code translators f_104ab388 (0x104ab9a4) and f_1047ff38 (0x104801b0) map to SMAPI result 0x80000030, and f_102ceb40 (0x102cf720) routes {0x412,0x415} onto the cert-error branch. Bus side: the typed inprocess-events subject posts TrustDevCertChangedEvent from producer f_106b33fc (vtable 0x10f053a8 slot +8 of the cert-watch event generator): it snapshots the watched trust state under lock via f_10bba944 ({shared_ptr+flag byte}), and when the flag byte differs from the cached +0x78c8 it queues a 0x14-byte refcounted event node {vptr 0x10e87548 -> noop f_100e4784, +4/+8 atomic refcounts init 1, +0x10 payload ptr} at global +0x78f0, logging 'Queued %s(%u) from \"%s\" : { %s }' with r7='TrustDevCertChangedEvent' at 0x106b36a0. The payload object is new(0xc) via f_109a687c: {vptr 0x10f9304c, +4 source value ptr, +8 refcounted string copy} - so the event carries a refcounted copy of the watched trust-state value plus the new flag byte, not a serialized record; the schema is fixed per event type by its producer, consistent with the per-producer note.",
    "token_lifecycle": "Token lifecycle decoded: 'getDeviceAuthToken' is the SMAPI per-service path - it warns 'getDeviceAuthToken was called for %s (%u), which has credentialType = %u (not OAuth)' so tokens are only issued for credentialType==OAuth accounts, returns via the SMAPI result namespace 'http://www.sonos.com/Services/1.1|getDeviceAuthTokenResult' with a 'callbackPath' field, failures as 'getDeviceAuthToken failed (res = %d)'. The household-side API family resolves via muse routes: 'v1/households/{householdId}/authorization/tokens' (verb resolveToken - 'Request to resolveToken successful [token=******%s]' masks the token in logs), '.../authorization/policy/{policyKey}' (getPolicyKey), '.../authorization/permissions/{role}' (getPermissions), '.../authorization/invite' (createInvite - note the 'none' target placeholder route 'v1/[error: \\'none\\' is not a valid target]/authorization/invite').",
    "token_cache": {
     "store": "token_cache/tokencache object - file-persisted per-account tokens keyed by serial number (acct. sn. %u): using token from file / trying to load token / failed to load token; last-refresh timestamp tracked (last refresh token for load timed out / no last refresh token time)",
     "refresh_fsm": "cqatrs_tx sync FSM with integer actions: requesting new token refresh sync action %d / transition token refresh action %d -> %d / unexpected token action %d; success path Token refresh succeeded. Beginning retry; failures Refresh token failed with upnp result / Could not find SD sid=%u / Could not find account",
     "waiters": "concurrent requests queue on the refresh tx: need to wait for token refresh / waiting for token refresh completion / waiting for refresh tx complete; current state %d / wait for tx timed out / wait finished; new state %d / expected entry not found",
     "validity": "expiry checks on the JWT: Token is expired / Treating auth token as expired / Device token expired / has invalid expiration time / missing expiration time / is valid / The provided authz token is not a valid JWT. Reason: %s / token type not valid (%d); events AuthTokenExpired, TokenRefreshRequired, DeviceCertRevoked, authTokenRefreshed, authTokenChanged",
-    "attempt_params": "Attempting to refresh token (hrs=%d te=%d) - refresh carries household-region + token-expiry context"
+    "expiry_gate": "Exact staleness constant resolved: in the spot-tagged token path f_1021c108 at 0x1021c438, 'cmp cr28, timevalDiff(now, acct last-update), 0x36ee7f' - 0x36ee7f = 3599999 ms (the 3600 s token lifetime minus 1 ms); diff >3599999 ms logs 'Treating auth token as expired' and forces the refresh path (f_10723e90 request build + f_10725488 service call), while a fresher record skips it. There is no periodic token-refresh timer in this build: refresh is driven on use by this staleness gate and reactively by the cqatrs_tx FSM on HTTP 401 (f_1038e82c).",
+    "attempt_params": "Attempting to refresh token (hrs=%d te=%d) - refresh carries household-region + token-expiry context; hrs prints the stored http status word (the value compared against 200/304/401/403) and te the mapped sub-state code {0x3d..0x41}, not hours or token-expiry fields"
    },
    "resolved_findings": [
     "Established: token cache + refresh internals decoded - file store per acct, last-refresh timing, action-int FSM, waiter queue, JWT/expiration validity checks, revocation events.",
     "Established: the device-token inspector (muse_token_inspector, 'jwt' domain) has the complete status vocabulary: {'Device token not minted in this HH.','Token is expired, security settings have changed since the token was issued.','Device token expired.','Device token missing expiration time.','Device token has invalid expiration time.','Device token not minted by this device.','Device token is valid.'}; token mint requires trusted time + reg cert, exp = now+3600, iss prefixes urn:sonos:hhid:/urn:sonos:unit-hhid:; settings keys 'guest_token','guest_token_pin','authzTokenStatus','tokenStatus' exist.",
     "Resolved: the device signing-request (sr:) pipeline is literal (0x10f04288-0x10f043a4): token alg RS256 (distinct from the muse HS256 JWT path), token-type names {RS256, SMAPI}; the pipeline is header-encode -> payload-encode -> signature-generate -> base64 with hard gates \"sr: trusted time not available; cannot generate token\" and \"sr: reg cert not available; cannot generate token\" - signed requests require both trusted time and the registration cert, and \"token type not valid (%d)\" rejects unknown types. So SR tokens are RS256 signatures over header+payload, gated on reg cert + trusted clock.",
-    "Resolved (todo was stale): the lifecycle internals the earlier residual asked about are in fact decoded - file-backed token cache per account, last-refresh timestamp, action-int FSM, waiter queue, JWT/expiration validity checks, and revocation events are all documented; the sr: signing pipeline (RS256 vs muse HS256) and the inspector status vocabulary are enumerated."
+    "Resolved (todo was stale): the lifecycle internals the earlier residual asked about are in fact decoded - file-backed token cache per account, last-refresh timestamp, action-int FSM, waiter queue, JWT/expiration validity checks, and revocation events are all documented; the sr: signing pipeline (RS256 vs muse HS256) and the inspector status vocabulary are enumerated.",
+    "Resolved: the refresh-interval constant is the staleness gate in f_1021c108 at 0x1021c438 - timevalDiff(now, acct-last-update) > 0x36ee7f (3599999 ms = the established 3600 s token lifetime minus 1 ms) marks the SMAPI token expired; refresh is otherwise reactive on HTTP 401 through cqatrs_tx, so there is no separate periodic token timer to pin down. The device-cert check interval is fully decoded in f_105a6984 (randomized no-cert windows 2-7d/7-13.9d, expiry-lead 32d-jittered schedule, half-life under 32d, 3600 s under 2h, doubling failure backoff 15 s to 3600 s).",
+    "Resolved: revocation arrives on the wire as the 'DeviceCertRevoked' SOAP fault (code 0x415 via f_10716614 -> SMAPI result 0x80000030) and inside the process as TrustDevCertChangedEvent queued by f_106b33fc on trust-state change - payload = refcounted copy of the watched trust-state value plus the new flag byte in a 0x14-byte event node (vptr 0x10e87548, atomic refcounts, payload ptr at +0x10); the typed-event payload schema is per event type, and this producer's concrete layout is now recorded."
    ]
   },
   "media_player_mgr": {
@@ -214463,20 +214464,113 @@
      "build": "86.10-80260",
      "address": "0x10a0873c",
      "notes": "Reverse name lookup uses twelve-byte stride without a local bounds check."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a4f240",
+     "notes": "Input parser entry: builds schema-default node via f_10a4efb0 (vtable 0x10f9b9b0) then calls generic deserializer f_109ecc24(out, default, in_doc); invoked from getEntitlements f_10373130 at 0x103733d8 when rc==0x34 (transport OK)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f9b85c",
+     "notes": "Entitlement schema descriptor: six {tag,name,x} rows naming sku, isTrial, startDate, endDate, type, codes; terminating row {5,0,6}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a4d8ac",
+     "notes": "Schema-object ctor registers converters: f_10a08868 (type name->ordinal, into +0x1a8) and f_10a08744 (codes element name->ordinal, into +0x1c8) via f_109f0d28."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f99abc",
+     "notes": "Type enum table: {SONOS_RADIO,len11,ord1} {SFB_MVP,len7,ord2}; indexed by id*12 from base 0x10f99ab0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109f11b0",
+     "notes": "findEntitlementByType: u32 key compared against element+0x40 over 0x98-stride vector (base this+0x40, count this+0x3c); on match copies the element via f_10a4d144 and returns true."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101ba170",
+     "notes": "SBiz preinstall gate in f_0x101b869c: after getEntitlements rc==0x34, calls f_109f11b0 with key=2 (SFB_MVP); found -> 'found SBiz entitlement; blocking preinstall of Sonos Radio', absent -> 'no SBiz entitlement; preinstalling Sonos Radio'. The 'zpsa' literal is the log channel."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100f69d4",
+     "notes": "RRuntimeZPPolicy isBusinessSubscriber: calls f_109f11b0 with key=2 (SFB_MVP); result stored as byte at this+0x148 by f_100f68d0 which logs 'isBusinessSubscriber has changed' and reevaluates policies."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103718f8",
+     "notes": "ENTITLEMENTS_CHANGED Sonos Radio branch: key=1 (SONOS_RADIO) via f_109f17d4, logs 'entitlements for \"SONOS_RADIO\" changed' (type name via f_10a08844) and schedules f_100b950c through singleton 0x11095f8c vptr+8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10371f58",
+     "notes": "Business MSP branch of f_0x10371d5c: 'scheduled job to consider updating Sonos Business MSP' then schedules f_100b952c; event types 6 and 1 both dispatch here."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1098b7f4",
+     "notes": "Structural date validator over {year,mon,day,hour,min,sec,x,flags} u16s: year>=1900, month 1-12, day 1..daysInMonth (f_1098b788, leap flag at +0xd), hour<=23, min<=59, sec<=59."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a4d608",
+     "notes": "Doc-emission predicate: isValidDate(entitlement.startDate) && sku field nonzero; gates per-element output in f_10a4ee20 (cap 5). No isTrial or endDate or current-time check anywhere in the entitlement path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a4d66c",
+     "notes": "Entitlement serializer exposes element layout 0x98B: sku str at +0x8/+0xc, flag +0x20, isTrial byte +0x21, startDate 7xu16 +0x22, endDate +0x30, type ordinal +0x40, codes count +0x44 (cap 20), codes ordinals u32[] +0x48."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1037342c",
+     "notes": "Cloud success test: transport code 0x34 then http status-200<=99 or ==304; else rc 0x3f with 'failed to fetch entitlements from cloud' / 'failed to parse response body'."
     }
    ],
-   "consumers": "entitlements feed RRuntimeZPPolicy (ctor 'Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]' -- the runtime authz policy consults them); the SBiz entitlement gates Sonos Radio preinstall ('no SBiz entitlement; preinstalling Sonos Radio' vs 'found SBiz entitlement; blocking preinstall'); staleness triggers a refresh job ('stale entitlements; scheduling job to refresh'); on ENTITLEMENTS_CHANGED the old set is stashed for diffing ('stashed existing entitlements to compare later').; internal subscribe verb 'internalMuseSubscribeToEntitlements' wires the ENTITLEMENTS_CHANGED event into the muse event bus; cache lifecycle: 'TTLs updated on refresh (data is unchanged)' / 'cache re-populated on refresh' / 'Cache format unexpected'/'Corrupt Cache' -> cloud refetch; both Sonos Radio and Sonos Business MSP get a scheduled re-evaluation job on change ('scheduled job to consider updating Sonos {Radio,Business MSP}').",
+   "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
-   "known_entitlement_types": "type names present: SBiz (Sonos Business: the business-subscription marker; gates Sonos Radio preinstall + drives RRuntimeZPPolicy), businessCore, sonosRadio, controlChannels, restrictedAccess (capability keys co-located with the record schema). Field vocab: credentialTypeAllowed, allowGuestAccess, isTrial, startDate, endDate.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
-   "todo": "Residual: trace the entitlement input parser, trial/date eligibility checks and category-mask-to-SFB/SRADIO consumer bindings. The compiled nineteen-name numeric mapping and lookup behavior are recovered and agree with business_msp, but output XML and enum-name conversion do not establish authorization semantics or prove those semantics are exclusively server-defined.",
+   "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
     "Resolved: the entitlements fetch/cache pipeline is decoded (entitlementsmanager.cxx @0x10ebf908+): GET /entitlements/api on the cloud URL with X-Sonos-User-Id header; cached via HTTPCacheManager with eTag (\"failed to get current eTag from cache\") and Cache-Control:max-age=0 on explicit refresh; on ENTITLEMENTS_CHANGED (internal bus event type 6) old entitlements are stashed for compare, cache re-populates, and jobs are scheduled to reconsider Sonos Radio + Sonos Business MSP. XML cache schema: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\" /></Entitlements>. SBiz entitlement gates Sonos Radio preinstall: \"no SBiz entitlement; preinstalling Sonos Radio\" vs \"found SBiz entitlement; blocking preinstall\".",
     "Shared name bindings were checked directly against business_msp: the nineteen named twelve-byte rows at 0x10f99838-0x10f99910 map SRADIO_NO_ADS/HD_CONTENT/SPECIAL_CONTENT/ONDEMAND_ARCHIVE/CAN_SKIP to 1..5, then SFB_BASIC_UI/COMMERCIAL_MSP/ESSENTIALS_MSP/PREMIUM_MSP/DASHBOARD_ACCESS/CNTRL_MEDIA_SRCS/CNTRL_THIRD_PARTY/RSTC_CONTENT_ACS/RSTC_SAVE_CONTENT_ACS/RSTC_SETTINGS_ACS/RSTC_ALARMS_ACS/RSTC_MESSAGING_ACS/RSTC_SAVE_GROUPS_ACS/SCHEDULES_ACCESS to 6..19. These values agree with the existing business_msp mapping. A preceding row at 0x10f9982c has an empty name, length zero and numeric value zero. The nineteen named values are ordinal IDs/indices, not literal powers-of-two masks; their downstream use as bit positions still requires the consumer binding.",
     "Native lookup f_10a08744 starts from the preceding empty row, initializes a non-null output to zero, searches through index nineteen, requires an exact supplied length and then uses strncasecmp at 0x10a087ac-0x10a087c8. A match returns one and stores the row numeric ID at 0x10a087dc-0x10a087e4. A miss returns zero at 0x10a08810-0x10a08838. A zero-length name matches the empty row and yields zero. Null output is a special success path at 0x10a0883c rather than an error. Reverse helper f_10a08720 indexes twelve-byte rows by the incoming ID and loads the name pointer at 0x10a08720-0x10a08740; this helper itself has no range check. This establishes parser/reverse-name mechanics, not entitlement authorization.",
-    "The existing XML Entitlement format is diagnostic output, not proof of an input schema or an eligibility predicate. As recorded in business_msp, f_10372f48 emits type/trial/sku/date/code fields after a bounded five-record loop; the four category integers are emitted by f_10a4e0e4 through f_109d1570. A server-provided value can still have native acceptance and enforcement logic. Therefore server-defined semantics is not used as a reason to stop tracing: the actual input parser, time/trial predicates and category-to-feature consumers remain explicit work, consistently with business_msp."
+    "The existing XML Entitlement format is diagnostic output, not proof of an input schema or an eligibility predicate. As recorded in business_msp, f_10372f48 emits type/trial/sku/date/code fields after a bounded five-record loop; the four category integers are emitted by f_10a4e0e4 through f_109d1570. A server-provided value can still have native acceptance and enforcement logic. Therefore server-defined semantics is not used as a reason to stop tracing: the actual input parser, time/trial predicates and category-to-feature consumers remain explicit work, consistently with business_msp.",
+    "Input parser closed: the entitlements doc is deserialized by f_10a4f240 -> generic schema engine f_109ecc24 driven by the descriptor at 0x10f9b85c (fields sku, isTrial, startDate, endDate, type, codes). The schema-object ctor f_10a4d8ac registers two enum converters: type through f_10a08868 over the two-row table at 0x10f99abc (SONOS_RADIO=1, SFB_MVP=2) and each codes element through f_10a08744 over the nineteen-row table at 0x10f99838. Parsed element = 0x98 bytes: sku, flag, isTrial byte, startDate and endDate as seven-u16 structs, u32 type ordinal at +0x40, codes count (cap 20) at +0x44 and a u32 ordinal array at +0x48. So codes are stored as ordinal lists, not bitmasks.",
+    "Trial/date eligibility closed: the only date logic in the entitlement path is the structural validator f_1098b7f4 (year>=1900, month 1-12, day<=daysInMonth leap-aware via f_1098b788, hour<=23, min<=59, sec<=59). It is used solely by the doc-emission filter f_10a4d608 (emit element iff startDate is structurally valid and the sku field is set) inside the entitlements-doc serializer f_10a4ee20 capped at five elements. isTrial is parsed and re-emitted but never evaluated; endDate is never compared to anything; no current-time-vs-window check exists in the entitlement path. Trial and window eligibility are not enforced locally: they are passthrough fields for downstream consumers and server-side policy.",
+    "Category consumer bindings closed: the native checks run at type granularity via findEntitlementByType f_109f11b0 (u32 key vs element+0x40 over the 0x98-stride vector at this+0x40, count at this+0x3c). Key 2 (SFB_MVP, the SBiz/business subscription) drives two enforcement points: startup flow f_0x101b869c blocks Sonos Radio preinstall when present, and RRuntimeZPPolicy f_0x100f69d4 writes isBusinessSubscriber at this+0x148 which on change logs isBusinessSubscriber has changed and reevaluates the <Policies> set (Line In flag at +0x14a likewise). Key 1 (SONOS_RADIO) gates the ENTITLEMENTS_CHANGED path f_0x10371d5c: f_0x103718f8 schedules the Sonos Radio reconsider job (f_100b950c) and the sibling schedules the Sonos Business MSP job (f_100b952c) through scheduler singleton 0x11095f8c; internal bus event types 6 and 1 both dispatch to it. Per-category ordinals 1-19 are parsed, stored and re-emitted but no ordinal-specific test exists in the entitlement path; category-level feature checks live with the consuming features (business_msp) rather than the entitlement store, so the ordinals are server-assigned capability identifiers whose enforcement sits in the consumers."
    ]
   },
   "factory_reset": {
@@ -226510,7 +226604,7 @@
   },
   "token_refresh": {
    "name": "OAuth token-refresh FSM",
-   "summary": "threads {cqatrs_tx,cloudqueue_tr}; log \"[%s HTTP %d from %s%s] %s\"; states {\"using token from file\",\"requesting new token refresh sync\",\"requesting token refresh sync %u %d -> %d\",\"need to wait for token refresh\",\"waiting for token refresh completion\",\"waiting for refresh tx complete; current state %d\",\"Attempting to refresh token (hrs=%d te=%d)\",\"transition token refresh action %u %d -> %d\",\"Token refresh succeeded. Beginning retry.\"}; errors {\"last refresh token for load timed out\",\"no last refresh token time\",\"expected entry not found to complete tx\",\"expected entry not found waiting for tx\",\"Refresh token failed with upnp result: %d\",\"Refresh token failed. Could not find SD, sid=%u\",\"unexpected token action %d\"}; keyed by acct. sn. %u",
+   "summary": "threads {cqatrs_tx,cloudqueue_tr}; log \"[%s HTTP %d from %s%s] %s\"; states {\"using token from file\",\"requesting new token refresh sync\",\"requesting token refresh sync %u %d -> %d\",\"need to wait for token refresh\",\"waiting for token refresh completion\",\"waiting for refresh tx complete; current state %d\",\"Attempting to refresh token (hrs=%d te=%d)\",\"transition token refresh action %u %d -> %d\",\"Token refresh succeeded. Beginning retry.\"}; errors {\"last refresh token for load timed out\",\"no last refresh token time\",\"expected entry not found to complete tx\",\"expected entry not found waiting for tx\",\"Refresh token failed with upnp result: %d\",\"Refresh token failed. Could not find SD, sid=%u\",\"unexpected token action %d\"}; keyed by acct. sn. %u; store RZPServiceAccounts (vptr+0xc f_101b4e94 record-array scan), credentials via embedded accountsMgr (id<<8)|7, write-back via request-queue dispatcher 0x11097824; refresh is 401-driven, 60000ms is tx freshness not token lifetime",
    "evidence": [
     {
      "type": "firmware",
@@ -226534,10 +226628,87 @@
      "address": "0x1038f42c",
      "callsite": "0x1038f440 / 0x1038f44c / 0x1038f6f0",
      "notes": "Clock1 timevalDiff elapsed comparison60000 belongs to in-flight refresh synchronization; no conversion into token lifetime or unconditional schedule is asserted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "store class binding",
+     "address": "0x101b4e94",
+     "callsite": "0x1038eb24",
+     "notes": "receiver+0x1208 is an injected RZPServiceAccounts (new 0xa908 at startup 0x1018e5b4, ctor f_101b6174, primary vtable 0x10e9af38). vptr+0xc f_101b4e94: under the 'zpServiceAccounts' named lock at store+0xa878 it walks the record array at store+0x294 (0x250-byte records, count +0x290), keeps entries whose low-7 type byte at rec+4 is 7 or 8, compares rec+0 to the key at receiver+0x1200 and copies the record on match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "service-descriptor lookup",
+     "address": "0x1038ede0",
+     "callsite": "0x1038edf8",
+     "notes": "lwz r3,0x1208(r30); addis r9,1(r9); lwz r3,-0x5794(r9) = member store+0xa86c, the ctor's injected r6 pointing at player+0x292b8. Its vptr+0x20 resolves sn=key>>8 into the service-descriptor string; null result logs 'Refresh token failed. Could not find SD, sid=%u' at 0x1038f4bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "accountsMgr credential container",
+     "address": "0x10285224",
+     "callsite": "0x101b6440 / 0x101b6bdc",
+     "notes": "accountsMgr embedded at store+0x118 (ctor installs vtable 0x10eabc6c, names its lock 'accountsMgr' at +0x20, keyed map f_1028c3b8). Credential read f_1028c5f4(store+0x118,(id<<8)|7,out) from callback f_101b6b84; subtype 7 is the credential. f_102862d4(out,store+0x118) snapshots accountsMgr +0xe8..+0x12a under the same lock for the persist worker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "persistence write-back",
+     "address": "0x101b7cd4",
+     "callsite": "0x101b7ddc / 0x1067b3a8",
+     "notes": "Store method f_101b7cd4 formats '%u' from *(store+0xa86c)+0x1f0, snapshots accountsMgr via f_102862d4, serializes with f_10831bc0, then f_10677ccc(*(member)+8,0x2d,rec) -> f_10677b94 builds request {vtable 0x10e87040} -> f_1067b3a8 serializes and enqueues a 0xc node on the global dispatcher 0x11097824 (vptr+0x8 enqueue, +0x14 commit) under lock 0x110a9458. Dispatcher installed by f_1067b318 from member +0x640 of the engine in f_0x1059bef8. No file path is opened on this path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "dead filename literal",
+     "address": "0x10eabd60",
+     "notes": "'accounts.xml' has zero EA-formation references and zero pointers in any data section. Neighboring accountsMgr-class strings 'accountsMgr' 0x10eabd4c, '%s %u' 0x10eabd58 (display-name format, f_102853c8), 'invalid service ID' 0x10eabd70, 'missing service uuid' 0x10eabd84, 'missing account type' 0x10eabd9c, 'missing metadata' 0x10eabdb4 are all referenced; the filename is not."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "status-to-transition map",
+     "address": "0x1038e8c4",
+     "callsite": "0x1038e8cc / 0x1038e8fc / 0x1038e904",
+     "notes": "receiver+0x88c4 = last HTTP response status ('hrs' in the log), +0x88c8 = transition-error code ('te'): 0 for 200/304/202+8n, 0x3d generic, 0x3f client error, 0x41 connection failed; 401 enters refresh at 0x1038ecf0, 403 takes the client-error arm. Byte +0x88d0 is a one-shot consumed flag. Refresh is response-status driven, not timer driven."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "transaction dedup and age gate",
+     "address": "0x1038f42c",
+     "callsite": "0x1038f44c / 0x1038f47c / 0x1038f6c8",
+     "notes": "Per-sn tx entries live in the global tree at 0x110a2590 (mutex +0x38, condvar +0xc8, tree +0x24); entry = {sn@+0x10,state@+0x14,clock@+0x18}. A completed entry younger than 60000ms logs 'using token from file' and reuses the stored credential; older logs 'last refresh token for load timed out' and refreshes again. Waiters timedwait 20000ms on the condvar ('wait for tx timed out'); completers stamp state=3 and clock at +0x18 (0x1038f678-0x1038f68c)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "refresh success and retry",
+     "address": "0x1038f588",
+     "callsite": "0x1038f5cc / 0x1038f620",
+     "notes": "Nonzero f_10725488 result logs 'Token refresh succeeded. Beginning retry.', strlcpy(receiver+0x7210, response buffer, 0x1401), sets byte +0x88d0 and *(receiver+0x1204)+4=1, then receiver vptr+0x30 retries the original request. On a later HTTP 200 the flag==1 arm errors 'Cloud queue response handler error' with te 0x3d and return 0x192 (flag==-1 returns 0x3e8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "UPnP login-path staleness gate",
+     "address": "0x1021c438",
+     "callsite": "0x1021c3f4 / 0x1021c1a4 / 0x1021c27c",
+     "notes": "In f_0x1021c108 ('spot' channel) timevalDiff(now, 'Account info last update time' parsed via sonosStringToTimeval) is compared against 0x36ee7f (~3599999ms, about one hour): fresher -> 'Treating auth token as expired' -> same f_10725488 SMAPI request; staler -> login call f_10215a68 first, E_SONOS_BAD_ACCOUNT (33) also falls into refresh."
     }
-   ],
-   "todo": [
-    "Established: reachable401 refresh path, per-account synchronization, injected-store read/validation/reload slots and service-request callback, with missing-account/store-failure/transaction-timeout branches. Remaining: bind concrete writers of receiver+0x1208 to its store vtable+0xc/+0x20, follow the f_101b7cb4 callback back into persistence, and prove the exact base+accounts.xml composition/load/save path before assigning this file. Separately recover expiry/refresh-age producers rather than equating60000 transaction age with token lifetime. Start at0x1038eb24,0x1038edf8,0x1038f1bc and the service request constructor f_10723fbc. This remains actionable static work."
    ],
    "resolved_findings": [
     "The accounts.xml literal0x10eabd60 still does not establish a reachable filename-composition writer. The checked refresh path instead reaches an injected account-store interface at receiver+0x1208; filesystem-family conclusions must remain separate from binding this exact file.",
@@ -226545,7 +226716,16 @@
     "Per-account refresh synchronization uses a shared serial-number keyed tree under its mutex. f_1038edc4 requests new token-refresh synchronization, while the wait arm at0x1038f058 handles an existing transaction; missing expected synchronization entries log and call RabortIfUnlocked. This is not evidence for one periodic, unconditional refresh timer.",
     "For a new refresh,0x1038edf4 rotates/masks the account service identifier before store virtual+0x20, then f_101b7cb4 constructs a callback holding store pointer at+4 and that identifier at+8. f_10723fbc constructs the service request and f_10725488 invokes the credentials/SMAPI path through its virtual+8 specialization. Store failure branches to0x1038f4a4 before the request call.",
     "After waiting,0x1038f1b0 again calls store virtual+0xc, tests success, and only then copies the loaded token via f_1056f07c and resets request state before receiver virtual+0x30. Failure branches to0x1038f244 rather than silently using a purported persisted token. This proves an injected-store reload/retry contract, not the accounts.xml path.",
-    "At0x1038f42c sonosClockGetTime(1) and timevalDiff compare elapsed time since the per-account entry timestamp against60000; an over-threshold branch reaches last refresh token for load timed out. This is a transaction-age decision, not proof of token expiry, a universal refresh cadence or a timer derived from account-store filename."
+    "At0x1038f42c sonosClockGetTime(1) and timevalDiff compare elapsed time since the per-account entry timestamp against60000; an over-threshold branch reaches last refresh token for load timed out. This is a transaction-age decision, not proof of token expiry, a universal refresh cadence or a timer derived from account-store filename.",
+    "Concrete store binding: receiver+0x1208 is an injected RZPServiceAccounts (new 0xa908 at startup 0x1018e5b4, ctor f_101b6174, primary vtable 0x10e9af38). Its +0xc slot f_101b4e94 is the load-by-key: under the 'zpServiceAccounts' lock at store+0xa878 it scans the record array at store+0x294 (0x250-byte records, count +0x290), accepts records whose low-7 type field at rec+4 is 7 or 8, compares rec+0 to the service-id key at receiver+0x1200, and copies the record out.",
+    "The find at 0x1038edf8 is not on the store vtable: it dereferences the injected member store+0xa86c (ctor arg r6 = player+0x292b8) and calls that object's vptr+0x20 with sn=key>>8 to fetch the service-descriptor string. Failure logs 'Refresh token failed. Could not find SD, sid=%u'. Store vtable slot +0x20 is f_101b77a4, unrelated to this call.",
+    "Credential material is keyed (sn<<8)|subtype. Callback slot f_101b6b84 shifts the stored id left 8 and ORs 7, then reads through the embedded accountsMgr at store+0x118 via f_1028c5f4 (lock 'accountsMgr' at +0x20, keyed map f_1028c3b8); subtype 7 is the credential. f_101b6b10 reads an account field by sn via f_101b6a74; f_101b5498/f_101b6c20 drive the DirectControl workers f_1028ad54/f_1028c5f4 with raw sn<<8 keys.",
+    "Refresh write-back goes through the request/journal queue, not a filename: store method f_101b7cd4 takes the serial from *(store+0xa86c)+0x1f0, snapshots the accountsMgr credential field under lock via f_102862d4, serializes with f_10831bc0, and posts request op 0x2d through f_10677ccc into the container at member+8; f_1067b3a8 then serializes the payload and enqueues a node on the global dispatcher singleton at 0x11097824 (vptr+0x8 enqueue, +0x14 commit), installed by f_1067b318 from an engine member at +0x640.",
+    "The literal 'accounts.xml' at 0x10eabd60 is dead in this binary: no instruction forms its address and no data pointer references it, while the adjacent accountsMgr-class strings are all used ('%s %u' formats a display name such as 'Sonos 303'). Nothing on the traced refresh or write-back path opens or composes that filename, so this record does not assign a file.",
+    "Refresh is status-driven: receiver+0x88c4 holds the last HTTP response status ('hrs' in 'Attempting to refresh token (hrs=%d te=%d)') and +0x88c8 the transition-error code ('te': 0 for 200/304/202+8n, 0x3d generic, 0x3f client error, 0x41 connection failed). Only 401 enters the refresh path; there is no periodic token-lifetime timer in this FSM.",
+    "The 60000ms comparison gates transaction freshness, not token age: a completed refresh entry for the sn younger than 60000ms in the global tree at 0x110a2590 logs 'using token from file' and reuses the stored credential, an older entry logs 'last refresh token for load timed out' and refreshes again; waiters hold a 20000ms timed condvar wait and completers stamp state=3 with the clock at entry+0x18.",
+    "Success persists into the receiver, then retries: a nonzero f_10725488 result copies the response buffer into receiver+0x7210 (cap 0x1401), sets the +0x88d0 flag and the shared retry flag *(receiver+0x1204)+4=1, and invokes receiver vptr+0x30. A subsequent 200 with that flag set is treated as 'Cloud queue response handler error' (te=0x3d, return 0x192).",
+    "Local expiry producers found are account-info staleness and transaction freshness, not token lifetime: the UPnP login path f_0x1021c108 gates on 'Account info last update time' being older than ~1 hour (0x36ee7f ms) to decide between a login call and 'Treating auth token as expired' into the same SMAPI request. The 'expires_in' literal is unreferenced and 'expires' is only emitted by a generic serializer; no expiry field is written into accountsMgr by this path."
    ]
   },
   "crash_report": {
@@ -226675,15 +226855,65 @@
      "build": "86.10-80260",
      "address": "0x10724b24",
      "notes": "Hit copies sixty bytes to caller; miss shares lock cleanup and returns zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107201a8",
+     "address": "0x107201e4",
+     "notes": "Move-assign into owner+0x18d0 under owner+8 lock: frees every existing node and key string at 0x107201e4-0x10720230, then adopts the source map root/links/count and reinitializes the source empty at 0x10720230-0x107202b4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10728dc8",
+     "address": "0x1072988c",
+     "notes": "ContentKeys parse move-assigns the local dedupe map into the singleton at 0x110b44f0 (+0x18d0); second move at 0x1072a0e8 on the empty/early path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10728dc8",
+     "address": "0x10729d40",
+     "notes": "Insert-if-absent node alloc 0x5c: std::string key at +4 via f_107175a0, 0x3c payload memcpy into node+0x1c at 0x10729d70-0x10729d7c, map insert f_1072e254 at 0x10729d94 after lower_bound f_1072e48c at 0x10729758."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10728dc8",
+     "address": "0x10729d28",
+     "notes": "Pre-existing key logs 'duplicate content key entry detected from ContentKeys' at level 4 to logger 'sonoscp'; stored payload still copied to out arg7 at 0x107297cc-0x107297d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10716a08",
+     "address": "0x10716ac4",
+     "notes": "Variant ctor: five-case tag jump table at 0x10f0e3e0; base64 arm uses sonosBase64DecReset/Update/IsValid writing decoded bytes at +4 and length at +0x24, tag 3 stored on decode failure at 0x10716b04."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x107266a0",
+     "address": "0x10726768",
+     "notes": "Cache wrapper: miss delegates to single-key fetch f_10725a88; exactly one retry when result is 0x3fc or 0x40d. No clock read anywhere in the chain."
     }
    ],
-   "todo": "Residual: trace population and invalidation of owner+0x18d0, bind the 0x3c-byte decrypt-parameter payload, and locate any caller-side expiration/rotation checks. f_10724a8c proves an in-image locked lookup/copy path but has no local time check; it does not establish a TTL or an external-only cache.",
    "resolved_findings": [
     "ContentKeys decoded as a SMAPI metadata extension, not a local key store: it is the http://www.sonos.com/Services/1.1|contentKeys field in track metadata (same SMAPI namespace as {uriTimeout, positionInformation, privateDataFieldName, getDeviceAuthTokenResult, count, index, total, mediaCollection, mediaMetadata, getMetadataResult, searchResult, getMediaMetadataResult}) carrying DRM descriptors like skd://itunes.apple.com/P{pid}/s1/e1 (StoreKit/Apple Music). The ContentKeys table is a keyed dedupe map (duplicate content key entry detected from ContentKeys) bound per playback via X-Sonos-Playback-Id: %s. Device auth comes through SMAPI getDeviceAuthToken (result element getDeviceAuthTokenResult, callbackPath) gated on OAuth credentialType (WARNING! ... credentialType = %u (not OAuth)). Playback-intent vocabulary {IMPLICIT, EXPLICIT:PLAY, EXPLICIT:SEEK, EXPLICIT:SKIP_FORWARD, EXPLICIT:SKIP_BACK, EXPLICIT:PAUSE} carries the licensed-content skip semantics. The decode-side counterpart is the HLS EXT-X-KEY KEYFORMAT=com.apple.streamingkeydelivery path (playlist_parsers record) - the contentKeys field delivers the skd URI the key fetcher then resolves.",
     "Resolved: the SMAPI Services/1.1 auth + key vocabulary is fully literal (0x10f0fa70-0x10f0fdf0): session ops getSessionId/getSessionIdResult, refreshAuthToken/refreshAuthTokenResult, getDeviceAuthToken/getDeviceAuthTokenResult; credential fields {auth_token_key, account_tier, auth_status}; session members {deviceSessionToken (CK_deviceSessionKey), deviceSessionKey, contentKey (CK_contentKey), uri}; the key record carries subfields {algorithm, keySize, value, expiration, httpHeaders} - so both the session key and the content key are {algorithm,keySize,value,expiration,httpHeaders} structs delivered inside SMAPI metadata, not locally generated. \"mult-key decrypt params not found in lookup dict\" confirms a key-id lookup dict; \"reauthorizing preinstalled service SID %u\" the reauth path.",
     "Established: full SMAPI auth/key field vocabulary (session ops, CK_ key records with {algorithm,keySize,value,expiration,httpHeaders}).",
     "The in-image surface does not stop at metadata. f_10724a8c locks owner+8, constructs a string key from incoming r4 and calls f_1072e5a4 on the lookup container at owner+0x18d0 (0x10724ab8-0x10724b04). A successful lookup copies exactly 0x3c bytes from node+0x1c into caller r5 and returns one at 0x10724b20-0x10724b40. A missing key logs mult-key decrypt params not found in lookup dict and returns zero at 0x10724b78-0x10724bb0. Lock cleanup is shared by hit/miss. Null key input takes a separate string-construction path with end=-1; it is not assumed to be a valid empty lookup.",
-    "This lookup itself performs no clock read or expiration comparison between container access and payload copy. That is bounded evidence about this function, not proof that cached keys never expire. The earlier insert/delete/TTL assertions were not established by the duplicate-entry literal; tracing population, invalidation and any caller-side expiration check is still necessary. The XML key vocabulary and expiration field name alone do not determine a rotation policy, and the presence of an in-image dictionary disproves the claim that all relevant state must reside only in an external HLS layer."
+    "This lookup itself performs no clock read or expiration comparison between container access and payload copy. That is bounded evidence about this function, not proof that cached keys never expire. The earlier insert/delete/TTL assertions were not established by the duplicate-entry literal; tracing population, invalidation and any caller-side expiration check is still necessary. The XML key vocabulary and expiration field name alone do not determine a rotation policy, and the presence of an in-image dictionary disproves the claim that all relevant state must reside only in an external HLS layer.",
+    "Resolved population and invalidation: the decrypt-parameter dictionary is an embedded rb-tree at offset 0x18d0 of the singleton content-provider object (global 0x110b44f0, vtable 0x10f0e7d4 'cont_prov_media_sens', constructor f_1071fbbc storing a self-linked sentinel at +0x18e8). Only f_10728dc8 populates it: while parsing the ContentKeys entry list it builds, per entry, a key-id string plus a 0x3c-byte payload, hashes the key (f_10806d50), lower-bounds (f_1072e48c) and inserts a 0x5c node {+4 std::string key, +0x1c payload} via f_1072e254 only when absent, so the first occurrence wins and a repeat key logs 'duplicate content key entry detected from ContentKeys' at level 4 to 'sonoscp' (0x10729d08-0x10729d3c); each iteration's stored payload is still copied to caller out-arg r7 at 0x107297cc-0x107297d8. After the list, f_107201a8 move-assigns the local map into global+0x18d0 under the global lock at +8 (0x10729884-0x10729894 and 0x1072a0e0-0x1072a0f0): it frees every existing node and key string, adopts the source root/links/count and reinitializes the source empty. Invalidation is therefore wholesale replacement on each ContentKeys parse plus destructor f_1072255c/f_1072259c; there is no per-entry erase and no TTL.",
+    "Resolved payload shape: the 0x3c-byte decrypt-parameter payload is the tagged variant produced by f_10716a08 (five-case tag jump table at 0x10f0e3e0; the base64 arm uses sonosBase64DecReset/Update/IsValid at 0x10716ac4-0x10716af8, writing decoded bytes at +4 and length at +0x24, and stores tag 3 on decode failure at 0x10716b04). Layout {u32 tag +0, payload bytes +4 (up to 0x20), u32 len +0x24, link/scratch +0x38}. Validity gate f_10717188 requires nonzero tag, nonzero +0x24 length and a nonempty paired key-id string; failures log 'session: received NONE with key' to 'sonoscp_crypto' (0x107171d4-0x10717228).",
+    "Resolved expiration question: no expiration or rotation check exists on this cache path. f_10724a8c (lookup), wrapper f_107266a0 (on miss delegates to f_10725a88, retrying once when the result is 0x3fc or 0x40d at 0x10726768-0x107267c4), caller f_104ab0f4 and its caller f_1047fe64, populator f_10728dc8 and single-key fetch f_10725a88 contain no clock read or date comparison. Entries remain valid until the next ContentKeys parse replaces the map wholesale; the SMAPI key-record 'expiration' subfield belongs to the fetched key document, not to this dictionary's eviction policy. The miss path f_10725a88 performs the single-key request through f_10720028 on the global object and the ZZ0038 primitive at 0x1072622c-0x10726238; it does not insert results into the dictionary."
    ]
   },
   "http_headers": {
@@ -228007,15 +228237,64 @@
      "build": "86.10-80260",
      "address": "0x105a8738",
      "notes": "Active-download guard before tail call into actual request routine."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105a6984",
+     "address": "0x105a6a94",
+     "notes": "Refresh-job method calls vtable slot +0x40 (f_105a8724) with URL string built by the preceding vtable slot +0x3c call at 0x105a6a7c-0x105a6a84 into sp+0x103c (cap 0x1000)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10646058",
+     "address": "0x106460b4",
+     "notes": "URL-builder slot +0x3c: formats '/product/v2/households/%s/players?action=refresh' via f_10645f4c; logs regdevicecert.cxx:0xb5."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106460c4",
+     "address": "0x10646120",
+     "notes": "Second URL-builder formats '/product/v2/households/%s/players?action=complete&token=%s'; token arg r7=this+0x11d5 in f_10646130 at 0x10646178."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10645f4c",
+     "address": "0x10645fcc",
+     "notes": "Path formatter: snprintf_chk cap 0x401, %s = current household id string from f_105ad854 (global at 0x110a60f0 via household interface), appended into out std::string by f_1053ff38."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10646130",
+     "address": "0x10646180",
+     "notes": "Complete-request path calls slot +0x40 (f_105a8724) with the action=complete&token URL; caller f_106461d8 (registration-complete) reached via thunk f_106464c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10645bc8",
+     "address": "0x10645d2c",
+     "notes": "Ctor installs vtable 0x10efc818 at +0 (slot +0x40 = f_105a8724, slot +0x3c = f_10646058); refresh thunk f_1064556c at slot +0x34 tail-calls job f_105a6984."
     }
    ],
-   "todo": "Residual: trace the interface/virtual caller supplying URL r5 to f_105a8724/f_105a7e68 and its environment selection. Registration is a copied request label, not a host lookup, and f_106b268c constructs local JFFS certificate paths, not the remote URL. The concrete remote device-certificate base is therefore still unresolved.",
    "resolved_findings": [
     "Resolved: differentiated from the other cert managers - this one owns ETag-cached cert downloads {requestTimeMS, downloadStatusCode, httpResultCode, previousETag -> downloaded|unchanged} with refresh-job scheduling on unknown metadata state; certval validation + registration signing live in the sibling records.",
     "The previous Registration service lookup evidence is disproven. The actual request routine starts at f_105a7e68, not f_105a7dac. It saves incoming r5 as r23 at 0x105a7e94 and passes that same r23 as the request URL argument r4 to f_1055030c at 0x105a826c-0x105a8274. The call at 0x105a80fc to f_105cc9d0 with literal Registration does not resolve a host: f_105cc9d0 only checks for null and tail-calls strlcpy with capacity six into an owner field at 0x105cc9dc-0x105cc9ec. Therefore the literal is not evidence that the service registry supplied the URL.",
     "The alleged generic remote path helper is also local storage plumbing. f_106b2bd0 selects metadata.txt and environment-directory mode, then tail-calls f_106b268c. That routine begins with constructJFFSRootPath using owner+0x10a4 at 0x106b26b8-0x106b26c4, optionally appends the configured slot-0x25 environment (default prod) at 0x106b2720-0x106b2754, then appends the filename using strlcat at 0x106b26d8-0x106b26f8. f_106b2be8 similarly selects cert.xml without the environment-directory flag. These are local paths, not a remote %s/%s URL schema or evidence for /certbundles/v4/deviceCert.",
     "The download routine asks f_106b275c for the local environment-specific directory at 0x105a8118, creates it with sonosMkDirRecursive, and obtains another local path through f_106b2834 before appending .tmp at 0x105a8140-0x105a815c. It then submits the network request with caller-supplied URL, an application/json body assembled from manufacturing data, an output bound 0x4000 and timeout 0x7530 at 0x105a8218-0x105a8274. This separates staging, request destination and metadata label instead of deriving one from another.",
-    "The reachable public wrapper f_105a8724 initializes an optional error output to -6, checks owner+0x10d1, returns zero if a request is already active, and otherwise tail-calls f_105a7e68 at 0x105a8750-0x105a8754. The request routine sets that active byte at 0x105a7ee4. The URL provenance still requires the virtual/interface caller of this wrapper; the earlier config-only assertion did not establish it. Fixed trusted_roots.rcb paths belong to the root-bundle downloader, not proof of this caller-supplied device-certificate endpoint."
+    "The reachable public wrapper f_105a8724 initializes an optional error output to -6, checks owner+0x10d1, returns zero if a request is already active, and otherwise tail-calls f_105a7e68 at 0x105a8750-0x105a8754. The request routine sets that active byte at 0x105a7ee4. The URL provenance still requires the virtual/interface caller of this wrapper; the earlier config-only assertion did not establish it. Fixed trusted_roots.rcb paths belong to the root-bundle downloader, not proof of this caller-supplied device-certificate endpoint.",
+    "Resolved URL provenance: r5 is not an externally injected remote base; the object produces the request URL itself through its own virtual URL-builder slots. Installed vtable 0x10efc818 (ctor f_10645bc8 at 0x10645d2c) maps slot +0x3c to URL-builder f_10646058 and slot +0x40 to request wrapper f_105a8724. The refresh-job method f_105a6984 (reached through vtable thunk f_1064556c at slot +0x34, the 'refreshTJ' job) calls slot +0x3c into a 0x1000 stack buffer then slot +0x40 with it at 0x105a6a7c-0x105a6aa8. f_10646058 formats the relative path '/product/v2/households/%s/players?action=refresh' through f_10645f4c, whose %s is the current household ID from f_105ad854 (global household string at 0x110a60f0 behind the registered household interface).",
+    "The second virtual caller is f_10646130 (inside registration-complete routine f_106461d8, reached via thunk f_106464c0): it builds '/product/v2/households/%s/players?action=complete&token=%s' via f_106460c4 with the token read from this+0x11d5 (0x10646178) and likewise tail-calls f_105a8724 at slot +0x40. Both call sites supply RELATIVE product-API paths; no environment selection exists on the URL (only the local JFFS staging directories take an environment subdirectory, slot-0x25 default 'prod'). The remote base/host is resolved inside the request transport f_1055030c and the HTTP client infra with 'Registration' as the copied request label, which is outside this manager's object and records the true static-analysis boundary for the remote endpoint."
    ]
   },
   "zpinfo_dpimpl": {
@@ -230642,17 +230921,122 @@
      "function": "0x105071e4",
      "address": "0x105072b8",
      "notes": "Aggregate serializer constructs Accounts attributes including the two clocks and MuseHouseholdID; writes via 0x10507374."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505ea8",
+     "address": "0x10505ee4",
+     "notes": "Parse-ctx init stores caller-supplied sink at ctx+8, vtable 0x10edecf4 at +0, depth counter at +0xc; f_10c3fd88 registers {end? start, chars} handlers f_105065c0/f_1050649c/f_105067e8 (thunks to f_105064a8, f_10505fac, f_105065cc)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105073c4",
+     "address": "0x105073cc",
+     "notes": "Status-path sink adapter ctor installs vtable 0x10eded78 and delegate at +4; vfunc[+8] slot = f_10507b9c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10507b9c",
+     "address": "0x10507c60",
+     "notes": "f_10507b9c rebuilds the 8 Accounts attrs into an <Accounts> element via f_105784a4 and forwards serialized XML to delegate->f_10769df4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10506828",
+     "address": "0x10506834",
+     "notes": "Pull-path adapter ctor installs vtable 0x10eded28, secondary clockpair vtable 0x10eabc4c at +0x68, delegate (manager->+8) at +0xb0; vfunc2=f_1050591c vfunc3=f_10508bd8(stub) vfunc4=f_10505e1c vfunc5=f_10508be4(stub)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105069f4",
+     "address": "0x105069fc",
+     "notes": "Doc adapter ctor installs vtable 0x10eded48, ClockPair subobjects at +0x6c/+0xb4 (vtable 0x10eabc4c), uuid at +0xfc; vfunc2=f_105056d4 vfunc4=f_10505170 vfunc5=f_10505474."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1050591c",
+     "address": "0x10505984",
+     "notes": "Pull-adapter Accounts-attrs impl: strlen(LastUpdateDevice)==24 gate, strtol Version/NextSerialNum, paranoid_atoui PSN, paranoid_atoi SchemaVersion, ClockPair pack of VCH/VCC, strlcpy MuseHouseholdID."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505e1c",
+     "address": "0x10505dc8",
+     "notes": "Pull-adapter per-Account impl only fires when strtol(Type) maps to 7 (r9==7): calls delegate->vfunc+0x130 (or delegate->+0x11a4->vfunc+0x20) with type byte, stores result bit to adapter+0xb4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105065cc",
+     "address": "0x105067d0",
+     "notes": "</Account> commit calls sink vfunc[+0x14] after validating nine field-buffer lengths (caps 0x82/0x42/0x42/0x42/0x802/0x802/0x1a/4); violation sets ctx+0x1c error flag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x105064a8",
+     "address": "0x105064d4",
+     "notes": "characterData handler: depth==3 gate, element index -> jump table 0x10edec94, appends text via f_10c3a06c into per-element ctx buffers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505170",
+     "address": "0x105052ec",
+     "notes": "Doc-adapter per-Account attrs: Type->+0x10c, SerialNum->+0x110, Flags->+0x114, Deleted->+0x64, Id->uuid +0xfc, VCH/VCC->ClockPair +0xb4; Flags&4 with no serial sets +0x65."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10505474",
+     "address": "0x10505568",
+     "notes": "Account commit: UN parsed <=0xff else zeroed, Deleted routes to +0x118 table, else f_10570688 appends 0x250 record (cap 0x21, rejects Flags&5==5)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1056efb0",
+     "address": "0x1056f03c",
+     "notes": "Per-account identity compare: serial/type/flags, UN strcmp, VCH(+0x1fc) strcmp, VCC(+0x220) strcmp, uuid equality - merge conflict basis in mergeAccounts f_10285e18."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x102884ec",
+     "address": "0x10288704",
+     "notes": "Pull ingest: post-parse strlcpy source name into manager+0xb8 (LastUpdateDevice), doc scalars -> manager+0xd4..+0x10b, rename() installs accounts.xml, manager->vfunc+0x34 notified."
     }
    ],
    "detail": "matching {performsSMAPIAccountMatching,\"Account matched g=%d,sn=%u,h=%s\",\"New account matched to existing guest account with SN=%u, Hash=%s\"}; DC outcomes {login failed,no account,stale account,unsupported service,unexpected,Could not resolve serviceId}; corruption {emptyUUID,dupUUID,caller,accountCorruption,\"Error reading file while detecting stale anonymous/corrupted accounts\",\"Found corrupted accounts\"}; guest {\"Link code required to add guest account\",\"Added guest account with SN=%u\",\"Updating guest account nickname\",\"addAccount failed: guest upgrade not allowed via reauth.\",\"account already exists on household\"}; maintenance {restore,addAccount,migrate,\"Removed account with corrupted type. SN=%d, SID=%u, UID=%u\",corruptedAccountRemoval,\"removing duplicate account with SID\",duplicateAccountRemoval,\"Removed account multiple\",numAccounts}; migrations {\"Migrated Pandora built-in (%d,%d->%d)\",pre-cloud,anonymous,\"Migrated Account with SID %u. (%u,%u->%u)\",legacyTuneInReplaced,\"UserIdHash [%s] already exists and will not be updated for SN=%u\"}; replication status XML <AccountsInfo><Replication><ReplicationOperation>%s|n/a</ReplicationOperation><ReplicationResult>%d|n/a</ReplicationResult></Replication><ReplicationPlayer>%s</ReplicationPlayer><ReplicationTime>%Y-%m-%d %H:%M:%S</ReplicationTime></AccountsInfo>; outcomes {\"Pull successful\",\"Corrupted accounts not updated\",\"Pull rescheduled in %lld\",\"Push successful\",\"Push rescheduled in %lld\"}; \"Rejected version %u, schema %u from %s\"; \"replicating accounts file from %s\"; spotifyTransferStartDirectControlEx; R_SvcAccounts",
-   "todo": [
-    "Residual: bind the Accounts parser sink at *(parser+8), virtual slot +8 called at 0x10506208, to its concrete implementation and trace clock comparison and LastUpdateDevice tie-breaking there. Trace per-account parsing separately; f_105071e4 is an Accounts aggregate serializer, not a per-entry parser."
-   ],
    "resolved_findings": [
     "Resolved: pull/push version compare = the ops {markAccountsForPushLocked, addAccount* family, modifyAccount} using replicated-store version fields; detail sub-block holds the flow.",
     "Version comparison and conflict resolution proven (accountsmgr.cxx, accountsmgr/accountReplication/accountsMgr log domains, accounts.xml store): replication is vector-clock based - each account carries a household vector clock and cloud records carry vcCloud; pullFromReplicationService validates cloud records against {missing service ID, missing service uuid, missing account type, missing metadata, missing cloud vector clock, missing serial number, missing account ID, missing household vector clock} then Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]. mergeAccounts resolves per-account into outcomes {retry, conflicted, updated, added, deleted} bounded by exceeded max deleted accounts; addNicknameIfNecessary fills display names; invalidCloud{,Serial,Reason} marks unmergeable entries. Guest migration path: migrateGuestAccount rejects non-guest accounts and validates UDN+UserIDHash (Bad guest migration: UDN = %s - UserIDHash = %s); Migrated %s replication account (%d) and Migrated tombstoned cover the migration+log path. markAccountsForPushLocked stages dirty accounts for pushToReplicationService; zpam report line %s,%d,%d,%u with asn (account serial number) + retry field.",
     "Resolved (review.xsl projection of the status document): the Accounts aggregate node carries scalar attributes {LastUpdateDevice,MuseHouseholdID,NextSerialNum,PreferredSerialNum,VClockCloud,VClockHousehold,Version} - so the replication clocks are two scope-scalars (VClockCloud + VClockHousehold) plus a per-doc Version, not a per-node counter vector. Accounts themselves also carry those attrs per-row.",
-    "Parser-to-sink boundary verified: f_10505fac scans name/value pairs with 8-byte stride. It binds LastUpdateDevice to r29, Version to r26, NextSerialNum to r23, PreferredSerialNum to r19, SchemaVersion to r18, VClockHousehold to r17, and VClockCloud to r15. At 0x105061d4-0x10506208 it loads the sink from parser+8 and calls its vtable slot +8 with these string pointers (plus the final collected attribute as a stack argument). This is forwarding, not an elementwise clock comparator. Correction: f_105071e4 formats four unsigned integers with __snprintf_chk and constructs an eight-attribute Accounts element through f_105784a4 at 0x10507374. It is the aggregate writer, including MuseHouseholdID, not the previously claimed per-Account entry parse ladder. Its input has LastUpdateDevice at +0, Version at +4, NextSerialNum at +8, PreferredSerialNum at +0x10, SchemaVersion at +0xc, a clock object at +0x1c (text at +4 and +0x28), and MuseHouseholdID at +0x24. Clock merge ordering remains unresolved."
+    "Parser-to-sink boundary verified: f_10505fac scans name/value pairs with 8-byte stride. It binds LastUpdateDevice to r29, Version to r26, NextSerialNum to r23, PreferredSerialNum to r19, SchemaVersion to r18, VClockHousehold to r17, and VClockCloud to r15. At 0x105061d4-0x10506208 it loads the sink from parser+8 and calls its vtable slot +8 with these string pointers (plus the final collected attribute as a stack argument). This is forwarding, not an elementwise clock comparator. Correction: f_105071e4 formats four unsigned integers with __snprintf_chk and constructs an eight-attribute Accounts element through f_105784a4 at 0x10507374. It is the aggregate writer, including MuseHouseholdID, not the previously claimed per-Account entry parse ladder. Its input has LastUpdateDevice at +0, Version at +4, NextSerialNum at +8, PreferredSerialNum at +0x10, SchemaVersion at +0xc, a clock object at +0x1c (text at +4 and +0x28), and MuseHouseholdID at +0x24. Clock merge ordering remains unresolved.",
+    "Resolved (SAX sink binding): the Accounts parser ctx is a ~0x1200-byte object with vtable 0x10edecf4; its +8 member is a caller-supplied sink whose vfunc[+8] (vfunc 2) receives the 8 aggregate attributes {LastUpdateDevice,Version,NextSerialNum,PreferredSerialNum,SchemaVersion,VClockHousehold,VClockCloud,MuseHouseholdID} collected by startElement f_10505fac at callsite 0x10506208. Three concrete sink adapters install it: vtable 0x10eded48 (ctor f_105069f4, full-document adapter used by f_102887e0/f_10506b0c whole-file ingest), vtable 0x10eded28 (ctor f_10506828, replication-pull adapter inside f_102884ec with delegate at +0xb0 = manager->+8), and vtable 0x10eded78 (ctor f_105073c4, status adapter in the AccountsInfo path f_10291974 whose vfunc[2] f_10507b9c re-serializes the attrs into an <Accounts> element and forwards it to the delegate).",
+    "Resolved (aggregate attr impls): f_1050591c (pull adapter) and f_105056d4 (doc adapter) both require LastUpdateDevice non-NULL with strlen==24 and Version/NextSerialNum non-NULL, strlcpy LUD (0x19), strtol Version and NextSerialNum (setting the has-document flag only when NSN!=0), paranoid_atoui PreferredSerialNum and paranoid_atoi SchemaVersion with 'accountsfile'-domain logs 'Error reading PreferredSerialNum'/'Error reading schema version', pack VClockHousehold[0x24]+VClockCloud[0x1f] into a ClockPair via f_1056ed84, and strlcpy MuseHouseholdID (0x36). Neither performs a clock comparison - the sinks store clock strings verbatim.",
+    "Resolved (per-Account parse, separate from the aggregate serializer): on <Account> at depth==2 with ctx+0x10==0, sink vfunc[+0x10] (vfunc 4) receives {Type,SerialNum,Flags,Deleted,Id,VClockHousehold,VClockCloud} and the ctx per-element seen-flag bytes are reset; characterData at depth==3 appends via f_10c3a06c into nine fixed ctx buffers selected by a jump table at 0x10edec94: UN@+0x1d(0x82), PW@+0x121(0x42), MD@+0x9f(0x82), NN@+0x163(0x42), OADevID@+0x1a5(0x42), Token@+0x1e7(0x802), Key@+0x9e9(0x802), Hash@+0x11eb(0x1a), Tier@+0x1205(4); on </Account> the endElement handler f_105065cc validates each buffer length against its cap (any violation sets ctx+0x1c, reported by the parse driver) and calls sink vfunc[+0x14] (vfunc 5) to commit the account. Doc adapter impls: vfunc[4]=f_10505170 stores Type@+0x10c(strtol), SerialNum@+0x110, Flags@+0x114(paranoid_atoui, failure sets +0x65), Deleted@+0x64, Id@+0xfc(sonos_uuid_parse), VCH/VCC@+0xb4 ClockPair, marks +0x65 when Type missing or Flags&4 with no serial; vfunc[5]=f_10505474 requires UN<=0xff and appends a 0x250-byte record via f_10570688 (cap 0x21 entries, rejects Flags&5==5, Deleted routes to the +0x118 tombstone table). Pull adapter: vfunc[4]=f_10505e1c only services Type mapping to 7 - a special account consumed immediately via delegate->vfunc[+0x130] (or delegate->+0x11a4->vfunc[+0x20]) - and sets +0xb4 to end processing; its vfunc[3]/vfunc[5] are stubs f_10508bd8/f_10508be4 so the pull path never materializes account rows.",
+    "Resolved (clock comparison and LastUpdateDevice): the parse sinks do no numeric clock compare. Comparison happens downstream in mergeAccounts (f_10285e18, 'svcacct'/accountsmgr domains): per-cloud-record validation f_10285a94 emits 'Discarding invalid cloud record: %s [uuid=%s, hh=%s, cloud=%s]', entry matching f_1057082c/f_105709c0 guards guest upgrades ('modifyRecord failed to upgrade guest account (sn=%u)'), and record identity compare f_1056efb0 is exact equality of serial, type, flags, UN string, VCH(+0x1fc), VCC(+0x220) and uuid(+0x240) - divergence feeds the outcome counters serialized by f_10284b70 {conflicted,updated,added,deleted,invalidCloud,invalidCloudSerial,invalidCloudReason}. Doc level: f_102884ec ('replicating accounts file from %s') gates version/schema via f_10660e58, parses the pulled doc into the scalar adapter, copies Version/SchemaVersion/NextSerialNum/PreferredSerialNum/VCH[0x24]/VCC[0x1f] into manager+0xd4..+0x10b, strlcpy's the source name into manager+0xb8 (the LastUpdateDevice attribution string), fires manager->+0xc vfunc+0x14, then atomic rename() installs the new accounts.xml and manager->vfunc+0x34 notifies. LastUpdateDevice is therefore stored and reported as an opaque 24-byte identifier; no numeric tie-break on it exists in this path - conflict resolution is the per-account clock-string equality plus outcome counting documented above."
    ]
   },
   "audioin_groups": {
@@ -231674,17 +232058,44 @@
      "build": "86.10-80260",
      "address": "0x0000e680",
      "notes": "Shipped CBC implementation; decrypt block XOR and IV chaining at 0xe784-0xe830. Certificate consumer connection unverified."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb9c5c",
+     "notes": "Private-key consumer gate in f_10bb9c20: byte at out+0x1000 NUL short-circuits to return 0 at 0x10bb9c64; otherwise out+0x2000 type word loaded at 0x10bb9c6c and accepted only when 0 (0x10bb9c74) or 5 (0x10bb9c7c); every other value returns 0. The field is never loaded again in the consumer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10bb9d50",
+     "notes": "Identical unwrap path for types 0 and 5: ZZ0056 parses the decoded blob into a 0x1c78-byte descriptor at 0x10bb9d5c, ZZ0051 walks it at 0x10bb9d84 with record callback ZZ0070 (noop returning its params argument, nonzero, so the walk breaks on the first record), and ZZ0098 re-wraps the produced key at 0x10bb9d98."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x00006920",
+     "notes": "ZZ0051 unwrap stage: record fields +0x1058 (RSA padding selector), +0x105c (word) and +0x1060 (key-material pointer) feed ZZ0075 at 0x692c; cipher-stage algorithm/parameters come from descriptor +0x1c6c/+0x1c70/+0x1c74 feeding ZZ0043 at 0x6960. Mode and IV are in-blob fields, not derived from the XML integer."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "address": "0x00005560",
+     "notes": "ZZ0045 output-sizing gate: descriptor algorithm enum must be <=6 and in the supported bitmask union 0x76 (shift-test masks 0x54 then 0x22 at 0x5570-0x5578), giving supported ids {1,2,4,5,6}; unsupported or >6 fails. ZZ0075 gates record padding to {1:PKCS1-v1.5, 2:OAEP} at 0x7cd0-0x7cdc before mbedtls_rsa_init/free bracket the decrypt."
     }
-   ],
-   "todo": [
-    "Residual: trace the numeric encryption-key-type stored by the certificate-file XML parser through its actual private-key consumer to mode/IV selection. A shipped CBC implementation is now positively located, so absence of a direct CBC import cannot justify declaring the certificate path ECB-only. The separate sonoscp_crypto ECB helper does not bind this file-format field."
    ],
    "resolved_findings": [
     "Resolved: on-disk format = %s/%s.%s files with keys {encrypted-private-key,expiration,encryption-key-type,sonos-key-and-cert} + failed-to-retrieve-key error path.",
     "Format proven: PEM - both -----BEGIN CERTIFICATE----- and -----BEGIN PUBLIC KEY----- literals are in the image, plus public key hash: sha256//%s (HPKP-style pin format) and DH signature params {dh(g), dh(pub_key), Signature}. cert.xml stores <DeviceCertInfo>; the X-Sonos-DeviceCert header carries the device cert on requests. Cert health states {DeviceCertRequired, DeviceCertInvalid, DeviceCertExpired, DeviceCertRevoked} gate the refresh job (Unknown cert metadata state: %s. Scheduling cert refresh job; %zu consecutive cert fetch failures. Trying again in %ld seconds). Trust roots ship as /certbundles/v4/trusted_roots.rcb via libsonos-root-cert-bundle.so.2; validation via libsonos-certval.so.2; fetchRegDeviceCert/refreshRegDeviceCert are the fetch verbs; NewCertRegistrationEvent fires on registration.",
     "Decrypt primitives decoded in libsonoscrypto: ZZ0024 (0x3a48) = aes_init + mbedtls_aes_setkey_dec(ctx, key, keybytes*8) with a keybits sanity bound (<0x20000000), ZZ0025 on failure; ZZ0023 (0x3a24) = mbedtls_aes_crypt_ecb block-decrypt wrapper (mode forced to DECRYPT, 16B in->out). The encrypted-private-key is therefore decrypted with the stored key bytes used directly - there is no KDF step between the 'privateKey' field and mbedtls_aes_setkey_dec; the key IS raw AES key material. ZZ0023/24 are called from 4 sites (0x103eb104/0x104ccdf0/0x1050a174 scp cipher paths + 0x10716e60/0x10716e7c sonoscp_crypto unpack), confirming the shared AES-block engine.",
     "Certificate parser corrected at instruction level: f_10bb95f8 compares encryption-key-type at 0x10bb96c4-0x10bb96d8, then invokes paranoid_atoi(text,output+0x2000) at 0x10bb96dc-0x10bb96e8. Expiration is independently parsed by paranoid_strtoull into output+0x2008 at 0x10bb9770-0x10bb977c. Thus this XML metadata field is numeric, not a demonstrated AES-CBC/AES-ECB string enum. The sonoscp_crypto privateKey/type code and its raw ECB loop f_10716e2c belong to a separate parser; adjacency of strings does not link them to this certificate-file consumer.",
-    "Counterexample to the previous shipped-CBC-absence claim: lib/libmbedcrypto.so.16 exports mbedtls_aes_crypt_cbc at relative VA 0xe680, size 0x2f8. Its decrypt branch (mode=0) preserves the incoming ciphertext block, invokes mbedtls_aes_crypt_ecb at 0xe778, XORs all sixteen plaintext bytes with the IV at 0xe784-0xe7a4, updates the IV with saved ciphertext at 0xe7a8-0xe830 and repeats. It accepts empty input, rejects non-block-multiple length at 0xe6c8-0xe6cc, and has a separate encrypt branch at 0xe87c. This proves CBC is implemented in a shipped artifact, not that a particular certificate file reaches it. libsonoscrypto imports the generic mbedtls_cipher_setup/setkey/set_iv/update API, so searching only direct imports of mbedtls_aes_crypt_cbc cannot establish mode reachability. The actual certificate numeric-key-type dispatch is still unresolved."
+    "Counterexample to the previous shipped-CBC-absence claim: lib/libmbedcrypto.so.16 exports mbedtls_aes_crypt_cbc at relative VA 0xe680, size 0x2f8. Its decrypt branch (mode=0) preserves the incoming ciphertext block, invokes mbedtls_aes_crypt_ecb at 0xe778, XORs all sixteen plaintext bytes with the IV at 0xe784-0xe7a4, updates the IV with saved ciphertext at 0xe7a8-0xe830 and repeats. It accepts empty input, rejects non-block-multiple length at 0xe6c8-0xe6cc, and has a separate encrypt branch at 0xe87c. This proves CBC is implemented in a shipped artifact, not that a particular certificate file reaches it. libsonoscrypto imports the generic mbedtls_cipher_setup/setkey/set_iv/update API, so searching only direct imports of mbedtls_aes_crypt_cbc cannot establish mode reachability. The actual certificate numeric-key-type dispatch is still unresolved.",
+    "Resolved: the numeric encryption-key-type never reaches mode/IV selection. Consumer f_10bb9c20 (reached via delegate vfunc+8 caller f_106c4ee0 and wrapper f_10bb9da8 -> f_10bb9b88) reads out+0x2000 exactly once at 0x10bb9c6c and accepts only {0,5} at 0x10bb9c74-0x10bb9c80; every other value returns 0, and an empty encrypted-private-key buffer (NUL at out+0x1000) short-circuits before the type check at 0x10bb9c64. Types 0 and 5 take a byte-identical unwrap path, so the field is a format-family whitelist on acceptance, not a cipher-mode selector.",
+    "Resolved: mode/IV selection is self-describing inside the encrypted-private-key blob. ZZ0056 parses the base64-decoded blob into a 0x1c78-byte descriptor (record count byte at +0x850, 0xa0c-stride records {word@+0x854, type@+0x858, params@+0x859}); ZZ0051 sizes output via ZZ0045 (descriptor algorithm enum <=6 in supported set {1,2,4,5,6}), RSA-unwraps the record via ZZ0075 (mbedtls_rsa_*; padding selector record+0x1058 {1:PKCS1-v1.5, 2:OAEP}) and finishes through ZZ0043 into the generic mbedtls_cipher engine (cipher_info_from_type + setkey + set_iv + conditional set_padding_mode/update_ad at .so 0x4b50, AEAD check_tag/write_tag at .so 0x4fa4). CBC reachability is therefore decided by in-blob cipher-type/IV fields, not by the XML integer, closing the earlier mode-selection question. The only sibling use of the keyType name (httpauth signing JSON emitted by f_105cccbc via f_10bb93f4, which always writes 0 for the playerasig device signing-key family) shows the numbering denotes key/format families; value 5 is a second accepted family whose distinction lives inside blob records, not in player-side dispatch."
    ]
   },
   "local_settings_mgr": {
