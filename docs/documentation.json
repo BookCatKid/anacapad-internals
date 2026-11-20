@@ -228054,14 +228054,43 @@
      "build": "86.10-80260",
      "address": "0x100bc8bc",
      "notes": "Native consumer invokes remove, not a binary decoder or DSP loader."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d7bebc",
+     "notes": "Actual binary DSP config consumer: ChProc selector builds a filename through f_10d78ed4 for 'S39_fronts_chproc_config.binpb' (0x10fe91a8) and 'S41_fronts_chproc_config.binpb' (0x10fe91a8 arm at 0x10d7c008), parses it via f_10d79a4c when present, else jumps to one of eight compiled constructors via the 0x10fe8e8c table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10dcfc38",
+     "notes": "DSP path composer f_10dcfac8 appends '.xml' (0x10e77168) when assembling preset paths; no '.bin' extension, 'dsp_system' or 'processor' prefix constant exists in .rodata, so the binary filenames are not composed in-image either."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10dd1638",
+     "notes": "Build-system entry: validates flag word +0x94, calls path chooser f_10dd10c8 which selects among variant path slots (default/satellite/flex/override masks 0x35/0x10/0x24/1) and logs 'Constructed ... Path: %s'; failure 'DSP Builder initializer is Empty! Can't build system'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10dce9dc",
+     "notes": "Build-preset caller f_10dce770 constructs the builder object then calls f_10dd16e0; the preset half shares the same machinery with masks 0x3a/0x10/0x28/2."
     }
    ],
    "unlock_dsp_console": "opt/htdocs_locked/dsp/{configDSP,meters}.{htm,css,js} (unlock-gated live DSP console (served via /tmp/htdocs_locked). Exercises the real DSP routes: GET /getDSP (bare = all-block dump, ?audioSystemsTuning, ?ChProcSysPlaybar.ChProcInputMeter, ?<BlockName>, ?<meterId>), POST /putDSP (form pairs 'Block.param=val -- '), GET eqdata.txt + ChProcInputMeter.xml + getDSP_{3,playbar}.xml (static block descriptor XML). Param grammar 'Block.param') ChProcSysPlaybar.ChProcInputMeter, BassManager.mode, active_iir, allpass1.a{0,1,2}/b{0,1,2}/type/bandpassQ, freq '700', gain '0.707', AB_indicator/ab_control preset-compare. Confirms /getDSP returns per-block param XML and /putDSP takes dotted-name writes: the same dotted namespace as the DSP param registry.",
-   "todo": "Residual: identify the actual readers/consumers of dsp_system_*.bin and satellite_processor.bin, then recover any binary header/payload grammar from those readers. Current native filename evidence is an override-cleanup list, not a loader; the named files are absent from both the reference tree and shipped SquashFS listing.",
    "resolved_findings": [
     "Artifact absence was checked against both the complete recursive reference tree and the shipped package/86.10-80260-1-9-rootfs.squashfs inode listing with unsquashfs -ll. The DSP data directory contains only /opt/dsp/S9_array.xml; the engineering UI is under /opt/htdocs_locked/dsp/. No dsp_system_default.bin, dsp_system_satellite.bin, satellite_processor.bin, dsp_preset*.xml or .binpb was found in either inventory. The separately shipped device-payload.bin identifies as a Xilinx BIT FPGA configuration, not evidence of a DSP program image. Absence here is scoped to these artifacts, not all device models or writable installations.",
     "The native reference to dsp_system_default.bin at 0x100bc780 is NOT a program loader. f_100bc518 checks an HTTP request, builds a list under app/debug/dsp/ including dsp_preset_satellite.xml, dsp_system_default.bin, dsp_system_satellite.bin and satellite_processor.bin (0x100bc61c-0x100bc808), then resolves each local path, checks sonosFileExists and invokes remove at 0x100bc8a8-0x100bc8bc. Missing files are skipped; remove failures clear the aggregate success flag and log, while successes continue the list. This is cleanup of developer overrides, not evidence of file headers, executable images or a binary loader ABI.",
-    "The S9_array.xml artifact is genuine shipped array coefficient data, with arrayDefinition version 1.0 and per-config woofer numChan/numTaps, weights, alphas and delays. It is not a substitute for the missing named system files. Compiled HT configuration is independently present in the ELF (f_10d7bebc fallback constructors); that does not establish that a dsp_system_*.bin payload is embedded or that a particular header format exists. The previous compiled DSP program/pipeline image classification from filenames alone is withdrawn."
+    "The S9_array.xml artifact is genuine shipped array coefficient data, with arrayDefinition version 1.0 and per-config woofer numChan/numTaps, weights, alphas and delays. It is not a substitute for the missing named system files. Compiled HT configuration is independently present in the ELF (f_10d7bebc fallback constructors); that does not establish that a dsp_system_*.bin payload is embedded or that a particular header format exists. The previous compiled DSP program/pipeline image classification from filenames alone is withdrawn.",
+    "Reader census for the named binaries is complete and negative: the only references to 'dsp_system_default.bin', 'dsp_system_satellite.bin' and 'satellite_processor.bin' in the entire image are the app/debug/dsp cleanup list inside f_100bc518. No loader, decoder, memcpy consumer or path builder references them; the DSP path composer f_10dcfac8 appends '.xml' for preset paths and no '.bin'/'dsp_system'/'processor' composition constants exist, so the names are not built in-image either. Any payload these filenames carried was supplied out-of-band (developer override drops under app/debug/dsp) and its consumer is not present in this build.",
+    "The binary DSP payloads this image actually consumes are elsewhere: ht_config/ht_config_sat are DSPConfig nanopb files decoded through pb_decode descriptor 0x10fbea70 (fully bound in dsp_config); 'S39_fronts_chproc_config.binpb' and 'S41_fronts_chproc_config.binpb' are chproc protobuf configs selected per model by f_10d7bebc with parse path f_10d79a4c and compiled fallbacks; dsp_preset*.xml go through dsp_config_parser. The recoverable wire grammar is therefore the nanopb encoding documented under dsp_config; a distinct dsp_system_*.bin/satellite_processor.bin header format does not exist to recover in this image."
    ]
   },
   "mod_zp": {
