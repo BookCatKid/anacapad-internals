@@ -182185,14 +182185,71 @@
      "build": "86.10-80260",
      "address": "0x100c7b78",
      "notes": "Dirty/notify edge followed by source and version stores through 0x100c7b94."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6a74",
+     "function": "0x100c6950",
+     "notes": "MusicServices ctor zeroes +0x1f0 ver, +0x1d5 dirty, +0x1d6 and clears +0x1d7 source array; vtable 0x10e768a4 installed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8784",
+     "function": "0x100c8230",
+     "notes": "Parsed-file branch stores file version at +0x1f0 then unconditional addi+1 at 0x100c87a8-0x100c87ac when flag byte nonzero; no wrap check; backstop branch 0x100c8404 stores 0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c7bb0",
+     "function": "0x100c7898",
+     "notes": "After accept: +0x1b8 secondary event source vfunc+0x14 invoked with (6, src, ver, 0); file-load path uses flag 1 at 0x100c8494-0x100c84a4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10660e58",
+     "notes": "Admission predicate: r6==-1 rejects unless cur==0xffffffff; else unsigned new>cur accepts; equal falls to strcmp(new_src,cur_src)<0 tie break."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e768f0",
+     "notes": "Vtable slot holds f_100c71d0 emitter driver; calls f_100c7084 per context with r5=1 forced then r5=0 dirty-only; out param receives 8-byte timestamp pair."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c9904",
+     "function": "0x100c997c",
+     "notes": "Replication dispatcher type-checks vfunc+0x1c==f_100c7c34 then calls f_100c7898 directly, else dispatches vfunc+0x1c virtually; second caller is XML attribute parse f_100c8900 at 0x100c8fa0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1019941c",
+     "function": "0x101981f0",
+     "notes": "Manager vtable method (vtable 0x10e97e10 slot) calls f_100c8230 with source string loaded from manager+0x4cc."
     }
    ],
    "backing_field": "Text at catalog object+0x1d7 and unsigned counter at +0x1f0; dirty byte +0x1d5.",
    "resolved_findings": [
     "Raw instruction/dataflow pass confirms composite text rather than a ui4 scalar: f_10676cf8 writes source text and colon, then f_10676b88 writes the counter.",
-    "Accepted catalog installer f_100c7898 writes source at +0x1d7, version at +0x1f0 and dirty byte +0x1d5 only after successful candidate rename; it schedules notification through the secondary event-source interface. Revision ordering uses f_10660e58 unsigned comparison plus source-string tie break."
-   ],
-   "todo": "Established: composite serialization, forced/dirty modes and installer source/version/dirty writes are decoded. Remaining: enumerate all other revision writers, rollover behavior and sender/subscriber timing by tracing stores and registration callers."
+    "Accepted catalog installer f_100c7898 writes source at +0x1d7, version at +0x1f0 and dirty byte +0x1d5 only after successful candidate rename; it schedules notification through the secondary event-source interface. Revision ordering uses f_10660e58 unsigned comparison plus source-string tie break.",
+    "Complete +0x1f0 writer census: ctor f_100c6950 clears it; file-load f_100c8230 writes 0 (backstop branch 0x100c8404) or the parsed file value incremented by 1 when the parse flag byte is set (0x100c8784/0x100c87ac); replicated-list accept f_100c7898 writes the candidate arg at 0x100c7b94. No other stores to +0x1f0 exist in the MusicServices object code.",
+    "Rollover: the file-load increment is a plain addi/stw with no wraparound guard (mod 2^32), and candidate admission in f_10660e58 uses a plain unsigned compare rather than serial-number arithmetic, so a wrapped counter reads as strictly older and is rejected; ver==0xffffffff candidates are refused unless the current value is also 0xffffffff, and equal versions are broken by strcmp(new_src,cur_src)<0.",
+    "Established: +0x1d5 dirty is set only by the replicated-accept path; file-load changes skip the UPnP dirty mark and instead call the +0x1b8 refcounted secondary event source vfunc+0x14 with opcode 6 and flag 1 (accept path uses flag 0, consistent with not re-announcing a replicated change). Inferred: flag distinguishes local changes to propagate from already-replicated ones.",
+    "Sender timing: the eventing core reaches emitter through vtable slot 0x10e768f0 -> f_100c71d0, which runs f_100c7084 twice per flush, forced (r5=1) for one subscription context and dirty-only (r5=0) for the other; dirty-only mode skips emission when +0x1d5 is clear and clears it after emitting."
+   ]
   },
   "ZGT.ZoneGroupState": {
    "service": "ZoneGroupTopology",
@@ -182760,14 +182817,18 @@
   },
   "services_xml_schema": {
    "service": "MusicServices",
-   "description": "Local normalized music-service catalog rooted at Services with LastUpdateDevice, Version, SchemaVersion=5 and optional ETag. Service rows carry Id, Name, Version, SecureUri, ContainerType and Capabilities plus Policy/Presentation/Manifest sections. BuiltInService entries carry Type and Name. The local emitter applies overrides and manifest-capability projection; this is not proof that downloaded input or SOAP projection uses the same grammar.",
+   "description": "Local normalized music-service catalog rooted at Services with LastUpdateDevice, Version, SchemaVersion=5 and optional ETag. Service rows carry Id, Name, Version, SecureUri, ContainerType and Capabilities plus Policy/Presentation/Manifest sections. BuiltInService entries carry Type and Name. Three representations share this grammar: the downloaded stream (SAX-normalized with unsigned SchemaVersion<=5 admission), the stored file musicservices.xml (always emitted with literal SchemaVersion=5), and the SOAP projection (ListAvailableServices rewrites the stored catalog through descriptor delegates and returns a source:counter version token). Namespace processing is disabled in the catalog parser, so element and attribute names are matched literally.",
    "fields": "<Services LastUpdateDevice Version SchemaVersion ETag><Presentation/><ServiceIds/><Total/>\u2026</Services>; summary <AvailableSvcsSummary><ServiceIds></ServiceIds><Total></Total></AvailableSvcsSummary>; per-svc {SecureUri,secureUri,ContainerType,BuiltInService,PresentationMap,Strings,PollInterval,Manifest}",
    "surface": "/MusicServices/Control",
    "data_type": "string",
    "evented": true,
    "resolved_findings": [
     "Resolved at emitter granularity: the emitter serializes via getter calls/computed string builders; no plain member-load provenance exists for most fields (backing lives behind the same injected-delegate boundary as the impl workers).",
-    "Emit site proven: the services XML writer at 0x100cbaf0 emits '<ServiceIds>', 'PresentationMap', 'Strings' sections plus '%u' entries - it walks the SMAPI service registry (the same registration list behind MusicServices) and serializes each descriptor. Backing is the service-descriptor table populated at service registration."
+    "Emit site proven: the services XML writer at 0x100cbaf0 emits '<ServiceIds>', 'PresentationMap', 'Strings' sections plus '%u' entries - it walks the SMAPI service registry (the same registration list behind MusicServices) and serializes each descriptor. Backing is the service-descriptor table populated at service registration.",
+    "Generic XML grammar resolved: all catalog parsing runs on the custom SAX engine (handlers +0x34 start/+0x38 end/+0x50 chardata with mode byte +0x130, aux pair +0x64/+0x68, user slots +0x3c..+0x44). The catalog path always creates it via f_10c4a8cc(0), so the namespace separator is null, +0xe8 stays clear, and prefix expansion is skipped: names must literally match the unqualified Services grammar.",
+    "Downloaded representation: UpdateAvailableServices streams the HTTP response through the attribute ladder (root f_10552c20 admits unsigned SchemaVersion<=5, Id<=0x00ffffff, required-pointer guards), normalizes each Service through the f_100cbaf0 writer into a temporary file, then installs by rename. The downloaded document is never stored verbatim.",
+    "Stored representation: musicservices.xml under the settings directory. The emitter writes SchemaVersion=5 as a compiled literal; header fields {source +0x1d7, version +0x1f0, 65-byte field +0x1f8, flag} are re-extracted on load through query evaluator f_100c76a4, and the file version is incremented by 1 when the flag byte reads nonzero.",
+    "SOAP representation: ListAvailableServices projects the stored catalog through descriptor delegates (f_100cc34c transform descriptor with 0x800 cap, service-type list from delegate+0x34 via f_100ca7f4, version token from delegate+0x10 via f_100ca84c/f_100c6314 as %s:%u). The evented ServiceListVersion value is the same source:counter composite; neither SOAP output exposes the raw downloaded bytes nor re-admits remote SchemaVersion values."
    ],
    "evidence": [
     {
@@ -182783,9 +182844,58 @@
      "build": "86.10-80260",
      "address": "0x100cb694",
      "notes": "Six normalized Service attributes and capability extraction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3f81c",
+     "notes": "Parser factory: requires start/end handler args (r6/r7); r4==0 creates engine via f_10c4a8cc(0), r4!=0 via f_10c4a8e4(0,r4); wraps engine in malloc(0xc) and installs handlers through f_10c3f27c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c4b220",
+     "notes": "Engine handler layout: start-element +0x34, end-element +0x38, user pointers +0x3c/+0x40/+0x44, chardata +0x50 with mode byte +0x130, aux pair +0x64/+0x68, namespace separator at +0xe8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3fd2c",
+     "notes": "Catalog parse call passes r4=0 so the engine is built with null namespace separator; +0xe8 stays clear and the prefix-expansion branch at 0x10c4a690 is skipped, so names compare literally."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cc5e4",
+     "function": "0x100cc4f4",
+     "notes": "Stored root emitted from literal fragments: <Services LastUpdateDevice=\" at 0x10e76f54, \" Version=\" 0x10e76f74, \" SchemaVersion=\" 0x10e76f80; value 5 appended as integer at 0x100cc630 via f_10577fd0; ETag branch at 0x100cce28 only when this+0xc nonempty."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c5d3c",
+     "notes": "Path builder produces <dir>+musicservices.xml (arg2 is the storage dir); this is the single stored-file name used by install rename, load, DIAG snapshot and ListAvailableServices streaming."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6948",
+     "notes": "SOAP ListAvailableServices impl enters through this-adjustment thunk to f_100c6314, which formats the version token as %s:%u from catalog +0x1d7/+0x1f0 into the response delegate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cc34c",
+     "notes": "SOAP descriptor projection builds a transform descriptor {vtable 0x10e767fc, output cap 0x800, this+0x34 fields} and optionally re-queries the parsed doc through f_10c4009c; service-type list and version delegates are f_100ca7f4 (delegate+0x34) and f_100ca84c (delegate+0x10), each writing through delegate vfunc+0x10."
     }
-   ],
-   "todo": "Established: local root/service/built-in emitted fields are decoded and detailed in payload_formats.music_service_catalog. Remaining: trace generic XML parser grammar and descriptor projections to separate downloaded, stored and SOAP representations and their version/namespace rules."
+   ]
   },
   "userradio_schema": {
    "service": "",
@@ -199049,16 +199159,14 @@
    "retry": "The scheduler counter at +0x64 is reset to zero for a new update at 0x102aa268. f_102a9654 increments it before launching the manager. In f_102a9764, unsigned values 0-4 enter the retry-launch branch, whose log prints count+1 out of 5; larger values give up. Thus the normal zero-initialized flow permits five launch attempts including the initial one, not five additional retries. f_102a9654 schedules now+600 seconds after a launch failure; after a successful launch it stores the start time, changes state and schedules a now+900-second status check. Completion/failure exits clear the counter. This is scheduler launch/status behavior, not an exponential network-download backoff.",
    "reporting": "upgrade_mgr{,_user}_report.json, /tmp/upgrade_mgr_info.txt, /jffs/upgrade*.log, upgrade_sys_report*.log; reportFirmwareDownload telemetry; 'Upgrade report has more devices than the maximum supported' household cap; 'Unable to report firmware update; muse error'",
    "files": "/jffs/{upgrade.log,upgrade_prev.log,upgrade_tmp_prev.log,app/log/upgrade_mgr.log}",
-   "todo": [
-    "Established: the manager/device TCP dispatch and startup-script installer launch, final accepted-signature enforcement, root selection/RSA verification, device-derived private-key loading, allowed envelope ciphers, inactive partition selection, block erase/write/error paths and kernel last-block metadata are traced with evidence. Remaining: the bootloader-side interpretation of the written generation/last-block metadata, including exact next-boot selection and power-loss/rollback policy, and whether a deployed redundant-rootfs layout supplies support for ioctl 0x20004d20. The supplied userspace does not set a boot-section flag; the included kernel rejects 0x20004d20 in its generic MTD dispatcher, so library intent cannot establish a successful runtime commit on that conditional path. The extracted-file inventory contains the kernel image but no bootloader image or live flash/partition-table snapshot. Concrete next RE requires the device bootloader/boot-flash dump and the deployed partition table/MTD implementation: trace boot image selection against generation/last-block markers and compare its ioctl dispatcher with the packaged kernel. Re-disassembling the same present installer or libraries cannot supply those absent bootloader and runtime artifacts."
-   ],
    "handshake": "anacapad f_102a7c90 performs manifest work and passes upgrade_mgr_report.json to its report path. f_10675a5c invokes the local-device BeginSoftwareUpdate operation and spawns /bin/upgrade_mgr through f_1076a8ec. The manager is a TCP controller, not the demonstrated parent of /bin/upgrade: its per-device connection uses port 4444 and sends HELLO, DOWNLOAD, FLASHWRITE, PING and REBOOT commands. The installer server listens on 4444 and dispatches those commands with phase/state gates. Independently, etc/runanacapa lines 7-16 starts /bin/upgrade when /var/run/upgradeinfo exists, captures/logs its exit status, removes that file and returns the same status. The installer main reads upgradeinfo for its configuration and client/server mode. Report-file polling by anacapad and the live manager/device TCP protocol are separate coordination mechanisms; neither file-only IPC nor a direct upgrade_mgr exec of upgrade is supported.",
    "resolved_findings": [
     "Both /bin/upgrade and /bin/upgrade_mgr are present as stripped 32-bit big-endian PowerPC ELFs in reference/public/files/bin. The upgrade executable, rather than strings attributed to an unavailable binary, was disassembled for the findings below.",
     "/bin/upgrade f_1000a300 builds either the .upd URL \"%s%s-%u-%u.upd?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\" or \"%supdate.upm?cmaj=%u&cmin=%u&cbld=%u&subm=%u&rev=%u&reg=%u&serial=%s\". An absent/empty payload selector falls back to \"default\". Both branches can append &sonosid=%s&householdid=%s, and a separate flag gates &au=1; these suffixes are not unconditional payload-only behavior. f_10007438 forks and execl's /usr/bin/wget with -qC, -T 300 and -O -, with an optional -L 4445 argument pair. The custom wget option meanings have not been inferred from their spelling.",
     "Certificate-bundle path corrected: f_100065d8 parses an embedded bundle with sonosRcbParseHeader and sonosRcbVerifySig, and saves a successfully parsed bundle under /jffs/sys/run/rcb/%s-%s.rcb. /jffs/sys/run/rcb/upd_cert_bundle.rcb is the parse-failure fallback save path, not a proven universal input trust-bundle path.",
     "The section signature/decryption call chains, final acceptance gate, supported envelope ciphers and key-selection paths are decoded in signature_acceptance, signer_selection, key_and_cipher_selection and envelope_contract. These are library-backed algorithms, not EVP inferred from diagnostics.",
-    "Optional product partition gates, package-script execution and flash delegation are decoded through the library and the packaged kernel in flash_contract and erase_write_verify. FLASHWRITE and FLASHWRITE_DONE remain protocol state names, not a readback-verification guarantee."
+    "Optional product partition gates, package-script execution and flash delegation are decoded through the library and the packaged kernel in flash_contract and erase_write_verify. FLASHWRITE and FLASHWRITE_DONE remain protocol state names, not a readback-verification guarantee.",
+    "Boundary (absent artifacts): the residual asks for bootloader-side interpretation of the written generation/last-block metadata, next-boot selection, power-loss/rollback policy and whether a deployed redundant-rootfs layout supports ioctl 0x20004d20. The extract contains no bootloader/boot-flash image or live partition table, so next-boot selection and rollback policy are undecidable from the present files. Within the packaged kernel the MTD dispatch ladder handles the last-block marker ioctl 0x20004d26 but contains no 0x20004d20 comparison anywhere in the image, so the commit-path ioctl that libflash forms at 0x3b04 has no compare-based handler in this build; the conditional call cannot be established as a successful runtime commit. Userspace also supplies no boot-section writer: only proc-backed getters exist. Concrete progress requires the device bootloader/boot-flash dump and the deployed MTD implementation; re-disassembling the present installer, libraries or kernel cannot supply them."
    ],
    "evidence": [
     {
@@ -199258,6 +199366,35 @@
      "address": "decompressed+0x1ae9e8",
      "callsite": "decompressed+0x1aed18-0x1aed2c, +0x1af070-0x1af078, +0x1af31c, +0x1af57c-0x1af594, +0x1ac488-0x1ac4d8, +0x1bc140-0x1bc148, +0x1ba048-0x1ba09c, +0x1bb0d4-0x1bb130",
      "notes": "Addresses are offsets into the gzip-decompressed U-Boot payload, not ELF VAs. 0x20004d26 dispatches file position through MTD+0x194; partition wrapper adjusts offset; VNB callback installation points to vnb_set_last_block (name at decompressed+0x289eb0), which stores last-block offset and write metadata compares it. 0x20004d20 follows generic dispatcher default -25 ENOTTY. This conditional userspace request is not a demonstrated successful boot-slot commit; runtime layout and absent bootloader policy are not inferred."
+    },
+    {
+     "type": "firmware",
+     "binary": "package inventory",
+     "build": "86.10-80260",
+     "address": "reference/public/files/package/",
+     "notes": "Established: the extract contains device-payload.bin, kernel.uImage, preinstall.sh, rootfs.squashfs and the .upd manifest only; no bootloader or boot-flash image and no deployed MTD partition-table snapshot exists in the supplied files."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "address": "0x3b04",
+     "callsite": "0x3afc-0x3b34",
+     "notes": "Established: the commit-path ioctl is formed at libflash 0x3b04-0x3b0c (lis r4,0x2000; ori r4,r4,0x4d20; arg 0) and issued on a conditional path (bc 13,0 -> 0x394c skips it); a nonzero return maps to error code 0xf at 0x3b28."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "decompressed+0x1ae9e8",
+     "notes": "Established: the kernel MTD ioctl ladder compares handled commands literally (0x80084d06, 0x40104d12, 0x20004d26 -> last-block case 0x1af57c, 0x80084d0c, 0x800c4d27, 0x40044d13); the constant 0x20004d20 occurs zero times in the decompressed image, so no compare-based kernel dispatch accepts the libflash commit ioctl; only an unproven computed dispatch could service it."
+    },
+    {
+     "type": "firmware",
+     "binary": "lib/libflash.so.1",
+     "build": "86.10-80260",
+     "address": "exports",
+     "notes": "Established: libflash exposes only hal_flash_get_bootsection and hal_flash_get_bootgeneration, both reading /proc/sys/kernel/bootsection and /proc/sys/kernel/bootgeneration; no userspace boot-section writer exists for the installer to call."
     }
    ],
    "protocol_contract": "upgrade_mgr f_10001c8c opens a nonblocking AF_INET/SOCK_STREAM connection to the per-device address on TCP 4444; immediate success or EINPROGRESS is accepted. f_10001424 sends newline-terminated commands and handles partial sends. f_10001684/f_10001728 collect replies and parse HELLO, STATUS, COMPLETE and ERROR, including phase and percent-complete. ERROR parses phase, error-code, internal-data and extra-data, stores the result at device +0x270 and returns -3; receive/protocol failures use internal error 1012. f_1000331c propagates per-device COMPLETE or ERROR with phase/error-code to its controlling client. In upgrade, f_1000924c starts the server with port 4444 through f_10008270; f_100085dc accepts a connection and the poll loop invokes f_10009024. Its vtable dispatch runs HELLO f_10008090, DOWNLOAD f_10008ef0, FLASHWRITE f_10008f8c and REBOOT f_100095ec; PING reports progress and QUIT terminates the connection. f_10007a94 gates operations: HELLO requires initial state 0, DOWNLOAD state 2 or 4 and a zero previous result, FLASHWRITE state 4 and zero result, REBOOT state 6 and zero result. Completion f_10007bb4 moves the corresponding in-progress states 1/3/5/7 to 2/4/6/8 and stores the result. Invalid transitions do not blindly advance: they produce error replies. f_10008d18/f_10008e30 emit COMPLETE?phase=... on success or ERROR?phase=...;error-code=...;internal-data=...;extra-data=... on failure. Download and flash workers reach f_100052bc and f_100065d8 respectively; an installer flash error is propagated as a phase failure.",
@@ -220983,7 +221120,7 @@
   },
   "cloud_synchronizer": {
    "name": "RCloudSynchronizer",
-   "summary": "cloud_synchronizer thread: registerServices (max-count abort, called-once guard), \"received JIT event\", \"discarding %s type %d\"",
+   "summary": "cloud_synchronizer thread: registerServices (max-count abort, called-once guard), startup registers the EntitlementsManager +0x12c cache-update delegate, readiness object *(god+0xc7c)+4 installed at sync+0x12c, \"received JIT event\", \"discarding %s type %d\"",
    "evidence": [
     {
      "type": "firmware",
@@ -221017,13 +221154,76 @@
      "build": "86.10-80260",
      "address": "0x105a3328",
      "notes": "Virtual +0xc called only when eligible object virtual +8 returns false."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1018eaac",
+     "notes": "Established: new(0x210) EntitlementsManager via ctor f_10370f1c (strings 'entitlements_manager'/'EntitlementsManager'/'entitlements_mgr', source ../anacapa-1.0/oc/zone/zoneplayer/entitlementsmanager.cxx) stored at god+0x14d34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101893f4",
+     "notes": "Established: sole startup pair assembled on stack: isel r10,(E+0x12c)|0 on cr7.eq(E==0) at 0x10189414; evstddx r8,r7,r9 stores {r8,r9=-0x18} at sp+0x28 then stw r10 overwrites word0 at 0x10189434. Pair = {E?E+0x12c:0, 0xffffffe8}, count=1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a3768",
+     "notes": "Established: f_105a35b0(sync=*(god+0x3f840), ready, pairs, count) stores arg2 at sync+0x12c via stw r27,0x12c(r28); arg2 = isel(*(god+0xc7c)+4 or 0) built at 0x10189418-0x10189430; logs 'RCloudSynchronizer initalized.' under 'cloud_sync'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ebf7a4",
+     "notes": "Established: EntitlementsManager+0x12c subobject vtable (installed by ctor stw at 0x103710b0): vfunc+8 f_10371d54, vfunc+0xc f_10372978, both addi r3,-0x12c adjusting thunks back to the primary base."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10371c80",
+     "notes": "Established: vfunc+8 impl f_10371c80 builds an 'entitlements' string (f_10370864), looks up its subject via f_10371c10 and publishes through f_109e66b0; returns nonzero so a successful publish suppresses the vfunc+0xc fallback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103726fc",
+     "notes": "Established: vfunc+0xc impl f_103726fc is the cache-update fallback ('onCacheUpdate'): same 'entitlements' subject, f_109e66e8 eTag read (failure logs 'failed to get current eTag from cache' at 'entmt' level 6), then EntMgr->vfunc+0x3c f_1037120c performs the cloud GET '/entitlements/api' with 'X-Sonos-User-Id' header, logs 'Fetch from cloud returned with status=%s', and vfunc+0x40 f_10372980 consumes the result."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105a32c4",
+     "notes": "Established: pair dispatch requires BOTH pair.sel == arg (bc 4,30 skip) AND arg == 0 (bc 4,18 skip on cr4 from cmpwi r29,0 at 0x105a32a8). Sole invoker f_100b94e0 passes arg 0, so only selector-0 pairs can ever fire; the stored selector 0xffffffe8 cannot match, leaving the startup pair inert under every proven call path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x109ed8f0",
+     "notes": "Established: readiness predicate f_109ed8f0 is a generic forwarding thunk, obj->vfunc+8(obj) via mtctr/bctr; the walk gates the whole iteration on its nonzero return. Second use site 0x105fcad0 gates a separate fetch alongside two capability checks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10189210",
+     "notes": "Established: the same *(god+0xc7c)+4 readiness pointer is stashed into global 0x11097d94 via setter f_109d3910; *(god+0xc80) is a refcounted companion (lwarx/stwcx ++ at +4, f_100c5050 release) held for the call duration."
     }
    ],
-   "todo": "Residual: identify the concrete startup registrant at parent+0x4d34/+0x12c and trace its virtual +8/+0xc implementations, together with the readiness predicate f_109ed8f0. JIT is proven to schedule selector-zero work with null callback data; a service-id/body wire schema and the earlier six-store list are not established.",
    "resolved_findings": [
     "Registration is a bounded array of eight-byte {object pointer, selector} pairs, not a proven six-service replicated-store list. Constructor f_105a3058 clears 32 physical slots at owner+0x28 and count at +0x128. registerServices f_105a3158 rejects unsigned count>31 at 0x105a3160-0x105a316c, rejects a subsequent registration only if the existing count is nonzero at 0x105a3170-0x105a3178, copies count pairs and stores the count. The Aborting text on these guards leads to a diagnostic and return, not a process abort (0x105a31d0-0x105a3254). Count zero is accepted and leaves the subsequent-call guard unset. Thus max accepted count is 31, despite storage for 32 pairs.",
     "Native startup call sites at 0x10189468-0x10189470 and 0x10189508-0x10189510 both pass count=1 and stack+0x28 to initializer f_105a35b0, which forwards that pair to f_105a3158 at 0x105a3754-0x105a3760. The pair is assembled at 0x101893f4-0x10189434 from the object loaded at parent+0x4d34 plus its +0x12c subobject. These instructions disprove the claimed fixed set of settings/accounts/favorites/playlists/queues/experiments registrants. The exact concrete service behind this startup subobject still needs its vtable and owning constructor traced.",
-    "The JIT callback itself has no decoded service-id/body envelope. f_105a2ee8 logs the JIT event and schedules callback f_100b94e0 with null callback data through scheduler virtual +8 at 0x105a2f34-0x105a2f5c. f_100b94e0 then invokes f_105a3258 with selector zero at 0x100b94f4-0x100b9508. That worker first requires f_109ed8f0(owner+0x12c) to return nonzero, then walks registered pairs, applying the selector filter only when the supplied selector is nonzero. Each eligible object gets virtual +8; only a false result triggers its virtual +0xc at 0x105a3328-0x105a3338. This proves a scheduled all-registrant wake/check path for JIT, not direct dispatch of a parsed push body. Adjacent WebSocket/muse strings alone do not bind this callback to a WSS wire parser."
+    "The JIT callback itself has no decoded service-id/body envelope. f_105a2ee8 logs the JIT event and schedules callback f_100b94e0 with null callback data through scheduler virtual +8 at 0x105a2f34-0x105a2f5c. f_100b94e0 then invokes f_105a3258 with selector zero at 0x100b94f4-0x100b9508. That worker first requires f_109ed8f0(owner+0x12c) to return nonzero, then walks registered pairs, requiring the stored selector to equal the dispatch argument and the argument to be zero (bc 4,30 / bc 4,18), so only selector-0 pairs fire on the selector-0 JIT dispatch. Each eligible object gets virtual +8; only a false result triggers its virtual +0xc at 0x105a3328-0x105a3338. This proves a scheduled all-registrant wake/check path for JIT, not direct dispatch of a parsed push body. Adjacent WebSocket/muse strings alone do not bind this callback to a WSS wire parser.",
+    "The single startup registrant is the EntitlementsManager +0x12c cache-update delegate: new(0x210) via ctor f_10370f1c, stored at god+0x14d34, subobject vtable 0x10ebf7a4. Its vfunc+8 posts the 'entitlements' inprocess event (f_10371c80); its vfunc+0xc is the cloud fallback fetch of /entitlements/api with X-Sonos-User-Id and eTag gating (f_103726fc). Readiness is the *(god+0xc7c)+4 secondary base installed at sync+0x12c, probed by generic vfunc+8 forwarder f_109ed8f0. The stored selector 0xffffffe8 never matches the only proven dispatch argument (0), so the delegate is registered but cannot be invoked by this walker; whether a nonzero-selector path exists elsewhere is not statically established."
    ]
   },
   "cert": {
@@ -221276,10 +221476,65 @@
      "build": "86.10-80260",
      "address": "0x100cac70",
      "notes": "Services XML emitter disproves the supposed route-authentication provenance of bit 0x80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076a264",
+     "notes": "Sole row-selection predicate: (row+4 flags & ctx+8 include)!=0 and (& ctx+0xc exclude)==0 plus optional row+0 name filter; emits SDT timing comments when ctx+0x10 bit0 set."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x11090024",
+     "notes": "Table-pointer triple {route 0x110908c8, file 0x11090228, cmd 0x11090144} consumed as statics+0x1d4/0x1d8/0x1dc by emitter f_1076b5dc with per-table strides 0xc/0x10/0xc and callbacks f_10769bc0/f_1076a878/f_1076b148."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10769ed4",
+     "notes": "Emit-ctx ctor: include=1, exclude=0, flags and output mode from args; per-endpoint presets {aggregate/raw 0x61, networkmatrix 0x31, review/status 0x11, text/plain 0x4}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b2d6c",
+     "notes": "Manifest-record producer: rec+0=f mask 0x22, rec+4=e mask (0x10 when flag arg is 0), rec+0x5a=type strlcpy 0x21 with ExtraLocal->User remap and User default."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ef2aec",
+     "notes": "Enum-to-type-name table +0x10: indices 1..6 = {Healthcheck,Server,User,SNF,Feedback,ExtraLocal}; dispatcher f_105b34f8 defaults index 3."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106b69b8",
+     "notes": "Fetcher serializes record into GET localhost:port/support/aggregate?type=%s&f=%x&e=%x from rec+0x5a/rec+0/rec+4 at 0x106b69b8-0x106b69f4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x110916d4",
+     "notes": "Route row {path '/support/aggregate', handler f_105e9fb0, flags 0x10000000}; sibling rows directsubmit/review/asyncsubmit/networkmatrix share the table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105ea9e0",
+     "notes": "/raw handler presets include mask 8 (bit3 network set); /status at 0x105ebb44 uses 3 or 0x83 when cfg+0x110/0x111 internal flags are set."
     }
    ],
    "coordinator": "DiagMgr: types {Healthcheck,Feedback,ExtraLocal,Diagnostics}+diag_metadata; ops {submitQueuedDiagnostic,SubmitDiagnostics}; queue bounds {\"submission queue full\",\"result queue full\"}; params {includeControllers,initiatingDeviceId} fmt %s%hu; delayed \"triggered ... for %us from now\"; results {unrecognized status,Failed to update status,failed-other submission in process,unsuccessful-no devices submitted,successful}; completed log \"submissionId: %s, status: %d, diagnosticId: %d\"; zpDiagSubmit+tracking+diag_mgr vars; <ZPNetworkInfo type = 'User'> + <!-- START/END UUID: %s --> markers + \" unreachable\"",
-   "todo": "Residual: trace the consumer predicates applying the file-row flags at 0x11090228 and the producer of manifest record+0x5a, then bind diagnostic categories to actual selection behavior. The manifest writer copies caller-provided type text; the earlier claim that symbolic bit names live in a runtime-generated flag/type-name join is unsupported.",
    "resolved_findings": [
     "Resolved: %s.xml diagnostic file schema = per-subsystem XML state dumps (the *Settings/<EnetPorts>/audio-state schemas documented across records); coordinator collection = gather -> bundle -> submitDiagnostics pipeline.",
     "Collection state machine decoded (diagnostics.cxx literals 0x10ef2bxx): diag types are {Healthcheck,User,Feedback,ExtraLocal,Diagnostics} plus diag_metadata; ops submitQueuedDiagnostic/SubmitDiagnostics enter through zpDiagSubmit with params {includeControllers,initiatingDeviceId} (%s%hu id format) and bounded queues (submission queue full / result queue full). The coordinator FSM: Diagnostic submission (%s) triggered (ID: %s) for %us from now by %s (deferred trigger) -> per-device status collection via http://%s:%d%s pulls with Diagnostic submission status reported to %s (ID: %s, GUID: %s) -> terminal states Diagnostic successful (ID: %s) / Diagnostic unsuccessful, no devices submitted diags / Diagnostic failed, other submission in process; errors unrecognized status, Failed to update status, Failed to add result with submissionId: %s, completion logged as Diag submission completed, submissionId: %s, status: %d, diagnosticId: %d; a tracking state persists in-flight submissions. Per-file schema: each device contributes <ZPNetworkInfo type = 'User'> + the manifest field set; unreachable devices log ' unreachable' and HTML comments <!-- ... --> mark section boundaries.",
@@ -221292,7 +221547,8 @@
     "File-table flags and manifest type text are separate data paths, not a proven runtime flag-to-symbolic-name join. Raw rows at 0x11090228 have sixteen-byte layout {path pointer, flags, zero/reserved word, name pointer}: /VERSION has flags 1, /etc/resolv.conf has 2, and /jffs/app/log/anacapa.log.backup has 0xe (0x11090228-0x11090254). Row-membership nicknames such as standard/wireless/verbose describe inferred groups, not recovered enum spellings or verified selection predicates.",
     "The manifest writer f_106b4cd8 directly emits <DiagnosticManifest type=... version=2.0.0>: format at 0x10f05460, keys type/version at 0x106b4cf0-0x106b4d00, and type value taken from incoming record r4+0x5a at 0x106b4d30. There is no flag lookup in that formatting path. It writes the header through f_105458e0, appends supplied serialized content through f_106b8688/f_106b8694, and writes the closing tag (0x106b4d44-0x106b4dd4). A failed write returns zero. Callers at 0x106b6534 and 0x106b6564 preserve this record argument rather than deriving a type name from the file-row mask.",
     "The aggregate HTTP interface independently parses hexadecimal f and e through strtoul with base 16, restricts them to 0x23 and 0x13 respectively, then ORs each accepted value into its corresponding accumulator at 0x105ea20c-0x105ea24c. type is copied as text into a 32-byte buffer at 0x105ea1f8-0x105ea204, without a bit-to-name table. include_crs=no adds e bit 0x10 at 0x105ea0b8-0x105ea0ec. After output, f bit 0x20 reaches the cleanup branch at 0x105ea16c-0x105ea178. Thus f/e action/filter masks, file-row masks and manifest text must not be assumed to share symbolic names merely because their numeric bits overlap.",
-    "Bit-field audit withdraws the inherited symbolic interpretation of file-row values 0x2/0x6/0xa/0xe/0x43/0x46/0x82. Neither raw table values nor the aggregate request vocabulary prove the asserted base/wifi-PHY/timekeeping/wireless-health categories. In particular, 0x80 is not established as an HTTP route-authentication bit: the cited f_100cacd8 predicate belongs to service XML generation, as its neighboring <Services>/<Presentation> emitters establish. The earlier table-stride/selection narrative is not a recovered selection predicate. Actual aggregate parsing is independently verified: 0x105ea220 is andi. immediate 0x23 and 0x105ea244 is andi. immediate 0x13, not shifts or tests of those file-row category names. Concrete file-row consumers remain the existing residual."
+    "Bit-field audit withdraws the inherited symbolic interpretation of file-row values 0x2/0x6/0xa/0xe/0x43/0x46/0x82. Neither raw table values nor the aggregate request vocabulary prove the asserted base/wifi-PHY/timekeeping/wireless-health categories. In particular, 0x80 is not established as an HTTP route-authentication bit: the cited f_100cacd8 predicate belongs to service XML generation, as its neighboring <Services>/<Presentation> emitters establish. The earlier table-stride/selection narrative is not a recovered selection predicate. Actual aggregate parsing is independently verified: 0x105ea220 is andi. immediate 0x23 and 0x105ea244 is andi. immediate 0x13, not shifts or tests of those file-row category names. Concrete file-row consumers remain the existing residual.",
+    "Selection predicate and manifest producer fully traced, closing the residual. Emit context built by ctor f_10769ed4: {+0 request, +4 output string, +8 include mask (default 1), +0xc exclude mask (default 0), +0x10 output-mode flags, +0x14 type text buf[0x20]}. Sole table iterator f_1076a264 (called only from emitter f_1076b5dc at 0x1076b6a8/0x1076b778/0x1076b79c) walks each row array by stride and selects a row iff (row+4 flagword & ctx+8 include) != 0 AND (row+4 & ctx+0xc exclude) == 0 (and, when a nonempty name filter is passed, row+0 equals it; the aggregate callers pass an empty string). The three registered tables sit at statics+0x1d4/0x1d8/0x1dc = .data triple 0x11090024/0x11090028/0x1109002c: route table 0x110908c8 (57 rows, 0xc stride {path,flags,handler_fn}, emit cb f_10769bc0 tail-calls the row's own handler), file table 0x11090228 (105 rows, 0x10 stride {path,flags,0,name}, cb f_1076a878 expands the path via f_1076a420 then f_10ca2028 emits <File name='%s'> + contents), and command table 0x11090144 (18 rows, 0xc stride {name,flags,command}, cb f_1076b148 -> f_1076b10c: a registered hook at 0x110b6154 wins, else ctx+0x10 bit 0x40 selects f_10769f50 - writes the command's rodata index byte to /tmp/diagstdin and reads /tmp/diagstdout, the diagprocessd FIFO - vs f_1076adb4 direct execution). Include-mask sources: /support/aggregate (route row 0x110916d4 -> f_105e9fb0) starts at 1 and ORs each hexadecimal f param masked to 0x23; /status (f_105ebb20) uses 3, or 0x83 when config bytes at cfg+0x110 and cfg+0x111 are set, and swaps ctx+0x10 between 0x11 (HTML) and 0x4 (Accept: text/plain); /raw (f_105ea98c) uses 8; /support/review and /support/networkmatrix use 1 with ctx+0x10 {0x11,0x31}. Exclude sources: e params masked to 0x13 plus 0x10 when include_crs=no. URL f bit 0x20 is not a row category: it triggers the post-emit cleanup (rename watchdog.dmesg/watchdog.log to .old, unlink button_triggered.xml/dropout_triggered.xml). ctx+0x10 bit 0x01 enables per-section '<!-- SDT: %ld ms -->' timing comments. Category binding is therefore concrete: bit0 = baseline rows (/VERSION, /ifconfig, /zp), bit1 = standard payload, bit3 = the /raw network set (netstat, brctl, chronyd/udhcpc/arp/topology/upnp, wpa_supplicant), bit7 = internal rows (/api, /cloudqueue, /leds, anacapa.dc.log) reachable only through the /status config opt-in, bit4 (0x10) = crash-report sections with no static table rows, and bit5 (0x20) = the cleanup pseudo-flag; bits 0x4 and 0x40 never appear without 0x1 or 0x2, so no reachable include mask can select them alone and every listed row emits whenever the standard set is included. Manifest record+0x5a producer is f_105b2d6c (DiagMgr job builder): it writes record+0 = 0x22 (f mask), record+4 = 0x10 when its flag argument is 0 else 0 (e mask, i.e. exclude crash sections), strlcpy type text into record+0x5a[0x21] - 'ExtraLocal' normalized to 'User', empty input defaulting to 'User' - and strlcpy this+0x238 into record+0x7b[0x25]. The enum-to-name table at 0x10ef2aec+0x10 maps indices 1..6 to {Healthcheck,Server,User,SNF,Feedback,ExtraLocal} with default index 3 (User) in dispatcher f_105b34f8; other producers of the record are the /support/directsubmit handler (literal 'User', flag=1) and wrapper f_1073e718. Bundle fetcher f_106b6878 then serializes the record verbatim into 'http://localhost:%u/support/aggregate?type=%s&f=%x&e=%x' using rec+0x5a, rec+0 and rec+4, so a queued diagnostic always fetches with f=0x22 (effective include 0x23: baseline + standard + cleanup) and e in {0,0x10}; the manifest writer f_106b4cd8 emits <DiagnosticManifest type='%s' version='2.0.0'> from the same rec+0x5a field. This is verified disassembly, not inference; the only unsupported naming is the symbolic labels for bits 0x4 and 0x40, which mark wireless/extended groups but have no independent selection path."
    ]
   },
   "device_props": {
@@ -221644,9 +221900,6 @@
   },
   "upgrade": {
    "check_layer": "update-check client: \"Fetching %s\"/\"Failure fetching (0x%x) (%d)\"; fields {updateServerIP,httpResult,updateAutoCheckError,useCachedOnly,updateType}; headers X-Sonos-LatestSWGen: %u + Content-Location: %s; \"Redirect detected, final URI: %s\"; \"UPM Invalid\"; \"Check for updates %s (%u)\"/\"Check for online update (user)\"/\"Unknown upgrade server state\"; R_AvailableSoftwareUpdate sysprop; SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions,allowDowngradeToPrevSWGen,denyDowngradeToPrevSwGenList}; \"Invalid swgen member detected, swgen: 1\"",
-   "todo": [
-    "Established: exact version3/4 admission, callback-status contract and verified32-byte concatenated-id stash naming. Remaining: follow sonosRcbVerifySig and all consumers of parsed fields+0x43/+0x53 to establish verification coverage or other observable distinctions before assigning bundle/content/manifest labels. Separately trace callers supplying the request-builder stack flag tested at0x1000a4e4; it is not proven to be RCB field1. Only original signing-time labels demonstrably unused by all shipped consumers would require producer/source artifacts. This remains actionable static work."
-   ],
    "resolved_findings": [
     "Resolved: check_layer = the update-check client {Fetching %s, updateServerIP, httpResult, updateAutoCheckError, useCachedOnly, updateType}; linked to the bin_* manifest/download records under update_machinery.",
     "Check-layer role proven: this is the update-check client that polls the upgrade server (Fetching %s / Failure fetching %s (0x%x) (%d)) and parses a manifest response - the server returns the latest build via the X-Sonos-LatestSWGen: %u response header and the payload location via Content-Location: %s, with redirect following (Redirect detected, final URI: %s). Checks run in two modes: scheduled auto-check (updateAutoCheckError field) and user-initiated (Check for online update (user)), logged as Check for updates %s (%u); useCachedOnly forces the cached manifest. The request carries device descriptor fields {dd_mhh, dd_sn, dd_md, dd_bld, dd_in_hh, dd_in_ver}. Results land in the R_AvailableSoftwareUpdate system property (error saving ... on failure) which drives the availableSoftwareUpdate lechmere topic; UPM Invalid and Unknown upgrade server state cover bad manifest responses. The SWGen downgrade policy {downgradeMinVersion,downgradeRestrictions} is enforced here before any download job is queued - the actual image fetch/flash is the bin_upgrade/bin_upgrade_mgr layer, not this record.",
@@ -221662,7 +221915,12 @@
     "RCB field2 (file +0x5a, 16B) consumer found in /bin/upgrade: sonosRcbParseHeader copies it to out+0x53, and the bundle-save path hex-encodes BOTH 16-byte ids as one 32-byte blob - filename is '/jffs/sys/run/rcb/%s-%s.rcb' = {header name (file +0xa..+0x49, e.g. '78.1-47150')}-{hex(field1+field2)}. Verified against shipped fallback_trusted_roots.rcb: ver=4, name='78.1-47150', field1=9f5f3188.., field2=b79beabb.., count=24 x 12-byte entries. These consumer observations do not identify signing-time labels or establish that either field is a content digest.",
     "Established: field2 (+0x5a, 16B) is a second opaque bundle identifier - consumed: RserializeData hex-encodes field1+field2 together into the /jffs/sys/run/rcb/<name>-<64hex>.rcb stash filename. Verified numerically on the shipped fallback bundle.",
     "Independently checked RCB parser at library0xc64: callback results0/9 continue, other results return without header parsing. Raw0x5529043e at0xde4 retains the low16 bits of version-3; comparison0xde8/branch0xdec accepts exactly versions3/4, not every version>=3. Bad magic returns3 and invalid version returns7; pointer/buffer checks return8.",
-    "Upgrade f_100065d8 calls sonosRcbParseHeader with sonosRcbVerifySig at0x10006654 and requires result0 before naming/persisting the bundle. RserializeData receives32 bytes at stack+0x9b, covering both parsed16-byte fields, with65-byte output capacity; the stash path formats name plus64 hex characters. Existing-file and create-failure branches are separate. This is an actual consumer join, not proof of the original signing-time identifier meanings."
+    "Upgrade f_100065d8 calls sonosRcbParseHeader with sonosRcbVerifySig at0x10006654 and requires result0 before naming/persisting the bundle. RserializeData receives32 bytes at stack+0x9b, covering both parsed16-byte fields, with65-byte output capacity; the stash path formats name plus64 hex characters. Existing-file and create-failure branches are separate. This is an actual consumer join, not proof of the original signing-time identifier meanings.",
+    "sonosRcbVerifySig contract resolved (libsonos-root-cert-bundle.so.2 0x15f4): ZZ0121 parses the optional detached-signature blob at data+0 (magic 0x9de2a74d, version 1, key records stride 0x910 per libsonoscrypto 0x9e14) and the parsed byte length is stored to *off_out (stw r3,0x0(r27) at 0x1650). A zero length returns status 9 (no signature, 0x1654-0x165c). A nonzero length calls ZZ0123 (lib 0x20068, multi-key-selector verify) over the range data+sig_len .. data+size (pointer math at 0x16a4/0x16ac) and the result is collapsed to 0 verified or 2 tampered (isel at 0x16cc-0x16d0). So the signature covers the entire bundle blob after the sig prefix: header fields {version, name, id, section directory} and all section payloads are inside the authenticated range; ParseHeader's own checks add only 'rcbundle' magic, version==3||4, and bounds.",
+    "Unsigned-policy distinction found: /bin/upgrade f_100065d8 requires sonosRcbParseHeader result exactly 0 (cmpwi/bne at 0x10006658-0x1000665c), so unsigned bundles (status 9) are rejected and never stashed by the upgrade client. certval loadCertBundle (libsonos-certval.so.2 0x75c48) instead accepts status 9 when provider virtual +0x18 returns true (gate at 0x75d6c-0x75d84); all four provider slots +0x18..+0x24 in _ZTVN5sonos16RootCACertBundleE (0x1abfbc) are __cxa_pure_virtual, so unsigned admission is a per-source policy, not global. Verified status 0 always proceeds to ParseManifest (0x75dd4) which builds the ctx+0x70 section array and sets the parsed flag this+0x11c; sonosRcbParseCerts/ParseCertsCopy materialize cert sections later inside getRootCertsInternal (GOT-indirect calls via .rela.dyn slots 0x1aea98/0x1aeaa4).",
+    "Out-struct field consumption fully traced; the +0x43/+0x53 pair (file +0x4a/+0x5a) is consumed only as one 32-byte blob and never split by any shipped consumer. /bin/upgrade RserializeData hex-encodes ctx+0x43..+0x62 for the stash filename '/jffs/sys/run/rcb/%s-%s.rcb' where part 1 is the ctx+0x02 name and part 2 is the 64-hex id (args at 0x1000667c-0x1000669c), the file is written only if absent (sonosFileExists 0x100066b0) via sonosFileCreate of the raw received blob (0x100066bc-0x100066cc), then sonosRcbFree. certval f_75b9c copies ctx+0x02 name to this+0x94 and hex-encodes ctx+0x43 (0x20 bytes) to this+0xd5; getters confirm labels: formatVersion()=u16 header version (0x751b8 lhz this+4), version()=name string (0x751d8 -> this+0x94, e.g. '78.1-47150'), id()=64-hex id (0x751c8 -> this+0xd5). The id feeds metadata filenames and findBestBundle/updateBestBundleLocked bundle selection. No shipped consumer assigns distinct roles to the two 16-byte halves or verifies against them; the only producer labels supported by binary evidence are 'bundle name/version string' (+0x0a) and 'opaque 32-byte bundle identifier' (+0x4a..+0x69).",
+    "anacapad registration resolved at 0x10579fb0: certval::initialize(sonosRcbVerifySig via PLT 0x11099660, logfn f_10579e88, boolfn f_10579b2c, voidfn f_10579b44, filecb f_10579b50, dirpath) with dirpath built by constructJFFSRootPath('sys/run/rcb') at 0x10579f44 and pre-created by sonosMkDirRecursive at 0x10579f4c, giving /jffs/sys/run/rcb - the same directory /bin/upgrade stashes into. anacapad imports only sonosRcbVerifySig and sonosRcbStatusToString from the RCB library (dynsym); it never calls ParseHeader/ParseManifest/ParseCerts itself, so all bundle parsing for TLS trust runs inside libsonos-certval.so.2.",
+    "The stack flag tested at /bin/upgrade 0x1000a4e4 resolved as a request option byte, not an RCB field: f_1000a300 (URL builder) does lbz of the first stack argument's low byte at sp+0x9b; nonzero appends '&au=1' (0x1000a4f0-0x1000a518). The second stack arg byte at sp+0x9f (tested 0x1000a370) selects the URL form: nonzero -> '%s%s-%u-%u.upd?...' image URL (0x1000a3f4), zero -> '%supdate.upm?...' manifest URL (0x1000a4a8). The only direct caller is 0x100027f0 inside the '^'-delimited option parser; it stores 0 to both stack-arg words (stw r9=0 at 0x100027c8 and 0x100027d0), so shipped code always builds the .upm manifest URL without &au=1 through this builder. The RCB-field hypothesis for this byte is withdrawn."
    ],
    "evidence": [
     {
@@ -221671,6 +221929,34 @@
      "build": "86.10-80260",
      "address": "0x00000de4",
      "notes": "Raw5529043e is low16 mask, then unsigned<=1 test after subtract3; callback0/9 gate atce8-cf8. Upgrade caller10006654 and32-byte serialization10006674 independently checked."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-root-cert-bundle.so.2",
+     "build": "86.10-80260",
+     "address": "0x000015f4",
+     "notes": "sonosRcbVerifySig: ZZ0121 sig-blob parse, *off=len at0x1650, ret9 when0, ZZ0123 verify over data+len..data+size, ret0/2. Status strings .rodata 0x18e4."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonos-certval.so.2",
+     "build": "86.10-80260",
+     "address": "0x00075c48",
+     "notes": "loadCertBundle: provider vfuncs +0x24/+0x1c/+0x20 supply bytes, status9 gated by vfunc +0x18 (pure virtual in base vtable 0x1abfbc), f_75b9c fills name/hexid members, ParseManifest at0x75dd4, parsed flag this+0x11c. Getters 0x751b8/0x751c8/0x751d8."
+    },
+    {
+     "type": "firmware",
+     "binary": "/bin/upgrade",
+     "build": "86.10-80260",
+     "address": "0x1000a4e4",
+     "notes": "URL builder f_1000a300: sp+0x9b flag -> '&au=1', sp+0x9f flag -> .upd vs .upm; sole caller 0x100027f0 stores 0 to both stack args. ParseHeader result must be exactly0 at 0x10006658."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10579fb0",
+     "notes": "certval::initialize(sonosRcbVerifySig, f_10579e88, f_10579b2c, f_10579b44, f_10579b50, '/jffs/sys/run/rcb'); dir built+created at 0x10579f44/0x10579f4c."
     }
    ]
   },
@@ -221911,16 +222197,49 @@
      "build": "86.10-80260",
      "address": "0x100ced98",
      "notes": "Separate four-row reverse converter, not a global plugin registry."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10349d00",
+     "notes": "Top-level ObjectID resolver is a pure literal ladder: exact strcmp then strncmp per prefix in order A:(0x10eadfc4), S:(0x10e78008), Q:(0x10ebb870), R:(0x10fde18c), AI:(0x10ebb928), SQ:(0x10e93c84), FV:(0x10e8856c); no vfunc dispatch inside the resolver; unmatched IDs return NULL."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10349980",
+     "notes": "Root-directory ctor installs vtable 0x10ebb598 and builds every backend inline: +8 attr-graph f_102a3b74, +0xf8 shares f_10348804, +0x1f0 saved-queue f_103498f8, +0x338 AI:0 node vtable 0x10ebb6a8, +0x344 radio f_1037d234, +0x34c/+0x350 favorites from ctor args; child array +0x358 count +0x374=4; +0x354 queue pointer stays NULL."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10712194",
+     "function": "0x1071215c",
+     "notes": "WMP NSS provider mints its own container namespace: snprintf literal x-rincon-cpcontainer:SCPB:%s/%s at 0x10f0dbd4, then emits through this+0x408 vfuncs +0x10/+0x18; resolution of those IDs lives in the NSS endpoint, not the Browse dispatcher."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103827b4",
+     "function": "0x1038215c",
+     "notes": "Known-service predicate f_100ce82c (radea:, npsdy:, rdradio:, x-rincon-cpcontainer:RDCPA:, x-rincon-cpcontainer:RDCPI:) guards the favorites-file migration parser; sibling call sites f_1047bffc (SavedQueues) and f_1027eb0c (AlarmClock) are also stored-file migrators, not Browse dispatch."
     }
    ],
-   "todo": "Residual: trace ContentDirectory Browse backend selection and any provider/plugin registration path, including whether it can introduce namespaces outside the fixed Rhapsody converters. The thirteen-row RDCPA/RDCPI converter itself has a constant table and fixed loop bound; it is not a global backend-registration census.",
    "resolved_findings": [
     "Resolved: BrowseFlag paths = BrowseMetadata -> metadata serializer, BrowseDirectChildren -> child-list resolver per browse-category wire id; request parsing fetches {ObjectID,BrowseFlag,Filter,StartingIndex,RequestedCount,SortCriteria} positionally.",
     "Browse backend model proven: ContainerID namespaces dispatch to backends - the local library families (LIB* ids from browse_ids: LIBARTIST, LIBALBUM, LIBGENRE, LIBTRACKS, LIBPLAYLISTS, LIBSTATIONS, LIBMUSIC + Q:0/Q:1 queue roots) resolve against the local share index (share_indexer engine), while service-prefixed ids route through the x-rincon-cpcontainer SCP layer to the owning provider (wmp_provider for WMP NSS; a binding from SMAPI registration to this converter has not been established). BrowseFlag {BrowseDirectChildren, BrowseMetadata} selects list-vs-describe mode; Filter + SortCriteria + StartingIndex/RequestedCount window the response, and NumberReturned/TotalMatches/UpdateID frame it. The dual URN set {urn:schemas-sonos-com:service:ContentDirectory:1, urn:schemas-upnp-org:service:ContentDirectory:1} serves both namespaces; zh-CN/ja-JP locale variants exist. Event vars {SystemUpdateID, ContainerUpdateIDs, ShareIndexInProgress, ShareIndexLastError, FavoritesUpdateID, RadioFavoritesUpdateID, RadioLocationUpdateID, SavedQueuesUpdateID, ShareListUpdateID, cdMediaServer} are the LastChange payload vocabulary. UpdateObject/CreateObject/DestroyObject carry Elements XML; FindPrefix/GetAllPrefixLocations handle id-prefix mapping; SCHED ops bound the scheduler hooks.",
     "Resolved: the ContainerID prefix dispatch ladder is literal @0x10e77fc0+: RDCPA:ARTALBUM: -> explore:artist:mainreleases::art.%s; RDCPA:ARTCOMPILATIONS: -> explore:artist:compilations::art.%s; RDCPA:ARTSINGLESEPS: -> explore:artist:singlesandeps::art.%s; RDCPA:ARTTOPTRACKS: -> explore:artist:toptracks::art.%s; RDCPA:GLBALBUM: -> explore:album::alb.%s; RDCPA:GLBARTIST: -> explore:artist::art.%s; RDCPA:GLBPLAYLIST: -> explore:playlist::pp.%s; RDCPA:LIBPLAYLISTS: -> explore:playlist::mp.%s; RDCPA:LIBPLAYLISTS (no colon) -> mymusic:playlists; RDCPA:LIBALBUM: -> mymusic:album::alb.%s; RDCPI:ARTSTATION:/RDCPI:GLBSTATION:/RDCPI:GLBTRACK: are item-level URIs. So prefix rows ARE literal: RDCPA = container prefixes, RDCPI = item prefixes, each mapping to an explore:/mymusic: target template.",
     "The RDCPA/RDCPI mapping is positively bound to a Rhapsody-ID converter, not proven as the entire ContentDirectory backend namespace registry. f_100ceb4c loads constant table 0x10e77464 at 0x100ceb68-0x100ceb70, compares each prefix with strncmp, advances by 0x18 per row and stops after index 12 at 0x100cebd0-0x100cebdc. A miss logs Unknown Rhapsody ID type and returns zero at 0x100cebe0-0x100cec18. The first row is RDCPI:GLBTRACK:, followed by the twelve RDCPA/RDCPI rows already enumerated. No runtime count, append operation or plugin callback is used by this thirteen-row search.",
     "On a matching row, prefix-map consumers read an optional extraction marker at row+0x10 and a target/template at +0x14 (0x100cec6c-0x100cec94). A null marker copies the constant target directly at 0x100cecfc-0x100ced14; otherwise f_100ce8f0 extracts the identifier and snprintf formats the target at 0x100cec78-0x100cecb4. Failed extraction returns zero. Fields at +4,+8 and byte +0xc are forwarded to f_1071d758 before the result is copied to the caller. This is immutable per-row conversion data, not evidence that SMAPI plugins register new rows.",
-    "A distinct reverse-conversion path f_100ced24 starts with radea:Tra. and checks four fixed 0x20-byte rows, using offsets +0x138 through +0x154 relative to 0x10e77464 (0x100ced98-0x100cee58). Its existence further distinguishes these provider-specific conversion tables from a general-purpose ContentDirectory registration API. The earlier blanket attribution of this ladder to all ContainerID dispatch is withdrawn; the broader backend/plugin registration question still requires the Browse dispatch call chain."
+    "A distinct reverse-conversion path f_100ced24 starts with radea:Tra. and checks four fixed 0x20-byte rows, using offsets +0x138 through +0x154 relative to 0x10e77464 (0x100ced98-0x100cee58). Its existence further distinguishes these provider-specific conversion tables from a general-purpose ContentDirectory registration API. The earlier blanket attribution of this ladder to all ContainerID dispatch is withdrawn; the broader backend/plugin registration question still requires the Browse dispatch call chain.",
+    "Established: Browse backend selection has exactly one entry - f_1034a224 resolves exact 0 to the root directory at impl+0x168, then f_10349d00 runs a fixed literal prefix ladder {A:,S:,Q:,R:,AI:,SQ:,FV:} where each arm returns a compiled-in backend object slot or a per-prefix sub-resolver; every other ObjectID yields NULL and the action fails early with 701.",
+    "Established: there is no provider/plugin registration path inside ContentDirectory. The root-directory ctor f_10349980 constructs all seven backend objects inline into fixed slots (+8,+0xf8,+0x1f0,+0x338,+0x344,+0x34c,+0x350) and fills the +0x358 child array once; the only runtime-conditional member is the +0x354 queue-directory pointer, which stays within the compiled Q: namespace. No store, append or registration API extends the prefix set or the backend array.",
+    "Established: service-provider namespaces are minted and consumed outside ContentDirectory/Browse. The WMP NSS facade emits x-rincon-cpcontainer:SCPB:%s/%s container IDs inside its own /WMPNSSv responses (f_1071215c) and resolves them in its own browse path; SMAPI service browse travels through each service endpoint. Those IDs never reach f_10349d00, so no provider can add a top-level ObjectID namespace at runtime.",
+    "Established: the x-rincon-cpcontainer/Rhapsody converters and the f_100ce82c known-service predicate execute only inside stored-state migrators (favorites f_1038215c, SavedQueues f_1047bffc, AlarmClock f_1027eb0c, helper f_100d0b34) to rewrite old persisted IDs to explore:/mymusic: targets. They are conversion utilities, not a backend registry: the complete top-level namespace set is the compiled seven-prefix ladder plus root 0."
    ]
   },
   "audio_stream_mixer": {
@@ -225763,15 +226082,74 @@
      "build": "86.10-80260",
      "address": "0x1058b138",
      "notes": "Counter wrap substitutes one, not a stage-list restart."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10180b90",
+     "address": "0x10180c08",
+     "notes": "Third trigger: 'cert update event' callback reaches f_1058b664 only when f_1064b98c()==3 at 0x10180bac."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1058a574",
+     "address": "0x1058a6b4",
+     "notes": "Ctor seeds manager+0xd8=1 and stores caller settings delegate into +0xdc; name 'BootSequenceManager' built at +0x8 and +0x28."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x109bda4c",
+     "address": "0x109bdb28",
+     "notes": "Settings delegate vfunc+0x14 open64s '<vardir>/app/settings', writes 0xf-byte record, temp-renames via snprintf path. BootSeq persists to the local settings file."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10bbb834",
+     "address": "0x10bbb8a4",
+     "notes": "Composite subject key = src string + '_' + event name; for this producer 'BootSequenceManager_BootSequenceEvent'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10bbcebc",
+     "address": "0x10bbcf18",
+     "notes": "Subscribe entry builds the same composite key then inserts an observer node into registry *(bus+0x30)+0x1d0; no call site can form the BootSequenceEvent key."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x1058a2bc",
+     "address": "0x1058a2e8",
+     "notes": "Manager vfunc+0x08 getter returns counter +0xd8 under the +0x48 guard."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x101bd51c",
+     "address": "0x101bd558",
+     "notes": "Wifi-provider commit hook pushes caller-supplied seqnum to WifiFuncsSetBootSeqnum for ath0 and ath1 under +0x420 lock."
     }
-   ],
-   "todo": [
-    "Residual: trace the BootSequenceEvent subscriber registrations and concrete consumer callbacks, including which settings/actions each consumer applies. The producer is now bound to the boot counter update and event-dispatch path; absence of a static stage table does not establish the consumer list or prove a settings re-evaluation pass."
    ],
    "resolved_findings": [
     "boot_sequence_mgr.cxx reads boot-time settings {TargetRoomName, LocalAccountTransferMode, ForceWifiDisable, ForceMeshDisable, SonosNetDisable, WEPKey} and re-triggers on connectivity events (updating boot sequence due to wifi connection event). Separately, bootseq %u is a per-member monotonic counter in the topology layer (Adding member %s with bootseq %u failed - out-of-sync GM; %s ZP %s (bootseq %u); new bootseq) used to reject stale group members, and appears in mdns/topology notify records (bootseq=%u; ports={%u-%u}; mdnssequence={old %u new %u}).",
     "Producer call path recovered, beyond literal re-trigger strings: registration callback f_1017fec0 loads manager pointer from owner+0x5730 and calls f_1058b664 at 0x1017ff10. Wi-Fi callback f_1058b6cc logs its reason then tail-calls the same function at 0x1058b730. f_1058b664 acquires/releases a guard for manager+0x48 around direct invocation of f_1058aa44 at 0x1058b694. Thus those callback paths reach the same manager implementation, rather than proving a separate fixed stage recorder from their log messages alone.",
-    "f_1058aa44 increments the 32-bit word at manager+0xd8 (0x1058aaa4-0x1058aab0); the zero result on wrap is replaced by one at 0x1058b138-0x1058b150. It formats that value as %u and invokes the object at manager+0xdc through virtual slot +0x14 with key BootSeq at 0x1058aacc-0x1058ab04. Later it constructs/queues an event named BootSequenceEvent; the log path at 0x1058aef4-0x1058af40 uses Queued %s(%u) from \"%s\" : { %s }. An independent no-wrap path and explicit wrap fallback show that +0xd8 is a nonzero sequence counter, not a stage-array index. No component-stage table is consumed in this examined producer. Consumer registrations are not established by that observation and still need reverse engineering; the previous ordered-init-milestones interpretation and asserted settings re-evaluation semantics are withdrawn."
+    "f_1058aa44 increments the 32-bit word at manager+0xd8 (0x1058aaa4-0x1058aab0); the zero result on wrap is replaced by one at 0x1058b138-0x1058b150. It formats that value as %u and invokes the object at manager+0xdc through virtual slot +0x14 with key BootSeq at 0x1058aacc-0x1058ab04. Later it constructs/queues an event named BootSequenceEvent; the log path at 0x1058aef4-0x1058af40 uses Queued %s(%u) from \"%s\" : { %s }. An independent no-wrap path and explicit wrap fallback show that +0xd8 is a nonzero sequence counter, not a stage-array index. No component-stage table is consumed in this examined producer. Consumer registrations are not established by that observation and still need reverse engineering; the previous ordered-init-milestones interpretation and asserted settings re-evaluation semantics are withdrawn.",
+    "Producer trigger census: exactly three paths reach the guarded dispatcher f_1058b664 (which locks manager+0x48 then calls f_1058aa44): the registration-machine callback f_1017fec0 ('updating boot sequence due to registration event', manager fetched from owner+0x5730), the manager's own observer vfunc f_1058b6cc at vtable 0x10ef0a18 slot +0x00 ('updating boot sequence due to wifi connection event', log domain 'bootseq' 0x10f13e58), and f_10180b90 ('updating boot sequence due to cert update event', gated on f_1064b98c returning 3).",
+    "Manager object layout from ctor f_1058a574: primary vtable 0x10ef09f8, observer secondary vtable 0x10ef0a18 at +0x4, name string 'BootSequenceManager' at +0x8, embedded event-source subobject (vtable 0x10ef09d8, destructors only) at +0x24 carrying a second 'BootSequenceManager' name string at +0x28, guard at +0x48, counter +0xd8 seeded to 1, and +0xdc = caller-supplied settings delegate (owner+0x5724).",
+    "The settings delegate at owner+0x5724 is a named file-backed settings record built by f_109bcfc8: {vtable 0x1108a230, strdup'd path, fnptr}. Its path is '<vardir>/app/settings' (base from .bss 0x110a950c plus 'app/settings' suffix via f_1068aeac). The 'BootSeq' write runs vfunc +0x14 (f_109bdefc -> f_109bda4c), which open64s the path, writes, and commits through a 6-digit temp-name snprintf/rename. So the counter is persisted to the local settings file, not broadcast or re-evaluated.",
+    "BootSequenceEvent dispatch: the bus composite subject key is srcname + '_' + eventname (f_10bbb834 builds tmp(src), inserts one '_' at end via f_10831a28, appends event name via f_10831ea8), giving 'BootSequenceManager_BootSequenceEvent'. f_10bbca78 looks it up in the subject map under *(bus+8)+0x190 and also touches the ie-cache map at *(bus+0x20); f_10bbd280 is the 4-arg post variant (arg4=4). The event is then scheduled onto the ie-schd delivery queue via f_100f14ec with cancel thunk f_1058bc6c ('Delivery of %s(%u) event cancelled').",
+    "Subscriber census: the subject key can only be formed from literal 'BootSequenceEvent' (0x10e9ba2c), which the producer f_1058aa44 is the sole reference for, and 'BootSequenceManager' (0x10ef0a44), used only by the manager ctor. The subscribe entry f_10bbcebc builds the identical key form and inserts observer nodes into registry *(bus+0x30)+0x1d0; across its ~80 call sites none can construct this key. Established: the shipped image registers zero in-process observers for BootSequenceEvent, so delivery iterates an empty observer list; the only local effect is the queued-event log 'Queued %s(%u) from \"%s\" : { %s }'.",
+    "Concrete counter consumers: vfunc +0x08 (f_1058a2bc) is the seqnum getter returning manager+0xd8 under the +0x48 guard; vfunc +0x0c (f_10582890) formats a delegated object's vfunc+0x08 result as '%u'. The wifi-provider object (vtable 0x10e9b9e4, owner+0x48, built in the same init f_1018d27c) exposes the commit hook f_101bd51c which calls imported WifiFuncsSetBootSeqnum('ath0', seq) and ('ath1', seq) under its +0x420 lock, the caller supplying &seqnum. 'GCBootSeq' serializers (f_1026a0bc, f_1036907c, f_104ca970) report a separate group-coordinator bootseq in status dumps, unrelated to this manager's counter."
    ]
   },
   "cloud": {
@@ -226310,10 +226688,21 @@
      "build": "86.10-80260",
      "address": "0x1015d230",
      "notes": "Reachable launch ->10675a5c: stride588 walk, UDN equality/defer10675b24, remote call10675b70, local virtualc10675c18, sibling spawn10675c9c. Empty and nonzero result branches checked; sibling phase parser10003bc0 uses0-based ids."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x106c6d84",
+     "notes": "Target builder: swgen filter row+0x580 < query+0x1c (from f_1090b648 global+0x38), dedup set insert f_1016e5c4, local-uuid strcmp exclusion, source-order output, no comparator."
+    },
+    {
+     "type": "firmware",
+     "binary": "upgrade_mgr",
+     "build": "86.10-80260",
+     "address": "0x10001684",
+     "notes": "Status-server worker: phase table 0x10005228 {HELLO,DOWNLOAD,FLASHWRITE,PING,REBOOT}, percent-complete callback this+0x258, ERROR error-code/internal-data/extra-data -> this+0x270/+0x85/+0x6d, replies '<phase>?params' via f_10001424, final 'REBOOT?Delay=5'."
     }
-   ],
-   "todo": [
-    "Established: reachable user scheduler launch path, vector-order remote launches, deferred local launch, empty-list and first-failure behavior, followed by upgrade_mgr spawn. Remaining: trace f_10675dc0 and its vector writers to determine initial target ordering/eligibility, then bind sibling progress/completion handling and resume/reboot policy before asserting full household rollout order. Start with f_10675a5c receiver+0x10 vector, f_10675dc0 and sibling notification worker0x10001684. Do not substitute string-table order or1-based doc enums for executable predicates. This is actionable static work."
    ],
    "resolved_findings": [
     "User-update launch ordering is executable in anacapad, not proven to follow manifest coordinator rows or an opaque comparator in upgrade_mgr.",
@@ -226321,7 +226710,12 @@
     "The sibling exposes separate member-operation and coordinator-phase vocabularies. Checked member parser f_10003bc0 assigns UNDEFINED/CONNECT/HELLO/DOWNLOAD/FLASHWRITE/WAIT/REBOOT/ERROR/FINISHED values0..8; f_10003db8 separately parses coordinator names including INIT and *_DONE. These literals alone do not prove household peer selection, and the former1..9 opcode/rollout-order inference is withdrawn.",
     "upgrade_mgr wire surface recovered from the shipped binary: commands {HELLO, STATUS, COMPLETE} issued as \"<host> STATUS?phase=<phase>;percent-complete=<n>\" / \"<host> COMPLETE?phase=<phase>\" / \"COMPLETE (REBOOT)\" / \"COMPLETE (ERROR <n>)\" lines over a TCP status server (socket/bind/listen guarded; \"Too many sockets registered!\" cap). Upgrade notify goes out as \"NOTIFY * HTTP/1.1\" (Linux UPnP/1.0 agent). Progress tracking = per-phase STATUS polls; completion markers COMPLETE (REBOOT)/(ERROR). CLI = upgrade_mgr [-v] infofile; pidfile /tmp/upgrade_mgr.pid; report artifacts consumed by anacapad as upgrade_mgr_user_report{,_prev}.json + /tmp/upgrade_mgr_info.txt.",
     "Reachability: user scheduler calls f_10675a5c at0x1015d230 after successful device checking at0x1015d1d4. The launcher walks receiver+0x10..+0x14 in stride0x588, compares each row UDN at+0xa with receiver+8, saves a matching local row and issues f_106c6bf0 to nonmatching rows in existing vector order. A nonzero remote result aborts before remaining launches. It then invokes receiver+4 virtual+0xc for the saved local row. Empty vectors skip member calls and proceed to process creation; no sort comparator executes in this loop.",
-    "Arguments include system_version and updateID formatted from each row, timeout argument10 and URI row+0x138. Only after these calls does0x10675c78 select /bin/upgrade_mgr and0x10675c9c spawn it. Thus report polling does not imply all launch sequencing is delegated to the sibling. In sibling parser f_10003bc0, UNDEFINED/CONNECT/HELLO/DOWNLOAD/FLASHWRITE/WAIT/REBOOT/ERROR/FINISHED map to0..8, not1..9; these are distinct from coordinator phase names."
+    "Arguments include system_version and updateID formatted from each row, timeout argument10 and URI row+0x138. Only after these calls does0x10675c78 select /bin/upgrade_mgr and0x10675c9c spawn it. Thus report polling does not imply all launch sequencing is delegated to the sibling. In sibling parser f_10003bc0, UNDEFINED/CONNECT/HELLO/DOWNLOAD/FLASHWRITE/WAIT/REBOOT/ERROR/FINISHED map to0..8, not1..9; these are distinct from coordinator phase names.",
+    "Target eligibility and ordering resolved inside f_10675dc0 (called from the user scheduler at 0x1015d1d4 with the info-path buffer and 'upgrade_mgr_user_report.json'): it rebuilds the scheduler's launch vector at this+0x10..+0x18 by swapping in the vector built by f_106c6d84 and destroying every old row through virtual call +0 (0x10675f18 loop, free at 0x10675f44). The query object (ctor f_106c6cd8, vtable f_106c7c2c) carries target swgen = u16 at query+0x1c produced by f_1090b648, which returns lhz at +0x38 of the global device descriptor when its +0x30 check passes.",
+    "Eligibility predicate in f_106c6d84 is executable, not string-table order: iterate each device-list vector (0x588-stride rows) under the query's grouped lists at query+0x24..+0x2c; keep a row only when lhz row+0x580 (the player's recorded swgen) is strictly below query+0x1c, else skip with 'Skipping swgen %d player uuid=%s' when the verbose flag query+5 is set (0x106c6e7c-0x106c6eb4). Kept rows are deduplicated through a string key assembled from row+4 plus 0x12 bytes (set insert f_1016e5c4 with seeded hash f_10806d50 at 0x106c6f1c-0x106c6f44), and a row whose uuid string equals the scheduler's local uuid member this+8 is excluded by strcmp at 0x106c6f60-0x106c7074 - the local player is deferred to the separate local-launch path, matching the UDN comparison the launcher performs. Log 'Found %zu players running older swgen; bAllSupportMySWGen=%c' (0x106c70c0) confirms the semantic: targets are household players on an older swgen than the scheduler's own.",
+    "Ordering: the out vector preserves source container order; no sort or priority comparator executes anywhere in f_106c6d84. Combined with the already-documented launcher (remote rows via f_106c6bf0 in vector order, local row last through receiver+4 virtual+0xc, then /bin/upgrade_mgr spawned at 0x10675c9c), household rollout order = remote targets in device-list order, local device deferred, per-node completion driven asynchronously by the upgrade_mgr status protocol. Resume policy is the swgen predicate itself: any re-run re-filters the device list, so players already at the target swgen are excluded and only stragglers are relaunched.",
+    "Sibling progress/completion binding in upgrade_mgr notification worker 0x10001684: per-connection state machine over '<host> CMD?params' lines received on this+0x274 into this+0x278. First token (strtok '?') dispatches HELLO/STATUS/COMPLETE/ERROR; the 'phase=' argument of every message must equal the expected phase string in the static table at 0x10005228 {HELLO,DOWNLOAD,FLASHWRITE,PING,REBOOT} indexed by the message counter this+0x264 (validated at 0x100018ac/0x10001a44), else 0x3f2 is written to this+0x270 and the connection fails. STATUS also parses 'percent-complete=' (f_100011dc) and reports it through the progress callback at this+0x258/0x25c (0x10001aa0). ERROR parses phase=/error-code=/internal-data=/extra-data= (0x10001b80-0x10001c10), logs 'ERROR (%s) %s (%u)', stores error-code in this+0x270 and the two data strings at this+0x85/this+0x6d, returns -3.",
+    "Completion/reboot policy is server-directed: after each accepted line f_10001424 writes the response '<nextExpectedPhase>?<params>' into this+0x2fc and send()s it. The greeting reply (when config word this+0x380 is set) is 'HELLO?Version=86.10-80260&Auto=0&Client=10' (0x100015e4-0x10001638); mid-sequence replies are the bare phase name; after the 4th report the reply is 'REBOOT?Delay=5' (built at 0x10001564-0x10001588) - the mgr instructs each node to reboot after a 5-second delay once it has reported through PING. A fifth valid message drives the completion notify call f_100046b8 at 0x10001924. Receive-error handling maps EINTR retry, other errno to 0x3f4/-1 (0x10001af4-0x10001b48)."
    ]
   },
   "zones_mgr": {
@@ -229439,16 +229833,63 @@
      "address": "0x10087564 / 0x100875dc",
      "callsite": "0x10087578 / 0x100875f0 / 0x10556e68 / 0x10556e74",
      "notes": "Option descriptor rows pair39 MINIDUMP and3c CRASH_UPLOAD. Getter uses index*20 and present byte+10, returns value+8 or caller default. Literal row addresses were checked, not inferred from the following row index."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x102537b0",
+     "notes": "Complete 8-arm selector: core->/upload (opt 0x13), four .dmp daemons + ledmgrd literal -> /<daemon>-external (opt 0x3c), backtrace ids -> /legacy-to-sentry; watchdog flag -> /watchdog{,-legacy}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10252b18",
+     "notes": "Identity registrar: 29 entries ids 0..0x1c covering primary payloads, properties, counts, watchdog files, prevent_crashdump_upload marker, backtrace names, and attachment log paths."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1053faf8",
+     "notes": "Service fallback: row stride 0xc {name,domain,flags}; formats '%s://%s.%s%s' or env variants; domain overridable by opt 0x30, env by opt 0x25; flag bits pick '.'/'-' sep, 'test' label, env-as-path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10556e10",
+     "notes": "Option getter locks table 0x110a4e90, row index*20, returns row+8 when present byte +0x10 set else caller default; no caller in the binary passes id 0x39."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10253ab4",
+     "notes": "Attachment writer: per-row {path,field} 'file' parts, skips empty/missing, 10s deadline, failure log 'Failed to write attachment %s to sentry upload'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1025436c",
+     "notes": "Response handling: body read into 0x80 buffer within 10s deadline, verbatim 'UUID: %s' log line, stored to this+0x89a1, inputs unlinked."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076f6c0",
+     "notes": "HTTP form handler writing option rows: content-type application/x-www-form-urlencoded gate, >=2s rate limit, f_1076f590 applies fields, 'Success' on 200."
     }
-   ],
-   "todo": [
-    "Established: concrete daemon-dump URL selection, distinct override IDs0x39/0x3c, option-presence semantics and compiled HTTPS crash-upload fallback, with actual multipart dispatch. Remaining: trace every minidump/legacy selector arm and option0x39 consumer, option-source writers and service-base overrides, then bind per-path attachment predicates and response UUID parsing. Start at f_102537b0, f_105403a8/f_1053faf8, f_10556e10 and f_10253ab4. Only after exhausting those joins classify any final upstream Sentry project mapping as deployment-only. The old no-compiled-URL and universally O_MINIDUMP-only limitation is withdrawn. This is actionable static work."
    ],
    "resolved_findings": [
     "f_102537b0 selects outgoing suffixes by dump identity. The checked anacapad/netstartd/btmanager/LED paths call f_105403a8 with option0x3c and a suffix;0x10253d64 obtains the resulting URL and0x10253db0 passes it to multipart setup f_10545274. These are executable upload calls, not evidence that daemons POST descriptors to local /X-external handlers. The old local-route and direct-sentry-ingest-host assertions are withdrawn.",
     "Option-name construction at0x10087564-0x10087578 pairs id0x39 with O_MINIDUMP_SUBMIT_URL;0x100875dc-0x100875f0 pairs0x3c with O_CRASH_UPLOAD_SUBMIT_URL. The checked selector uses the latter. f_10556e10 locks the option table, uses a20-byte row, returns row+8 when row+10 is marked present and otherwise returns the supplied default pointer. A missing override is not proof of a missing destination.",
     "f_105403a8 first calls override helper f_1053fa2c. A successful nonempty bounded option string is returned without appending the supplied suffix (append flag0). Otherwise it falls back through f_1053faf8 with service index7 and scheme https. Raw service row0x10ee6fd4 contains crash-upload, ws.sonos.com and flags0; default formatting is %s://%s.%s%s. Thus the ordinary absent-override fallback is the compiled crash-upload service URL plus selected suffix, not a required deployment-only sentry.io DSN. Resolver/format failures remain possible; unknown dump identities follow the No URL found diagnostic.",
-    "Multipart form/attachment construction remains distinct from URL provenance. Boundary and sentry[release]/sentry[tags]/user/extra-field literals demonstrate a Sentry-compatible field vocabulary, not a certified exhaustive optional-field grammar or a direct upstream project mapping. f_10253ab4 opens/adds crashdump attachments and reports failures; do not infer the full per-daemon attachment set merely from nearby filename literals."
+    "Multipart form/attachment construction remains distinct from URL provenance. Boundary and sentry[release]/sentry[tags]/user/extra-field literals demonstrate a Sentry-compatible field vocabulary, not a certified exhaustive optional-field grammar or a direct upstream project mapping. f_10253ab4 opens/adds crashdump attachments and reports failures; do not infer the full per-daemon attachment set merely from nearby filename literals.",
+    "Selector arms, option consumers, writers, attachments and response handling now fully traced, closing the residual. Selector f_102537b0 matches the dump path against a 29-entry identity registry built by f_10252b18 (named entries via f_102526ec, path attachments via f_102529d8, lookup f_102528f4 keyed by index byte minus base at 0x110a8ec). Arms: identity 0 'anacapad.core' -> '/upload' through helper f_10540238 with option id 0x13 (O_DZ_TRANSFERO_URL), the only arm on a different option; identities 1-4 'anacapad.dmp'/'sonospowercoordinator.dmp'/'btmanager.dmp'/'netstartd.dmp' plus literal '/jffs/app/debug/sonosledmgrd.dmp' -> '/<daemon>-external'; identities 0x11 '/tmp/backtrace' and 0x12 'backtrace' -> '/legacy-to-sentry'. All non-0x13 arms call f_105403a8 with option 0x3c (O_CRASH_UPLOAD_SUBMIT_URL). Flag r5 (= watchdogcrash marker or crashed_play_state present) flips daemon dumps to '/watchdog' and backtrace identities to '/watchdog-legacy'; unknown identity logs 'No URL found to upload dump file: %s' and returns the shared empty string at 0x10ea6a2c. URL resolution (f_105403a8 -> f_1053fa2c override else f_1053faf8 fallback): a nonempty option value is used verbatim with no suffix; otherwise service-table row idx*0xc at 0x10ee6f80 (row7 'crash-upload'/'ws.sonos.com' flags 0) formats '%s://%s.%s%s' = https://crash-upload.ws.sonos.com<suffix>. The domain is replaced by option 0x30 O_AUTOMATION_CLOUD_DOMAIN when nonempty, and a nonempty option 0x25 O_SONOS_CLOUD_API_TEST_ENV produces '%s://%s%c%s.%s%s' where the separator is '.' or '-' per row flag bit1 and the env label is the option value or literal 'test' per flag bit3; row flag bit4 instead emits '%s://%s.%s/%s%s' with the env as a path segment. Option id 0x39 (O_MINIDUMP_SUBMIT_URL) has its descriptor row (0x10087570) but zero consumers anywhere in this binary: every minidump/external arm resolves through 0x3c, so 0x39 is a vestigial override in this build. Option sources: the locked 0x14-stride table at 0x110a4e90 holds {id,name,value,present} and is written by settings applier f_104b1e48 (R_* registry keys, via name->row mapper f_10557388 and store f_105570a4) and by HTTP form handler f_1076f6c0 (application/x-www-form-urlencoded posts applied by f_1076f590 after a >=2s rate-limit gate, 200 replies 'Success'); the 'overrides'/'disabled' log tag sits in f_10557218. Upload orchestrator f_10253c40 opens the dump, probes identity 0 ('anacapad.core'), 0xd 'watchdogcrash' existence, '/tmp/crashed_play_state' and the two backtrace identities, then selects URL and branches: anacapad.core goes to the modern path (file field as '%s-anacapa_dump.gz' application/octet-stream, 'originator'='dump-proc-anacapa', plus a '%s[watchdog_crash]' tag read from the marker when present), all other identities take the legacy path (file field 'backtrace' text/plain us-ascii, the static 2-entry attachment array at 0x110a904 {watchdog.log->'watchdog_log', watchdog.dmesg->'watchdog_dmesg'} added only when the watchdogcrash marker exists, then the tag block 'sentry[tags]', '%s[sonosID]', '%s[hhid]', 'sentry[user][id]', '%s[serial]', '%s[upload_sw_version]', '%s[hardware_version]', '%s[model]', '%s[upload_spotifyesdk_version]'). Attachment writer f_10253ab4 skips rows with size<=0 or unopenable files, emits 'file' parts with a 10s write deadline and logs 'Failed to write attachment %s to sentry upload'. Response UUID is not parsed structurally: after the POST the raw body is read into an 0x80 buffer by f_10544040 within a timevalAddMs(0x2710) deadline, logged verbatim as 'Minidump [%s] uploaded to sentry.io. UUID: %s', strlcpy'd into the object at this+0x89a1, and the dump inputs are unlinked; the sonospowercoordinator.dmp path additionally writes a 'sonospowercoordinator_backtrace' companion via sonosFileCreateEx mode 0x1a4. All mechanics above are verified disassembly; the only inference is calling the '/X-external' endpoints the sentry-compatible family, grounded in the sentry[tags]/sentry[user] field literals."
    ]
   },
   "tv_processor": {
