@@ -235151,7 +235151,7 @@
   },
   "muse_verbs": {
    "name": "Muse verb vocabulary and generated command dispatch",
-   "summary": "Muse command dispatch is generated code, not route metadata. An 83-entry descriptor index space names every namespace via table 0x10f96aa4 (index 0 is the UNKNOWN sentinel); factory f_100d12f4 maps the same index through jump table 0x10e781d8 to one of 69 generated namespace classes, each 0x3c bytes with its implementation context at +4 and current command at +0x38. Each class vtable +0x18 is a verb selector: 59 are generated strcmp loops over stride-8 {verb,factory} rows (374 verbs), 6 are hand-coded single-verb bodies, 3 are return-0 stubs and one is a nonstandard body. The separate 68-row {namespace,verb} string-pair list at 0x110941d4 is the outbound side: 136 generated client stubs embed it through nine per-namespace .got2 slots and copy its literals into outbound command headers.",
+   "summary": "Muse command dispatch is generated code, not route metadata. An 83-entry descriptor index space names every namespace via table 0x10f96aa4 (index 0 is the UNKNOWN sentinel); factory f_100d12f4 maps the same index through jump table 0x10e781d8 to one of 69 generated namespace classes, each 0x3c bytes with its implementation context at +4 and current command at +0x38. Each class vtable +0x18 is a verb selector: 59 are generated strcmp loops over stride-8 {verb,factory} rows (374 verbs), 6 are hand-coded single-verb bodies, 3 are return-0 stubs and one is a nonstandard body. The separate 68-row {namespace,verb} string-pair list at 0x110941d4 is the outbound side: 136 generated client stubs embed it through nine per-namespace .got2 slots and copy its literals into outbound command headers. Every command also carries a two-layer parameter model: a routing-arg selector (per-verb vector of standard target-arg ids resolved into the dispatch-target descriptor at command+0xec) and a body-field model (generated builder functions registering {name,tag,flag} descriptors into the command's field store).",
    "evidence": [
     {
      "type": "firmware",
@@ -235220,10 +235220,55 @@
      "address": "0x10af29f0",
      "callsite": "0x10af2a34 / 0x10af696c / 0x10b20160 / 0x10b33bf8 / 0x10b39cc0 / 0x10b8493c",
      "notes": "Six single-verb selectors each strcmp command+0x26 once: households/setName (f_10af29f0, 'setName' at 0x10fa2694), info/getInfo (f_10af6928, 0x10e7452c), power/setPowerPolicy (f_10b2011c, 0x10fa5640), smartplay/getContent (f_10b33bb4, 0x10fa6c04), time/getRelativeTime (f_10b39c7c, 0x10fa72b0), virtualRemoteControl/sendButtonCommand (f_10b848f8, 0x10fab488). Stub selectors returning 0: catalog f_10ad6194, systemReporting f_10b38540, topology f_10b41080. global's +0x18 body f_10ae6260 is a small hand-written buffer routine, not a generated table."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109d9ec4 routing-arg resolver + jtab 0x10f945e4",
+     "address": "0x109d9f84",
+     "callsite": "0x109d9f8c-0x109d9fc0 / arms 0x109da018-0x109da0c8",
+     "notes": "Slot span loop: lwz begin/end at slot+0/+4, per-row u32 id <=7 dispatched via jtab 0x10f945e4. Each arm checks an operation-context presence byte (ctx+0x24c7..+0x24ce) and, when set, stores the id at out+0 and appends the ctx arg string (ctx+0x6c..+0x164) to the out name vector through f_10831bc0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "routing-arg name table + f_109dbdb8",
+     "address": "0x10f94b20",
+     "callsite": "0x109dbdc4-0x109dbdd4",
+     "notes": "8-pointer table: householdId 0x10f081b0, locationId 0x10ef1b58, groupId 0x10ec4270, sessionId 0x10eafd1c, playerId 0x10e96f3c, deviceId 0x10e9f428, userId 0x10ef6710, serviceId 0x10ecf420. f_109dbdb8 bounds id<8; fallback literal 'O_MUSIC_SERVICE_CATALOG_URL' 0x10eea848."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109da4f8 dispatch wrapper, missing-arg path",
+     "address": "0x109da584",
+     "callsite": "0x109da584-0x109da628 / status store 0x109da664-0x109da674",
+     "notes": "When resolved name vector is empty it iterates slot ids, maps each via f_109dbdb8, joins with ', ' at 0x10e727bc onto a 'Missing ' literal 0x10f94a50, writes status 0x4c at out+0 and returns."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "static-init slot fill f_100736c8 / vector::assign f_10073620",
+     "address": "0x1109fd30",
+     "callsite": "0x10073738 / 0x1007376c / 0x10073798 (bl f_10073620)",
+     "notes": "Init ctor zeroes each 12-byte .bss vector then calls vector::assign(slot, first, last) with .rodata u32 ranges (r29 base 0x10e9bc14); 55 init ctors fill 365 slots 0x1109fd30..0x110ba3a4. Command-ctor wrappers pass the slot as r5 to f_109da18c; dispatch wrappers pass it as r7 to f_109da4f8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "field-builder call census",
+     "address": "0x109cc8f4",
+     "callsite": "ctor callsite 0x101c4970 (f_101c4894 -> f_101c4800) / vfn-table entries 0x10e9e574,0x10e9ec2c (f_101e2e20)",
+     "notes": "bl-scan join over all 1133 sites in 366 builder functions: 215 builders are called exactly once by exactly one command-ctor wrapper; 143 builders are called only from .rodata-resident methods (model-builder vtable entries); 44 have no static call site or data reference."
     }
    ],
    "todo": [
-    "Established: the full server-side census (69 namespace classes, 380 locally-bound verbs, selector shapes, descriptor format, factory semantics and registration loop) and the outbound role of the 68-row pair list with its 136 consumer stubs. Remaining: decode each generated command class's parameter model (field/tag descriptor tables are only partially joined) and bind the concrete implementation object passed as the factory's r6 argument (stored at namespace+4) for each of the 69 classes; the implementation-producer side is tracked under muse_engine. This is actionable static work."
+    "Established: the full server-side census and the complete parameter-model mechanism. Each command's routing-arg selector is now bound (per-verb vector<u32> of standard target-arg ids, resolved into command+0xec and enforced by the 'Missing <name>'/0x4c path), and the body-field layer is 88% joined (215 of 366 builder functions are called exactly once by their command ctor; 143 more are bound through .rodata-resident model-builder methods). Remaining: the 44 field-builder functions with no static call or table reference, the two playbackSession windowed verbs on the nonstandard 0x1768-byte command base, the concrete per-namespace actor instances registered in the mpmgr +0x98 map (enumerated under muse_engine), and per-field numeric ranges/error maps tracked under muse_semantics. This is actionable static work."
    ],
    "resolved_findings": [
     "Corrected static-list layout: 0x110941d4..0x110943f3 contains exactly 68 consecutive 8-byte {namespace-string pointer, name-string pointer} pairs, all checked as strings. Its following word at 0x110943f4 is 0xffffffff, not a third-column dispatch pointer. The first pairs are authorization/resolveToken, authorization/getPolicyKey and authorization/getPermissions; the final pair is zones/unjoinZone. The previous alternating 12-byte nsCtx/verbSpec interpretation is false. Namespace literals were misidentified as context objects. No function/descriptor column exists in these pair rows, so membership does not prove executable binding.",
@@ -235232,7 +235277,11 @@
     "Alarms supplies a second namespace absent from the claimed static binding list: f_10ac47ac has eight executable rows including subscribe/unsubscribe and six alarm operations. These selectors demonstrate a repeatable census method: follow each namespace vtable +0x18 to its bounded factory rows, then join their command descriptors and injected implementation pointers. Schema-name/type registries are different structures; their null fields are not proof that a command is unbound. The old 237/265 bound ratio and 242 verbs/112 namespaces are withdrawn as certified dispatch totals. The old zero-reference route-block argument also does not establish absence of generated code or an external runtime-only binding limitation.",
     "Completed the server-side executable census. The descriptor u16 (bound 0x52) indexes both the 83-entry name table 0x10f96aa4 and jump table 0x10e781d8; 69 arms construct distinct namespace classes (indices 1-38 and 52-82). Selector census: 59 generated strcmp-table selectors bound 374 verbs across their own {verb,factory} rows; six hand-coded selectors bind one verb each (households/setName, info/getInfo, power/setPowerPolicy, smartplay/getContent, time/getRelativeTime, virtualRemoteControl/sendButtonCommand); catalog, systemReporting and topology selectors are return-0 stubs; global uses a nonstandard body. 380 verbs are locally bound in total. Indices 39-51 are settings:* sub-namespaces sharing the settings class (index 38). The prior false-positive vtables at 0x100e382c and 0x1074e604 are GCC-version string data and the ZoneGroupTopology SOAP path, excluded from the census.",
     "The consumer of .got2 slot 0x1108de34 and the role of list 0x110941d4 are bound. The list is an outbound literal pool: 136 generated client stubs at 0x10c5e680-0x10c76b28 load a per-namespace run head through nine .got2 slots (0x1108de34..0x1108de94), add a constant row offset, copy the {namespace,verb} pair into the outbound command header and dispatch through the client interface. Per row exactly two stubs exist (vptr+0xc then vptr+8 call variants). Namespace partition: authorization 9, catalog 2, entitlements 6, groups 7, history 6, playback 18, smartplay 1, systemReporting 4, zones 15. catalog, systemReporting and topology thus have outbound-only verbs: their server selectors are stubs while the client side generates calls for them.",
-    "Namespace descriptor format is decoded: u16 class index at +0, u8 flag at +2 that skips the factory rebuild when nonzero, and u8 instance discriminator at +4 used to format '%s:%u' names (f_109ebb30). The engine registration loop f_1018e9a0 builds these descriptors on the stack with immediate indexes (sth const at +0x1a4, stb flag at +0x1a6), resolves names via f_109ebaec and member names via f_109ecb5c, and registers each into engine slots at context+0x4d20 upward through f_109e60c0, pulling provider-store names AUTHZTOKENS/AUTHZPOLICIES/DEVICES/ENTITLEMENTS/FCS/SETTINGS/HISTORY from the 12-byte-row table 0x10f99508 via f_10a07fe8."
+    "Namespace descriptor format is decoded: u16 class index at +0, u8 flag at +2 that skips the factory rebuild when nonzero, and u8 instance discriminator at +4 used to format '%s:%u' names (f_109ebb30). The engine registration loop f_1018e9a0 builds these descriptors on the stack with immediate indexes (sth const at +0x1a4, stb flag at +0x1a6), resolves names via f_109ebaec and member names via f_109ecb5c, and registers each into engine slots at context+0x4d20 upward through f_109e60c0, pulling provider-store names AUTHZTOKENS/AUTHZPOLICIES/DEVICES/ENTITLEMENTS/FCS/SETTINGS/HISTORY from the 12-byte-row table 0x10f99508 via f_10a07fe8.",
+    "Command parameter model, layer 1 (routing-arg selector): each generated command-ctor wrapper calls base ctor f_109d9b18(obj, impl=r6, required-permission mask, capability mask), stores the primary and secondary vtables, then tail-calls f_109da18c(cmd, operation-context, model-slot). The model slot is a per-verb 12-byte .bss vector<u32> (365 slots at 0x1109fd30..0x110ba3a4) filled at static-init by vector::assign (f_10073620 family inside 55 init ctors such as f_100736c8) from .rodata u32 ranges. Slot values are ids 0..7 into routing-arg table 0x10f94b20: householdId, locationId, groupId, sessionId, playerId, deviceId, userId, serviceId.",
+    "Selector semantics proven by f_109d9ec4: it walks the slot span, dispatches each id through 8-arm jump table 0x10f945e4; arm i checks the operation-context presence byte (ids map to ctx+0x24c8,+0x24cd,+0x24c7,+0x24c9,+0x24ca,+0x24cb,+0x24cc,+0x24ce respectively) and, when set, appends the context's arg string (ctx+0x90,+0x140,+0x6c,+0xc6,+0xf5,+0x10e,+0x11b,+0x164) to the out descriptor and writes the id to out+0. The result {last-present id, ordered arg values} is stored as command+0xec, the dispatch-target key consumed by provider vfn+8 inside f_10b98840 (mpmgr actor map at +0x98). Dispatch wrapper f_109da4f8 re-runs the same resolution and, when no listed arg is present, formats 'Missing <name>[, <name>]' via per-id namer f_109dbdb8 (same table 0x10f94b20) and returns status 0x4c. Multi-id lists are ordered alternatives: any one present satisfies, the last present id wins the target type.",
+    "Verb-to-model join complete for the routing layer: 377 of 383 census verbs bound through factory -> ctor-wrapper -> model-slot -> id list (subscribe/unsubscribe pairs share a slot). Distribution: playerId 205, householdId 82, groupId 41, sessionId 12, [playerId,locationId,userId] 10, userId 5, deviceId 4, [userId,playerId,locationId] 3, empty 15. The two real misses, playbackSession.loadCloudQueueWithWindow and skipToItemWithWindow, use a different command base (0x1768-byte object, ctors f_101fa21c/f_101fa468 through f_101f8578, not the f_109d9b18 family). Layer 2 (body fields): the same ctor wrappers call generated field-builder functions that register {name-pair, tag, flag} through f_109cc8f4; 215 of the 366 builder functions are called exactly once by exactly one command ctor (strict per-command ownership), 143 more are called from .rodata-resident model-builder methods (vtable entries, e.g. f_101e2e20 at 0x10e9e574/0x10e9ec2c), leaving 44 unreferenced.",
+    "Factory r6 / implementation object is bound architecturally rather than per-namespace: generated verb dispatchers load namespace+4 and pass it verbatim as ctor r6 -> command+0x7c (0x101bf4b4-0x101bf4c4, mr r4,r6 at 0x101bf56c). That pointer is the shared engine-level context bound at namespace-resolve time (muse_engine chain); the per-operation actor is selected inside the mpmgr provider's vfn+8 through its +0x98 map keyed on the command+0xec routing descriptor built by the layer-1 model."
    ],
    "server_census": {
     "model": "descriptor {u16 class-index @0 (bound 0x52), u8 flag @2 (nonzero = skip rebuild), u8 instance @4 (drives '%s:%u' display names)}; index -> name table 0x10f96aa4 via f_109ebaec; index -> ctor via jump table 0x10e781d8 inside f_100d12f4 (vtable 0x10e7832c slot +8); result written at factory-object+0 with old object released through vptr+0x10",
@@ -236121,6 +236170,15 @@
     },
     "consumers": "136 generated methods at 0x10c5e680-0x10c76b28, exactly 2 per row: a vptr+0xc-call variant first, then a vptr+8-call variant (verified at rows 0-1: 0x10c5e680/0x10c5e968 resolveToken, 0x10c5ec40/0x10c5ef28 getPolicyKey)",
     "got2_binding": "each stub computes its per-file GOT2 base with the bcl 20,31,+4 / mflr / lwz -off / add PIC idiom, loads its namespace row-head via lwz rX,-0x8000(r30) from one of nine .got2 slots (0x1108de34 authorization, 0x1108de40 catalog, 0x1108de4c entitlements, 0x1108de58 groups, 0x1108de64 history, 0x1108de70 playback, 0x1108de7c smartplay, 0x1108de88 systemReporting, 0x1108de94 zones), adds its constant row byte offset, copies both literal pointers into the stack command header, and tail-calls through the client interface vptr"
+   },
+   "parameter_models": {
+    "shape": "two layers: routing-arg selector (vector<u32> of standard target-arg ids) plus body-field registrations ({name, tag u8, flag u8} via f_109cc8f4)",
+    "routing_args_table": "0x10f94b20, ids 0..7 = [householdId, locationId, groupId, sessionId, playerId, deviceId, userId, serviceId]; out-of-range falls back to literal 'O_MUSIC_SERVICE_CATALOG_URL' at 0x10eea848",
+    "routing_arg_presence": "operation-context bytes ctx+0x24c7..+0x24ce (per-id order: 2,0,3,4,5,6,1,7); arg strings at ctx+0x6c,+0x90,+0xc6,+0xf5,+0x10e,+0x11b,+0x140,+0x164",
+    "resolution": "f_109d9ec4 walks the slot, jtab 0x10f945e4; result {type-id, ordered values} stored at command+0xec and consumed as the dispatch-target key by provider vfn+8 (f_10b98840)",
+    "enforcement": "dispatch wrappers call f_109da4f8; when no listed arg is present it builds 'Missing <name>[, <name>]' via f_109dbdb8 and returns status 0x4c",
+    "join": "377/383 verbs bound; per-verb tag lists in census order; subscribe/unsubscribe share slots; playbackSession windowed verbs use a nonstandard 0x1768-byte command base",
+    "distribution": "playerId 205, householdId 82, groupId 41, sessionId 12, [playerId,locationId,userId] 10, userId 5, deviceId 4, [userId,playerId,locationId] 3, empty 15"
    }
   },
   "cec_diagnostics": {
