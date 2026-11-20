@@ -215548,7 +215548,7 @@
    ]
   },
   "ibt_plans": {
-   "summary": "Muse intended-target plan generation and execution. A request with intendedTargets selects the plan path; generated target strategies execute in sequence and stop on a non-success result. There is no enablePitchfork gate proven by the former init-function evidence.",
+   "summary": "Muse intended-target plan generation and execution. Each IBT-capable provider embeds a target-provider base at ctx+0x78 whose -0x78 secondary vtable supplies generatePlan (+0xc) and a per-command dispatchToTarget (+0x10); plans hold 8-byte {vtable,provider} strategies executed in sequence while results stay 0x34. enablePitchfork is a stored feature-config bool with no runtime consumer in this image.",
    "anchors": [
     "executing ibt plan for command",
     "unsupported IBT command",
@@ -215612,6 +215612,41 @@
      "address": "0x109eb280",
      "callsite": "0x109eb2a8 / 0x10b9846c / 0x103cd54c / 0x10a585a8",
      "notes": "f_109e5dc0 loads request+0x21a0, tested before IBT dispatch to f_10b98840. f_10b983fc calls provider vtable+0xc and requires result 0x34; an already nonempty plan vector skips generation, not execution. f_10b985c4 calls f_109e80b0 at 0x10b9871c, assigns 0x48 on failure, and at 0x10b98810 invokes each strategy's +8 method while result remains 0x34. Raw cmplwi r4,1 at 0x103cd3f4 and branches at 0x103cd3f0/f8 distinguish strategy kinds 0/1. f_103cd46c logs unsupported when provider virtual+0x10 returns non-0x34, not after a command-name switch. Config field +0xf00 is passed to JSON writer with enablePitchfork at 0x10a58594-a8 and 0x10a587c8-d8. Copy/compare sites independently disprove the former interpretation of these reads as gates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f96a74",
+     "notes": "Provider-interface base vtable: +0xc/+0x10 NULL, +0x14 0x109ebd74, +0x18/+0x1c 0x10809540, +0x20 f_109ec9e0 (default ctx accessor), +0x24 0x109eac1c, +0x28 f_109eb04c (shared command entry). Namespace-name table 0x10f96aa4..: 83 names UNKNOWN,zones,alarms,...,voice(idx 81),zones(idx 82)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d12f4",
+     "notes": "Command-class factory: u16 cmdId bound 0x52, jump table 0x10e781d8; each case allocates a 0x3c command host and ctors it (e.g. idx 81 voice -> f_10b87ce8 vt 0x10fab8a4; idx 13 groups -> f_101c4ce0 vt 0x10e9c0ac). Host +0x38 holds the command-ctx pointer returned by provider vfunc+0x20."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e9c088",
+     "notes": "IBT provider model: the executor's provider is &ctx[0x78], an embedded target-provider base with a -0x78 secondary vtable. Slots +0xc generatePlan / +0x10 dispatchToTarget default to f_109e857c/f_109e858c (return 0x5a). 20 secondaries override the pair with -0x78 this-thunks: groups vt 0x10e9c088 gen f_101c6c1c disp f_101c43a8; hardwareStatus vt 0x10e9d04c f_101d4c14/f_101ce0b0; homeTheater 0x10e9db28,0x10e9dbb0 f_101de87c/f_101d9c64,f_101d9cc4; playback cluster 0x10e9e8ac..0x10e9ed74 gen f_101ea3d0/f_101ea464; playerVolume 0x10ea09e4..0x10ea0c04 f_102058a4/f_1020591c; settings 0x10fa6378 f_10b2b864/f_10b23a78."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101e3624",
+     "notes": "dispatchToTarget impls build per-target household REST requests (snprintf 0x401): v1/groups/%s/playback/{play,pause,playMode,skipToNextTrack,skipToPreviousTrack,seek,seekRelative,loadContainer,trackList,loadStream}; v1/players/%s/playerVolume/{volume,mute,duck,unduck}; v1/players/%s/hardwareStatus/battery; v1/players/%s/homeTheater{,/tvPowerState}; v1/groups/%s/groups/modifyGroupMembers; v1/players/%s/settings/player. Store 1 at req+0x420, ret 0x34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101c6c1c",
+     "notes": "groups generatePlan impl: registers target schema {playerIds (list type 0x15, required), musicContextGroupId (string, optional)} via f_109cc8f4; disp f_101c43a8 converts target list, rejects with 0x48 when entry lacks required field."
     }
    ],
    "mechanics": "f_109eb04c tests f_109e5dc0(request) at 0x109eb280 and takes f_10b98840 when request+0x21a0 is nonzero. f_10b985c4 generates a plan through f_10b983fc, materializes targets through f_109e80b0, then executes strategy virtual slot +8 while the result remains 0x34. This is plan-local deduplication, not proof that repeating a wire command is idempotent.",
@@ -215635,14 +215670,11 @@
     "provenance": "literal block .rodata 0x10ec78a8-0x10ec79dc"
    },
    "zone_command_namespace": "The '{verb,namespace}' registry tail at .data 0x11094380-0x110943f4 binds these verbs to namespace 'zones': subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone, unjoinZone: terminated {0xffffffff,0xffffffff}. Same record format as the main muse_verb_ns_registry @0x110941d8.",
-   "todo": [
-    "Established: intendedTargets selects the plan path, plan-local generation is reused, two compiled strategy kinds dispatch/group are constructed by f_103cd3d8, and enablePitchfork's previously cited uses serialize config rather than gate execution. Remaining: the exact set of Muse command providers that implement target conversion and the actual enablePitchfork execution consumer. Trace the provider virtual +0xc used at 0x10b9846c and virtual +0x10 at 0x103cd54c back to their constructors and command registrations; trace the feature-config field accessors beyond its serialized +0xf00 representation. These remain actionable static RE, not proven runtime-only boundaries."
-   ],
    "resolved_findings": [
-    "Resolved: plan executor decoded - commands compile into generated target lists (failed to generate target list for command (%s)), then dispatch per-target returning per-target result strings ([dispatch] dispatched (%s) to target (%s), result [%s]); the target type is a player/device descriptor; the previous channel-auth claim is not established by this executor.",
-    "IBT (intent-based target) plan model decoded (literals at 0x10fac6xx + 0x10ec78xx): commands arrive in muse command bodies carrying an intendedTargets parameter parsed into implicit vs explicit target forms (implicit target parsed [%s] / explicit target parsed [%s]; invalid intendedTargets parameter, command does not support intendedTargets parameter, invalid muse command body format). Plan generation is deduplicated (already generated ibt plan, no action taken) then executed per-target (executing ibt plan for command (%s), failed to generate target list/ibt plan for command (%s)), with per-target dispatch logging [dispatch] dispatched (%s) to target (%s), result [%s] and [dispatch] unsupported IBT command (%s). Targets are player/area id sets - validation vocabulary: no players or areas were specified, has repeated player id, Effective player id set is empty, has too many player ids, contains invalid player ids. The proven command family is [group] group formation: adding player [%s] to group, forwarding player [%s], created new group [%s, %s], created new group but no GC, Grouping ungroupable player to other players is not supported; compatibility is enforced by validateProtocolVersionCompatibility over {Audio TX, HT Audio} protocol types (protocol versions are incompatible / Protocol versions that do not match). The previously asserted enablePitchfork gate is withdrawn: its cited function serializes the field.",
-    "The unsupported-command log is emitted when a provider's virtual +0x10 conversion returns a status other than 0x34 at 0x103cd550. The dispatcher itself does not compare command strings there; this is not evidence that command names are absent from the compiled provider implementations. Factory f_103cd3d8 recognizes kind 0 (group strategy, vtable 0x10ec7880) and kind 1 (dispatch strategy, vtable 0x10ec786c), returning null for other kinds. Its factory vtable 0x10ec7894 is installed at 0x1018ea44.",
-    "enablePitchfork is a boolean config field at +0xf00: f_10a581b0 passes its value and key to JSON writer f_109d14e0 at 0x10a585a8 and 0x10a587d8. Copy operations at 0x10a5741c/28 and 0x10a57834/40 and equality comparison at 0x10a57f30-3c are not feature gates. No per-command bundle or init-time gating follows from these sites."
+    "Bound: the IBT provider is the embedded target-provider base at ctx+0x78 of the command context (the object provider vfunc+0x20 returns, stored on the host at +0x38). Its -0x78 secondary vtable slots +0xc (generatePlan) and +0x10 (dispatchToTarget) are the two vfuncs the plan executor calls: +0xc at 0x10b9846c must yield 0x34 to reuse/fill the strategy vector; +0x10 at 0x103cd54c is the per-target dispatch whose non-0x34 return logs 'unsupported IBT command'.",
+    "Exact provider set: 20 -0x78 secondaries carry non-default impls (default f_109e857c/f_109e858c return 0x5a). Namespaces proven: groups (gen registers {playerIds list required, musicContextGroupId optional}; disp builds v1/groups/%s/groups/modifyGroupMembers), hardwareStatus (v1/players/%s/hardwareStatus/battery), homeTheater (v1/players/%s/homeTheater and .../tvPowerState), playback-family secondaries (gen pushes a single implicit-target strategy, returns 0x34; disp builds v1/groups/%s/playback/<verb> for play, pause, playMode, skipToNextTrack, skipToPreviousTrack, seek, seekRelative, loadContainer, trackList, loadStream), playerVolume secondaries (v1/players/%s/playerVolume verbs volume(+muted body), mute, duck, unduck), settings (v1/players/%s/settings/player). All other providers keep the 0x5a defaults and cannot serve intendedTargets.",
+    "Strategy objects are 8-byte {vptr, provider-iface} made by f_103cd3d8: kind 0 -> group strategy (vt 0x10ec7880, exec f_103cdc74 logs '[group] adding player [%s] to group' and drives the coordinator iface vfunc+8 per 0x34-byte target), kind 1 -> dispatch strategy (vt 0x10ec786c, exec f_103cd46c calls provider +0x10 per target and logs per-target results). vtable 0x10ec7894's exec is f_103cd3d8 itself, a meta strategy that materializes kind 0/1 strategies at execution time.",
+    "enablePitchfork consumer resolved: cfg byte +0xf00 inside the ~0xf60 household feature-config struct. Every access in the image enumerated: ctor init stb (0x10a56fe4, 0x10a571ec), struct copy (0x10a5741c, 0x10a57834), equality compare (0x10a57f30), serializer reads (0x10a58594, 0x10a587c8), deserializer address formation (0x10a596f8, 0x10a59ee4). No instruction reads it to gate execution; the flag is document data only here. Neighbors serialized in the same group: enableSslClientCacheRefresh +0xf01, enableDhcpProxyFailureTelemetry +0xf48, homeTheaterWifiPerfTelemetry +0xf4c, enableOnDeviceSoundGeneration +0xf5c, enableRadioSocTemperatureTelemetry +0xf5d, enableHomeTheaterWifi6GHzFronthaul +0xf5e."
    ]
   },
   "lechmere_wss": {
