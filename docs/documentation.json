@@ -232424,6 +232424,42 @@
      "address": "0x107deee4",
      "callsite": "0x107deef4 / 0x107def20 / 0x107def2c / 0x107def38",
      "notes": "Raw compare GT bounds119/120, adjusted index and left shifts verified. Recognition table is not a TX support mask."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107d3560 -> f_107e0dc4",
+     "address": "0x107d3560",
+     "callsite": "0x107d3618 / 0x107d36a8",
+     "notes": "TX burst-extract entry in the tv_proc domain: the descriptor argument carries a data pointer at +0xc and a byte size at +0x14, enforced as a multiple of 8 by 'frame buffer is not evenly divisible by frame size (%zu / %zu)'. Calls the burst dispatcher on receiver+0x8ec with size>>3 as the record count, receiver+0xf24/+0xf28 state words and the caller output record; publishes the produced record through f_107d34f0 into receiver+0x1478 and receiver+0x1530. receiver+0xf0d is a first-run byte flag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107e0dc4 Pc band select",
+     "address": "0x107e0dc4",
+     "callsite": "0x107e0e1c / 0x107e0e30 / 0x107e0e44 / 0x107e1054",
+     "notes": "Emitted IEC61937 Pc is chosen from receiver+0xf24 = rate*(channels/2): ==48000 selects Pc 13 'DTS3' (period 2048), <=176399 selects Pc 1 'AC-3' (1536), <=705599 selects Pc 21 'Enhanced AC-3' (6144), above selects Pc 22 'MAT' (15360). Recompute is skipped while +0x28 caches the same value. Period comes from the f_107def18 u16[arg+1] table; sub+0x24 = period*(ch/2); sub+0x14 = cached value *100*0x10624dd3>>38."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "channel/rate setters",
+     "address": "0x107d3070",
+     "callsite": "0x107d3138 / 0x107d2fc4",
+     "notes": "Channel-count setter admits only {2,8} ('Invalid input channel count: %u', 'Input channel count change: %u -> %u'). Sample-rate pair lives at receiver+0xf1c/+0xf20 ('Sample rate changed from (%u : %u) to (%u : %u)'). Both setters recompute +0xf24 = rate*(channels/2), the value consumed by the Pc band select."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "format-class state machine",
+     "address": "0x107e0e80",
+     "callsite": "0x10f27fcc / 0x10f27fe4",
+     "notes": "sub+0 class takes names {INITIAL, UNKNOWN_BITSTREAM, PCM, BITSTREAM_CONFIRMATION, ALIGN_TO_BURST, ENCODED} from table 0x10f27fe4. Classes 0-4 dispatch through signed-offset jumptable 0x10f27fcc to handlers at 0x107e0f5c/0x107e0f44/0x107e0f28/0x107e0f0c/0x107e0ea0; class >=5 logs 'Unexpected state: %d' under tag 'spdif'. The loop repeats while a handler result stays <= count-1. The INITIAL handler scans 8-byte input records for the first nonzero low-24 value ('non-zero frame'); the PCM handler f_107df840 packs 32-bit stream words into IEC 16-bit subframe pairs with bound checks ('No room in parsing output buffer. Buffer max: %zu buffered: %u')."
     }
    ],
    "code_module": {
@@ -232438,19 +232474,24 @@
       "binary": "anacapad",
       "build": "86.10-80260",
       "notes": "bl-target census: 0x10e5-0x10e6 fns' top calls = __stack_chk_fail/__printf_chk + pb_* (234/135/46/45); SPDIF literals resolved in f_10e6f32c; .data.rel.ro run census found the 163-slot table"
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1108b594",
+      "notes": "163-entry .data.rel.ro code-pointer run (entries span 0x10e53db0-0x10e62544) is mirrored slot-for-slot at .got2 0x1108f964 (base pointer) + 0x1108f968-0x1108fbf8 (same 163 entries, different order)."
      }
     ],
-    "residual": "Bind the remaining entrypoints and pointer-table references to their concrete callers before attributing the entire address interval to SPDIF.",
-    "todo": [
-     "Established: actual entry f_10e6f328 and direct caller0x10d5b000, word/status processing and boundary recovery. Remaining: enumerate pointer-table readers/constructors and join each claimed module function to its owning object and caller. A broad code interval, nanopb co-location or unbound pointer run does not prove one module or a runtime-only dispatch boundary."
-    ],
+    "residual": "Closed: the 0x1108b594 pointer run has no statically reachable reader in this image (all four address-formation mechanisms checked); entrypoint-to-owner joins are bounded at runtime. Do not attribute the whole 0x10e50000-0x10e6ffff interval to one module from table co-location alone.",
     "resolved_findings": [
-     "The old injected-dispatch/static-boundary claim is withdrawn: f_10e6f328 has a direct caller and directly calls f_10e6e5e0. Further entrypoint attribution remains actionable static work."
+     "The old injected-dispatch/static-boundary claim is withdrawn: f_10e6f328 has a direct caller and directly calls f_10e6e5e0. Further entrypoint attribution remains actionable static work.",
+     "Pointer-table census closed as a proven static boundary: exhaustive scans find no in-image consumer for either the 0x1108b594 run or its .got2 mirror - no lis+addi reference to any slot, no r2-relative access (the only r2 use anywhere is the -0x7008 stack-guard slot), no access through any of the 1093 detected per-function GOT bases (with mr/addi propagation), no direct bl/b to any entry, and no dynsym at the table address. The linker emitted a base-pointer slot plus 163 per-function slots, so the entries are reached only through a runtime-bound mechanism (computed/dynamic indexing or an external consumer), not through any statically named owner."
     ]
    },
    "pic_call_model": "The earlier complete-private-GOT/never-bl interpretation is withdrawn. The checked function at0x10e6f328 uses absolute address formation and ordinary direct branches, including logger calls0x10e6f550/0x10e6f5d8; its caller0x10d5b000 is also direct. This does not establish the linkage model or ownership of every entry in the unrelated pointer run at0x1108b594.",
    "todo": [
-    "Established: exact burst-name/period getter bounds and concrete input-word/status-block processing with192-frame recovery. Remaining: trace the actual TX encoder/sink selection and configuration writers to supported Pc values, separating parser recognition and display names from emitted formats. Start with callers of f_107def18 and the input path0x10d5b000; recover units and model/capability gates from consumers before assigning a TX mask. The nested code-module ownership census is separately actionable; neither residual is proven runtime-only."
+    "Established: TX extract path f_107d3560 -> f_107e0dc4, the emitted-Pc band map {DTS3 at 48000, AC-3 <=176399, E-AC-3 <=705599, MAT above} on rate*(channels/2), the six-class state machine with name table 0x10f27fe4, and output record publication at receiver+0x1478/+0x1530. Remaining: per-handler acceptance semantics for the five dispatched classes, the producers writing receiver+0xf1c/+0xf28 (input driver side) and the units of sub+0x14 (value*100*0x10624dd3>>38). The 120-entry Pc table is reporting vocabulary, not a TX mask."
    ],
    "resolved_findings": [
     "Reported Dolby/DTS labels and unsupported-type names are not an executable TX selector or a verified model capability mask.",
@@ -232458,7 +232499,9 @@
     "Resolved: the burst-type vocabulary is the complete IEC 61937 Pc data-type name table - 120-entry array at 0x10f27bc8 (index==Pc): Null=0, AC-3=1, SMPTE338M v1-v5=2/28-31, Pause=3, MPEG1/2 family=4-10, DTS1-4=11-13/17, ATRAC=14-16, WMA Pro I-IV=18/49/81/113, Enhanced AC-3=21, MAT=22, MPEG4 ALS=23, AAC-in-LATM/LOAS=53/85, DRA=119, the rest Unknown/reserved.",
     "Name getter f_107deee4 accepts unsigned indices0..119 inclusive and returns Unknown above119; raw compare0x77 branches on greater-than, not greater-or-equal. Period getter f_107def18 wraps arg+1 to u32, accepts that adjusted value<=120 and reads u16 at0x10f27bc8+0x1e0+2*(arg+1), otherwise returns0. Raw shifts are multiplication by4/2, not clrlwi-as-right-shift. The getter alone does not certify normative units or TX capability for all entries.",
     "Audio-pipeline phase vocabulary at 0x10f26030: {INITIAL, READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, HT_SWAP, SRC, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING} (13 phases). Loss/interrupt-reason enum at 0x10f2990c: {NO_REASON, SIGNAL_LOST, INPUT_ERROR, CHANNEL_NUM_CHANGE, INPUT_RATE_CHANGE, BITSTREAM_DISCONTINUITY, DECODER_ERROR, DECODER_DSP_ERROR, HT_SWAP_ERROR, HT_SWAP_START, HT_SWAP_END, ASRC_ERROR, DIALOG_EXTRACTOR_ERROR, STREAM_ERROR, CONFIG_CHANGE, MODE_CHANGE, AV_SYNC_EXCURSION, GROUP_LATENCY_CHANGE, MONITOR_START} (19 reasons).",
-    "The status path compares frame counter+0x48 with192 at0x10e6f4dc. A new boundary before192 logs Restart; above192 logs OVERSIZE, then both reset counter and accumulation state. Zero usable length skips the loop and returns0. Low24 and counter-low3 operations are masks; the counter/8 extraction is an actual rotate29/mask3..31 at0x10e6f530. These are status-block recovery operations, not codec acceptance decisions."
+    "The status path compares frame counter+0x48 with192 at0x10e6f4dc. A new boundary before192 logs Restart; above192 logs OVERSIZE, then both reset counter and accumulation state. Zero usable length skips the loop and returns0. Low24 and counter-low3 operations are masks; the counter/8 extraction is an actual rotate29/mask3..31 at0x10e6f530. These are status-block recovery operations, not codec acceptance decisions.",
+    "TX-side emitted-format selection is traced: f_107d3560 -> f_107e0dc4 picks exactly one of Pc 13 'DTS3', 1 'AC-3', 21 'Enhanced AC-3' or 22 'MAT' from the rate*(channels/2) band map (exactly 48000, <=176399, <=705599, above). This is a fixed four-value computation over the IEC Pc field, not a configurable per-model mask; the 120-entry name table remains reporting vocabulary, distinct from the four emitted types.",
+    "Output record produced by f_107e0dc4: byte +0x14 = sub+0x4, byte +0x16 = sub+0x4 XOR 1 when the slot was 0, word +0x18 = 0, +0x1c = sub+0x3c, and +0x20 = the first of sub+0x8/sub+0xc that is not -1. Two such records are published at receiver+0x1478 and receiver+0x1530 through f_107d34f0."
    ]
   },
   "addrmon": {
