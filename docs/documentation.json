@@ -231055,7 +231055,7 @@
      "todo": "Established: manifest-capability lookup arguments, raw-header forwarding and local HTTPS/setting predicate are decoded. Remaining: bind interface construction and slot+0x28 implementation to manifest API-header extraction; trace header parsing/limits and setting meaning/writers, and verify actual HTTP/TLS behavior and failure propagation."
     },
     "shared_device_credentials": {
-     "description": "Credentials builder f_1071f0c0 adds zonePlayerId when descriptor capability0x40000 is set and the supplied zone-player string is non-null/nonempty. If a certificate destination exists and capability0x20000 is set, it consults optional global certificate provider0x1109792c. Provider slot+8 returning numeric1 yields result1045 and bypasses certificate retrieval. It still appends deviceId and deviceProvider before returning that error. Other provider states attempt slot+0xc retrieval into the caller buffer; true adds deviceCert, while false merely omits it and returns zero. Missing provider also omits the certificate and returns zero. After these branches it always adds deviceId from global text0x110a9ab0 and deviceProvider literal Sonos. In getDeviceAuthToken the certificate scratch capacity is4097. The caller stops before request execution on any nonzero builder result. These are the observed numeric gates; the certificate-state enum and trust policy are not established by the method names.",
+     "description": "Credentials builder f_1071f0c0 adds zonePlayerId when descriptor capability0x40000 is set and the supplied zone-player string is non-null/nonempty. If a certificate destination exists and capability0x20000 is set, it consults optional global certificate provider0x1109792c. Provider slot+8 returning numeric1 yields result1045 and bypasses certificate retrieval. It still appends deviceId and deviceProvider before returning that error. Other provider states attempt slot+0xc retrieval into the caller buffer; true adds deviceCert, while false merely omits it and returns zero. Missing provider also omits the certificate and returns zero. After these branches it always adds deviceId from global text0x110a9ab0 and deviceProvider literal Sonos. In getDeviceAuthToken the certificate scratch capacity is4097 and the caller stops before request execution on any nonzero builder result. Provider binding:0x1109792c is stored at0x1019a220 inside RZonePlayer init f_101981f0 from member+0xc7c; ctor f_1018d27c passes &RZP[0xc7c] inside a member-address table into DI wiring call f_101afaa4 at0x1018f114, so the concrete provider is attached at runtime. ~RZonePlayer f_101921a0 clears sibling globals0x11097928 and0x11097930 but never0x1109792c. Registered providers are the devicecertmanager family (devicecertmanager.cxx/certmanager.cxx): vtables0x10ef1e60 (ctor f_105a7034) and0x10efc818 (ctor f_1064aca0) share slot+8 state f_10390274, slot+0xc retrieval f_106b1e04, slot+0x10 install f_105a6e44 (URN strings 'urn:sonos:hhid' and 'urn:sonos:user') and slot+0x1c presence f_106b1d64 reporting member+0x9c!=0. state() returns1 when byte+0x10d0 is set, else2 when+0x9c is set, else0;1045 therefore means denylisted. +0x10d0 is cleared by the class ctor at0x105a70e0, assigned by metadata evaluator f_105a7b48 (stored 'state' field: 'denylisted'->1, absent or empty->0, other nonempty logs 'Unknown cert metadata state' and schedules a refresh job through scheduler global0x110a5f8c slot+0xc before clearing it), set at0x105a86cc when refresh routine f_105a7e74 sees HTTP403 plus 'X-Sonos-Denylisted: true' (the same path stores 'state'='denylisted' through setter f_105a7dac) and cleared on the refresh success path at0x105a84e8. Retrieval f_106b1e04 strlcpy's cert text from provider+0xa0 only when+0x9c is nonzero and reports success only when it fits the caller capacity. deviceId source:0x110a9ab0 is a zero-initialized0x20-cap buffer heading a static identity block (further strings at+0x20 cap0x21,+0x44 cap0xc0,+0x104 cap0xc0,+0x1c4 cap0x21; the+0x20 string is filled during init via f_10719e40 at0x10198724). Its only setter is strlcpy thunk f_10719e24; all four callers (f_100c6248, f_100c7c6c, f_100c8230, f_104b1e48) copy the 'R_TrialZPSerial' setting text into it, and f_104b1e48 logs 'Trial ZP has changed from %s to %s'. The emitted deviceId is therefore the last applied R_TrialZPSerial value, or empty when that setting was never applied. Caller audit: shared helper f_10724d78 (call site0x10724dcc, used by ~10 action builders including refreshAuthToken f_10725488 with stack cap0x1001) returns a nonzero builder result unchanged and skips all login-credential work; on zero it dispatches on credential-type word+0x13b4 (state0, or3 with flag+0x11a7, calls vfunc+0x10; byte+0x124 set calls f_1071ee0c; otherwise 'username'/'password'/'login' elements; cap+0x13ac&0x10000 adds tail call f_10724cac). The getSessionId builder call at0x107250cc passes stack capacity0x1001 and stored member+4 as the zonePlayer string, then ignores the builder result entirely and continues to 'username'/'password' emission, so a denylisted device still emits a getSessionId request whose credentials carry only deviceId/deviceProvider. Certificate issuance and renewal run inside refresh routine f_105a7e74, which posts a 'Registration' JSON event ('certType'='deviceCert','secureReg') and consumes 'requestTimeMS','downloadStatusCode','httpResultCode','newETag','previousETag','downloaded','unchanged','state','etag' fields plus the 'X-Sonos-Muse-Household-Id' header, staging results through a '.tmp' file; the concrete backend endpoint is runtime configuration.",
      "evidence": [
       {
        "type": "firmware",
@@ -231084,9 +231084,97 @@
        "build": "86.10-80260",
        "address": "0x1072a3b0",
        "notes": "Builder receives capacity0x1001 and its nonzero result exits before request construction."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019a220",
+       "notes": "Global0x1109792c stores [RZP+0xc7c] (lwz0x1019a200, stw0x1019a220); same block stores0x11097928 at0x1019a20c and0x11097930 at0x1019a214. Ctor f_1018d27c writes &RZP[0xc7c] to sp+0x130 at0x1018efb4-0x1018efb8 and feeds the table to f_101afaa4 at0x1018f114. Dtor f_101921a0 zeroes0x11097930/0x11097928 at0x101924a0/0x101924b8, never0x1109792c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ef1e60",
+       "notes": "devicecertmanager vtables0x10ef1e60 and0x10efc818 share slot+8 f_10390274, +0xc f_106b1e04, +0x10 f_105a6e44 ('urn:sonos:hhid'/'urn:sonos:user'), +0x18 f_106b1fe4, +0x1c f_106b1d64."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10390274",
+       "notes": "state(): lbz+0x10d0 ->1 at0x10390280; else vfunc+0x1c presence call and isel r3,r0,r9,cr7eq at0x103902b4 gives0 or2. Fast reader0x1038ce88 confirms slot+8 then reads+0x10d0 directly."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a70e0",
+       "notes": "devicecertmanager ctor f_105a7034 clears byte flags+0x10d0/+0x10d1/+0x10d2 (stb at0x105a70e0/0x105a70e4/0x105a70f0)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a7cbc",
+       "notes": "f_105a7b48 metadata load: 'state' absent ->stb0 at0x105a7cc4; 'denylisted'/empty path0x105a7d9c ->booleanized store at0x105a7cb4-0x105a7cbc; other nonempty ->'Unknown cert metadata state: %s. Scheduling cert refresh job.' at0x105a7c54 and scheduler0x110a5f8c vfunc+0xc call at0x105a7c68-0x105a7ca4. Log '%s: loaded:%s (d:%d e:%s)' prints flag at0x105a7d04."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a8644",
+       "notes": "Refresh routine f_105a7e74: httpResultCode cmpwi403 at0x105a8644, 'X-Sonos-Denylisted' header at0x105a8658, strcasecmp 'true' at0x105a8698, then setMetadata('state','denylisted') via f_105a7dac at0x105a86c4 and stb1 to+0x10d0 at0x105a86cc. Success path clears the flag at0x105a84e8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a7e74",
+       "notes": "Cert issuance/refresh routine (stwux prologue): 'Retrieved manufacturing data: %s'0x10ef2300, 'Registration' event0x10ef1f00, 'certType'/'deviceCert'/'secureReg' keys0x10ef1f10-0x10ef1f28, response fields 'requestTimeMS'/'downloadStatusCode'/'httpResultCode'/'newETag'/'previousETag'/'downloaded'/'unchanged'/'state'/'etag', 'X-Sonos-Muse-Household-Id'0x10ef22e4, '.tmp' staging0x10eeb864, '%s: file %s [%s]'0x10ef2408."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106b1e04",
+       "notes": "Retrieval slot+0xc: reads+0x9c at0x106b1e60, strlcpy dest=arg,src=this+0xa0,cap at0x106b1e78, success iff return<cap at0x106b1e7c; presence f_106b1d64 booleanizes+0x9c via isel r31,r0,1,cr7eq at0x106b1dbc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10719e24",
+       "notes": "deviceId setter = tail strlcpy(0x110a9ab0,src,0x20). Identity block siblings: f_10719e40 writes+0x20 cap0x21, f_10719e60 writes+0x44/+0x104 cap0xc0 and+0x1c4 cap0x21. Setter callers0x100c6308/0x100c7f9c/0x100c87fc/0x104b2288 all load 'R_TrialZPSerial'0x10e76b78; f_104b1e48 logs 'Trial ZP has changed from %s to %s'0x10ed77fc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10724dcc",
+       "notes": "Helper f_10724d78: cert buf/cap forwarded from its args r9/r10; nonzero builder result returns unchanged via0x10724e7c epilogue skipping login work; zero dispatches on[req+0x13b4] (==2 ->0x10724e70, ==0 ->vfunc+0x10 at0x10724ec0, ==3 ->byte+0x11a7 gate at0x10724eac, else byte+0x124 ->f_1071ee0c or 'username'/'password'/'login' at0x10724e04; cap+0x13ac&0x10000 tail f_10724cac)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107250cc",
+       "notes": "getSessionId builder (action string0x10f0fb50, f_1071e208 header call at0x10725074): cert buf sp+0x10428 cap0x1001, zonePlayer arg=[r31+4]; no test of builder result, flow continues to 'username' emission under cap+0x13ac&0x10000 at0x10725108."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10725580",
+       "notes": "refreshAuthToken builder f_10725488 calls helper f_10724d78 with stack cert buf sp+0x13688 cap0x1001; result tested at0x10725584, nonzero exits at0x107257f0 before 'refreshAuthToken' SOAP setup at0x107255cc."
       }
      ],
-     "todo": "Established: credential field conditions, missing-provider/retrieval-false behavior,1045 state gate and getDeviceAuthToken failure ordering are decoded. Remaining: bind certificate provider construction, enumerate state writers, trace issuance/renewal/trust and device identifier initialization, and audit other direct callers0x10724dcc/0x107250cc for buffer and error effects."
+     "resolved_findings": [
+      "The concrete certificate-provider class cannot be bound statically: ctor f_1018d27c passes member slot &RZP[0xc7c] into DI registration f_101afaa4 which resolves implementations through the embedded registry at runtime. Both registered devicecertmanager-family classes (vtables0x10ef1e60/0x10efc818) share the audited slot implementations, so state/retrieval/install/presence behavior is class-invariant.",
+      "Certificate issuance endpoint, request signing and server-side trust decisions are runtime/network boundaries: the binary only shows refresh routine f_105a7e74 posting a 'Registration' JSON event with 'certType'='deviceCert'/'secureReg' and consuming the enumerated response fields; no static URL or trust chain is recoverable.",
+      "Emitted deviceId content is runtime configuration: the only setter (strlcpy thunk f_10719e24) is fed exclusively by 'R_TrialZPSerial' reads, so the buffer stays empty until that setting is applied."
+     ]
     },
     "shared_executor_boundaries": {
      "description": "Shared request executor f_106ff03c(this=req) runs the full call. f_106fe160 first builds a0x39-byte session blob from req+0xa918 through f_109bc0cc and attaches it through request vfunc+0x30 (f_106fd338). f_1054b444 converts the stored millisecond values req+0xc6a8/req+0xc6ac (constructor args, e.g. getDeviceAuthToken passes20000/10000) into two absolute deadlines via sonosClockGetTime(1) and timevalAddMs; the poll loop consumes them as phase deadlines (second while connecting or handshaking, first once established). sonosClockGetTime(1) also stamps tvStart. When the global hook provider at0x11097910 is nonnull, its vfunc+8 runs a pre-hook(provider, expectedNs req+0x811, expectedName req+0x911, url req+0x410) before any transport work; the provider pointer is runtime-injected with no static store in the binary. Result starts at1001. f_106fdf60(req,0) runs preflight selector0 (f_1053b724: shared URI parse f_1053b4a4 plus resolve f_1054a158 selector0, so failures are0x80000002 or0x81000003) and invokes header builder f_106fdca0 whenever the preflight result is0 or11 while preserving that result; selector1 (f_1053b6b0, only caller the arg4!=0 path) maps resolve failure to11, which builds headers but still skips the core. A nonzero preflight skips the entire HTTP core and keeps1001. On the zero path the executor constructs the processor at sp+0x50 (f_1053a390) and connection at sp+0x8ec (f_10538ed0) and calls f_1053a060(&conn,&deadline1,&deadline2). After it returns: req+0xa45 still0 keeps1001 (serializer never entered); a nonzero poll return is mapped through f_10c3b8ac (0->0;0x81000003-0x81000005 and0x82000001 ->1001;0x80000025 ->1002; anything else ->1000); a zero poll return produces1037 when req+0xa47 is set and status word+0xa48 equals401, otherwise f_10562e6c on the embedded parser (req+0xc040) supplies the result. Teardown runs f_10538f00(conn) and f_1053881c(proc). Both exit paths merge for telemetry: feature blob f_10557fa8 on the stack receives 'tunnel'=req+0xa93d, 'secure'=(url begins 'https://') and 'loopback'=req+0xa3b through f_105580ac; the provider post-hook vfunc+0xc then runs with (ns,name,url,0,0,req+0xa918,blob,req+0xa940,result,&tvStart); elapsed timevalDiff(now,tvStart) is stored at req+0xc6b0. When req+0xa44 is clear and result nonzero a 'control_client' failure line is emitted at level4 for results below1037 and level5 otherwise: '<host> <name> failed, ret = %hu, httpRes = %d, tvStart = %d s %d us, m_tvConnectDone = %d s %d us, m_tvDone = %d s %d us, tvNow = %d s %d us' (0x10f0bac8) with the host formatted through f_105499c8/f_109bc028 and the four stored timevals. The executor returns the result halfword. Boundaries: no retry loop, no redirect or Location handling and no cancellation/interruption check exist here; transport errors that only collapse poll interests exit as0 from f_1053a060 and resolve through the parser result path, while deadline expiry is the only nonzero loop return (0x80000025->1002). Response acceptance, descriptor flags (+0x30 optional caller-set, +0x31 finalized, +0x32 secure) and fault/errorCode conversion behave exactly as in the response-parser record; conn phase bytes+0x4424..+0x442a are written only inside the0x1053xxxx transport cluster plus the single out-of-cluster clear0x102b5a98. A sibling larger request class (ctor0x106ff3b8, vtable0x10f0b854, parser embedded at+0x498, result field+0x2722) drives the same parser through chunked driver f_10562d64 at0x106ffb24; it is separate machinery from this executor.",
