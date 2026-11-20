@@ -228884,15 +228884,60 @@
      "build": "86.10-80260",
      "address": "0x107c55bc",
      "notes": "Success presence byte precedes copying 0xfa8-byte decoded payload."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fbea9c",
+     "notes": "Descriptor word1 = (data_size<<16)|data_offset: tag1 bytes[40]@+0x00, tag2 name[40]@+0x28, tag3 rec[0x134]@+0x54, tag4-7 u32@+0x9f4..0xa00, tag8 rec[0x2c]@+0xa08, tag9 byte@+0xf88, tag10-11 u32@+0xf8c/+0xf90, tag12 u32[4]@+0xf98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c5c64",
+     "notes": "DSPConfigParams converter: strlcpy payload+0x28 -> global name buf 0x110b62c0; named breakpoint lookup f_107c5b68 over count@+0x50 stride-0x134 records at +0x54 (name@+0, data@+0x80); 'default' required, 'bonded' falls back to default; pairwise vol/gain equality enforced; i>=7 -> 'Too many volume breakpoints'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c5a44",
+     "notes": "Second name-keyed lookup over count@+0xa04 stride-0x2c records at +0xa08 = {name[0x28], ptr at +0x28}; keys 'sub' (0x10f16d48) and 'gravity' (0x10f24be4); miss logs 'Bonded gain for \"%s\" not found in DSPConfig' and returns a shared .rodata word at 0x10ec9ed0 (inert sentinel behind the presence flag)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fbea40",
+     "notes": "tag3 record descriptor: {bytes name[0x28]@0, sub 0x108@0x2c}; nested desc 0x10fbe9e4 = {repeated u32@4, repeated u32@0x88} = {vol_count,u32 vols[32],gain_count,u32 gains[32]}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10fbe668",
+     "notes": "tag12 version descriptor: four consecutive u32 fields {major,minor,patch,build}; converter formats them '%d.%d.%d.%d' via f_107c6258/f_107c69e8 (fmt 0x10e717f0)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107c33b0",
+     "notes": "Converted params consumed by the product-model spec-field producers (0x107c33b0-0x107c50b4) pairing float defaults from the 0x10f2_47xx table with &0x110b61a0; scalar-tag semantics continue there."
     }
    ],
-   "todo": "Residual: bind the corrected top-level protobuf tags 1..12 and nested descriptors to semantic names through DSPConfigParams conversion/consumer offsets. Encoded header bytes 5,9,13,... were not field numbers or a per-model scheme; the shipped nanopb iterator now establishes the actual numbering.",
    "resolved_findings": [
     "DSP channel/speaker enums recovered: speaker-mask vocabulary at 0x10fbe650 {SPEAKER_MASK_UNSPECIFIED, THREE_DOT_ONE, FIVE_DOT_ONE, FIVE_DOT_ONE_DOT_TWO, SEVEN_DOT_ONE, NINE_DOT_ONE_DOT_FOUR}; channel-type enum at 0x10fbef08 {UNSPECIFIED, L, R, C, SUB, LS, RS, LRS, RRS, LTM, RTM, LW, RW, MONO, LTR, RTR} + channel-direction {UNSPECIFIED, DIRECT, INDIRECT_ARRAY, INDIRECT_SINGLE_DRIVER}; tone-handler/sub-system types at 0x10fbf1d4 {TONE_HANDLER_TYPE_{STANDARD,SUB}, ARRAY_SUB_SYSTEM_TYPE_{BRAVO,FURY,OPTIMO2,OPTIMO2_SURROUND,LASSO,APOLLO}, VOLTAGE_GAIN_CALCULATOR_TYPE_{BULK_CAPACITORS,BOOSTED_BATTERY,BUCKED_CAPACITOR}}; orientation/measurement enums at 0x10fbff4c {DEVICE_ORIENTATION_*, MEASUREMENT_MODE_{SPATIAL,SPECTRAL}, SUB_POLARITY_{POSITIVE,NEGATIVE}, TUNING_MODE_{INDIVIDUAL_CHANNELS,ALL_CHANNELS_AS_MONO}}; stream-type {INPUT,OUTPUT,SCRATCH} at 0x10fbfed4.",
     "Channel-layout token map at 0x10fe6ba4: {lr=0, c=0, lfe=1, lrs=2, lrrs=3, lrw=4, lrtm=5, lrtf=6, lrtr=7, lre=8, lrrh=9, lrfh=10, lrse=11, lrrs e=12, lrs1=13, lrrs1=14, lrs2=15, lrrs2=16, lrcs=17, cs=18} - speaker-position tokens used in DSP channel-map descriptors.",
     "The previous packed-descriptor tag decoding was wrong: 5,9,13,... are encoded field-header low bytes, not protobuf field numbers and not a per-model stride-four scheme. The actual top-level tags are 1 through 12. pb_decode at 0x107c5564 receives descriptor 0x10fbea70 through global 0x110954b8. Its field-info pointer is 0x10fbea9c and field count is twelve. All twelve top-level headers use format 1, meaning two 32-bit words each, from 0x10fbea9c through 0x10fbeaf8.",
     "This is verified against the shipped decoder, not a guessed nanopb version: lib/libprotobuf-nanopb.so.0 iterator code at 0x10f0 extracts header low two bits as format; format-one code at 0x11e0-0x1208 extracts the low six tag bits with (word>>2)&63 and combines the extra tag bits from the second word. Applying that code to the static headers gives tags {1,2,3,4,5,6,7,8,9,10,11,12}. Descriptor submessage pointers at 0x10fbea8c are {0x10fbea40,0x10fbea14,0x10fbe668}; this establishes nesting but not semantic field names.",
-    "File/decode outcomes are also distinct: file bytes read at 0x107c553c are tested for zero at 0x107c5540-0x107c5544 before stream construction. An empty read logs DSPConfig file is empty at 0x107c5770; failed pb_decode branches to its error diagnostic at 0x107c57b8. A successful decode copies a 0xfa8-byte result through temporary records and sets the output presence byte to one at 0x107c559c-0x107c55d0. Consumer/conversion tracing, rather than absence of a source .proto, is the remaining route to field semantics."
+    "File/decode outcomes are also distinct: file bytes read at 0x107c553c are tested for zero at 0x107c5540-0x107c5544 before stream construction. An empty read logs DSPConfig file is empty at 0x107c5770; failed pb_decode branches to its error diagnostic at 0x107c57b8. A successful decode copies a 0xfa8-byte result through temporary records and sets the output presence byte to one at 0x107c559c-0x107c55d0. Consumer/conversion tracing, rather than absence of a source .proto, is the remaining route to field semantics.",
+    "All twelve top-level tags now bind to concrete decoded-payload offsets through descriptor word1 = (data_size<<16)|data_offset and converter f_107c5c64: tag1 = bytes[40]@+0x00 (not consumed by this converter; candidate ID/variant string); tag2 = name[40]@+0x28, copied by strlcpy into global name buffer 0x110b62c0; tag3 = repeated 0x134-stride named breakpoint sets @+0x54 with count@+0x50; tag4..7 = u32 scalars @+0x9f4/+0x9f8/+0x9fc/+0xa00 carried into converted record +0x18..0x24; tag8 = repeated 0x2c-stride {name[40], ptr} sub-config table @+0xa08 with count@+0xa04; tag9 = byte flag @+0xf88; tag10/11 = u32 @+0xf8c/+0xf90; tag12 = u32[4] version quad @+0xf98 formatted '%d.%d.%d.%d' into a 0x80 buffer (the trueplay_version surface).",
+    "Nested descriptors decoded: tag3 record (desc 0x10fbea40) = {name[0x28], sub 0x108@0x2c} where the sub (desc 0x10fbe9e4) = {vol_count,u32 vols[32]@4, gain_count,u32 gains[32]@0x88}; tag8 record (desc 0x10fbea14) = {name[0x28], ptr to the same {u32[32],u32[32]} array message} so 'sub' and 'gravity' named entries resolve to paired-u32-array configs (subchannel and gravity gain curves; the gravity consumer in dsp_ht_engine logs 'No gravity sub configuration found, using default' at 0x10d7bd40). tag12's submessage descriptor 0x10fbe668 is four consecutive u32 fields = version {major,minor,patch,build}.",
+    "Volume-breakpoint validation semantics: 'default' set required ('no default volume breakpoints specified' -> conversion fails, presence byte 0); 'bonded' optional and falls back to default ('no bonded volume breakpoints specified, using default instead'); vol/gain array lengths must match within each set and between default and bonded, and every element must match pairwise ('default (%i) and bonded (%i) volume breakpoints differ'); capacity beyond 8 entries trips 'Too many volume breakpoints .nanopb_options MAX_VOLUME_BREAKPOINT_LENGTH'. Validated values are copied to u16 arrays at global +0x148/+0x158/+0x178. The 'Bonded gain for \"%s\" not found' miss in the tag8 table returns a shared .rodata word at 0x10ec9ed0 that aliases a log-string start; it is only meaningful behind the record's presence/flag fields.",
+    "Residual semantic naming is scoped: tags 4-7/9-11 and tag1 carry numeric bindings into the converted DSPConfigParams (global 0x110b61a0) but their semantic names live in the product_models anonymous-spec-field residual, whose producers (0x107c33b0-0x107c50b4) pair each field with a float default from the 0x10f2_47xx table and the params base. The tag-to-offset-to-consumer join itself is complete."
    ]
   },
   "protocol_info": {
