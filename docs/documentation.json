@@ -180002,14 +180002,18 @@
   },
   "services_xml_schema": {
    "service": "MusicServices",
-   "description": "Local normalized music-service catalog rooted at Services with LastUpdateDevice, Version, SchemaVersion=5 and optional ETag. Service rows carry Id, Name, Version, SecureUri, ContainerType and Capabilities plus Policy/Presentation/Manifest sections. BuiltInService entries carry Type and Name. The local emitter applies overrides and manifest-capability projection; this is not proof that downloaded input or SOAP projection uses the same grammar.",
+   "description": "Local normalized music-service catalog rooted at Services with LastUpdateDevice, Version, SchemaVersion=5 and optional ETag. Service rows carry Id, Name, Version, SecureUri, ContainerType and Capabilities plus Policy/Presentation/Manifest sections. BuiltInService entries carry Type and Name. Three representations share this grammar: the downloaded stream (SAX-normalized with unsigned SchemaVersion<=5 admission), the stored file musicservices.xml (always emitted with literal SchemaVersion=5), and the SOAP projection (ListAvailableServices rewrites the stored catalog through descriptor delegates and returns a source:counter version token). Namespace processing is disabled in the catalog parser, so element and attribute names are matched literally.",
    "fields": "<Services LastUpdateDevice Version SchemaVersion ETag><Presentation/><ServiceIds/><Total/>\u2026</Services>; summary <AvailableSvcsSummary><ServiceIds></ServiceIds><Total></Total></AvailableSvcsSummary>; per-svc {SecureUri,secureUri,ContainerType,BuiltInService,PresentationMap,Strings,PollInterval,Manifest}",
    "surface": "/MusicServices/Control",
    "data_type": "string",
    "evented": true,
    "resolved_findings": [
     "Resolved at emitter granularity: the emitter serializes via getter calls/computed string builders; no plain member-load provenance exists for most fields (backing lives behind the same injected-delegate boundary as the impl workers).",
-    "Emit site proven: the services XML writer at 0x100cbaf0 emits '<ServiceIds>', 'PresentationMap', 'Strings' sections plus '%u' entries - it walks the SMAPI service registry (the same registration list behind MusicServices) and serializes each descriptor. Backing is the service-descriptor table populated at service registration."
+    "Emit site proven: the services XML writer at 0x100cbaf0 emits '<ServiceIds>', 'PresentationMap', 'Strings' sections plus '%u' entries - it walks the SMAPI service registry (the same registration list behind MusicServices) and serializes each descriptor. Backing is the service-descriptor table populated at service registration.",
+    "Generic XML grammar resolved: all catalog parsing runs on the custom SAX engine (handlers +0x34 start/+0x38 end/+0x50 chardata with mode byte +0x130, aux pair +0x64/+0x68, user slots +0x3c..+0x44). The catalog path always creates it via f_10c4a8cc(0), so the namespace separator is null, +0xe8 stays clear, and prefix expansion is skipped: names must literally match the unqualified Services grammar.",
+    "Downloaded representation: UpdateAvailableServices streams the HTTP response through the attribute ladder (root f_10552c20 admits unsigned SchemaVersion<=5, Id<=0x00ffffff, required-pointer guards), normalizes each Service through the f_100cbaf0 writer into a temporary file, then installs by rename. The downloaded document is never stored verbatim.",
+    "Stored representation: musicservices.xml under the settings directory. The emitter writes SchemaVersion=5 as a compiled literal; header fields {source +0x1d7, version +0x1f0, 65-byte field +0x1f8, flag} are re-extracted on load through query evaluator f_100c76a4, and the file version is incremented by 1 when the flag byte reads nonzero.",
+    "SOAP representation: ListAvailableServices projects the stored catalog through descriptor delegates (f_100cc34c transform descriptor with 0x800 cap, service-type list from delegate+0x34 via f_100ca7f4, version token from delegate+0x10 via f_100ca84c/f_100c6314 as %s:%u). The evented ServiceListVersion value is the same source:counter composite; neither SOAP output exposes the raw downloaded bytes nor re-admits remote SchemaVersion values."
    ],
    "evidence": [
     {
@@ -180025,9 +180029,58 @@
      "build": "86.10-80260",
      "address": "0x100cb694",
      "notes": "Six normalized Service attributes and capability extraction."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3f81c",
+     "notes": "Parser factory: requires start/end handler args (r6/r7); r4==0 creates engine via f_10c4a8cc(0), r4!=0 via f_10c4a8e4(0,r4); wraps engine in malloc(0xc) and installs handlers through f_10c3f27c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c4b220",
+     "notes": "Engine handler layout: start-element +0x34, end-element +0x38, user pointers +0x3c/+0x40/+0x44, chardata +0x50 with mode byte +0x130, aux pair +0x64/+0x68, namespace separator at +0xe8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3fd2c",
+     "notes": "Catalog parse call passes r4=0 so the engine is built with null namespace separator; +0xe8 stays clear and the prefix-expansion branch at 0x10c4a690 is skipped, so names compare literally."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cc5e4",
+     "function": "0x100cc4f4",
+     "notes": "Stored root emitted from literal fragments: <Services LastUpdateDevice=\" at 0x10e76f54, \" Version=\" 0x10e76f74, \" SchemaVersion=\" 0x10e76f80; value 5 appended as integer at 0x100cc630 via f_10577fd0; ETag branch at 0x100cce28 only when this+0xc nonempty."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c5d3c",
+     "notes": "Path builder produces <dir>+musicservices.xml (arg2 is the storage dir); this is the single stored-file name used by install rename, load, DIAG snapshot and ListAvailableServices streaming."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6948",
+     "notes": "SOAP ListAvailableServices impl enters through this-adjustment thunk to f_100c6314, which formats the version token as %s:%u from catalog +0x1d7/+0x1f0 into the response delegate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100cc34c",
+     "notes": "SOAP descriptor projection builds a transform descriptor {vtable 0x10e767fc, output cap 0x800, this+0x34 fields} and optionally re-queries the parsed doc through f_10c4009c; service-type list and version delegates are f_100ca7f4 (delegate+0x34) and f_100ca84c (delegate+0x10), each writing through delegate vfunc+0x10."
     }
-   ],
-   "todo": "Established: local root/service/built-in emitted fields are decoded and detailed in payload_formats.music_service_catalog. Remaining: trace generic XML parser grammar and descriptor projections to separate downloaded, stored and SOAP representations and their version/namespace rules."
+   ]
   },
   "userradio_schema": {
    "service": "",
