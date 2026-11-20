@@ -221514,7 +221514,7 @@
   },
   "token_refresh": {
    "name": "OAuth token-refresh FSM",
-   "summary": "threads {cqatrs_tx,cloudqueue_tr}; log \"[%s HTTP %d from %s%s] %s\"; states {\"using token from file\",\"requesting new token refresh sync\",\"requesting token refresh sync %u %d -> %d\",\"need to wait for token refresh\",\"waiting for token refresh completion\",\"waiting for refresh tx complete; current state %d\",\"Attempting to refresh token (hrs=%d te=%d)\",\"transition token refresh action %u %d -> %d\",\"Token refresh succeeded. Beginning retry.\"}; errors {\"last refresh token for load timed out\",\"no last refresh token time\",\"expected entry not found to complete tx\",\"expected entry not found waiting for tx\",\"Refresh token failed with upnp result: %d\",\"Refresh token failed. Could not find SD, sid=%u\",\"unexpected token action %d\"}; keyed by acct. sn. %u",
+   "summary": "threads {cqatrs_tx,cloudqueue_tr}; log \"[%s HTTP %d from %s%s] %s\"; states {\"using token from file\",\"requesting new token refresh sync\",\"requesting token refresh sync %u %d -> %d\",\"need to wait for token refresh\",\"waiting for token refresh completion\",\"waiting for refresh tx complete; current state %d\",\"Attempting to refresh token (hrs=%d te=%d)\",\"transition token refresh action %u %d -> %d\",\"Token refresh succeeded. Beginning retry.\"}; errors {\"last refresh token for load timed out\",\"no last refresh token time\",\"expected entry not found to complete tx\",\"expected entry not found waiting for tx\",\"Refresh token failed with upnp result: %d\",\"Refresh token failed. Could not find SD, sid=%u\",\"unexpected token action %d\"}; keyed by acct. sn. %u; store RZPServiceAccounts (vptr+0xc f_101b4e94 record-array scan), credentials via embedded accountsMgr (id<<8)|7, write-back via request-queue dispatcher 0x11097824; refresh is 401-driven, 60000ms is tx freshness not token lifetime",
    "evidence": [
     {
      "type": "firmware",
@@ -221538,10 +221538,87 @@
      "address": "0x1038f42c",
      "callsite": "0x1038f440 / 0x1038f44c / 0x1038f6f0",
      "notes": "Clock1 timevalDiff elapsed comparison60000 belongs to in-flight refresh synchronization; no conversion into token lifetime or unconditional schedule is asserted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "store class binding",
+     "address": "0x101b4e94",
+     "callsite": "0x1038eb24",
+     "notes": "receiver+0x1208 is an injected RZPServiceAccounts (new 0xa908 at startup 0x1018e5b4, ctor f_101b6174, primary vtable 0x10e9af38). vptr+0xc f_101b4e94: under the 'zpServiceAccounts' named lock at store+0xa878 it walks the record array at store+0x294 (0x250-byte records, count +0x290), keeps entries whose low-7 type byte at rec+4 is 7 or 8, compares rec+0 to the key at receiver+0x1200 and copies the record on match."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "service-descriptor lookup",
+     "address": "0x1038ede0",
+     "callsite": "0x1038edf8",
+     "notes": "lwz r3,0x1208(r30); addis r9,1(r9); lwz r3,-0x5794(r9) = member store+0xa86c, the ctor's injected r6 pointing at player+0x292b8. Its vptr+0x20 resolves sn=key>>8 into the service-descriptor string; null result logs 'Refresh token failed. Could not find SD, sid=%u' at 0x1038f4bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "accountsMgr credential container",
+     "address": "0x10285224",
+     "callsite": "0x101b6440 / 0x101b6bdc",
+     "notes": "accountsMgr embedded at store+0x118 (ctor installs vtable 0x10eabc6c, names its lock 'accountsMgr' at +0x20, keyed map f_1028c3b8). Credential read f_1028c5f4(store+0x118,(id<<8)|7,out) from callback f_101b6b84; subtype 7 is the credential. f_102862d4(out,store+0x118) snapshots accountsMgr +0xe8..+0x12a under the same lock for the persist worker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "persistence write-back",
+     "address": "0x101b7cd4",
+     "callsite": "0x101b7ddc / 0x1067b3a8",
+     "notes": "Store method f_101b7cd4 formats '%u' from *(store+0xa86c)+0x1f0, snapshots accountsMgr via f_102862d4, serializes with f_10831bc0, then f_10677ccc(*(member)+8,0x2d,rec) -> f_10677b94 builds request {vtable 0x10e87040} -> f_1067b3a8 serializes and enqueues a 0xc node on the global dispatcher 0x11097824 (vptr+0x8 enqueue, +0x14 commit) under lock 0x110a9458. Dispatcher installed by f_1067b318 from member +0x640 of the engine in f_0x1059bef8. No file path is opened on this path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "dead filename literal",
+     "address": "0x10eabd60",
+     "notes": "'accounts.xml' has zero EA-formation references and zero pointers in any data section. Neighboring accountsMgr-class strings 'accountsMgr' 0x10eabd4c, '%s %u' 0x10eabd58 (display-name format, f_102853c8), 'invalid service ID' 0x10eabd70, 'missing service uuid' 0x10eabd84, 'missing account type' 0x10eabd9c, 'missing metadata' 0x10eabdb4 are all referenced; the filename is not."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "status-to-transition map",
+     "address": "0x1038e8c4",
+     "callsite": "0x1038e8cc / 0x1038e8fc / 0x1038e904",
+     "notes": "receiver+0x88c4 = last HTTP response status ('hrs' in the log), +0x88c8 = transition-error code ('te'): 0 for 200/304/202+8n, 0x3d generic, 0x3f client error, 0x41 connection failed; 401 enters refresh at 0x1038ecf0, 403 takes the client-error arm. Byte +0x88d0 is a one-shot consumed flag. Refresh is response-status driven, not timer driven."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "transaction dedup and age gate",
+     "address": "0x1038f42c",
+     "callsite": "0x1038f44c / 0x1038f47c / 0x1038f6c8",
+     "notes": "Per-sn tx entries live in the global tree at 0x110a2590 (mutex +0x38, condvar +0xc8, tree +0x24); entry = {sn@+0x10,state@+0x14,clock@+0x18}. A completed entry younger than 60000ms logs 'using token from file' and reuses the stored credential; older logs 'last refresh token for load timed out' and refreshes again. Waiters timedwait 20000ms on the condvar ('wait for tx timed out'); completers stamp state=3 and clock at +0x18 (0x1038f678-0x1038f68c)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "refresh success and retry",
+     "address": "0x1038f588",
+     "callsite": "0x1038f5cc / 0x1038f620",
+     "notes": "Nonzero f_10725488 result logs 'Token refresh succeeded. Beginning retry.', strlcpy(receiver+0x7210, response buffer, 0x1401), sets byte +0x88d0 and *(receiver+0x1204)+4=1, then receiver vptr+0x30 retries the original request. On a later HTTP 200 the flag==1 arm errors 'Cloud queue response handler error' with te 0x3d and return 0x192 (flag==-1 returns 0x3e8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "UPnP login-path staleness gate",
+     "address": "0x1021c438",
+     "callsite": "0x1021c3f4 / 0x1021c1a4 / 0x1021c27c",
+     "notes": "In f_0x1021c108 ('spot' channel) timevalDiff(now, 'Account info last update time' parsed via sonosStringToTimeval) is compared against 0x36ee7f (~3599999ms, about one hour): fresher -> 'Treating auth token as expired' -> same f_10725488 SMAPI request; staler -> login call f_10215a68 first, E_SONOS_BAD_ACCOUNT (33) also falls into refresh."
     }
-   ],
-   "todo": [
-    "Established: reachable401 refresh path, per-account synchronization, injected-store read/validation/reload slots and service-request callback, with missing-account/store-failure/transaction-timeout branches. Remaining: bind concrete writers of receiver+0x1208 to its store vtable+0xc/+0x20, follow the f_101b7cb4 callback back into persistence, and prove the exact base+accounts.xml composition/load/save path before assigning this file. Separately recover expiry/refresh-age producers rather than equating60000 transaction age with token lifetime. Start at0x1038eb24,0x1038edf8,0x1038f1bc and the service request constructor f_10723fbc. This remains actionable static work."
    ],
    "resolved_findings": [
     "The accounts.xml literal0x10eabd60 still does not establish a reachable filename-composition writer. The checked refresh path instead reaches an injected account-store interface at receiver+0x1208; filesystem-family conclusions must remain separate from binding this exact file.",
@@ -221549,7 +221626,16 @@
     "Per-account refresh synchronization uses a shared serial-number keyed tree under its mutex. f_1038edc4 requests new token-refresh synchronization, while the wait arm at0x1038f058 handles an existing transaction; missing expected synchronization entries log and call RabortIfUnlocked. This is not evidence for one periodic, unconditional refresh timer.",
     "For a new refresh,0x1038edf4 rotates/masks the account service identifier before store virtual+0x20, then f_101b7cb4 constructs a callback holding store pointer at+4 and that identifier at+8. f_10723fbc constructs the service request and f_10725488 invokes the credentials/SMAPI path through its virtual+8 specialization. Store failure branches to0x1038f4a4 before the request call.",
     "After waiting,0x1038f1b0 again calls store virtual+0xc, tests success, and only then copies the loaded token via f_1056f07c and resets request state before receiver virtual+0x30. Failure branches to0x1038f244 rather than silently using a purported persisted token. This proves an injected-store reload/retry contract, not the accounts.xml path.",
-    "At0x1038f42c sonosClockGetTime(1) and timevalDiff compare elapsed time since the per-account entry timestamp against60000; an over-threshold branch reaches last refresh token for load timed out. This is a transaction-age decision, not proof of token expiry, a universal refresh cadence or a timer derived from account-store filename."
+    "At0x1038f42c sonosClockGetTime(1) and timevalDiff compare elapsed time since the per-account entry timestamp against60000; an over-threshold branch reaches last refresh token for load timed out. This is a transaction-age decision, not proof of token expiry, a universal refresh cadence or a timer derived from account-store filename.",
+    "Concrete store binding: receiver+0x1208 is an injected RZPServiceAccounts (new 0xa908 at startup 0x1018e5b4, ctor f_101b6174, primary vtable 0x10e9af38). Its +0xc slot f_101b4e94 is the load-by-key: under the 'zpServiceAccounts' lock at store+0xa878 it scans the record array at store+0x294 (0x250-byte records, count +0x290), accepts records whose low-7 type field at rec+4 is 7 or 8, compares rec+0 to the service-id key at receiver+0x1200, and copies the record out.",
+    "The find at 0x1038edf8 is not on the store vtable: it dereferences the injected member store+0xa86c (ctor arg r6 = player+0x292b8) and calls that object's vptr+0x20 with sn=key>>8 to fetch the service-descriptor string. Failure logs 'Refresh token failed. Could not find SD, sid=%u'. Store vtable slot +0x20 is f_101b77a4, unrelated to this call.",
+    "Credential material is keyed (sn<<8)|subtype. Callback slot f_101b6b84 shifts the stored id left 8 and ORs 7, then reads through the embedded accountsMgr at store+0x118 via f_1028c5f4 (lock 'accountsMgr' at +0x20, keyed map f_1028c3b8); subtype 7 is the credential. f_101b6b10 reads an account field by sn via f_101b6a74; f_101b5498/f_101b6c20 drive the DirectControl workers f_1028ad54/f_1028c5f4 with raw sn<<8 keys.",
+    "Refresh write-back goes through the request/journal queue, not a filename: store method f_101b7cd4 takes the serial from *(store+0xa86c)+0x1f0, snapshots the accountsMgr credential field under lock via f_102862d4, serializes with f_10831bc0, and posts request op 0x2d through f_10677ccc into the container at member+8; f_1067b3a8 then serializes the payload and enqueues a node on the global dispatcher singleton at 0x11097824 (vptr+0x8 enqueue, +0x14 commit), installed by f_1067b318 from an engine member at +0x640.",
+    "The literal 'accounts.xml' at 0x10eabd60 is dead in this binary: no instruction forms its address and no data pointer references it, while the adjacent accountsMgr-class strings are all used ('%s %u' formats a display name such as 'Sonos 303'). Nothing on the traced refresh or write-back path opens or composes that filename, so this record does not assign a file.",
+    "Refresh is status-driven: receiver+0x88c4 holds the last HTTP response status ('hrs' in 'Attempting to refresh token (hrs=%d te=%d)') and +0x88c8 the transition-error code ('te': 0 for 200/304/202+8n, 0x3d generic, 0x3f client error, 0x41 connection failed). Only 401 enters the refresh path; there is no periodic token-lifetime timer in this FSM.",
+    "The 60000ms comparison gates transaction freshness, not token age: a completed refresh entry for the sn younger than 60000ms in the global tree at 0x110a2590 logs 'using token from file' and reuses the stored credential, an older entry logs 'last refresh token for load timed out' and refreshes again; waiters hold a 20000ms timed condvar wait and completers stamp state=3 with the clock at entry+0x18.",
+    "Success persists into the receiver, then retries: a nonzero f_10725488 result copies the response buffer into receiver+0x7210 (cap 0x1401), sets the +0x88d0 flag and the shared retry flag *(receiver+0x1204)+4=1, and invokes receiver vptr+0x30. A subsequent 200 with that flag set is treated as 'Cloud queue response handler error' (te=0x3d, return 0x192).",
+    "Local expiry producers found are account-info staleness and transaction freshness, not token lifetime: the UPnP login path f_0x1021c108 gates on 'Account info last update time' being older than ~1 hour (0x36ee7f ms) to decide between a login call and 'Treating auth token as expired' into the same SMAPI request. The 'expires_in' literal is unreferenced and 'expires' is only emitted by a generic serializer; no expiry field is written into accountsMgr by this path."
    ]
   },
   "crash_report": {
