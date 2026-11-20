@@ -240050,7 +240050,7 @@
   },
   "spec_pair_stream": {
    "name": "Muse object/status pair metadata",
-   "summary": "The muse spec-pair pools are per-op response/status admissibility tables, not a JSON field/type grammar. Every op class exposes counted pair pools through accessor vfuncs: slot +0x58 is the declared response/error pool ({member-name-idx, status-idx} pairs naming the op's response object and each admissible status plus globalError fallbacks), slot +0x64 carries an alternate/minimal response pool, and slot +0x68 carries the subscription/event response pool. The proven consumer is f_109daaf0 on the command error path: it iterates the accessor's count-bounded pool, matches an {object,status} pair, and translates the status through the 108-row HTTP table at 0x10f94604, falling back to the 13-pair common pool from f_10ae63a8 and finally to the default row. Reading the second word through the name table (yielding 'upnpEvent'/'wiredSubStatus' pseudo-types) is a coincidental mis-decode; the correct domain is the status index space 0-107.",
+   "summary": "The muse spec-pair pools are per-op response/status admissibility tables, not a JSON field/type grammar. Every op class exposes counted pair pools through accessor vfuncs: slot +0x58 is the declared response/error pool ({member-name-idx, status-idx} pairs naming the op's response object and each admissible status plus globalError fallbacks), slot +0x64 carries an alternate/minimal response pool, and slot +0x68 carries the subscription/event response pool. The proven consumer is f_109daaf0 on the command error path: it iterates the accessor's count-bounded pool, matches an {object,status} pair, and translates the status through the 108-row HTTP table at 0x10f94604, falling back to the 13-pair common pool from f_10ae63a8 and finally to the default row. A census of all 450 accessor-returned pools (1172 rows) confirms the shape universally: word0 stays inside the member-name bound 0x146 and word1 stays inside the status bound 0x6b, with zero exceptions. Earlier readings that produced a second member-member pair kind (the upnp*-bridge blocks appearing to map upnpEvent->upnpError) were a +4-byte alignment artifact of the census extractor, which paired the second word of row n with the first word of row n+1. Reading the second word through the name table is likewise a coincidental mis-decode; the correct domain is the status index space 0-107.",
    "evidence": [
     {
      "type": "firmware",
@@ -240092,18 +240092,54 @@
      "address": "0x10ae63a8",
      "callsite": "0x10ac459c-0x10ac45b4 / 0x10ac4678-0x10ac4694",
      "notes": "Accessors are 0x20-byte stubs: form a rodata base, add a constant blob offset, store the pointer at the out-arg and return the pair count in r3. f_10ae63a8 itself returns the 13-pair shared pool at 0x10fa19c0 used as the global fallback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "upnp-bridge per-verb accessors f_10b4e164 / f_10b4e180",
+     "address": "0x10b4e164",
+     "callsite": "vtable 0x10fa8770 +0x58 (call) and sub-vtable +0xd8 (subscribe)",
+     "notes": "First accessor returns base 0x10fa89a0 count 2: {0x131 upnpResponse, status 0x34->200}, {0x12e upnpError, status 0x3f->499}. Second returns base 0x10fa89b0 count 3, adding {0x82 globalError, status 0x66->400}. Bridge member names exceed the status bound (0x12e/0x131 are legal member indices under 0x146); the second word remains a status index."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "stub-base pair census",
+     "address": "0x10f94604",
+     "callsite": "450 accessor stubs / 1172 rows re-paired from stub-returned bases",
+     "notes": "Every row satisfies word0<=0x146 (member-name index) and word1<=0x6b (status index), zero exceptions. The apparent member-member rows pair word1 of row n with word0 of row n+1 and vanish under the accessor-provided base, so no second pair kind exists."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "pool block anatomy",
+     "address": "0x10fa8970",
+     "callsite": "ctor f_10b4f4cc stores 0x10fa8970 as a model-object vtable; pair run begins at 0x10fa89a0",
+     "notes": "Each block co-locates a 12-word model-object vtable with the pair run it describes: shared serializer machinery (f_109eac1c, f_109eb04c, f_109ebd74), per-op presence predicates (f_10b4e1e0 returns [arg+0xcc]!=0, f_10b46aa8 reads +0xc4, f_101cac6c reads +0x2c), a member-compare thunk (f_10b46ac4 xor-compares byte +8), this-adjustors (f_101c06cc returns r3+8) and per-op exec helpers, then the count-bounded pair run and an ffffffff,ffffffff terminator."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "upnp-bridge multi-vtable layout",
+     "address": "0x10fa8770",
+     "callsite": "sub-vtable bases +0x60/+0xe0; cells +0x64=0x10b50e28 / +0x68=0x10b51384",
+     "notes": "Each of the 15 upnp*-bridge command classes embeds per-verb sub-objects (call/subscribe/renew/unsubscribe); each sub-object vtable carries its own +0x58 accessor slicing one shared block per service. The +0x64/+0x68 cells on these concatenated vtables are this-adjusting thunks (addi r3,-0x78; b primary vfn), so absolute slot numbering on multi-part vtables can shadow the per-sub-object accessor."
     }
    ],
    "grammar": {
-    "layout": "For checked alarms metadata: count-bounded eight-byte {object-id, internal-status-code} entries returned by operation virtual+0x58.",
+    "layout": "Count-bounded eight-byte {member-name-idx, internal-status-idx} entries returned by op sub-object virtual+0x58. Verified universal: all 450 accessor pools keep word0<=0x146 and word1<=0x6b.",
     "fields": "First word can be named through f_109ecb5c; it is not proof of an individual body field.",
     "types": "Second word indexes the separate eight-byte status translation table0x10f94604, not the object-name table.",
     "union": "Repeated object ids enumerate allowed object/status combinations, not demonstrated type unions.",
     "none": "A zero status word is not evidence that a field is optional. Object-name index0 is none in the unrelated object-id domain.",
-    "index_space": "f_109ecb5c accepts object ids0..326 inclusive at base0x10f97094;327 or above returns the empty string. The table base already addresses semantic index0."
+    "index_space": "f_109ecb5c accepts object ids0..326 inclusive at base0x10f97094;327 or above returns the empty string. Pair word0 uses this full 0..0x146 domain (bridge members upnpError=0x12e, upnpResponse=0x131 included); word1 is confined to the status bound 0x6b."
    },
    "todo": [
-    "Established: full provider binding (all 7123 op vtables, 417 unique pools, slot census), pair semantics {member,status}, the f_109daaf0 consumer, the 108-entry HTTP status table and the common/default fallback chain. Remaining: attribute dedicated runtime consumers to the +0x64 and +0x68 pools (their accessor shape is identical and their first-members fit alternate and event/subscription response shapes, but no equivalent of f_109daaf0 has been isolated for them), and classify pair pools whose second word exceeds 0x6b (e.g. the 0x12e/0x131 runs) which index past the status table and must be a different pair kind. This is actionable static work."
+    "Established: the pair kind is unified - every accessor-returned pool is {member-name-idx 0..0x146, status-idx 0..0x6b} (1172 rows verified, zero exceptions); the member-member and b>0x6b readings were +4-byte census misalignments and are withdrawn. Bridge per-verb sub-object slicing and the co-located model vtables with presence-predicate thunks are mapped. Remaining: attribute a dedicated runtime consumer to the +0x64/+0x68 pools (the 209 vfn-call sites surveyed resolve to the f_1070a5a0 name-dispatch family and forwarder f_10dab034, not a pool walker), and join the presence-predicate vfns to the serializer call sites that consult them. This is actionable static work."
    ],
    "resolved_findings": [
     "Reachable chain: producer f_109efe04 passes object0x131/status0x34 into f_109dbbd8, which calls f_109dba70 -> f_109daaf0. The latter calls operation virtual+0x58, receives a count in r3 and an array pointer through its output argument, compares both pair words and advances by8 under CTR. It does not scan for ffffffff sentinels or parse adjacent verb strings.",
@@ -240112,7 +240148,10 @@
     "Empty operation metadata or no local match tries common provider f_10ae63a8. No match there leaves default tuple{0x6b,500}; f_109dba70 treats0x6b as the not-found condition and reaches Error code not found in objectStatusMap. A successful tuple is stored at result-state+0x120/+0x124. The later _objectType JSON marker uses f_109ecb5c on an explicit object id, not the status code.",
     "The provider binding is complete: all 7123 op vtables across the 67 muse resources resolve +0x58 to a counted pair pool (plus +0x64 on 1046 instances and +0x68 on 218). 417 unique pool blobs exist; 372 serve more than one op, dominated by the shared upnp*-bridge sets reused 120 times each. Pools are count-bounded first (303 additionally carry ffffffff terminators); the consumer iterates by the accessor's returned count, never by terminator scan.",
     "Pair semantics are fixed: {member-name index into 0x10f97094, status index into 0x10f94604}. The earlier b-field reading as a member/type name was coincidental: the same word is a valid index into both tables, but only the status decode produces a coherent domain (internal status -> HTTP 200/400/404/499/500 family). The f_109daaf0 match loop compares both words, so each pool pair asserts 'this response member may be emitted with this status'.",
-    "Translation and fallback chain verified: op pool match -> 0x10f94604[status] {idx,http}; no op match -> common pool f_10ae63a8 (13 pairs at 0x10fa19c0); still no match -> row 0x6b {0x6b,500}. The emitted pair is stored as the response status/http at command+0x9c:+0x120/+0x124 from callsite 0x109db83c."
+    "Translation and fallback chain verified: op pool match -> 0x10f94604[status] {idx,http}; no op match -> common pool f_10ae63a8 (13 pairs at 0x10fa19c0); still no match -> row 0x6b {0x6b,500}. The emitted pair is stored as the response status/http at command+0x9c:+0x120/+0x124 from callsite 0x109db83c.",
+    "The member-member pair kind is withdrawn: re-pairing all 450 accessor-returned pools from their stub-provided bases shows word0 always inside the member-name bound (0..0x146) and word1 always inside the status bound (0..0x6b) across 1172 rows. The apparent {upnpEvent->upnpError}/{wiredSubStatus->upnpResponse} rows paired the second word of row n with the first of row n+1; under the real alignment the bridge blocks read {upnpResponse,0x34},{upnpError,0x3f},{globalError,0x66}, ordinary member/status declarations for call and subscription verbs.",
+    "Bridge block anatomy verified at 0x10fa89a0: a 12-word model-object vtable (stored into the op helper by ctor f_10b4f4cc) precedes the pair run. It mixes shared serializer functions with per-op presence predicates returning [arg+k]!=0 (k=0x2c/0xc4/0xcc observed), a member byte-compare thunk, and this-adjustors. These predicate vfns are the candidate emission-gating layer for optional response members; their call sites are not yet joined to the serializer.",
+    "Each of the 15 upnp*-bridge classes embeds four verb sub-objects; every sub-vtable has its own +0x58 accessor slicing one shared per-service block (class 1: call gets 2 pairs {upnpResponse,200-idx},{upnpError,499-idx}; subscribe/renew/unsubscribe get 3 adding {globalError,400-idx}). +0x64/+0x68 cells on these concatenated vtables are this-adjusting thunks, not pool accessors."
    ],
    "census": {
     "op_vtables_bound": "7123 of 7123 op vtables across 67 muse resources carry spec accessors; slot distribution: +0x58 on all (14157 accessor instances), +0x64 (1046), +0x68 (218)",
