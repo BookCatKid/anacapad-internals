@@ -236255,7 +236255,7 @@
   },
   "voice_skill": {
    "name": "voice-skill onboarding fields",
-   "summary": "Compiled skill-input members {skillId,skillStage,skillAuthCodeUS,skillAuthCodeEU,skillAuthCodeFE,skillRedirectUrl,authCode,redirectUrl}; presence-aware output serialization; separate startup MSP-education setting registrations.",
+   "summary": "Eight-command voice-account management surface (class 81 in the command-class factory): a settings model with per-service account records; each account nests an 8-member skill-onboarding object and a token record; presence-aware serializers redact secrets on request.",
    "evidence": [
     {
      "type": "firmware",
@@ -236268,16 +236268,56 @@
      "build": "86.10-80260",
      "address": "0x10ba6b9c",
      "notes": "Concrete input callback at vtable0x10fae208+0x28; EU name comparison0x10ba6c10 and serializer call0x10ba7f78. Output wrapper0x10ba8194 reaches f_10ba7da0 with presence/pointer tests. Startup MSP setting references0x10087588/0x100875a0 inspected separately from these model callbacks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86230",
+     "notes": "Voice command dispatcher (vfunc +0x18 of host vtable funcs 0x10fab8a4; host ctor f_10b87ce8). strcmp over cmd+0x26 against 8 names: getVoiceAccounts->f_10b86800, createVoiceAccount->f_10b86e7c, updateVoiceAccount->f_10b87358, removeVoiceAccount->f_10b87630, createAmazonChallenge->f_10b876fc, notifyInitiateOnboarding->f_10b87a08, subscribe->f_10b87ad4, unsubscribe->f_10b87c14. Result object swapped into host+0x38, prior result freed via vfunc+4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d12f4",
+     "notes": "Command-class factory: u16 cmdId at request+0, bound 0x52, jump table 0x10e781d8. Index 81 (0x51) allocates 0x3c host and ctors f_10b87ce8 (vptr 0x10fab8a4, zeroes +0x38). f_100d12f4 itself is a vfunc reached via vtable slot 0x10e78334."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86950",
+     "notes": "Settings model schema registrar (model 0x384 bytes, vtables 0x10fab524 + secondary 0x10fab588@+0x78; ctor f_10b86cf8). Member pairs (type@+0x28, flag@+0x29): service(0,1), nickname(5,1), status(0,0), wakeword(0,0), amazon(0,0), timeoutSeconds(2,2), allowVoiceDataCollection(1,2). Type bytes seen: 0=object/enum, 1=bool, 2=int, 5=string; flag bit0=required."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86660",
+     "notes": "timeoutSeconds input callback (vtable+0x20): int store at +0x36c, default 180 (+0x36c and shadow +0x374 set in ctor). Bounds f_109c7cb4(>=0x1e) and f_109c8004(<=0x708) enforce range 30..1800; violation returns 8. allowVoiceDataCollection bool cb f_10b85f0c stores +0x378. Composite setter f_10b85fec: service->+0x15c via f_10a09590, nickname->+0x180 cap 0x80, status->+0x348 via f_10b9a7c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86598",
+     "notes": "Settings child-model factory (vtable+0x2c): input member wakeword -> 0xa0 model f_10bb7ca8 {variant(0,1), locale(5,1), localeSynced(1,0)} stored +0x198; amazon -> 0x200 account model f_10ba59b4 stored +0x1c0; neither present returns 1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ba59b4",
+     "notes": "Amazon account model ctor (vtable 0x10fae198 over base f_10ba502c/vt 0x10fae17c): members authFlow(5,0), setup(0,0), clientId(5,0), refreshToken(5,0), accessToken(5,0), hasToken(1,0), token(0,0). hasToken bool cb f_10ba4f9c (vt+0x38) stores +0x1bd flag +0x1bc; serializer reads +0x144/+0x145. Child factory f_10ba4ed4 (vt+0x48): setup -> 0x144 skill model f_10ba744c, token -> 0xb8 token model f_10bb6fe8 {errorMessage,errorTime,expirationTime all (5,0)}. Serializer f_10ba6200 emits _objectType, authFlow, setup(via f_10ba7da0), clientId, refreshToken, accessToken, hasToken, token; secrets emitted as REDACTED when arg flag set."
     }
    ],
-   "todo": [
-    "Established: the eight-name compiled skill-input callback and separate presence-aware output serializer, including an independently reachable EU emission. Remaining: bind vtable0x10fae208, its command constructors and output wrapper f_10ba8194 to concrete service implementations; decode each member conversion, accepted type/range, requiredness, omission and failure path. Join hasToken/timeoutSeconds through their own models and trace actual per-service config producers rather than startup MSP-setting rows. Start with f_10ba6b9c, f_10ba7da0 and their metadata/implementation injection. This is actionable static work, not a demonstrated cloud-document boundary."
-   ],
    "resolved_findings": [
-    "The compiled input callback f_10ba6b9c, referenced by vtable0x10fae208+0x28, recognizes eight member names: skillId, skillStage, skillAuthCodeUS, skillAuthCodeEU, skillAuthCodeFE, skillRedirectUrl, authCode and redirectUrl. It returns0 for an unknown name and1 through the recognized-member paths. It calls concrete conversion/storage helpers, including f_109c8afc/f_109c8a64 for string-backed fields. These are recoverable in-image models, not proof of an external-only cloud schema.",
-    "Output wrapper f_10ba8194 calls f_10ba7da0. That serializer has separate presence/pointer checks before emitting the skill and authorization members through f_109d1924; EU is independently emitted at0x10ba7f6c-0x10ba7f78, not inferred merely from adjacent US/FE literals. Missing storage can omit a member. Input and output objects have different layouts, so input offsets cannot be reused as output presence semantics, and omission alone does not prove request requiredness.",
-    "hasToken and timeoutSeconds literals are not members of the checked eight-name input callback. They must be joined through their own enclosing command/model before treating them as part of one authorization exchange. Likewise, region-like field names, Alexa capability/account strings and authorizationGrant/authz vocabulary do not by themselves bind this model to a complete Alexa CBL or OAuth protocol.",
-    "The O_AMAZON_SHOW_MSP_EDUCATION and O_GOOGLE_SHOW_MSP_EDUCATION references at0x10087588/0x100875a0 belong to separate startup setting registrations. They establish named settings, not the complete per-service voice-config body or a shared Amazon/Google skill-field shape. The prior pairwise-config-schema and cloud-only limitation is withdrawn."
+    "Bound: vtable 0x10fae208 is the skill-setup document model (0x144 bytes, secondary vtable 0x10fae1ec at +0x78). Ctor f_10ba744c registers 8 members, all (type5 string): skillId(1), skillStage(1), skillAuthCodeUS(1), skillAuthCodeEU(1), skillAuthCodeFE(0, optional), skillRedirectUrl(1), authCode(1), redirectUrl(1). It is instantiated on demand by factory vfunc f_10ba4ed4 when an account model contains a 'setup' member; account models nest under the 'amazon' member of the voice settings model created by createVoiceAccount.",
+    "Input callback f_10ba6b9c (vtable+0x28) matches 8 names against the input map at this+0x50 and stores strings via f_109c8afc/f_109c8a64 capped 0xff into 0x18-stride fields +0x80..+0x12c; unknown name returns 0, conversion result otherwise. Output wrapper f_10ba8194 (secondary vtable+0x08) swaps (struct,writer) and calls f_10ba7da0: presence-flag checks (+0xc,+0x24,+0x3c,+0x54, byte+0x68+word+0x70 for skillAuthCodeFE, +0x88,+0xa0,+0xb8) gate each member through f_109d1924; when arg flag (r29) is nonzero skillRedirectUrl/authCode/redirectUrl emit literal 'REDACTED' instead of the stored value.",
+    "timeoutSeconds joined: int member of the settings model, not the skill model. Callback f_10b86660 (vtable+0x20) requires member presence, enforces range 30..1800 via f_109c7cb4/f_109c8004, stores +0x36c, returns 8 on range failure. Default 180 written to +0x36c and +0x374 by ctor f_10b86cf8.",
+    "hasToken joined: bool member of the account model (amazon child). Callback f_10ba4f9c (vtable+0x38) stores value at +0x1bd with seen-flag +0x1bc; output serializer f_10ba6200 emits it via f_109d14e0 from +0x144/+0x145. The token member nests a 0xb8 error record {errorMessage, errorTime, expirationTime}.",
+    "Per-service config producers: the 8 command handlers are the producers; createVoiceAccount allocates the 0x384 settings model and the incoming document drives member callbacks. amazon account = {authFlow, clientId, refreshToken, accessToken, hasToken, setup{8-member skill onboarding}, token{error fields}}; wakeword = {variant, locale, localeSynced}. No 'google' member exists; the 'google' literal in this image is com.google.RemoteSonosReceiver (Cast), unrelated. Google presence is limited to allowVoiceDataCollection plus the separate O_GOOGLE_SHOW_MSP_EDUCATION startup setting."
    ]
   },
   "cert_files": {
