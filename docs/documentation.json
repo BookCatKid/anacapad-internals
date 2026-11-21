@@ -217872,7 +217872,7 @@
    ]
   },
   "scrobbler": {
-   "summary": "The image contains both legacy Audioscrobbler submission and local Last.fm mobile-session authentication. The latter computes authToken locally through imported MD5 helpers and appends a fixed compiled signature suffix, rather than receiving an unexplained external secret. Legacy submission scheduling and retry/queue behavior still need a complete control-flow join.",
+   "summary": "The image contains both legacy Audioscrobbler submission and local Last.fm mobile-session authentication. The latter computes authToken locally through imported MD5 helpers and appends a fixed compiled signature suffix, rather than receiving an unexplained external secret. Legacy submission is driven by a 'tpm' event subscriber whose delivery vfunc is f_104cbf1c; its eligibility gates, per-account handshake/submission transport, in-object pending/deadline retry state and account-record binding are traced below.",
    "anchors": [
     "http://post.audioscrobbler.com/",
     "https://ws.audioscrobbler.com/2.0/",
@@ -217956,6 +217956,78 @@
      "address": "lib0x6b30 / 0x6c08 / 0x6c4c",
      "callsite": "lib0x6bd8 / 0x6be0 / 0x6c2c / 0x6ca4",
      "notes": "Exported symbol bounds and PPC objdump prove selector2 is MD5 init/update/finish, resolving the imported crypto edge missed by the old local-call census."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ed8fa0",
+     "function": "f_104c9d9c",
+     "notes": "Subscriber descriptor: primary vtable {0x104c9d9c,0x104c9eec,0x104cbf1c,0x104caf08}, secondary 0x10ed8fb8 at obj+4, then {0x20,'paused',4,'skippedTrack','smapi','spotify-connect','airplay','uri','Delivering %s(%u) event to \"%s\"'}. Only materialization of the vtable in the binary."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cbfd8",
+     "function": "f_104cbf1c",
+     "notes": "Gate A: e500 SPE float ops convert f_104c37d8(evt) result to double and bgt cr7 vs constant 0.0 (rodata 0x10ed8fe8) routes to the r28=0 reset path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc454",
+     "function": "f_104cbf1c",
+     "notes": "Sole call to f_105236c8: args (this+0x24 registry, r22 track from src->vfunc+8, &0x3a0 report ctx, now-trackstart elapsed, 0, tag). Post-call andi. on r27 bit2 selects reset(0x104cc1a8) vs record dispatch(0x104cc4d4)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10523aec",
+     "function": "f_105236c8",
+     "notes": "Handshake auth: ZZ0062 MD5 ctx at stack+0x4f30, f_10713d1c md5-hex(record+0x102 credential), ZZ0064 feeds 32 bytes then the '&t=' timestamp string, f_10713da4 finalizes the &a= token."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1052424c",
+     "function": "f_105236c8",
+     "notes": "Response machine: 'OK' line flips capture into session buffer; 'BADTIME' line steals clock from Date: header once per call (stack+0x38 flag); status line requires strcmp 'OK' else 'Scrobbling failed.  Status returned: %s'; failures continue to next account record."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105235a4",
+     "function": "f_10523398",
+     "notes": "Account/class gate: first type-{0xb,0xc} record; class 'object.item.audioItem.podcast' requires +0x363 not in {0,'.','#'}; 'object.item.audioItem.audioBook.chapter' the same at +0x36d."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b8954",
+     "function": "f_101b8954 caller (account provisioning loop)",
+     "notes": "f_10714924(entry+8, entry+0x10a, out, 0x80): requires exactly one '@' in the +0x10a credential, authenticates halves through f_10713db0 -> f_10713ed4 mobile-session auth; same 0x250-record walk with type mask {0xb,0xc}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc1a8",
+     "function": "f_104cbf1c",
+     "notes": "Reset block writes +0x40=0,+0x44=0x3c,+0x50=0,+0x38=0,+0x3c=0: the pending-flag/deadline pair is the only resubmission state; re-evaluated per delivered event."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104ca2b4",
+     "function": "f_104ca278",
+     "notes": "Dedup check: byte at 0x110a4584 set to1 when event stamp (f_104c36b4 -> f_105a8e20 on event+0xc8) exceeds atomic64 at this+0x30."
     }
    ],
    "handshake": "GET /?hs=true&p=1.2&c= HTTP/1.1 to http://post.audioscrobbler.com/ (c= = client id); service token 'lastfm'; on BADTIME response it logs 'BADTIME -- stealing time from Date: header' and resyncs clock from the HTTP Date: response header",
@@ -217967,11 +218039,8 @@
     "last.fm-radio-http URI scheme (func ~0x1041d43c)"
    ],
    "result_codes": "R_LASTFM_BAD_ACCOUNT, R_LASTFM_BAD_SUBLEVEL, R_LASTFM_NO_ACCOUNT, R_LASTFM_NO_CONTENT, R_LASTFM_STREAM_LIMIT",
-   "unresolved": "Legacy scheduling thresholds, early-return predicates, account/session lifetime and retry/queue ownership remain actionable static work; v2 authToken and signature suffix are recovered locally.",
+   "unresolved": "The subscriber object's own constructor/registration callsite is not statically pinned: the only materialization of primary vtable 0x10ed8fa0 in the binary is inside its destructor f_104c9d9c (the secondary table 0x10ed8fb8 is computed as primary+0x18), no GOT slot, data prototype or direct caller names it, and every method including f_104cbf1c is reached only through the vtable. Registration therefore happens through a path that never names the vtable constant (runtime-supplied vptr/base-class handoff); the subscription contract itself is established by the descriptor block at 0x10ed8fc0. The 0x250 account-record blob at record+0x106 is used both as the scrobble-handshake MD5 input and as the '@'-separated auth input of f_10714924; which stored form (separated password vs combined user@secret) a given account holds depends on whether the email-to-username migration rewrite has run, a runtime/data distinction not decided by the binary.",
    "endpoint": "https://ws.audioscrobbler.com/2.0/ (Audioscrobbler 2.0 REST); xmlpost CONTENT-LENGTH; \"openConnection to %s failed\"; \"Data overflowed; ignore submit\"",
-   "todo": [
-    "Established: local username/password copies, exact nested MD5 authToken derivation, imported MD5 dispatch and fixed compiled api_sig suffix. Original unknown-secret/crypto-boundary residual is resolved. Remaining: trace legacy f_105236c8 eligibility, early returns and transport results back through play-report caller f_104cbf1c, then session state producers and any scheduling/retry owners. Bind caller inputs at0x10714890/0x10714924 to account storage before claiming persistence provenance. The post-call flag at0x104cc458 is not an invocation gate, and absent retry strings do not prove absent retries. This is actionable static work."
-   ],
    "resolved_findings": [
     "Audioscrobbler1.2 handshake and submission form fields are present, along with BADTIME/Date-header clock recovery. A concrete play-report calling context is recovered below; a complete set of eligibility or play-state predicates is not established by these literals.",
     "Legacy form fields and socket-response literals identify the submission implementation, but absence of retry vocabulary does not prove fire-and-forget behavior. The repeated f_1056fb1c calls at the start of f_105236c8 initialize temporary objects (zeroing fields), not music-account settings getters. Their former account-provenance interpretation is withdrawn.",
@@ -217982,8 +218051,31 @@
     "The no-MD5-outside-vendored-region claim is false because it missed libsonoscrypto imports. f_10713ed4 initializes ZZ0062 with selector2, feeds username at receiver+11, invokes f_10713d1c on password at+92 to obtain a32-character lowercase MD5 hex string, feeds those32 bytes, then finalizes through f_10713c7c. This implements MD5(username || hex(MD5(password))) locally. Constructor f_10713db0 copies the supplied username/password into these fields; caller0x107148c0 constructs the object and0x107148d8 invokes authentication. Persistent account storage before those caller arguments is not established here.",
     "SONOS_DC_* error enum at 0x10ea1684: {SONOS_DC_OK=0, NO_ACCOUNT=1, STALE_ACCOUNT=2, LOGIN_FAILED=3, UNSUPPORTED_SERVICE=4, UNEXPECTED=5}.",
     "Mobile-session auth builds api_key/authToken/method/username parameters and a separate MD5 accumulator in that name order. After the username bytes,0x107142ec-0x107142fc unconditionally feeds32 bytes from literal0x10f0e188, the lowercase hexadecimal MD5 of the empty string. This is an actual fixed signing suffix, not a missing-parameter default and not an untraced member-supplied secret. f_10713c7c finalizes the digest and hex-encodes16 bytes;0x10714328 produces api_sig before form encoding it. No additional secret-input call appears between that suffix update and finalization. This describes the shipped computation, not a claim that a server accepts it.",
-    "Crypto boundary verified in shipped libsonoscrypto.so.3: selector2 in ZZ0062 dispatches to mbedtls_md5_init/starts; ZZ0064 dispatches to md5_update; ZZ0061 to md5_finish/free. The in-image wrapper f_10713c7c formats the16 digest bytes using a hexadecimal alphabet and terminates at output+32. Empty strings therefore pass through real MD5, not a missing-credential fallback branch."
-   ]
+    "Crypto boundary verified in shipped libsonoscrypto.so.3: selector2 in ZZ0062 dispatches to mbedtls_md5_init/starts; ZZ0064 dispatches to md5_update; ZZ0061 to md5_finish/free. The in-image wrapper f_10713c7c formats the16 digest bytes using a hexadecimal alphabet and terminates at output+32. Empty strings therefore pass through real MD5, not a missing-credential fallback branch.",
+    "f_104cbf1c is the sole caller of submission builder f_105236c8 and is itself invoked only through the subscriber vtable (slot+8 of the object whose primary/secondary tables are 0x10ed8fa0/0x10ed8fb8). Its descriptor block lists 'paused' and 'skippedTrack' plus source names 'smapi','spotify-connect','airplay','uri' beside the shared 'Delivering %s(%u) event to \"%s\"' dispatcher log format.",
+    "The submission builder re-shakes per account: for every enabled record it emits 'GET /?hs=true&p=1.2&c=son&v=1.0&u=<user>&t=<unix>&a=<auth>' where auth = MD5(md5(record credential) + the same &t= decimal), sends through its own connection via f_10545ff4, scans response lines so an 'OK' line redirects capture into the session buffer and a 'BADTIME' line steals the wall clock from the HTTP Date header once per invocation (flag at stack+0x38), then POSTs 's=<session>&a[0]=..&t[0]=..&i[0]=..&o[0]=P?&r[0]=&l[0]=&b[0]=..&n[0]=..&m[0]=..', reads the status line and requires 'OK'. Any failure logs and moves to the next account record.",
+    "Retry ownership is confined to the subscriber object: pending flag +0x50, deadline pair +0x40:0x44 (reset {0,60}) and pending marker +0x38:0x3c are written and re-read only inside the event-delivery vfunc; no timer or persistent queue schedules legacy resubmission. Report events are additionally fanned out as a 0x24-byte record through f_1071db0c -> f_104aba18 to the global event registry when the r27 bit2 flag is set.",
+    "Eligibility is bound: float position gate f_104c37d8>0.0 suppresses, f_104c9acc reportability predicate, f_104ca278 atomic-stamp dedup (+0x30, sets global 0x110a4584 on newer events), and account gate f_10523398 requiring a type-{0xb,0xc} record with '1' flag and hex bit0, plus the podcast/audiobook-class byte predicates at +0x363/+0x36d.",
+    "Account binding resolved: records are 0x250 bytes in the registry at this+0x24; username is the &u= source, record+0x106 supplies both the handshake MD5 input and the '@'-split f_10714924 credential; f_10714924 authenticates split user/pass through f_10713db0 -> f_10713ed4 during the zpsa email-to-username migration that rewrites the record. f_10714890 is an unused direct (user,pass) wrapper.",
+    "Constructor boundary (proven): the only materialization of vtable 0x10ed8fa0 in the binary is the dtor itself; the secondary table is derived as +0x18; no GOT slot, prototype data or direct method caller exists, so the concrete registration callsite is reached through a runtime-supplied vptr and cannot be named from this image alone."
+   ],
+   "event_dispatch": {
+    "subscriber": "f_104cbf1c is primary-vtable slot +8 (0x10ed8fa8) of the 'tpm' play-report subscriber object. Primary vtable 0x10ed8fa0 = {dtor f_104c9d9c, deleting-dtor f_104c9eec(size0x70), f_104cbf1c, f_104caf08}; secondary vtable 0x10ed8fb8 at obj+4 = {f_104c9ee4,f_104c9f20 this-adjust thunks}; the event bus holds the obj+4 interface. The rodata descriptor block at 0x10ed8fc0 lists the subscribed vocabulary: {0x20,'paused',4,'skippedTrack','smapi','spotify-connect','airplay','uri'} followed by the shared dispatcher log 'Delivering %s(%u) event to \"%s\"', the float 0x447a0000, the constant 0 read as the gate constant at 0x10ed8fe8, and 0x11096a30.",
+    "object_layout": "+0x24 account registry member (f_1052338c trivial dtor; *member feeds f_101b688c enumeration); +0x30 atomic64 last-processed event stamp (read via __atomic_load_8 in f_104ca278); +0x38:0x3c pending-marker pair written {0,tagptr-or-0} after report computation; +0x40:0x44 64-bit deadline pair reset to {0,60}; +0x48:0x4c timeval used in the ms computation; +0x50 pending-report flag byte loaded from the event record's +0x14/+0x10 fields via r30->vfunc+0x38(); +0x68 refcounted helper; +0x6c uuid string printed in 'submitting play report for uuid: %s'.",
+    "reset_contract": "r27 bit2 (set from report-ctx word stack+0x18c & 0x40) selects post-processing: bit clear resets {+0x38,+0x3c,+0x40,+0x44,+0x50} to {0,0,0,60,0} at 0x104cc1a8; bit set instead builds a 0x24-byte report record at stack+0x30 through f_1071db0c {+0 track,+4 flags,+8 zero,+0xc tag,+0x10/+0x14 pair,+0x18 byte,+0x1c val,+0x20 zero} and dispatches it to the global event registry via f_104aba18(uuid,record)."
+   },
+   "eligibility_chain": [
+    "Gate A (0x104cbfc4..0x104cbfd8): f_104c37d8(eventobj) returns a float = member+0x70 + f_104c371c, where f_104c371c converts a position pair (event +0x88/+0x8c, or +0xc8/+0xcc when f_105a8f88 fails) through f_105a9328(obj+0x80) and clamps results >0.0 to the float global at 0x10ed867c. The sum is converted to double and compared against constant 0.0 (rodata 0x10ed8fe8); result >0 takes the r28=0 path, which suppresses submission and lands on the reset block.",
+    "r22 = event-source r30->vfunc+8() supplies the track object; f_104c9fd8 snapshots the source into stack+0x194.",
+    "The household/settings object loaded as *(member+0x20 + 0xa86c) is queried through vfunc+0x20; on a zero result f_1011c078/f_1011c29c(&0x3a0,obj,2) build the report context that later carries the upnp-class string and account name.",
+    "Event flag word r27: bit0 enables the f_104ca5a4 call, bit1 enables f_104ca71c(this,src,event,0,tag), bit2 is set when report-ctx word stack+0x18c carries 0x40.",
+    "f_104c9acc(track,src,member+0x20) must return nonzero: it accepts a non-empty string from src->vfunc+0x1c immediately, else requires track+0 byte 0, f_101477e4(track) nonzero, and the f_1071a9cc/f_1071aeb0 -> f_1011c078/f_1011c29c predicate chain against the same +0xa86c settings object.",
+    "When f_104c9acc fails, f_104ca278(this,event) performs the dedup/ordering check: atomic64 at this+0x30 is compared against the event stamp derived through f_104c36b4 -> f_105a8e20(event+0xc8); a newer event sets global byte 0x110a4584=1 and returns 1. event+0xd2==0 returns 1 without comparison.",
+    "Account gate f_10523398(this+0x24,&0x3a0,0,tag): enumerates the registry via f_101b688c(*member,stack) into 0x250-byte records; the first record with type&0x7f in {0xb,0xc} is required to have flag byte +0x89 == '1' and sscanf('%x') of the +0x8a string produce bit0 set; a record whose +0x89 != '1' reads the all-zero rodata 0x10ea6a2c and fails. When the report-context class string at r31+0x346 starts with 'object.item.audioItem.podcast' the byte at +0x363 must be nonzero and not '.'/'#'; for 'object.item.audioItem.audioBook.chapter' the same applies at +0x36d. The gate also assigns the account name into the report context via f_1041ce64.",
+    "Submit block: f_104ca364 serializes the report into the 0x401-byte stack buffer, f_10338a34 reparses it, f_104cb228 computes the final payload with a forced flag ((event+8 & ~event+9) & 0x24), the track start is (s32)(f_105a9328(event+0xc8,f_104c36a4(event)) double), and arg r6 = sonosClockGetTime(1) minus that start = elapsed seconds."
+   ],
+   "retry_and_session": "There is no persistent scrobble queue or timer owner in the traced path. Retry/debounce state lives inside the subscriber object: +0x50 pending flag (from the event record's +0x14 byte through r30->vfunc+0x38(), whose record also supplies the 64-bit pair at +0/+0x8 tested before reload), +0x40:0x44 deadline pair (reset {0,60}; the 64-bit compare at 0x104cc560 evaluates deadline = 'tagptr' minus the +0x38:0x3c marker), +0x48:0x4c timeval converted sec*1000 at 0x104cc098..0x104cc0d8. These fields are re-evaluated on each subsequent event delivery, so re-checks are event-driven. The session id is transient per invocation: the handshake response parser captures the line following the 'OK' line into the session buffer used by 's='. Transport failures only log ('scrobbling openConnection to %s %s failed', 'Scrobbling failed.  Status returned: %s') and advance to the next account record; nothing stores the report for later retransmission.",
+   "account_records": "0x250-byte records enumerated from *(this+0x24) by f_101b688c; selection keeps type&0x7f in {0xb,0xc}. Relative to the f_105236c8 record pointer (type at -4): +0 username string appended after '&u=', +0x81 flag byte that must equal '1', +0x82 hex flag string parsed by sscanf('%x') whose bit0 is the submit enable and bit1 the second flag byte, +0x102 credential blob hashed into the handshake auth token. In the provisioning pass (the function containing 0x101b8954) the same records supply entry+8 (username out-buffer target) and entry+0x10a to f_10714924, which requires exactly one '@' and authenticates the split halves through f_10713db0 -> f_10713ed4; on success the caller rewrites the record through a global vfunc+0x34 ('zpsa' id, 'failed to replace email with username for last.fm' on failure). f_10714890 is the direct (user,pass) form of the same auth constructor and has no static caller in this build."
   },
   "semisleep_power": {
    "summary": "low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log \"...(considering suspend) %s\" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; \"Unable to remove time on a ringing timer\" guards firing timers. | Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018: parked timers survive suspend; resume recomputes.; powPrvntIdlM/powWakLkMgr guards: 'ERROR: modifyPreventIdleLockForOperationTimeout(%d, %lld) not acquired by guard','ERROR: modifyWakeLockForOperationTimeout(%d, %lld) not acquired by guard'; wifi_idle_mgr 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d'",
