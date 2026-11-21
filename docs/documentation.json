@@ -227387,6 +227387,55 @@
      "address": "0x100fe918",
      "callsite": "0x100fea74 / 0x100fe970",
      "notes": "Unsigned depth guard10 follows cancellation and virtual predicate; caller passes incremented depth. Logging is not the guard itself; disabled logging still skips the deeper call."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1109cc70/0x1109cc9c",
+     "notes": "Share-index db singleton; title table at +0x2c with base+4 (f_109bc7e0), byte-length +8 (f_109bc7f0), count +0x88, lock +0xb8."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10102bd8",
+     "notes": "Binary search over sorted 40-byte records keyed on (File,Leaf) atom ids; 0xCCCCCCCD /40 for element count; reached via f_10106820 from the crawler and from reconciliation f_1010a304."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x11096238/0x102a0750/0x102a01c4",
+     "notes": "Atom store singleton: +4 char* array (id<0x40000), +0x18 hash sub-object, +0x14 collation; intern f_102a01c4; content compare f_100fffa0."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10109f54-0x10109fa8",
+     "notes": "Sort-comparator registration f_101096e0: bbfTitle->f_10101f4c, bbfFile->f_10100190, bbfTracknum->f_10100370 (numeric tiebreak on record+0x24)."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x100b8a10",
+     "notes": "/indexrepl handler: requires id=, parses x-rincon-range 'bytes=', emits x-rincon-last-update-device/x-rincon-content-version; pull side '%s/indexrepl' at 0x1010dc04; format-skip 'replication skipped: local fmt %u, remote fmt %u' at 0x101130c4."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1010fc78/0x10112700",
+     "notes": "Share-state adoption writes shares.xml ('<Shares LastUpdateDevice=.. Version=0>'), logs 'need to recover ix=%d ver=%d' (ix at owner+0xe8) and schedules recovery task f_10113e0c via f_101150a8; 'recovered ix=%d with ver=%d' on success; framework twin 'recovering ix=%d ver=%d' at 0x1066ba58."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eadf3c-0x10eadfc4",
+     "notes": "Index-DIDL descriptor: element names dc:creator/upnp:albumArtURI, handlers f_102a0fd0..f_102a203c, pre-interned atoms ARTIST/ALBUMARTIST/ALBUM/GENRE/COMPOSER/TRACKS, URI prefixes x-file-cifs: and /getaa?u=%s&v=%u."
     }
    ],
    "itp_parser": {
@@ -227394,9 +227443,6 @@
     "persistence": "'Out of space processing playlist \"%s\", track %d'/'Out of space processing playlist \"%s\"','Ignoring playlist \"%s\", m_bIgnorePlaylist = %s','Ignoring unnamed playlist, m_bIgnorePlaylist = %s','Error writing playlist \"%s\", m_bOutOfSpace = %s','Skipping playlist: (%s)','unmatched playlistsEnd ','duplicate playlistsEnd','Write error: %s%s%s','Could not fit any of the pendingplaylists. Available slots: (%d) for file (%s)','Out of space processing file (%s)','There are no playlists under (%u) tracks (%s)','Requested %u tracks. Enqueued %u tracks from position %u / %u'.",
     "abstract_file": "Abstract-file store for playlists: 'Error writing offsets to abstract file','Failed to seek abstract file (errno = %d)','Abstract file track offset out of bounds','Failed to write URI atoms to abstract file','lookup resulted in path w/o share: %s','lookup resulted in path w/o share %zu times in a row','ignoring non-local track %s','Out of space processing track (%d - %s) - could not atomize'/'could not write','Failed to open file (%s)','Out of space processing file (%s%s%s%s) (%s)','Write error or invalid processing file (%s)'."
    },
-   "todo": [
-    "Established: bounded directory-depth guard and concrete40-byte title-array reader with seven atom-to-XML field bindings, track attribute, empty output and oversize skip. Remaining: follow the title-array constructors/writers feeding f_109bc7e0 and owner+0x88, bind fields+8/+0x18 and atom-store encoding, then join the crawler f_100feba4 to index-file serialization, version/recovery and /indexrepl readers. Start at exporter f_10107e50 and caller0x101082e0; do not equate this diagnostic XML with the disk or replication format. Scheduler and all persisted fields remain actionable static work, not an out-of-image index-store limitation."
-   ],
    "resolved_findings": [
     "The directory walker, title-array reader and XML export are concrete compiled paths. The earlier claim that iTunes parsing drives all scan cadence is not established; playlist import, crawl scheduling and index persistence must be traced separately.",
     "Engine decoded: shares persist as <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange> with per-share <Share Path/UserName/Password/VerifiedValidProtocol/Id> - the replicated sharelist. Protocol validation runs once per share (Successfully verified share uses supported protocol, skipping previously-validated, Removing share as it uses an unsupported protocol, Number of unsupported shares removed: %d with removalReason/numRemoved/sharesRemoved/musicShare fields). Add/remove validation taxonomy {share path already exists, maximum number of allowed shares, path subsumed by an existing share, Path is malformed, Access to share is denied, Unable to find given share}. Reindex request carries {ad, sf, fr, si, st, lc} args (request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)) and resort promotes to reindex (Turning resort request into full reindex). Index persistence is versioned with crash recovery (need to recover ix=%d ver=%d / recovered ix=%d with ver=%d, .bak file, processing index: source (%s:%u)); errors {Mounting failed, Local index storage error, Remote file share error, Indexing canceled, connection failure}. Coordinator election via us [%s|%u] vs them [%s|%u] comparison with Rejecting invalid sharelist; replication gates on format version (replication skipped: local fmt %u, remote fmt %u). Sort orders {R_BrowseByFolderSort, File, Tracknum}.",
@@ -227404,8 +227450,26 @@
     "A linked SMB library and the /indexrepl surface do not prove that the local index is absent or that its format is out of image. f_10107e50 reads a compiled title array and resolves stored atoms. Its XML output is a diagnostic/export representation, not proof of an identical persisted record. The earlier not-a-standalone-local-file boundary is withdrawn.",
     "f_10107e50, called at0x101082e0, writes <Titles>, checks count at owner+0x88 and obtains the title-array base through f_109bc7e0. Each selected entry is40 bytes: raw left-shift-by3 plus left-shift-by5 at0x10107f3c-0x10107f4c. It resolves atom words through f_102a0750, then escapes/copies each string with capacity0x400. The format at0x10e8964c binds record+0 File, +4 Leaf, +0x10 Album, +0x14 Artist, +0x1c Composer, +0x20 Genre and +0xc Description; record+0x24 supplies the unsigned track attribute. Fields+8/+0x18 are not named by this exporter.",
     "Empty count skips directly to </Titles>. Combined per-title formatting is bounded to4096 bytes; unsigned result-1<=4094 accepts positive lengths1..4095. Other results skip that title and may log Track data too large, then advance. The16-bit iterator truncation at0x10107f2c/0x101080b4 is a low16 mask, not division or right shift; this reader does not by itself establish the producer capacity.",
-    "Directory walker f_100fe850 tests the cancellation byte first, then calls its input object virtual+8. A successful object predicate leads to an unsigned incoming-depth check against10 at0x100fe918. Depth>10 takes the limit diagnostics and skips the processing call f_100feba4; depth<=10 reaches it at0x100fea74. The caller0x100ff2f0 explicitly increments the propagated depth before calling the walker. This is an actual crawl guard, not an iTunes XML stack-depth limit."
-   ]
+    "Directory walker f_100fe850 tests the cancellation byte first, then calls its input object virtual+8. A successful object predicate leads to an unsigned incoming-depth check against10 at0x100fe918. Depth>10 takes the limit diagnostics and skips the processing call f_100feba4; depth<=10 reaches it at0x100fea74. The caller0x100ff2f0 explicitly increments the propagated depth before calling the walker. This is an actual crawl guard, not an iTunes XML stack-depth limit.",
+    "Title table bound end to end: sorted 40-byte records {File+0, Leaf+4, unk-atom+8, Description+0xc, Album+0x10, Artist+0x14, unk-atom+0x18, Composer+0x1c, Genre+0x20, tracknum-u32+0x24} under the db singleton 0x1109cc70 (+0x2c table, +0xb8 lock); base via f_109bc7e0(+4), byte length via f_109bc7f0(+8), count at +0x88. Lookup is a binary search on (File,Leaf) atom ids (f_10102bd8, /40 multiply).",
+    "Atom store bound: interned-string singleton *(0x11096238) with id-indexed char* array at +4 (id<0x40000, f_102a0750), hash sub-object at +0x18, intern f_102a01c4, content-compare f_100fffa0; 'Conflicts' in <TrackSummary> counts hash collisions.",
+    "Fields +8/+0x18 narrowed to the two non-exported atom slots; candidate semantics albumArtist/albumArtURI (pre-interned 'ALBUMARTIST' atom and the /getaa URL builder exist; all other record slots are atoms except numeric tracknum+0x24, proven by the bbfTracknum comparator's +0x24 numeric tiebreak).",
+    "Crawler join: f_100feba4 (depth<=10) feeds the sorted table through f_10106820->f_10102bd8 and the rescan reconciliation f_1010a304 marks surviving (dir,leaf) pairs; persistence = 'trackinfo' via 'trackinfo.tmp' as DIDL-Lite (dc:title,res,dc:creator,upnp:albumArtURI, x-rincon-playlist/x-file-cifs res URIs) - the on-disk form, while f_10107e50's <Titles> output is a separate diagnostic dump under 'shareindex'.",
+    "Replication bound: /indexrepl (handler f_100b8a10) serves the serialized index per share 'id=' with x-rincon-last-update-device/x-rincon-content-version headers and bytes= ranges; the pull builds '%s/indexrepl' (0x1010dc04) and skips on format mismatch ('replication skipped: local fmt %u, remote fmt %u'); recovery is version-driven ('need to recover ix=%d ver=%d' schedules task f_10113e0c; 'recovered ix=%d with ver=%d')."
+   ],
+   "title_store": {
+    "layout": "The share-index database is the singleton at 0x1109cc70; its title table lives at +0x2c (0x1109cc9c) behind the lock at +0xb8 (held across the diagnostic dump by f_10988558/f_10988984). Table fields: +0x4 = array base (f_109bc7e0 returns it), +0x8 = byte length of the array region (f_109bc7f0; element count = value/40 via the 0xCCCCCCCD multiply), +0x88 = element count (the exporter's loop bound). Records are 40 bytes of ten u32 slots: +0 File atom, +4 Leaf atom, +8 atom (not exported), +0xc Description atom, +0x10 Album atom, +0x14 Artist atom, +0x18 atom (not exported), +0x1c Composer atom, +0x20 Genre atom, +0x24 track number as a plain u32. Inferred: the two non-exported atom slots are albumArtist and albumArtURI - 'ALBUMARTIST' is pre-interned alongside ARTIST/ALBUM/GENRE/COMPOSER/TRACKS at 0x10eae03c-0x10eae070 and album art is served through the '/getaa?u=%s&v=%u' URL builder rather than printed in the dump.",
+    "ordering": "The array is kept sorted on the (File,Leaf) atom-id pair: f_10102bd8 performs a binary search (midpoint = (lo+hi)>>1, entries at idx*40) comparing entry+0 then entry+4 against the needle; ingest calls it through thunk f_10106820 from the crawler at 0x100ff464 and from reconciliation f_1010a304 at 0x1010a47c. Inserts preserve the same order.",
+    "atoms": "Strings are interned in the atom store singleton at *(0x11096238): +4 = char** id-indexed pointer array, resolver f_102a0750 rejects ids >= 0x40000 and NULL slots, intern f_102a01c4 assigns ids, +0x18 = hash sub-object (f_102a0b80 maps strings to slots; the 'Conflicts' counter in <TrackSummary> measures hash collisions), +0x14 = collation key passed to f_10906e2c/f_10906404 string compares. Atom ids compare by content through f_100fffa0 (same-id fast path, else resolve both and strncmp by length). 'atomtable'/'Call made with NULL table' guards a missing store.",
+    "sort_views": "Named browse-sort comparators register through f_101096e0 in init: 'bbfTitle'->f_10101f4c, 'bbfFile'->f_10100190, 'bbfTracknum'->f_10100370. Each takes two u16 record indexes, fetches both 40-byte records, compares primary atoms by content (f_100fffa0), and bbfTracknum breaks ties on record+0x24 numerically - confirming +0x24 as the track number. 'initialization of sorts failed' marks sort-view setup failure at 0x10103040/0x101079e0."
+   },
+   "persistence_replication": {
+    "crawler_join": "Walker f_100fe850 checks the cancel byte then calls the item predicate; depth <= 10 enters f_100feba4, which percent-decodes the path, splits dir/leaf (strrchr '/'), classifies the file via f_1014743c, builds 'x-file-cifs:' URIs, iterates directory entries (f_104668e8/f_10466948/f_10466978), skips dot-entries (cmpwi 46) and '.sparsebundle', rejects 'Unplayable file'/'Inaccessible file', recurses via f_100fe850 at 0x100ff2f0, and records items through f_10106820 into the sorted table. Reconciliation pass f_1010a304 interns (dir,leaf) atoms per scan record (0x18 stride, count cap r27+0x1008), searches f_10102bd8, and bumps a seen counter at record+0xc on hits so stale entries can be pruned.",
+    "on_disk": "The persisted index file is 'trackinfo' written through 'trackinfo.tmp' (0x10109ab8); the share list persists as 'shares.xml' ('<Shares LastUpdateDevice=\"%s\" Version=\"0\">') plus a '.version' side file (0x10112300). The serialized form is a DIDL-Lite document - handlers bind 'dc:title,res', 'dc:creator', 'upnp:albumArtURI' (table at 0x10eadf3c-0x10eadfa8), 'x-rincon-playlist:'/'x-file-cifs:' res URIs and 'r:displayTitle' - distinct from the diagnostic <Titles> dump produced by f_10107e50 for 'shareindex'.",
+    "version_recovery": "f_1010fc78 adopts new share state (swaps the incoming object pair into owner+0xc4/+0xc8, frees the old via f_100c5050, persists shares.xml) and when the stored index/version mismatch demands it logs 'need to recover ix=%d ver=%d' (ix = owner+0xe8), sets flag +0x104 and schedules recovery task f_10113e0c through f_101150a8 with state at +0x4dc8/+0x4dcc/+0x4dcd. Success logs 'recovered ix=%d with ver=%d' at 0x10112700; the file-replication framework logs the same pair as 'recovering ix=%d ver=%d' (0x1066ba58) with its own 'need to recover' at 0x1066c2f0 and 'recovered' at 0x1066a440.",
+    "replication": "GET /indexrepl is served by f_100b8a10: requires query 'id=' (missing returns 0x194), honors 'x-rincon-range' 'bytes=' partial fetch, and answers with headers 'x-rincon-last-update-device' and 'x-rincon-content-version'. The pull side builds 'http://%s/indexrepl' at 0x1010dc04; processing logs 'processing index: source (%s:%u)' at 0x10112f54 and refuses mismatched formats with 'replication skipped: local fmt %u, remote fmt %u' at 0x101130c4 - so the on-wire unit is the serialized index keyed by share id with a content-version header, not the diagnostic XML.",
+    "scheduler": "Scan lifecycle strings bind the scheduled work: 'request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)', 'Turning resort request into full reindex', 'initial scan for new files failed', 'Would have performed scheduled reindex but shares unchanged', 'processing index complete (c:%d i:%d f:%d lc:%s) - %u', 'skipping commit attempt: m_bCommitted (%d), m_bWait (%d), m_bTerminate (%d)', 'commit %u' at 0x1011854c, and 'initialized index, scheduling advertise' at 0x10113a9c after load."
+   }
   },
   "user_update": {
    "name": "UserUpdateScheduler: user-initiated HH update",
