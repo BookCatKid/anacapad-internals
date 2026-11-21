@@ -231804,6 +231804,86 @@
      "function": "f_1028bb74",
      "address": "0x1028bdc0",
      "notes": "Account-update verb parser feeding f_1028b760 'modifyAccount' (calls at 0x1028bc7c/0x1028bd30/0x1028be54): vocabulary 'add','remove','restore','reauth','match','migrate','addAccount' with reject 'update only allows add or remove, not both' (0x10e960d4); 'Pending report for account %u' (0x10eac5b0). SetAccountNicknameX adapter f_104b071c forwards to it; EditAccountPasswordX/EditAccountMd adapters reach f_1028b760 directly."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10732454",
+     "address": "0x107326d8",
+     "notes": "AddOAuthAccountX wrapper passes the parsed 'AccountType' int (f_105614e0 result at r1+0x24) as adapter r4 into delegate vfunc+0x1c at 0x1073272c. Adapter f_104b052c forwards r4 unchanged to all three workers, so the shared worker's arg4 route word is the caller-supplied account/service type, not a fixed per-route constant."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028a280",
+     "notes": "arg4 decode: variant=(arg4&0x7f)-1+(arg4&1) via rlwinm/xori/subf at 0x1028a280-0x1028a298; cmplwi r31,7 with beq at 0x1028a2d8 selects the provisioned path only when variant==7. arg4>>8 (rlwinm 24,8,31 at 0x1028a598) is the rsid key into the worker's own vfunc+0x2c lookup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028a5b4",
+     "notes": "Variant-7 provisioned add: vfunc+0x2c(arg4>>8,&sd) queries the SD registry; r17 = out word bit 0x20000 via xori 0x4000 + rlwinm 18,31,31. When the bit is clear, duplicate probe f_10570e34(arg4) at 0x1028a96c must miss (r3==0) or the add aborts with r28=0x323=803 at 0x1028a978; when set, the probe is skipped entirely at 0x1028a950."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1020eb2c",
+     "address": "0x1020f010",
+     "notes": "Direct-control call synthesizes arg4 = (*(r28+0x134) << 8) | 7 via rlwinm r4,r4,8,0,23 + ori r4,r4,0x7 at 0x1020f010/0x1020f024: caller-object byte supplies the rsid key, variant forced to 7. Second caller f_1028fa98 repeats the same pattern (*(r1+0x1c) << 8) | 7 at 0x1028fb54/0x1028fb5c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10287238",
+     "address": "0x10287280",
+     "notes": "Admission gate returns a u16 error code, not an entry: key=arg4>>8 (rlwinm at 0x1028724c); f_100c7404 on ctx+8->+0x11a4 (object whose vfunc+0x130 is self-check f_1012ba78). r31==0 admits. Nonzero -> 'Failed to download manifest file (%s) for service %u, error %hu' log and the wrapper returns 802. Inside f_100c6b38: map vfunc+0x20 lookup miss -> 'musicservices' 'Warning. No SD found for %d' -> admit; hit with SD out word bit 0x400000 -> manifest cache probe f_10119c80 ('svcmanifests', 8-byte {key,u16ver} entries at +0xcc/+0xc8, '%d hasLastestVersion %d? %d'); stale -> synchronous fetch f_1011b710 (in-flight byte +0xc4, timevalAddMs 0x2710=10000ms). Registry contents are runtime-registered service descriptors; not statically enumerable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102892e4",
+     "address": "0x1028948c",
+     "notes": "'setAndUpdatePreferredSerialNum' is a real replication op: the literal string is the f_105709c0 builder operand. Under the accounts lock it compares arg SN against ctx+0xdc, stores it when changed, attaches the account record found via f_105712e4 (36-byte fixed + variable copy loops at 0x10289458/0x10289478), submits f_10289258; same-SN returns 1 early via 0x10289334->0x10289550. Sole caller f_10289648 parses 'sn_%u' out of arg2+0x15c ('Invalid accountId' 0x10eac31c, 'Failed to extract serialNum from accountId' 0x10eac330, 'Error setting preferred account' 0x10eac35c); entry through +0x118-adjustor vfunc thunk f_101b53a8 (vtable 0x10e9af84). Every other 0x10eaba94 reference in .text adds an offset (+0x20 'addAccountWithUserCredentials' .. +0x194 'pushToReplicationService') for a neighboring op-name string."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028be78",
+     "address": "0x10eabc90",
+     "notes": "Account-update verb dispatcher = accountsMgr vfunc+0x24 in vtable 0x10eabc6c (installed by ctor f_10285224, 'accountsMgr' name at this+0x20). Verb descriptor layout from dispatch target f_10284950 (vfunc+0x28): +0x00 asn, +0x04 rsid, +0x1f4 flags; it serializes 'zpam: %s,%d,%d,%u' and writes type/flags/rsid/asn fields at 0x102849c8-0x10284a14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028be78",
+     "address": "0x1028beb0",
+     "notes": "Verb selection: r5==0 -> conflict path (f_104b16b4 on *(this+0x18), then 'Pending report for account %u' + f_1028bdc0 modifyAccount with stack flag-set word 2), then rsid&0x7f in {7,8} rejoins name dispatch else rsid>>8 -> vfunc+0x2c keyed lookup (f_10284ec0 -> ctx+8->+0x11a4 map vfunc+0x20), a hit with out word bit 0x2000 runs 'addAccount' via f_104abd90 on *(this+0xb0). r5!=0: r6!=0 -> 'match'; r6==0 && r7!=0 -> f_1056fd48 picks 'restore' vs 'reauth'; r6==0 && r7==0 -> 'add'; 'migrate' only in the r5==0 rejoin with r6!=0,r7==0. Each name goes through vfunc+0x28 f_10284950 then post-step vfunc+0x34 f_102850c4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b760",
+     "address": "0x1028b8e8",
+     "notes": "modifyAccount field contract: (arg2,arg3) compound key must resolve via f_10570e34 (806 on miss at 0x1028ba14); arg4 when strcmp-different from arg3 must NOT resolve (806 on hit) - rekey uniqueness. r7-arg -> 0x41-byte field (+0x166); r8-arg -> 0x80-byte field (+0xe6) with marker byte '1' at +0xe5; r9-arg (nickname chain) must not equal the name field of another same-group account record with flag bit0 (802 abort before submit); r10-arg -> 0x41 field (+0x1e8); stack+0x10 bits OR into request flags word at ctx+0x250, stack+0x14 bits clear. Build 'modifyAccount' f_105709c0, submit f_10289258 (809), unlock, then post-commit vfunc+0x34 f_102850c4 notifies the shared observer at global 0x11095f88 via f_101b8048. Returns 0/806/802/809/810."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b052c",
+     "address": "0x104b0610",
+     "notes": "Tier forwarding: token branch clamps AccountTier via isel min(tier,0xffff) then it travels adapter stack+8 -> worker stack arg (r18) -> request field setter f_1056fa28 at 0x1028a6d4. No enum membership check anywhere; {none=1,free=2,paidLimited=3,paidPremium=4} at 0x10ea5b08 is vocabulary only."
     }
    ],
    "resolved_findings": [
@@ -231822,7 +231902,14 @@
     "Resolved: action v[+0x1c] is concretely bound on both levels that carry that slot number. The installed account delegate vtable 0x10ed75c4 slot+0x1c = f_104b052c (AddOAuthAccountX); the public wrapper f_10732454 issues the delegate/action vfunc+0x1c dispatches at 0x107324e8/0x107325f8/0x10732720. The full delegate map is now concrete per the 0x10ed75c4 evidence entry.",
     "Resolved: the OAuth credential routes are four named workers converging on one shared boundary worker. Public adapter f_104b052c selects AccountToken -> f_1028b2e4 ('addAccountWithOAuthToken'), else AuthorizationCode -> f_1028b440 ('addAccountWithOAuthCode' + RedirectURI), else -> f_1028ad54 ('addPreinstalledService'); OAuth DirectControl is the separate worker f_1028b5bc ('addAccountForOAuthDirectControl') invoked only from f_1020eb2c and f_1028fa98. Each wrapper first passes its public name to admission gate f_10287238 (registration-map lookup on ctx+8->+0x11a4 keyed by arg4>>8; missing entry aborts), then assembles credentials and calls f_1028a224.",
     "Resolved: f_1028a224 is the complete OAuth dispatch boundary, not just initial checks. It locks, begins the account operation through f_102887e0, requires BOTH arg6 token and arg8 OAuthDeviceID non-null/nonempty (802 on either failure), rejects guest-account reauthentication when account flags +0x1f4 bit0 and f_105714d8 both set (803), then builds the replication request via f_105709c0 with literal op 'int_addAccountWithOAuthToken' and submits via f_10289258 at two parallel sites; post-submit branches handle 'account already exists on household' and 'matched to existing guest account with SN=%u, Hash=%s' before the guest serial-number epilogue. Token, code, preinstall and direct-control routes are distinguished only by which credential fields the wrappers populate and the registration key in arg4's high byte.",
-    "Resolved: the delegate surface is exhaustively mapped including negative results. vtable slot+0x14 is f_104b0500, a dead stub returning 802 unconditionally (no action row binds it in this table); 'Remove' (id 0x15) is a distinct small action beside 'RemoveAccount' (0x25) and goes through the shared settings-remove helper f_1066a788 at slot+0x10; GetString/SetString are generic settings accessors with a hardcoded 'R_ForceReIndex' strcmp branch in f_104b1d90; RefreshAccountCredentialsX forwards to the inner account context's own vfunc+0x18 (not a local +0x14)."
+    "Resolved: the delegate surface is exhaustively mapped including negative results. vtable slot+0x14 is f_104b0500, a dead stub returning 802 unconditionally (no action row binds it in this table); 'Remove' (id 0x15) is a distinct small action beside 'RemoveAccount' (0x25) and goes through the shared settings-remove helper f_1066a788 at slot+0x10; GetString/SetString are generic settings accessors with a hardcoded 'R_ForceReIndex' strcmp branch in f_104b1d90; RefreshAccountCredentialsX forwards to the inner account context's own vfunc+0x18 (not a local +0x14).",
+    "Resolved: the packed arg4 route word is the rsid supplied by each entry, not a fixed per-route constant. Public routes forward the caller's 'AccountType' int verbatim (wrapper f_10732454 -> adapter f_104b052c -> workers). The internal direct-control callers synthesize it as (caller-object byte << 8) | 7 at 0x1020f010 and 0x1028fb54, forcing variant 7.",
+    "Resolved: inside f_1028a224 the variant index (arg4&0x7f)-1+(arg4&1)==7 selects the provisioned-add path that consults the SD registry via vfunc+0x2c(arg4>>8); SD out word bit 0x20000 suppresses or requires a duplicate probe f_10570e34(arg4) that must miss (803 on hit). Variants 0..6 skip this consultation.",
+    "Resolved: admission gate f_10287238 is an SD-registry plus manifest-freshness check returning a u16 error code (0 admits). Map miss -> 'No SD found' admit; SD with the 0x400000 flag -> 'svcmanifests' version-cache probe f_10119c80; stale -> synchronous manifest fetch f_1011b710 (10s timeout) whose error becomes the 802 'Failed to download manifest file' result. The registered selector set is a runtime service-descriptor registry whose contents are data-driven; the boundary is documented rather than enumerable statically.",
+    "Resolved: 'setAndUpdatePreferredSerialNum' is a replication op updating the preferred account SN at ctx+0xdc plus the matched account payload, reached through the +0x118-adjustor thunk f_101b53a8 -> f_10289648 'sn_%u' parser -> f_102892e4 submitter. Every other reference to 0x10eaba94 is a rodata block anchor computing a neighboring op-name string.",
+    "Resolved: the account-update verb DSL is accountsMgr vfunc+0x24 f_1028be78 over descriptors {asn@+0, rsid@+4, flags@+0x1f4}. r5==0 marks an add/remove conflict: error report, 'Pending report' flag bit 0x2 via f_1028bdc0, then rsid&0x7f in {7,8} rejoins the verb-name dispatch else rsid>>8 keyed SD lookup with bit-0x2000 -> 'addAccount' via f_104abd90. r5!=0 dispatches 'match'/'add'/restore-vs-'reauth'/'migrate' through vfunc+0x28 f_10284950 ('zpam' serializer) and post-step vfunc+0x34 f_102850c4.",
+    "Resolved: modifyAccount f_1028b760 resolves (arg2,arg3) as the existing key (806 miss), requires a differing arg4 to NOT resolve (806 hit, rekey uniqueness), copies r7/r8/r10 args into fixed payload fields, uniqueness-scans the r9 (nickname) arg against same-group records (802 dup before submit), ORs stack+0x10 bits into request flags and clears stack+0x14 bits, then submits 'modifyAccount' via f_105709c0/f_10289258 and runs post-commit observer vfunc+0x34 f_102850c4 -> shared observer at global 0x11095f88 via f_101b8048.",
+    "Resolved: AccountTier semantics end to end: saturating u16 clamp in the token adapter (isel min at 0x104b0648), forwarded as a request field to the replication op (f_1056fa28 at 0x1028a6d4); the enum table is vocabulary only, no range validation at adapter, worker, or assembly layers."
    ],
    "details": {
     "credential_presence_correction": {
@@ -231838,7 +231925,7 @@
      ]
     },
     "concrete_settings_delegate": {
-     "description": "Zone construction at0x1018e4f8 creates settings delegate f_104b0e84, stores it at the field used as argument4 to account-service constructor f_10732e94 at0x1018e594, and that constructor stores the delegate at service+4. f_104b0e84 installs primary vtable0x10ed75c4. The service therefore does not obtain these account methods from the DeviceProperties vtable0x10e98278. Password slot+0x24 targets f_104b0684 and metadata slot+0x30 targets f_104b06d0; both call f_1028b760 with different optional fields. Post-update slot+0x38 targets f_104b0c90. Adapter audit: every account-settings adapter resolves the embedded accounts object at delegate+0x26c and calls with this=+0x118. Password f_104b0684 fills modifyAccount's r7 optional slot only; metadata f_104b06d0 fills r8 only; nickname adapter f_104b071c passes its single arg into r8 (nickname slot); refresh f_104b0510 tails directly into the object's vfunc+0x18. f_1028b760 (modifyAccount) gates on f_102887e0, validates each supplied optional field, invokes the matching virtual setter on the located account, then commits through f_10289258->f_102890b0 with a 'modifyAccount' trace entry. DoPostUpdateTasks f_104b0c90 is gated by delegate vfunc+0x4c == f_100c9be8 and performs R_PromoVersion comparison/fixups through f_1090b418.",
+     "description": "Zone construction at0x1018e4f8 creates settings delegate f_104b0e84, stores it at the field used as argument4 to account-service constructor f_10732e94 at0x1018e594, and that constructor stores the delegate at service+4. f_104b0e84 installs primary vtable0x10ed75c4. The service therefore does not obtain these account methods from the DeviceProperties vtable0x10e98278. Password slot+0x24 targets f_104b0684 and metadata slot+0x30 targets f_104b06d0; both call f_1028b760 with different optional fields. Post-update slot+0x38 targets f_104b0c90. Adapter audit: every account-settings adapter resolves the embedded accounts object at delegate+0x26c and calls with this=+0x118. Password f_104b0684 fills modifyAccount's r7 optional slot only; metadata f_104b06d0 fills r8 only; nickname adapter f_104b071c passes its single arg into r8 (nickname slot); refresh f_104b0510 tails directly into the object's vfunc+0x18. f_1028b760 (modifyAccount) gates on f_102887e0, validates each supplied optional field, invokes the matching virtual setter on the located account, then commits through f_10289258->f_102890b0 with a 'modifyAccount' trace entry. DoPostUpdateTasks f_104b0c90 is gated by delegate vfunc+0x4c == f_100c9be8 and performs R_PromoVersion comparison/fixups through f_1090b418. Per-field validation inside f_1028b760 is now concrete: (arg2,arg3) key must resolve, differing arg4 must NOT resolve (rekey uniqueness, 806), the r9 nickname arg is dedup-scanned across same-group account records (802), stack flag words merge into the request flags, and success notifies the shared accounts observer via vfunc+0x34 f_102850c4 -> f_101b8048 on global 0x11095f88. Verb-DSL operands: accountsMgr vfunc+0x24 f_1028be78 over {asn@0, rsid@4, flags@0x1f4} descriptors with the r5/r6/r7 clause selection and rsid-keyed 'addAccount' fallthrough documented at record level.",
      "evidence": [
       {
        "type": "firmware",
@@ -231885,11 +231972,10 @@
        "address": "0x1028baec",
        "notes": "'modifyAccount' trace via f_105709c0 after per-field vfunc setters; commit tail f_10289258->f_102890b0."
       }
-     ],
-     "todo": "Established: every delegate slot is concretely bound (see vtable 0x10ed75c4 map); password/metadata adapters reach 'modifyAccount' f_1028b760, nickname reaches it through verb parser f_1028bb74. Remaining: per-field validation/persistence/event effects inside f_1028b760 and the verb-DSL operands in f_1028bb74."
+     ]
     },
     "oauth_public_routing": {
-     "description": "Installed AddOAuthAccountX adapter f_104b052c first tests AccountToken. A non-null/nonempty token selects f_1028b2e4 (token path), even when AuthorizationCode is also supplied. With no token, non-null/nonempty AuthorizationCode selects f_1028b440 (code acquisition); if neither is supplied it selects f_1028ad54 (preinstalled-service path). OAuthDeviceID is forwarded in all three branches; RedirectURI is forwarded to the code path. The token branch clamps AccountTier to unsigned65535 before forwarding it. This binds the earlier account-manager credential check to public names: shared worker f_1028a224 requires both generated/supplied token and OAuthDeviceID nonempty. The SOAP handler itself only binds/validates fields; this installed adapter owns routing. The separately identified OAuth-direct-control worker is not a fourth branch of this adapter. Worker audit: the token branch f_1028b2e4 only early-outs through f_10287238 and tail-calls f_1028a224 unchanged. The code branch f_1028b440 first runs f_10286e44, the device-auth-token exchange (logs 'getDeviceAuthToken failed (res = %d)', smapi dcLogin/zpAM traffic, clock_gettime), then calls f_1028a224 with the minted token. The preinstall branch f_1028ad54 and the internal addAccountForOAuthDirectControl f_1028b5bc enter the same core; the direct-control worker's only callers are f_1020eb2c and f_1028fa98, so it is a separate internal entry, not a public route. f_1028a224 is therefore the single OAuth core: token + OAuthDeviceID must both be nonempty, guest-reauthentication is rejected with 803, duplicates fail with 'account already exists on household', guest migration runs through f_1028686c, and success returns the new UDN.",
+     "description": "Installed AddOAuthAccountX adapter f_104b052c first tests AccountToken. A non-null/nonempty token selects f_1028b2e4 (token path), even when AuthorizationCode is also supplied. With no token, non-null/nonempty AuthorizationCode selects f_1028b440 (code acquisition); if neither is supplied it selects f_1028ad54 (preinstalled-service path). OAuthDeviceID is forwarded in all three branches; RedirectURI is forwarded to the code path. The token branch clamps AccountTier to unsigned65535 before forwarding it. This binds the earlier account-manager credential check to public names: shared worker f_1028a224 requires both generated/supplied token and OAuthDeviceID nonempty. The SOAP handler itself only binds/validates fields; this installed adapter owns routing. The separately identified OAuth-direct-control worker is not a fourth branch of this adapter. Worker audit: the token branch f_1028b2e4 only early-outs through f_10287238 and tail-calls f_1028a224 unchanged. The code branch f_1028b440 first runs f_10286e44, the device-auth-token exchange (logs 'getDeviceAuthToken failed (res = %d)', smapi dcLogin/zpAM traffic, clock_gettime), then calls f_1028a224 with the minted token. The preinstall branch f_1028ad54 and the internal addAccountForOAuthDirectControl f_1028b5bc enter the same core; the direct-control worker's only callers are f_1020eb2c and f_1028fa98, so it is a separate internal entry, not a public route. f_1028a224 is therefore the single OAuth core: token + OAuthDeviceID must both be nonempty, guest-reauthentication is rejected with 803, duplicates fail with 'account already exists on household', guest migration runs through f_1028686c, and success returns the new UDN. arg4 is now bound end to end: public wrapper forwards the caller 'AccountType' int; internal direct-control synthesizes (object byte << 8) | 7 for variant 7. The admission gate is the SD-registry + manifest-freshness chain (map at ctx+8->+0x11a4, 'No SD found' admit, svcmanifests version probe, synchronous fetch f_1011b710, 802 'Failed to download manifest file' on error). Worker-internal validation: variant==7 performs the vfunc+0x2c SD lookup and applies the bit-0x20000 duplicate-probe gate (803); token+OAuthDeviceID nonempty and guest-reauth 803 unchanged. Tier = saturated u16 request field; enum not validated.",
      "evidence": [
       {
        "type": "firmware",
@@ -231929,8 +232015,7 @@
        "address": "0x104b0648",
        "notes": "Tier: isel min(tier,0xffff) saturating u16 clamp."
       }
-     ],
-     "todo": "Established: token/code/preinstall plus the separate direct-control worker f_1028b5bc (callers f_1020eb2c + f_1028fa98) all converge on f_1028a224 -> 'int_addAccountWithOAuthToken'; tier is clamped to unsigned 0xffff in the token branch. Remaining: per-route arg4 route-word constants, the gate's registered selector set (runtime map), worker-internal provider/account field validation, and tier enum semantics at the replication layer."
+     ]
     },
     "tunein_removal": {
      "description": "RemoveAccount is not a uniform deletion operation: installed delegate f_104b0918 treats full AccountType65031 (0xFE07) as R_HideTuneIn=true. The remaining account types enter the normal account-removal path. See music_accounts.public_account_removal for status, commit, manifest cleanup and callback ordering.",
@@ -231951,10 +232036,7 @@
       }
      ]
     }
-   },
-   "todo": [
-    "Established: the delegate vtable 0x10ed75c4 is fully bound (all 16 slots incl. the +0x14 always-802 stub); the four OAuth credential routes (token/code/preinstall/direct-control) are traced through their name-gates into shared worker f_1028a224, which is now proven to be the complete OAuth dispatch boundary issuing replication op 'int_addAccountWithOAuthToken'. Remaining: the packed arg4 route word's per-route constant values are forwarded from the action marshalling side and not yet extracted per route; the admission gate's registered selector set lives in a runtime map (ctx+8->+0x11a4) whose contents are data-driven; 'setAndUpdatePreferredSerialNum' is consumed directly at several sites (e.g. 0x1028aeb8) alongside its rodata block-anchor use and its exact role in the request is still open; the f_1028bb74 update-verb DSL field semantics ('add'/'remove'/'restore'/'reauth'/'match'/'migrate') and per-field validation inside f_1028a224's request assembly remain undetailed."
-   ]
+   }
   },
   "zgt_errors": {
    "name": "ZGT error paths",
