@@ -214266,10 +214266,71 @@
      "build": "86.10-80260",
      "address": "0x10372f48",
      "notes": "XML entitlement report emits trial/date strings from bounded record loop, not policy predicates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f9b85c",
+     "function": "entitlement-record schema",
+     "notes": "{code,name,aux} triples (4,'sku'),(1,'isTrial'),(3,'startDate'),(1,'endDate'),(1,'type'),(0,'codes'), then (5,0,0),(6,0,0) bounding the codes child; descriptor vtable 0x10f9b83c = {0x10a4dc94,0x100d3728,f_10a4caf4 field-iter,f_10a4cc34,f_10a4cd30,f_10a4cd64}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a4d9b8",
+     "function": "f_10a4d98c",
+     "notes": "Entitlement-record read helper: f_10a4d8ac ctor then f_109ecc24 engine read; sibling f_10a4da0c uses f_109ecd3c. Each engine op has 50 callsites (one per generated field)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ac3e2c",
+     "function": "f_10ac3db8",
+     "notes": "codes-name converter: f_109cfe58 length gate <=0x28 else error 0x10; walks {name,len,mask} triples at 0x10f9f654 with strncasecmp; stores mask to out ptr; 0 match / 3 unknown."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f9f654",
+     "function": "capability mask tables",
+     "notes": "businessCore(6)+restrictedAccess(6)+sonosRadio(5)+controlChannels(2) contiguous triples; index-to-name getters at f_10ac41bc/f_10ac4228/f_10ac4260/f_10ac41f0 read +0/+0x48/+0x90/+0xcc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10372e98",
+     "function": "f_10372d34",
+     "notes": "XML report reads isTrial byte pair at cursor-0x24/-0x23 ('yes' string 0x10e71a70), sku at -0x3c, dates at -0x22/-0x14 via f_1098baf4, codes array <=0x14 at +0; stride +0x98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101ba18c",
+     "function": "zpsa provisioning",
+     "notes": "f_109f11b0(obj,2,buf): 0 -> 'no SBiz entitlement; preinstalling Sonos Radio' (r18=1), nonzero -> 'found SBiz entitlement; blocking preinstall'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100f6920",
+     "function": "f_100f68d0",
+     "notes": "isBusinessSubscriber byte at this+0x148; change -> 'isBusinessSubscriber has changed' + f_100f82c4(this+4,{1}) notify + f_100f5b84 re-eval; runtime_zppolicy.cxx."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103729c0",
+     "function": "f_103726fc",
+     "notes": "Entitlement refresh: cmpwi 304 eTag short-circuit, 'Fetch from cloud returned with status=%s', cache stash at this+0x158."
     }
-   ],
-   "todo": [
-    "Residual: trace the input parser and enforcement predicates for trial status and start/end dates, and enumerate per-SFB consumer call paths. Output serializers and per-category numeric mask fields are now distinguished from policy evaluation; server-defined predicate semantics are not established by output vocabulary."
    ],
    "resolved_findings": [
     "Resolved: SyncSonosBusinessMSP pulls the business-MSP policy document from the household settings service and applies tier gating at the entitlements/featureConfig layer - the sync reads the MSP-managed settings doc and enforces the managed-tier flags via the same featureConfig* predicates as entitlements.",
@@ -214278,8 +214339,27 @@
     "SFB bit indices recovered from the rodata table at 0x10f99838 - {name*, strlen, bit_index} triples, 19 entries: SRADIO_NO_ADS=1, SRADIO_HD_CONTENT=2, SRADIO_SPECIAL_CONTENT=3, SRADIO_ONDEMAND_ARCHIVE=4, SRADIO_CAN_SKIP=5, SFB_BASIC_UI=6, SFB_COMMERCIAL_MSP=7, SFB_ESSENTIALS_MSP=8, SFB_PREMIUM_MSP=9, SFB_DASHBOARD_ACCESS=0xa, SFB_CNTRL_MEDIA_SRCS=0xb, SFB_CNTRL_THIRD_PARTY=0xc, SFB_RSTC_CONTENT_ACS=0xd, SFB_RSTC_SAVE_CONTENT_ACS=0xe, SFB_RSTC_SETTINGS_ACS=0xf, SFB_RSTC_ALARMS_ACS=0x10, SFB_RSTC_MESSAGING_ACS=0x11, SFB_RSTC_SAVE_GROUPS_ACS=0x12, SFB_SCHEDULES_ACCESS=0x13.",
     "Lowercase capability-name table at 0x10f9f654 uses bitmask ids: {basic-ui=1, commercial-msp=2, essentials-msp=4, premium-msp=8, dashboard-access=16, schedules-access=32} then restricted-access {content=1, content-saving=2, settings=4, alarms=8, messaging=16, save-groups=32}, sradio {no-ads=1, hd-content=2, special-content=4, on-demand-archive=8, can-skip=16}, and control {media-sources=1, third-party-integ=2} - these are per-category bit positions (matches the ordinal SFB bit table shape).",
     "The f_10a4e0e4 path is an output serializer, not evidence of a document reader or enforcement predicate. It loads four 32-bit members from input+8/+0xc/+0x10/+0x14 and passes them with names businessCore/controlChannels/restrictedAccess/sonosRadio to f_109d1570 at 0x10a4e134/0x10a4e148/0x10a4e15c/0x10a4e184. f_109d1570 formats the supplied integer with %d at 0x109d159c-0x109d15bc and writes the resulting bytes via output virtual slot +8. _objectType is emitted separately if present. This positively binds category members as integer output fields; it does not prove that these names are four nested policy objects.",
-    "Trial/date evidence separated from enforcement: the isTrial/startDate/endDate strings at 0x10ebfca3/0x10ebfcb9/0x10ebfcc8 are substrings of one XML output format beginning at 0x10ebfc8c, not standalone parser-key references. The report loop at 0x10372e60-0x10372f54 iterates fixed 0x98-byte entitlement records, formats two date values via f_1098baf4 at 0x10372e80/0x10372e94, selects the trial text through byte tests at cursor-0x24/-0x23, and invokes the output routine with type, trial, sku, two date strings and codes at 0x10372f20-0x10372f48. It caps the report count at five at 0x10372e20-0x10372e30. That is a bounded diagnostic rendering path, not a date-range/trial eligibility comparison. Neither the four-category serializer nor this XML loop establishes the missing policy predicates, so the earlier server-defined-value assertion is not used as a closure justification."
-   ]
+    "Trial/date evidence separated from enforcement: the isTrial/startDate/endDate strings at 0x10ebfca3/0x10ebfcb9/0x10ebfcc8 are substrings of one XML output format beginning at 0x10ebfc8c, not standalone parser-key references. The report loop at 0x10372e60-0x10372f54 iterates fixed 0x98-byte entitlement records, formats two date values via f_1098baf4 at 0x10372e80/0x10372e94, selects the trial text through byte tests at cursor-0x24/-0x23, and invokes the output routine with type, trial, sku, two date strings and codes at 0x10372f20-0x10372f48. It caps the report count at five at 0x10372e20-0x10372e30. That is a bounded diagnostic rendering path, not a date-range/trial eligibility comparison. Neither the four-category serializer nor this XML loop establishes the missing policy predicates, so the earlier server-defined-value assertion is not used as a closure justification.",
+    "Entitlement-record input parse bound: descriptor 0x10f9b830 + field schema {sku,isTrial,startDate,endDate,type,codes} at 0x10f9b85c is consumed by the same databinding engine in both directions; the read helpers f_10a4d98c/f_10a4da0c build a record via f_10a4d8ac and hand each field to engine readers f_109ecc24/f_109ecd3c, which are each called from exactly 50 generated-class callsites. The descriptor and its field-name strings are reached only through class vtables, never by lis/addi.",
+    "'codes' values are decoded client-side: per-category name-to-mask tables at 0x10f9f654..0x10f9f738 ({name,strlen,mask} triples) are walked by converter f_10ac3db8 and siblings f_10ac3ec8/f_10ac3f98/f_10ac40a8 from holder vtables at 0x10f9f5dc..0x10f9f63c, with a 0x28-byte input-length gate (error 0x10) and strncasecmp matching (0 match / 3 unknown). This is the input direction of the four integer mask members businessCore/controlChannels/restrictedAccess/sonosRadio that f_10a4e0e4 serializes out.",
+    "Record layout recovered from the XML report loop: 0x98-byte records, isTrial value+present byte pair, sku pointer, two 0xe-byte date members formatted by f_1098baf4, codes array of up to 0x14 strings.",
+    "Trial/date semantics resolved to server-driven enforcement: after the parse, the only uses of isTrial/startDate/endDate in anacapad are the diagnostic XML dump and the entitlements-version diff; no wall-clock window comparison exists in the binary. SBiz gating (Sonos Radio preinstall) is a record-presence test via f_109f11b0(obj,2) at 0x101ba1ac/0x101ba1fc, and isBusinessSubscriber at this+0x148 is the policy-doc evaluation flag in RRuntimeZPPolicy.",
+    "Lifecycle bound: eTag-conditional cloud fetch (304 short-circuit) in f_103726fc, cache stash at this+0x158, storage under settings keys 'entitlements'/'entmt' via the this+0x1e8 typed store, refresh scheduling through f_100b944c on timer 0x11095f8c, and change notification as 'entitlementsVersionChanged'. R_TrialZPSerial is a real read+write settings key; R_AvailableSvcTrials is dead string data in this build."
+   ],
+   "entitlement_input_parse": {
+    "record_schema": "The entitlement-record databinding descriptor at 0x10f9b830 carries a {code,name,aux} field schema at 0x10f9b85c in member order: (4,'sku'), (1,'isTrial'), (3,'startDate'), (1,'endDate'), (1,'type'), (0,'codes'), then two nameless entries (5,0,0)/(6,0,0) that bound the 'codes' child shape. The same descriptor drives both directions: write-side name emission via f_109d1924 and %d integer emit via f_109d1570 (f_10a4e0e4 path), read-side via the class read helpers.",
+    "record_read_entry": "f_10a4d98c and f_10a4da0c are the record's read helpers: each constructs a record (ctor f_10a4d8ac) then calls a generic engine reader, f_109ecc24 or f_109ecd3c. Each of those engine ops has exactly 50 callsites across the generated databinding classes, i.e. one call per parsed field of every generated document type; the helpers themselves are reached through class vtables/descriptors (no direct bl callers), which is why no lis/addi reference to the descriptor or its name strings exists.",
+    "codes_converters": "Each 'codes' string is converted by a per-category name-to-mask lookup. Four contiguous {name,strlen,mask} triple tables at 0x10f9f654 (businessCore: basic-ui=1, commercial-msp=2, essentials-msp=4, premium-msp=8, dashboard-access=0x10, schedules-access=0x20), 0x10f9f69c (restrictedAccess: content=1, content-saving=2, settings=4, alarms=8, messaging=0x10, save-groups=0x20), 0x10f9f6e4 (sonosRadio: no-ads=1, hd-content=2, special-content=4, on-demand-archive=8, can-skip=0x10), 0x10f9f720 (controlChannels: media-sources=1, third-party-integ=2). Converter f_10ac3db8 (vtable slot +8 of the holder descriptor at 0x10f9f5dc; siblings f_10ac3ec8/f_10ac3f98/f_10ac40a8 in vtables 0x10f9f5fc/0x10f9f61c/0x10f9f63c) first runs the input through the 0x28-byte length gate f_109cfe58 (error 0x10 when longer), then walks its triple table comparing strlen + strncasecmp and stores the mask word to the out pointer; returns 0 on match, 3 on unknown name. Mask-to-name getters f_10ac41bc/f_10ac4228/f_10ac4260/f_10ac41f0 index the same tables at +0/+0x48/+0x90/+0xcc for the serialize direction.",
+    "record_layout": "0x98-byte records (stride proven by the report loop cursor addi +0x98 at 0x10372f50): isTrial is a value+present byte pair read at cursor-0x24/-0x23, sku string ptr at -0x3c, two 0xe-byte date fields at -0x22 and -0x14 rendered through date formatter f_1098baf4, and a codes array of up to 0x14 string pointers at +0 whose elements resolve through f_10a08720."
+   },
+   "enforcement_consumers": [
+    "SBiz record presence: the zpsa boot/provisioning function calls f_109f11b0(obj,2,buf); a zero return logs 'no SBiz entitlement; preinstalling Sonos Radio' (0x101ba1ac, sets preinstall flag r18=1) and nonzero logs 'found SBiz entitlement; blocking preinstall of Sonos Radio' (0x101ba1fc). This is a record-presence predicate, not a date test. The same f_109f11b0(obj,2,...) query feeds RRuntimeZPPolicy at 0x100f6a0c.",
+    "isBusinessSubscriber: f_100f68d0 (runtime_zppolicy.cxx, filename string 0x10e88d8c) writes the flag byte at this+0x148; on change it logs 'isBusinessSubscriber has changed', signals the notifier at this+4 via f_100f82c4({1,...}) and re-evaluates through f_10559024 -> f_100f5b84. The policy document it evaluates is built by f_100f9d9c as {global:{usageContext:{value:BUSINESS}}} from the CloudSettings fields.",
+    "Entitlement lifecycle: 'stale entitlements; scheduling job to refresh' (0x101b99fc) schedules f_100b944c on the shared timer object at global 0x11095f8c. The refresh path f_103726fc is eTag-conditional: HTTP 304 keeps the cache, otherwise it stashes the current blob ('stashed existing entitlements to compare later', this+0x158, serialized via f_10988564) then fetches via this->vfunc+0x3c ('Fetch from cloud returned with status=%s'), parses, stores under settings keys 'entitlements'/'entmt' (f_10370864/f_10371c10/f_103717d0 typed-store access at this+0x1e8), and the diff produces the 'entitlementsVersionChanged' notification (string 0x10f9630c used at 0x1009921c inside f_10098d34).",
+    "Trial surface: 'R_TrialZPSerial' is a settings key, read through a settings-object vfunc+0x24 dispatch at 0x104b1594 (implementation f_100c9be8) and written by the settings-set handler at 0x104b1e9c via f_1066b320 + f_10121518. 'R_AvailableSvcTrials' has no code references in this build.",
+    "Policy document wrapper: fields 'apiKey','policyKey','entitlements' are emitted from the policy object by the serializer at 0x10a24be8..0x10a24c48 (f_109d1924 name writes + f_109d1474 nested-object write); this+0x7c is checked through f_10a4e0d4 before the 'entitlements' member is touched."
+   ],
+   "unresolved": "isTrial/startDate/endDate now parse into proven record members, but their only client-side reads found in this build are the bounded diagnostic XML render in f_10372d34 (max 5 records, dates formatted by f_1098baf4, isTrial rendered as 'yes') and whatever fieldwise comparison feeds 'entitlementsVersionChanged'. No instruction in the binary compares startDate/endDate against wall-clock time, so trial-window and expiry semantics are server-driven: the client acts on record presence and 'codes' masks. A consumer-side date predicate therefore cannot be ruled out only in code outside this binary, not in anacapad itself."
   },
   "buttons_ir": {
    "summary": "button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered[.xml] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database; zp-level FSM: 'zp_pre_setup_state','init minimal node','processing local %s'; skipBack/skipToNextTrack dispatch 'playback#skipBack'/'playback#skipToNextTrack' via group UUID ('Could not get group UUID for player %s to send skipBack command','Error sending skipBack command to local: %s','playback#skipBack response: %s'); play/pause FSM 'entering play/pause toggle','processing the play/pause button up event','executing pause','playback paused (cid: %s)','Error (%d) invoking pause','Pause failed - Cleared fast volume zero','executing un-mute instead of pause' (un-mute fallback when mute state can't be read),'waiting for PlaybackStateChangedEvent to clear fast volume zero','play/pause toggle cleared HW fault'; demo-mode IR learn loop 'Starting IR remote learning','Remote learning successfully configured remote for demo mode.','Remote learning one button code not found in DB for demo mode.','Remote learning timed out before remote was configured for demo mode.','Remote learning failed to configure for demo mode.'; config-mode entries: '%sentering speaker-detect config mode' alongside button-notify and room_calibration-calibrate; 'Entering %s config mode.','invalid input parameters v:%s t:%s'; IR decoder detail (irdecoder.cxx): debounce layer 'handling debounced input'/'debounced volume up'/'debounced volume Down','currently not playing','handling raw volume up'/'raw volume down'/'raw volume mute'/'raw input code'; install guards 'attempted to install a null code'/'null remote','unknown IR control target while installing code','unknown IR code pattern while installing code','attempting to add null remote to db'/'remote to full db','attempting to set too long a controller name'/'excessively long main code'/'alt code'/'repeat code','Cannot add {repeat,vol up,vol down,input,vol mute} code: list full.','Failed to open IR device! (%d)','Could not get IR file descriptor!','Failed to close IR device','Could not write ir configuration!','db code length [%d] exceeds buffer','exceeded temp buff size: i = %d','Input buffer too large (%d > %d), contents truncated','Ignoring excessively long code during learn, length: [%d]','new capture %d','Successful long code learn.','total bytes received: %d'",
