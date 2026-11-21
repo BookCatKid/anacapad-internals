@@ -238473,15 +238473,72 @@
      "build": "86.10-80260",
      "address": "0x10d13120",
      "notes": "Download dispatch -> f_10d10b40 -> f_10d250d8; position arithmetic0x10d0e8d8 and signed rejection0x10d0e8e0, accepted stores0x10d0e8fc/0x10d0e910. Raw bank mask0x10d22cc0 is not a shift."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10d228c4 track_pipeline_init (sole writer of global ctx 0x110bdc88)",
+     "address": "0x10d228fc",
+     "callsite": "0x10d13e2c in f_10d13d88",
+     "notes": "Stores arg1 ctx, requires arg2 size >= 0xa58 ('memory_size >= get_required_memory_bytes()', required from f_10d228b4), memset(ctx,0,0xa58). Only caller f_10d13d88 = 'API' module init in static table 0x10fd77b4; ctx+work buf come from pool bump-alloc f_10d08354 on 0x110bdb44 ('Module requested %zu bytes')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "module event bus post + pump",
+     "address": "0x10d09770",
+     "callsite": "0x10d09824 / 0x10d086fc",
+     "notes": "f_10d09770(id,p1,p2) enqueues {id@+0x14,p2@+0x18,p1@+0x1c} into 48-deep ring, drop at >=47; pump f_10d08534 iterates 0x14-stride handler entries + parallel 0x310 state blocks calling entry+0x10. f_10d12414 dispatch: id-0x13 bound 0x7a, jumptable 0x10fd8520 signed offsets."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "download-offset producer chain",
+     "address": "0x10d03c9c",
+     "callsite": "0x10cf82cc (SpSetDownloadPosition)",
+     "notes": "SpSetDownloadPosition f_10cf828c -> f_10d03b84: eSDK-running gate 0x110bb7a8+0xb84, track check f_10d250d8 ('Invalid track %u, expected %u'), posts id 0x32. Handler case 0x32 at 0x10d130d4 -> f_10d10b40 guarded offset write ('Integration asked to download with offset for an invalid track %u, expected %u')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "position-report producers",
+     "address": "0x10d0fb50",
+     "callsite": "0x10d13154 / 0x10d11110 / 0x10d118b0",
+     "notes": "f_10d0e89c callers: sync timer f_10d0f9f4 ('periodic', 30s via f_10d09a98), handler cases (0x18/0x19 'skip', 0x13 refresh), f_10d10f04 stop/clear, f_10d111f8 track-advance. Positions parsed by f_10d0f1ac ('track_id=%d position from integration %u') and pulled through cb_stream_get_position wrapper f_10d3ac74 (SPI slot +0x1c, locked, null-guarded)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "integration SPI bank 0x110bfc5c + registrar f_10d3a800",
+     "address": "0x10d3a900",
+     "callsite": "0x10d3acc4 / 0x10d3ad9c",
+     "notes": "Six delivery callbacks on_start/on_data/on_seek/on_flush/on_end/on_pos + ctx -> slots +0x10..+0x28; sibling registrars fill through +0xc8. Wrappers call slots under lock ('cb_stream_get_position(id=%u) = %u')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "concrete adapter: Sonos 'spot' service f_10213e60 -> SpInit f_10cf4f60",
+     "address": "0x102141f4",
+     "callsite": "0x10cf4f94 / 0x10d001c0 / 0x10d00814",
+     "notes": "12 host callbacks + 'Sonos' + client key 9b377073ea334637b1406f329ce005de -> SpInit -> f_10cffa8c validates config, 'eSDK version: HEAD-v3.205.205-gd0f06121-dirty', module-subsystem init f_10d0a170 over static table {SocketManager/API/MediaOut/APConn/Streamer/TrackPlayback}, registrars f_10d3ba20/f_10d3b21c consume config callback groups. 'SpInit supported media formats: %llu'."
     }
-   ],
-   "todo": [
-    "Established: actual current-state selection, track-id admission and guarded position/offset mutation with invalid/absent-track paths. Remaining: trace writers of global0x110bdc88 and the work/event producers feeding0x10d13120 and position callers, bind the integration callbacks installed by each concrete SDK adapter, and only then classify source/service coverage. Start with f_10d22c8c, f_10d250d8, f_10d10b40 and f_10d0e89c. The old generic SMAPI/eSDK/cloud provider and unconditional position-authority conclusions are not established; this is actionable static work."
    ],
    "resolved_findings": [
     "Concrete position path f_10d0e89c reads track id through f_10d24e0c at record+0x51c and compares the new position minus record+0x4c0 as a signed delta. Deltas below -1000 take the invalid-position path, set record+0x390 to0x3fe and report that error. Accepted deltas update last position+0x4c0 and accumulated position+0x4b8. This bounded path does not establish unconditional integration authority or a universal provider policy.",
     "Reachable download-offset dispatch at0x10d13120 calls f_10d10b40 only after a nonnull track lookup and exclusions for track states0xb/0xe. The callee checks f_10d250d8, which requires a nonnull record, nonzero supplied track id and equality with record+0x51c. Mismatch logs the actual/expected ids and returns before the download-position mutation.",
-    "The checked path obtains current pipeline state through f_10d22c8c and global0x110bdc88, not through a demonstrated SMAPI/cloud provider vtable. Its low-bit bank selection uses raw instruction0x10d22cc0 as a mask, then stride0x528. This is concrete SDK state selection, not a complete per-service implementation binding."
+    "The checked path obtains current pipeline state through f_10d22c8c and global0x110bdc88, not through a demonstrated SMAPI/cloud provider vtable. Its low-bit bank selection uses raw instruction0x10d22cc0 as a mask, then stride0x528. This is concrete SDK state selection, not a complete per-service implementation binding.",
+    "Global 0x110bdc88 is the track_pipeline singleton context with a single writer: f_10d228c4 (track_pipeline_init, esdk/src/track_pipeline.c) requires memory_size >= 0xa58 (assert 'memory_size >= get_required_memory_bytes()', required size 0xa58 from f_10d228b4), stores the caller block into the global then memsets all 0xa58 bytes. Its only caller is module init f_10d13d88 (the 'API' slot in the static module table at 0x10fd77b4 alongside SocketManager/MediaOut/APConn/Streamer/TrackPlayback), which bump-allocates a 0x78-byte work buffer plus the 0xa58 context from the host-supplied module pool (f_10d08354 on 0x110bdb44, 'Module requested %zu bytes') and installs +0xc = f_10d0fc5c periodic work and +0x10 = f_10d12414 message handler on the module descriptor.",
+    "All input reaches the pipeline through one global module event bus: f_10d09770(id, p1, p2) writes a {type=id@+0x14, p2@+0x18, p1@+0x1c} triple into a 48-entry ring under 0x110bdb44 (dropping when 47+ pending), and pump f_10d08534 walks the 0x14-stride handler registry calling each entry's +0x10(entry, msg) with a parallel 0x310-byte state block. f_10d12414 bounds id-0x13 to 0x7a and dispatches via signed-offset jumptable 0x10fd8520; handled ids: 0x13, 0x16, 0x18, 0x19, 0x27, 0x2e, 0x2f, 0x32, 0x33..0x36, 0x39, 0x3d..0x42, 0x50, 0x5c, 0x65, 0x66, 0x72, 0x73, 0x7c, 0x7f, 0x83, 0x86, 0x8d (rest default-drop at 0x10d13260).",
+    "The download-offset producer is now bound end to end: SpSetDownloadPosition (f_10cf828c, 'SpSetDownloadPosition(%u, %u)') calls f_10d03b84 which checks the eSDK running flag (0x110bb7a8+0xb84) and the supplied track id via f_10d250d8 ('Invalid track %u, expected %u') then posts event 0x32{track, offset} at 0x10d03c9c. Handler case 0x32 (0x10d130d4) requires the slot enabled byte, looks the track up through f_10d22a24/f_10d231cc, rejects states 0xb/0xe, and calls f_10d10b40 (the 'Integration asked to download with offset for an invalid track %u, expected %u'/'Set track %u download offset %u'/'set_dl_pos outside seek' body).",
+    "Position reports enter f_10d0e89c(ctx, pos, reason) from four real producers: the periodic playback-position sync timer f_10d0f9f4 (scheduled through f_10d09a98, reason 'periodic', 'Synchronized current playback position %u ms with integration', 'Starting playback position sync timer for %u ms'), six handler cases inside f_10d12414 (ids 0x18/0x19 pass reason 'skip', 0x13 is the general refresh posted by ~15 eSDK sites), stop/clear f_10d10f04 ('stop audio: %d', 'Clearing all tracks from the pipeline:') and track-advance f_10d111f8 ('next: pbid=%s, uri=%s, start_pos=%u, paused=%d, file.id=%s'). The value itself is host-sourced: payload parser f_10d0f1ac logs 'track_id=%d position from integration %u' and the eSDK pulls positions through cb_stream_get_position (wrapper f_10d3ac74 -> SPI slot +0x1c under lock, null-guarded).",
+    "The integration is the host-installed SPI bank at 0x110bfc5c, written by per-family registrars: f_10d3a800 ('Successfully registered delivery callbacks: on_start, on_data, on_seek, on_flush, on_end, on_pos') requires all six fn ptrs non-null and stores arg +0..+0x14 into slots +0x10..+0x24 plus ctx arg4 into +0x28; siblings f_10d3aee8 (+0x2c..+0x38), f_10d3b0b8 (+0x3c..+0x44), f_10d3b21c (+0x48/+0x4c), f_10d3b84c (+0x98..+0xb8), f_10d3b918 (+0xbc/+0xc0), f_10d3ba20 (+0xc4/+0xc8) each install-or-clear one family. cb_stream_on_start/on_end/get_position/on_seek_position/on_flush wrappers (f_10d3ac74 etc.) call through these slots under a named lock with a null guard, logging 'cb_stream_get_position(id=%u) = %u'.",
+    "Coverage is concrete and single-service: the only SDK adapter is the Sonos 'spot' service. f_10213e60 memsets the config, installs twelve Sonos callbacks (f_10218748, f_10211850, f_102117c0, f_10211968, f_10213a48, f_10218af8, f_10213808, f_10218e44, f_1021704c, f_1021794c, f_102190c8, f_10217364), sets brand 'Sonos' and client key '9b377073ea334637b1406f329ce005de', then calls SpInit f_10cf4f60 -> f_10cffa8c which validates api_version, 'streaming' mode, unique_id, memory block, display_name/device_aliases, brand/model/client_id/os_version/scopes, host_name and max_bitrate ('eSDK version: HEAD-v3.205.205-gd0f06121-dirty'), runs module-subsystem init f_10d0a170 over the static module table, and folds two config callback groups through f_10d3ba20/f_10d3b21c. Second entry point f_10211d7c builds the esdk_api/esdk_spi objects ('pullContext', 'seekTime=%ds') around f_10226c6c. So 'integration' means the Sonos host callback set driving the vendored Spotify eSDK 3.205.205: no SMAPI or cloud-provider path feeds this pipeline, and position authority stays bounded by the -1000 delta guard and the 0x3fe invalid-position error."
    ]
   },
   "cdn_fetcher": {
