@@ -233881,16 +233881,95 @@
      "build": "86.10-80260",
      "address": "0x100c8c68",
      "notes": "Clock1 plus10000ms deadline before catalog conversion0x100c8ca0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103429f4",
+     "address": "0x10342a24",
+     "notes": "Entry gates in order: root global 0x11095f88 vfunc+0xe0(out, root, *(this+0x6c->+0x178)) produces a session-context object; NULL result -> 400 (f_100b4614 arg 0x190 at 0x10342a5c). f_105b5edc locks the context and returns byte +0xa56; set -> 400; clear -> devmode check f_1054bdc8(*(0x11097374), 7) at 0x10342ae4; nonzero -> 403 (arg 0x193). Then method word this+0: 1 -> GET form f_10342824; 5 -> POST path; anything else -> 405 (arg 0x195). Handler returns -2 after emitting the response. The +0xa56 flag is set during context setup at 0x1035bffc under an f_1053c370 identity check and is read alongside context flag +0xbb4 at 0x1035c160, consistent with a hidden/secondary-session marker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10342590",
+     "address": "0x103425ec",
+     "notes": "POST body handling: f_10551adc(this, buf, 0x2000, src, 0x7d0, 0) fills an 0x2000-byte body buffer and must return 200 else 400. f_10c3b73c extracts form field 'csrfToken' into an 0x80 buffer; absent -> 400. f_105407bc(*(this+0x7680)+0x810, candidate) validates under a lock: stored issue timestamp at token-obj+0x24 must be nonzero and now-minus-stamp <=299 (sonosClockGetTime domain 1), then strcmp(candidate, token-obj+0); any failure returns 0 -> 400 plus token-reset helper f_1054066c. Backend f_100c8900 is called on the SD-registry object at root+0x292b8 with the raw body."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10342590",
+     "address": "0x103426d0",
+     "notes": "On backend 200: f_100c6e20(root+0x292b8, stack-list) reloads the descriptor registry; then shared_ptr {ptr,ctrl} at root+0xaa48 is retained and f_101b7e90(accountsMgr, list) runs account reconciliation (skipped only when ctrl is NULL); finally f_100b451c(this,200,'Success!') emits the success page. Reconciliation runs regardless of which descriptor changed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x100c89b8",
+     "notes": "Form parser: f_10c3b72c(state, keybuf r1+0x66d8 size 0x20, valbuf r1+0x673c size 0x400, sep '&'=0x26) returns >0 per pair, 0 at end. Compare chain accepts exactly 13 keys: sid, name, secureUri, containerType, pollInterval, authType, stringsVersion, stringsUri, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps. Unrecognized keys are skipped with no error. cr4.EQ tracks the last URI-setter result and is tested at the top of each iteration (0x100c89dc) and at end-of-parse (0x100c8b58): any failed URI setter -> 'Unable to load %s URI' log then return 500."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x100c8b5c",
+     "notes": "sid validation: parsed sid defaults to 0xff. sid==0xff or sid-0xf0 <= 0xd (unsigned 0xf0..0xfd = 240..253) proceeds to create; any other value falls to 0x100c8e28 returning 200 with no write at all (silent no-op, not a 400). Create stores sid at scratch SD +0x134 via f_10553e74 and fixes SchemaVersion '1.1' via f_10553e94; caps mask stored at +0x130 via f_10553f2c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10553f3c",
+     "address": "0x10553f54",
+     "notes": "authType enum at scratch+0x12c: 'UserId'->0, 'Stateless'->1, 'Anonymous'->2, 'DeviceLink'->3, 'AppLink'->4; any other value leaves the byte unchanged (keeps default/previous). containerType f_10554148 at +0x12d: NULL/empty/'MService'->0, 'SoundLab'->1, 'Preload'->2, 'Preinstall'->3; unmatched unchanged. pollInterval f_105540d4 receives strtol base10 truncated to u16. name f_10553e84 copies at most 0x20 chars."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x10e769cc",
+     "notes": "caps table: 21 entries of {char* name, u32 bit} iterated 0..20 at 0x100c8b20; the whole caps value is strcmp'd per name and a match ORs the bit into the mask accumulated in r22 (repeated caps= fields accumulate). Names/bits: search 0x1, trFavorites 0x2, alFavorites 0x10, arFavorites 0x20, logging 0x40, extendedMD 0x200, disableAlarms 0x400, ucPlaylists 0x800, playbackLogging 0x1000, accountLogging 0x2000, noMultiAccount 0x4000, mediaUriActions 0x8000, contextHeaders 0x10000, deviceCerts 0x20000, playerIds 0x40000, contextReporting 0x80000, userInfo 0x100000, contentFiltering 0x200000, manifest 0x400000, radioExtendedMD 0x800000, playlistExtendedMD 0x1000000. Unknown caps values are ignored; no exclusivity or conflict checks exist. deviceCerts 0x20000 and manifest 0x400000 are the same SD-bit positions consumed by the account_actions SD gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x100c8bc8",
+     "notes": "Install path: managed slot at registry+0x128 is cleared (refcounted teardown f_10557afc plus functor release f_100caad8); output fd from f_100c5fd0(0,0) -1 -> return 200 silently; 0x4000 writer f_1038689c/f_10387b7c; serializer object vtable 0x10e767a8 built with {registry+0x1c0 source string, registry+0x1f8-copied name, index count+1}; sonosClockGetTime+timevalAddMs(0x2710=10000) deadline; f_100c5d3c builds the '.tmp' target; f_100cc4f4 serializes then close. Serialize/write failure (r3<0) -> 500. Success -> this->vfunc+0x1c: default impl f_100c7c34 requires trailing arg==5 then f_100c7898(registry, registry+0x1c0, count, tmppath, 5) -> parse gate f_10660e58 (fail -> 0 -> 500), 'replicating services from %s' log, rename(tmp, canonical name built via f_100c5d3c) -> fail -> 500; success updates bookkeeping (registry+0x1d7 source <=24ch, +0x1f0 version, +0x1f8 LastUpdateDevice <=0x40ch, flags +0x1d5/+0x1d6, registry+0x23c reset, observer *(registry+0x1b8) vfunc+0x14 op=6), logs 'Replicated list accepted', reloads via f_100c6e20, rebuilds the SMAPI hostname cache via f_1071f644, and runs f_101b7e90 account reconciliation when the accepted source differs from registry+0x1c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100cc4f4",
+     "address": "0x100cc5dc",
+     "notes": "Serializer writes the complete '<Services LastUpdateDevice=\"..\" Version=\"..\" SchemaVersion=\"..\" [ETag=\"..\"]>\\n' file: existing Service elements are produced through the r28 list iterator vfunc+0x8 with the pending descriptor staged in the iterator state and element filter f_10c3fc68 skipping entries it rejects, then the new descriptor is written, so a posted sid replaces the stored entry with the same key. There is no action/delete field anywhere in the 13-key contract: every stored descriptor not filtered is re-serialized, and nothing in f_100c8900 removes a descriptor; an empty name is stored verbatim (<=0x20 chars) rather than triggering removal."
     }
    ],
    "resolved_findings": [
     "Resolved: POST /customsd write path = csrfToken + {SID 240-253|255, name, secureUri, pollInterval, authType radio {Session ID, Anonymous, DeviceLink, AppLink}} -> descriptor store.",
     "Established: the POST /customsd form fields, the authType radio options, optional manifest fields, containerType values, and the capability checkbox set.",
-    "Established: POST /customsd write path with csrfToken + SID 240-253|255 + field validation."
+    "Established: POST /customsd write path with csrfToken + SID 240-253|255 + field validation.",
+    "Resolved: the availability gates are concrete. The request must yield a session-context object (root vfunc+0xe0 keyed by the request session pointer; none -> 400), its +0xa56 flag must be clear (set -> 400; the flag is laid down during context setup under an identity check and acts as a hidden/secondary-session marker), and devmode feature check f_1054bdc8(*(0x11097374),7) must return 0 (nonzero -> 403). There is no per-user credential check beyond the session requirement plus CSRF token.",
+    "Resolved: the CSRF contract is a server-issued token with a 299-second lifetime: GET mints/stores it (issue timestamp at token-object +0x24), POST must repeat it in the csrfToken field and f_105407bc rejects missing, stale (>299s), or unequal tokens with 400 and resets the stored token via f_1054066c.",
+    "Resolved: parser limits are instruction-level: body buffer 0x2000 bytes, key buffer 0x20, value buffer 0x400, csrfToken buffer 0x80, '&' field separator, 13 recognized keys, unknown keys ignored.",
+    "Resolved: field coercion complete: sid strtol10 default 0xff with allowed set {0xff} u [240,253] and out-of-range -> silent 200 no-op (the earlier 'returns 400' claim corrected); name <=0x20 chars; containerType {MService/empty 0, SoundLab 1, Preload 2, Preinstall 3, else unchanged}; authType {UserId 0, Stateless 1, Anonymous 2, DeviceLink 3, AppLink 4, else unchanged}; pollInterval strtol truncated to u16; the three *Version fields are u16 values passed as companions to their *Uri setters; caps accumulates bits from the 21-name table over repeated caps= fields with no exclusivity checks.",
+    "Resolved: install-failure mapping complete: failed secureUri/stringsUri/presentationMapUri/manifestUri setter -> 'Unable to load' log then HTTP 500 via the cr4-persisted result; output fd -1 -> silent 200; serializer/tmpfile or rename failure -> 500; body read failure -> 400; bad/absent Content-Type -> 400; bad/absent/expired csrfToken -> 400 plus token reset; unsupported method -> 405; context/devmode gates -> 400/403. Backend returns only 200 or 500.",
+    "Resolved: duplicate/delete semantics: posting an existing sid replaces it (the serializer filters the matching stored element while rewriting the whole <Services> file to '.tmp' then atomically renames). No delete action exists in the form contract; an empty name persists an unnamed descriptor rather than removing it.",
+    "Resolved: reconciliation effects are two-stage: the install path (shared with replication, vfunc+0x1c -> f_100c7898) updates version/source bookkeeping, notifies the registry observer (vfunc+0x14, op 6), reloads the registry (f_100c6e20), rebuilds the SMAPI hostname cache (f_1071f644), and conditionally reconciles accounts (f_101b7e90); the HTTP layer then unconditionally reloads f_100c6e20 and runs f_101b7e90 again on 200 before emitting 'Success!'."
    ],
    "details": {
     "http_form_contract": {
-     "description": "Custom-service handler f_103429f4 applies request-context and feature-setting gates before method dispatch; their rejection paths use400 and403 respectively. Method selector1 renders the form; selector5 submits it; other selectors return405. Form rendering obtains a CSRF token, returns500 if that fails, otherwise sends200 with text/html and Cache-Control: no-cache, no-store, must-revalidate. Submission requires Content-Type to equal application/x-www-form-urlencoded under strcasecmp; missing or unequal text returns400, including values with extra media-type parameters. Form/body helper f_10551adc must return200. The csrfToken field must be present and accepted by f_105407bc; either failure returns400 and invokes token-reset helper f_1054066c. Catalog updater f_100c8900 determines subsequent status. On200, the handler reloads descriptors, invokes account reconciliation f_101b7e90 and emits Success!; the reconciliation return is not tested in this path. A successful form response therefore does not prove that all external service accounts have authenticated.",
+     "description": "Custom-service handler f_103429f4 first resolves a session-context object through root global 0x11095f88 vfunc+0xe0 keyed by the request session pointer: none -> 400; a context with flag byte +0xa56 set -> 400; otherwise devmode check f_1054bdc8(*(0x11097374),7) gates at 403. Method selector1 renders the form; selector5 submits it; other selectors return405. Form rendering obtains a CSRF token, returns500 if that fails, otherwise sends200 with text/html and Cache-Control: no-cache, no-store, must-revalidate. Submission requires Content-Type to equal application/x-www-form-urlencoded under strcasecmp; missing or unequal text returns400, including values with extra media-type parameters. Body reader f_10551adc fills an 0x2000 buffer and must return200. The csrfToken field must be present, fresh (issue timestamp within 299 seconds) and string-equal under f_105407bc; failures return400 and invoke token-reset helper f_1054066c. Catalog updater f_100c8900 determines subsequent status (200 or500). On200 the handler reloads descriptors via f_100c6e20, invokes account reconciliation f_101b7e90 on the shared accounts manager (skipped only when its control block is NULL), and emits Success!. A successful form response therefore does not prove that all external service accounts have authenticated.",
      "evidence": [
       {
        "type": "firmware",
@@ -233920,11 +233999,10 @@
        "address": "0x10342590",
        "notes": "Form helper, CSRF field and validation, token reset, catalog updater, reload/reconcile and Success response."
       }
-     ],
-     "todo": "Established: method, Content-Type, CSRF and success/reconciliation response ordering are decoded. Remaining: assign request-context/feature-setting meanings, complete backend field validation and all install/delete failures, and trace authentication requirements, parser limits and reconciliation effects."
+     ]
     },
     "service_id_and_update": {
-     "description": "Backend f_100c8900 defaults SID to255. It accepts255 or unsigned SID240..253; other values return400. The form name is applied through the descriptor setter and the descriptor version is fixed to1.1. Recognized caps values OR bits into a capability mask. The update path uses the existing catalog conversion/temporary-file/installation machinery and a10-second deadline, rather than defining a separate service protocol. Secure endpoint and optional resource setters have their own packing limits; the form input size attributes are display hints rather than proven server limits.",
+     "description": "Backend f_100c8900 parses key=value&.. pairs (0x20 key, 0x400 value buffers) over 13 fixed keys. sid defaults to255; allowed values are255 or unsigned240..253, anything else silently returns200 with no write. The descriptor version is fixed to1.1 and the posted sid becomes SD field +0x134. Field coercions: name <=0x20 chars verbatim; secureUri/stringsUri/presentationMapUri/manifestUri go through URI setters whose failure logs 'Unable to load' and maps to HTTP500 via a persisted cr4 result; the *Version fields are u16 companions to their URI setters; containerType maps MService/empty->0, SoundLab->1, Preload->2, Preinstall->3; authType maps UserId->0, Stateless->1, Anonymous->2, DeviceLink->3, AppLink->4; unmatched enum values keep the existing byte; pollInterval is strtol truncated to u16; caps accumulates bits from the 21-name table (search..playlistExtendedMD, bits 0x1..0x1000000) over repeated fields with no exclusivity checks. Update semantics: the whole <Services> registry is reserialized to a '.tmp' file (existing entries filtered so a same-sid entry is replaced), closed under a10-second deadline and installed through the shared replication accept path (vfunc+0x1c -> f_100c7898: parse gate, rename, bookkeeping, observer notify op6, registry reload, SMAPI hostname-cache rebuild, conditional account reconcile). Output fd failure returns200 silently; serialize or rename failure returns500. No delete action exists; an empty name persists verbatim.",
      "evidence": [
       {
        "type": "firmware",
@@ -233940,11 +234018,9 @@
        "address": "0x100c8c68",
        "notes": "Clock1 plus10000ms deadline before catalog conversion0x100c8ca0."
       }
-     ],
-     "todo": "Established: default/allowed SID values, fixed descriptor version and shared update path are decoded. Remaining: complete each field coercion and invalid/duplicate field outcome, blank-name removal persistence, capability combinations and all converter/install error mappings."
+     ]
     }
-   },
-   "todo": "Established: form vocabulary, HTTP method/content-type/CSRF gates, allowed SID values, update/reload/reconciliation and success response are instruction-traced. Remaining: complete backend field/duplicate/delete validation and install failures, availability/authentication gates and reconciliation effects. Form labels alone do not prove server-side constraints."
+   }
   },
   "network_tools": {
    "name": "network diagnostic tools page",
