@@ -78395,7 +78395,7 @@
    },
    "state_variables": {},
    "events": {
-    "mechanism": "GENA subscription handler f_105e8290 for /MediaRenderer/ConnectionManager/Event; the eligible subscriber renderer writes separate properties rather than a LastChange document.",
+    "mechanism": "GENA subscription handler f_105e8290 for /MediaRenderer/ConnectionManager/Event; the renderer writes a fixed propertyset (empty SourceProtocolInfo and CurrentConnectionIDs, constant SinkProtocolInfo capability list) rather than a LastChange document, and the shared upnpeventing sender delivers it to subscribed callback URLs over TCP.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -78430,9 +78430,65 @@
       "build": "86.10-80260",
       "address": "0x1032ead0",
       "notes": "The thunk subtracts 8 from this and branches to f_1032e9e0. The renderer emits all three named properties and ends with f_10676968, which appends the GENA propertyset closing tag."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a43c",
+      "notes": "f_1018a20c hardcodes /MediaRenderer/ConnectionManager/Event: requires zp+0x571c, then forms zp+0x40000-0x2ea8 = zp+0x3d158, the embedded source inside the CM-renderer impl at zp+0x3d150."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032ebc4",
+      "notes": "f_1032eb80 builds the CM-renderer impl: r3=impl, f_1067aec4(impl+8, configuration, 'ConnectionManagerRenderer', topic idx 22, opt-byte-ptr) at 0x1032ebc4; post-ctor stores install vptrs 0x10eb8710 at impl+0 and source vptr 0x10eb8730 at impl+8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032e9e0",
+      "notes": "f_1032e9e0 writes '<e:propertyset xmlns:e=...>' via f_1067693c, emits empty SourceProtocolInfo and CurrentConnectionIDs elements through f_10676994/f_10676a44 pairs, writes the constant rodata sink protocol list 0x10eb87e4 via f_10676cf8, closes with f_10676968, then copies the 8-byte metadata pair from global 0x110a5010 into its last out-arg."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1034ccf0",
+      "notes": "Impl vfunc+0x50 f_1034cabc (connection state-change callback taking direction arg r5 and out-code r6): on its accepted path it stores 1 at impl+0x94c and calls f_1067c6ec(impl+8) at 0x1034ccf0, raising source+0x110."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1034dcac",
+      "notes": "f_1034d858 rewrites the impl+0xe34 connection list via f_101227cc, sets impl+0x94c=1 and dirties the source at 0x1034dcac; called by impl vfunc+0x1c f_1034e5c8 and by f_1034dd80/f_1034f8ac."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x101997fc",
+      "notes": "f_101981f0 calls f_10678600(zp+0x5740) once; it spawns the 'upnpeventing' thread (entry f_1067a398, arg=sender) through f_10d51b5c -> f_1098a680 at sender+0x10. zp+0x5740 is built by f_106783f4 with vptr 0x10e97724, a 0x140-byte worker block and a 0x14-byte control (vptr 0x10f00700); shared pair zp+0x57f0/+0x57f4 is what configurations copy into source+0xb4/+0xb8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067e4d8",
+      "notes": "f_1067e4d8 createSubscription: parses the SUBSCRIBE callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8, dedups on the subscriber list rooted at source+0x98/+0xa0 and stores node fields (URL +0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, addr pair +0x17c/+0x180, flag +0x170, last-notify pair +0x18c/+0x190)."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068108c",
+      "notes": "f_1068108c sendNotification: allocates a 0x5c8 block per subscription, matches sockaddr via f_1067bde4 vs node+0x17c, emits NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', opens TCP with optional mbedTLS (sonosCertvalSetSSLToSonosDevice), polls 5000ms via f_105be5c8 for 'HTTP/1.1 200 OK\\r\\n', logs 'Subscription %s for %.100s %s to %s:%d (%d)' / 'prepping %zu notifications for %s'; failures reach f_1067c0bc ('Terminated subscription %s for %s:%d to %s')."
      }
     ],
-    "notify_path": "The MediaRenderer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032ead0) and f_1032e9e0. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+    "notify_path": "The MediaRenderer core embeds a GENA event source at zp+0x3d158 (CM-renderer impl zp+0x3d150 +8, secondary vptr 0x10eb8730; ctor f_1032eb80 calls f_1067aec4 at 0x1032ebc4 with name ConnectionManagerRenderer and WSS topic index 22). SUBSCRIBE on /MediaRenderer/ConnectionManager/Event reaches f_1068faa4 (thunk f_105e8290), which parses nt/callback/sid/deviceudn/user-agent/timeout and resolves the path through gena-server vptr+0x44 (f_1018a570 -> f_1018a20c); the hardcoded case at 0x1018a434 requires zp+0x571c and yields zp+0x3d158. f_1067e4d8 then parses the callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8 and dedups/appends a subscriber node on the list rooted at source+0x98/+0xa0 (URL at node+0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, normalized addr pair +0x17c/+0x180). The reply is 200 with SID and TIMEOUT headers, after which the handler drives gena vptr+0xa0 -> sender+4 -> f_10678c50 to schedule the initial notify. Producers dirty the source through f_1067c6ec -> f_1067c46c: impl+0x94c is set and the pending byte source+0x110 goes high at callsites 0x1034ccf0 (impl vfunc+0x50 f_1034cabc, the connection state-change callback) and 0x1034dcac (f_1034d858, which rewrites the impl+0xe34 connection list through f_101227cc; invoked by impl vfunc+0x1c f_1034e5c8 and by f_1034dd80/f_1034f8ac). f_10678c50 then sets sender+0x10e under mutex +0x28 and signals cond +0xb8. The sender is the zone singleton at zp+0x5740 (ctor f_106783f4, vptr 0x10e97724; shared pair zp+0x57f0/+0x57f4 copied into source configuration+4/+8 -> source+0xb4/+0xb8); its 'upnpeventing' thread is spawned once by f_10678600 at 0x101997fc in zp init, entry f_1067a398 -> f_1067a2dc -> runOnce f_10679b14. runOnce clears +0x10e, compacts the +0x110/+0x114 source vector (f_10679678), tests hasEventsToSend f_1067d028 and calls f_10683da0: locks source+8, stamps +0xc4/+0xc8, walks source+0xa0 dropping expired subscriptions (f_10685fc4/f_10686038), groups eligible subscribers (f_10684d00/f_10684ac8/f_10684e98), dedups callback sockaddrs (f_10680d88/f_106858e4), clears source+0x110, invokes the serializer at 0x1068406c through source vptr+0x18 (f_1067ab54) -> primary +0x14 (f_1032ead0 -> f_1032e9e0), and hands the document to f_1068108c per sockaddr. f_1068108c allocates a 0x5c8 block per subscription, matches the sockaddr against node+0x17c (f_1067bde4), writes NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', opens TCP with optional mbedTLS (sonosCertvalSetSSLToSonosDevice), polls 5000ms (f_105be5c8) for 'HTTP/1.1 200 OK\\r\\n' and logs 'Subscription %s for %.100s %s to %s:%d (%d)' / 'prepping %zu notifications for %s'; dead subscriptions are unlinked by f_1067c0bc ('Terminated subscription %s for %s:%d to %s') and the next wakeup is scheduled via timevalMinimize.",
     "wss_registry": [
      {
       "idx": 22,
@@ -78441,11 +78497,11 @@
       "tag": 67
      }
     ],
-    "todo": [
-     "Residual: verify which state changes, if any, mark this source dirty after initial subscription and trace a concrete accepted subscription through callback delivery. The connectionManager WSS registry name alone does not prove a publisher."
-    ],
     "resolved_findings": [
-     "The MediaRenderer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032ead0) and f_1032e9e0. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher."
+     "The MediaRenderer core embeds a GENA event source at zp+0x3d158. The eligible-group worker calls that source's slot +0x18 (f_1067ab54) at 0x1068406c, forwarding to slot +0x14 (0x1032ead0) and f_1032e9e0. The renderer builds a propertyset containing empty SourceProtocolInfo and CurrentConnectionIDs elements plus SinkProtocolInfo carrying the constant rodata protocol list at 0x10eb87e4. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+     "The subscription-to-delivery chain is fully static: f_1068faa4 accepts SUBSCRIBE, f_1018a20c maps the gated path to zp+0x3d158, f_1067e4d8 stores the callback sockaddr subscriber on source+0x98/+0xa0, and the shared 'upnpeventing' sender thread (zp+0x5740, spawned at 0x101997fc) serializes once per batch at 0x1068406c and TCP-delivers the NOTIFY to each unique callback sockaddr via f_1068108c, expecting 'HTTP/1.1 200 OK' and reaping failures through f_1067c0bc.",
+     "Dirty producers are concrete: impl vfunc+0x50 f_1034cabc (connection state-change callback) and f_1034d858 (impl+0xe34 connection-list update via f_101227cc) each set impl+0x94c and call f_1067c6ec on the embedded source, which raises source+0x110 and wakes the sender through f_10678c50.",
+     "The connectionManager WSS registry name corresponds to topic index 22 passed to f_1067aec4 by the same source constructor; GENA delivery no longer depends on that registry name for proof."
     ]
    },
    "errors": [
@@ -215039,7 +215095,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
