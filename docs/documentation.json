@@ -229712,7 +229712,7 @@
   },
   "psk_hierarchy": {
    "name": "4-PSK household crypto hierarchy + rotation",
-   "summary": "Household-related PSKs are concrete0xb0-byte records containing an identifier,32 raw random key bytes and generation metadata, with current/backup pairs. Identifiers use sonos.<purpose>.1.<context>.<random suffix>. Diagnostic XML emits IDs, but the local netsettings.json writer also emits a transformed key field. The former opaque-keystore and IDs-only-everywhere claims are withdrawn; replication and inverse-loading joins remain unfinished.",
+   "summary": "Household-related PSKs are concrete 0xb0-byte records containing an identifier, 32 raw random key bytes and generation metadata, with current/backup pairs. Identifiers use sonos.<purpose>.1.<householdID>.<8-hex-random suffix>; the context field is the device HouseholdID setting value. The settings-file key field is transformed material: base64 of a 0x01 marker, a 4-byte generation word, and ciphertext produced under a 16-byte key derived from a 16-byte household master with label HHSettings and the HouseholdID context. Replication transfers the whole wrapped file to peers; the replicated XML inventory and diagnostic XML carry identifiers only. The netstartd push delivers the sonosnet master, plaintext network credentials, and the current household PSK identifier plus raw key.",
    "evidence": [
     {
      "type": "firmware",
@@ -229754,17 +229754,114 @@
      "address": "0x1062dd60",
      "callsite": "0x1062dd64 / 0x1062c47c",
      "notes": "HH Base64 source owner+921 = record8a0+81; length20hex and error diagnostic at0x1062dd90. Rotation invokes generator for purpose control into temporary record at0x1062c47c, with separate failure/update handling. These paths contradict key-bytes-never-leave-record assertions but do not alone certify full replicated wire format."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10630580",
+     "address": "0x10630580",
+     "notes": "Whole-netsettings JSON writer: fileVersion/lastUpdateDevice/fileSchemaVersion, sonosnet {Disable,Frequency}, networks[] {ssid,pass(ZZ0197-wrapped),flags} stride0x74, then eight conditional PSK arms. Fields psk/backupPsk/controlPsk/backupControlPsk/roomEncPsk/backupRoomEncPsk/lanSwapPsk/backupLanSwapPsk map to image+0x74c/+0x7fc/+0x8ac/+0x95c/+0xa0c/+0xabc/+0xb6c/+0xc1c, each emitted only when record byte0 (id) is nonzero; any f_1062e668 failure aborts with false."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062e668",
+     "address": "0x1062e668",
+     "notes": "Per-record JSON arm: copies id(record+0) into 0x130-byte buffer, sonosBase64Encode(record+0x81,0x20) into stack+0x14c, calls ZZ0197(arg3..arg6 passthrough,'netsettings','key',b64,out stack+0x9d,0x69). Emits {id,key,genVersion,genTime}: genVersion via f_1090c4a8(record+0xa4) into 0x40 buffer, genTime = record+0xac. ZZ0038 wipes the b64 buffer before return. Returns 0 on encode/ZZ0197/version failure."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0197",
+     "address": "0xbf9c",
+     "notes": "Setting-value wrap: requires (arg1 & ~4)==2 (hierarchy selector 2 or 6), nonzero output and capacity args. snprintfs '<arg5>:<arg6>' into 0x1021 buffer ('netsettings:key'), writes byte0x01 then the 4 bytes at arg6 (=owner+0xf8 word) after the name, calls ZZ0043(hier,arg2,arg3,name,namelen+5,plaintext,ptlen,out,&remaining,1), then mbedtls_base64_encode(out,arg11cap) over marker+word+ciphertext. Output = base64(0x01||be32(word)||ciphertext)."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0198",
+     "address": "0xc168",
+     "notes": "Exact inverse of ZZ0197: same hierarchy check and '<arg5>:<arg6>' name, mbedtls_base64_decode of input, requires decoded byte0==1, optional memcmp(arg4,decoded+1,4) when arg4 nonzero, then ZZ0043(...,flag=0) decrypts decoded+5 into caller buffer. The 0x1062f574 call passes arg4=0 so the generation word is embedded but not verified on this read path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062f1c4",
+     "address": "0x1062f574",
+     "notes": "Per-record inverse loader: JSON {id,key,genVersion,genTime} -> ZZ0198(*(r26),*(r26+4),*(r26+8),0,'netsettings','key',keyfield,out,0x2d) -> plaintext base64 -> sonosBase64Decode into record+0x81 raw key; id strlcpy into record+0 cap0x81; genVersion parse f_1090c360 into record+0xa4; genTime into record+0xac. Missing object arm clears id byte and resets record+0xa4 flag bits/+0xa8. r26 points at the {hierarchy,wrapkey,16} triple."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10627b14",
+     "address": "0x10627c40",
+     "notes": "Writer supplies the crypto context to f_10630580 as *(owner+0xe4) hierarchy, owner+0xe8 key pointer, constant16, owner+0xf8 generation-word pointer; writes '<dir>/netsettings.json' through a '.tmp' file plus rename; on success memcpys the 0x25-byte version block to owner+0x12c and the 0xccc image to owner+0x154."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10627da8",
+     "address": "0x10627e6c",
+     "notes": "Constructor: strlcpy(arg8 r10 -> owner+0xfd, 0x21) = identifier context; nonzero context required for record generation. ZZ0215(owner+0xe20,0x10,'HHSettings',owner+0xfd,ctxlen,owner+0xe8,0x10) derives the wrap key; ZZ0058(3,owner+0xe8,0x10,out) fetches the 4 bytes stored at owner+0xf8..0xfb. Per-purpose regeneration of missing current records at 0x106280e8/0x10628110/0x10628138/0x10628160 sets owner+0x150 dirty."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105e701c / f_105ad854",
+     "address": "0x105e7044",
+     "notes": "Context semantics bound: f_105e701c reads the 'HouseholdID' setting via f_109bd6e4 and installs a shared singleton (deleter vtable0x10ef7b6c) at 0x110a74f0; accessor f_105ad854 returns it under mutex to stack+0x154 in startup f_101981f0, which passes it as constructor arg r10. owner+0xfd is therefore the household ID string, and sonos.<purpose>.1.<hhid>.<rand> identifiers embed it."
+    },
+    {
+     "type": "firmware",
+     "binary": "libsonoscrypto.so.3",
+     "build": "86.10-80260",
+     "function": "ZZ0215",
+     "address": "0x7144",
+     "notes": "SP800-108 counter-mode KDF over f_6f68: ZZ0215(master,masterlen,label,context,ctxlen,out,outlen) produces outlen bytes in 0x20-byte blocks with a {label,context,counter,Lbits} info struct. Constructor uses master=owner+0xe20[0x10], label 'HHSettings', context=household ID -> owner+0xe8. Same-context derivations with labels 'HHDK'/'SIGN' at f_1066134c feed static buffers 0x110a6034/0x110a6044."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062a418",
+     "address": "0x1062a524",
+     "notes": "Replication consume: copies crypto ctx {owner+0xe4,+0xe8,16} to stack, parses the offered file through f_10630404 (the f_1062f728/f_1062f1c4 per-record chain), renames it over netsettings.json, memcpys the parsed image into owner+0x154, logs 'Settings Replication changed SN Disable from %d to %d (source: %s)', pushes to netstartd and re-saves via f_106294dc. Reject/fail arms log 'Rejected %s remote settings'; success logs 'Accepted %s remote settings' and 'Pending netsettings.json update discarded after replicating'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062d948",
+     "address": "0x1062d948",
+     "notes": "Netstartd push payload: type0x3f message containing base64(owner+0xe20 16B sonosnet master, 'Encoding SonosNet key failed' on error), mapped disable flag (image+0, switch 1/2/other -> 'Unknown SonosNet disable setting: %d'), one {ssid, plaintext record+0x2d pass} pair per network row (stride0x74,count image+8), and when owner+0x8a0 present the hhPsk id field plus base64(record+0x81 0x20) at 'Encoding DTLS HH PSK failed'. Control/roomenc/lanswap PSKs are not in this push."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1062a080",
+     "address": "0x1062a080",
+     "notes": "Replicated/status XML emits only id attributes for all eight PSK records <HhPsk|BackupHhPsk|ControlPsk|BackupControlPsk|RoomEncPsk|BackupRoomEncPsk|LanSwapPsk|BackupLanSwapPsk id=\"%s\"/> plus SonosNet Disable/Frequency and Network SSID/Flags; no key, genVersion or genTime fields leave through this channel."
     }
-   ],
-   "todo": [
-    "Established: exact generated identifier format, four purpose strings, in-process key/metadata layout, RNG boundary, ID-only diagnostic XML versus material-bearing local JSON, and concrete HH material encoding. Remaining: bind identifier context owner+0xfd back through constructor r10/startup0x10199150 to its semantic source; trace inverse key loading and ZZ0197/its decode counterpart, then join replication/netstartd serializers and receiving consumers for each current/backup pair. Start with f_1062e668, f_10630580, f_1062d948 and settings replication callbacks. Do not infer IDs-only replication or an opaque external key store from diagnostic XML. This is actionable static work."
    ],
    "resolved_findings": [
     "Generator f_10626df8 builds sonos.%s.%d.%s.%s from purpose r3, literal1, context r4 and an8-character random hexadecimal suffix. It requests8 characters from alphabet0123456789abcdef through ZZ0154 and32 random key bytes through ZZ0071 into record+0x81. Record+0 holds the identifier (bounded0x81-byte destination),+0xa4/+0xa8 hold generation-version words from f_1090b418 and+0xac holds generation time. A zero result from either random call or invalid generation-version state returns failure. Time uses time() with a lower bound0x6a8f3ce0; this is generation metadata, not evidence of expiration or periodic rotation.",
     "Purpose literals are hh/control/roomenc/lanswap at calls0x106280f8/0x10628120/0x10628148/0x10628170. Current records are at netsettings-owner+0x8a0/+0xa00/+0xb60/+0xcc0, backups at the next0xb0-byte record. Context in this path is owner+0xfd, copied with bound0x21 from constructor f_10627da8 argument r10 at0x10627e78. Startup caller0x10199170 loads that argument from stack+0x154. Its earlier producer and semantic identity are not yet bound; it must not be guessed to be a household ID or a key-store handle.",
     "Raw material is held in anacapad memory, not only behind a crypto key-store boundary. In the shipped libsonoscrypto.so.3, ZZ0071 at0x75c0 calls mbedtls_ctr_drbg_random at0x75ec; ZZ0154 at0x7780 calls ZZ0153, which also reaches ZZ0071. The four purpose strings select independent generator invocations, not a proven derivation chain from a registration-signing key. The earlier secure-registration/device-discovery/settings-auth consumer map is withdrawn; the registration JWT key has its separately traced lifecycle.",
     "The identifiers-only claim conflated different outputs. Diagnostic XML f_1062a030 formats <HhPsk id=\"%s\"/> and backup counterparts using record starts. In contrast persistence f_10627b14 calls JSON writer f_10630580 at0x10627c5c; its conditional PSK arms invoke f_1062e668. That helper reads32 bytes at record+0x81, Base64-encodes them, passes the result through ZZ0197 with netsettings/key context labels, then emits an object with id,key,genVersion,genTime. The key value is transformed material, not merely another identifier. The outer file path uses temporary-file writing and rename; transformation/Base64/version failures return failure rather than emitting a completed PSK object.",
-    "Concrete consumer preparation f_1062d948 separately Base64-encodes the HH key from owner+0x921 (=current HH record+0x81) at0x1062dd64 and has the Encoding DTLS HH PSK failed guard. This disproves an IDs-only handoff assumption, but the transport serializer and receivers still require a full join before claiming exactly which bytes replicate. Rotation f_1062c2cc invokes the same generator into temporary records and reports generation/settings-update failure paths; no fixed periodic rotation interval follows from these strings."
+    "Concrete consumer preparation f_1062d948 separately Base64-encodes the HH key from owner+0x921 (=current HH record+0x81) at0x1062dd64 and has the Encoding DTLS HH PSK failed guard. This disproves an IDs-only handoff assumption, but the transport serializer and receivers still require a full join before claiming exactly which bytes replicate. Rotation f_1062c2cc invokes the same generator into temporary records and reports generation/settings-update failure paths; no fixed periodic rotation interval follows from these strings.",
+    "Resolved the wrap transform end to end: the netsettings.json 'key' field is base64(0x01 || 4-byte generation word || ZZ0043 ciphertext of the base64 form of the raw 32-byte PSK). ZZ0197 at libsonoscrypto 0xbf9c builds the name 'netsettings:key', appends marker+word from owner+0xf8, encrypts and re-encodes; ZZ0198 at 0xc168 is the exact inverse with an optional 4-byte word check that the PSK load path skips (arg4=0 at 0x1062f574). The same pair wraps network 'pass' fields.",
+    "Resolved identifier context: owner+0xfd is a 0x21-bounded copy of the constructor's arg8, which startup f_101981f0 loads from the HouseholdID singleton installed by f_105e701c (f_109bd6e4 'HouseholdID' setting read). Generated identifiers are therefore sonos.<purpose>.1.<householdID>.<8 hex chars>; an empty context skips generation entirely.",
+    "Resolved the crypto context: owner+0xe4 is the hierarchy selector constrained to 2 or 6 by both ZZ0197 and ZZ0198 (arg1 masked ~4 must equal 2); owner+0xe8 is the 16-byte wrap key derived by ZZ0215 (SP800-108 counter KDF) from the 16-byte master at owner+0xe20 with label 'HHSettings' and the household ID context; owner+0xf8 is a 4-byte generation word fetched via ZZ0058(3,key,16). The {selector,key,16} triple at owner+0xe4 is what both file I/O and the replication consumer pass to the wrap/unwrap functions.",
+    "Resolved replication and netstartd joins: inter-player replication offers and consumes the entire wrapped netsettings.json (consumer f_1062a418 runs the same parse chain, replaces the local image, re-pushes and re-persists), so key material crosses peers only inside the wrapped file; the ReplicatedNetSettings XML/status emits identifiers only. The local netstartd push (f_1062d948 via f_10628f4c) carries plaintext sonosnet master, plaintext per-network {ssid,pass} pairs, and the current hhPsk {id,raw-key base64}; control, roomenc and lanswap records have no netstartd push arm and remain in-process state."
    ]
   },
   "unlock": {
@@ -233349,11 +233446,238 @@
      "build": "86.10-80260",
      "address": "0x104b0988",
      "notes": "R_HideTuneIn=true settings update; zero returns0, nonzero maps809 at0x104b09dc. Raw0x4182ff90 at0x104b09c8 checks zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0e84",
+     "address": "0x10ed75c4",
+     "notes": "Installed settings-delegate vtable slot map: +0x14 f_104b0500, +0x18 f_104b07f0, +0x1c f_104b052c (AddOAuthAccountX adapter), +0x20 f_104b0918 (RemoveAccount), +0x24 f_104b0684 (password), +0x28 f_104b071c, +0x2c f_104b0510 (RefreshAccountCredentialsX), +0x30 f_104b06d0 (metadata), +0x34 f_104b0b04, +0x38 f_104b0c90 (DoPostUpdateTasks)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028aaf4",
+     "notes": "Log-name offset +0x40 resolves to 'int_addAccountWithOAuthToken': f_1028a224 is the internal OAuth add core. Complete caller set (bl and tail-b): addAccountWithOAuthToken f_1028b2e4@0x1028b43c, addAccountWithOAuthCode f_1028b440@0x1028b5b0, addPreinstalledService f_1028ad54@0x1028b140, addAccountForOAuthDirectControl f_1028b5bc@0x1028b754. No other static call or branch reaches it."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b440",
+     "address": "0x1028b568",
+     "notes": "addAccountWithOAuthCode calls f_10286e44 (device-auth-token exchange: 'getDeviceAuthToken failed (res = %d)' at 0x1028714c, smapi 'dcLogin'/'zpAM' strings at 0x10287108/0x10287110, clock_gettime at 0x10286fbc/0x10287028) to mint the token, then calls f_1028a224."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b5bc",
+     "address": "0x1028b754",
+     "notes": "addAccountForOAuthDirectControl calls f_1028a224 after the same f_10287238 gate. Its only callers are internal: f_1020eb2c@0x1020f02c (flags assembled rlwinm 8,0,23 | ori 0x7) and f_1028fa98@0x102902ac. It is not reachable through the public adapter f_104b052c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028ac18",
+     "notes": "After the operand checks and duplicate guard ('addAccount failed: account already exists on household' at 0x1028acd0), the add/migrate op f_1028686c performs the guest-account migration path ('Bad guest migration: UDN = %s - UserIDHash = %s', 'Existing account is not a guest account, migrateGuestAccount failing', 'Migrated %s replication account (%d)') using addNicknameIfNecessary and markAccountsForPushLocked; success logs 'Account added. Returning UDN=%s' at 0x1028a4a4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0624",
+     "address": "0x104b0648",
+     "notes": "AccountTier semantics: cmplwi r29,0xffff, r9=0xffff, isel (op31 943) selects min(tier,65535) - a saturating unsigned 16-bit clamp, not a modulo or enum validation. Enum constants remain {none=1,free=2,paidLimited=3,paidPremium=4}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0684",
+     "address": "0x104b06bc",
+     "notes": "Password adapter loads embedded accounts object from delegate+0x26c, passes this=+0x118, forwards the credential into modifier arg slot r7 with all other optional-field args zeroed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b06d0",
+     "address": "0x104b0708",
+     "notes": "Metadata adapter identical shape: delegate+0x26c -> +0x118 this, metadata into arg slot r8, other fields zeroed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0510",
+     "address": "0x104b0528",
+     "notes": "RefreshAccountCredentialsX adapter tails into vfunc+0x18 of the embedded object at delegate+0x26c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0c90",
+     "address": "0x104b0d0c",
+     "notes": "DoPostUpdateTasks adapter first checks delegate vfunc+0x4c identity == f_100c9be8 (capability gate), reads setting 'R_PromoVersion' through the settings object vfunc+0x24, compares versions via f_1090b418 and runs fixups (f_1090b078/f_1090c360 paths) when they differ."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b760",
+     "address": "0x1028bae4",
+     "notes": "modifyAccount: f_102887e0 precondition gate, per-field nonzero optional checks (r28/r24/r23/r25 at 0x1028b904..0x1028b980), account lookup, per-field virtual setter calls on the account object, 'modifyAccount' trace via f_105709c0, commit via f_10289258->f_102890b0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b0f94",
+     "address": "0x10ed75c4",
+     "notes": "Installed account delegate primary vtable slot map (all bindings concrete): +0x00/+0x04 dtors f_104b2c8c/f_104b2958, +0x08 f_1066aa24 (SetString: protected-name denylist f_1066a788 'R_ThirdPartyCredentials'/'R_CustomerID' -> 0x1f5=501, plus 'UMTracking' strcmp -> 'Setting UMTracking not allowed' write guard at 0x1066ab00), +0x0c f_104b1d90 (GetString: hardcoded 'R_ForceReIndex' strcmp at 0x104b1dc8, match branch via f_10107aa0 returns fixed '1.0-00000' into the out string when its query !=4, else generic get f_10669db4), +0x10 f_1066abb8 (Remove: same denylist then ctx+0x164 vfunc+0xc), +0x14 f_104b0500 dead stub returning 802, +0x18 f_104b07f0 (AddAccountX: AccountType 0xfe07 compare at 0x104b0804, 'R_HideTuneIn'/'false' literals, worker f_10289d48 'addAccountWithUserCredentials'), +0x1c f_104b052c (AddOAuthAccountX), +0x20 f_104b0918 (RemoveAccount), +0x24 f_104b0684 (EditAccountPasswordX -> f_1028b760 'modifyAccount'), +0x28 f_104b071c (SetAccountNicknameX -> f_1028bb74 verb-DSL -> f_1028b760), +0x2c f_104b0510 (RefreshAccountCredentialsX -> ctx+0x26c vfunc+0x18), +0x30 f_104b06d0 (EditAccountMd -> f_1028b760), +0x34 f_104b0b04 (GetWebCode -> f_1028c08c/f_1027cbf8), +0x38 f_104b0c90 (DoPostUpdateTasks 'R_PromoVersion'), +0x3c f_104b0760 (GetRDM '%u' snprintf -> 'R_RDM' via delegate vfunc+8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028a224",
+     "notes": "Shared OAuth add worker = the complete dispatch boundary for the OAuth family. Callers: f_1028ad54 'addPreinstalledService' @0x1028b140, f_1028b440 'addAccountWithOAuthCode' @0x1028b5b0, f_1028b5bc 'addAccountForOAuthDirectControl' @0x1028b754, plus tail-enter from f_1028b2e4 'addAccountWithOAuthToken' @0x1028b43c. arg4 is a packed route word (high byte = registration key, low 7 bits and bit0 folded into a bounded variant index at 0x1028a280-0x1028a2d8); arg5 is a service-descriptor struct ptr, arg6 token, arg8 OAuthDeviceID."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10287238",
+     "address": "0x10287264",
+     "notes": "Per-route admission gate invoked by every OAuth wrapper with its public op name ('addAccountWithOAuthToken'/'addAccountWithOAuthCode'/'addAccountForOAuthDirectControl'/'addPreinstalledService'). It reads ctx+8's vfunc+0x130 self-check (f_1012ba78), then f_100c7404 performs a registration-map lookup on sub-object ctx+8->+0x11a4 keyed by arg4>>8; a missing entry returns null and the caller aborts before building any request."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028aaf4",
+     "notes": "Replication request built by f_105709c0 with literal op name 'int_addAccountWithOAuthToken' (0x10eabad4) at two parallel build+submit sites (0x1028aaf4 and 0x1028ac90); f_10289258 submits through account-manager ctx r30 with aux out r1+0x52d8. Builder failure sets 0x322=802; post-submit logs come from 'accountsmgr' (0x10eabca8): 'addAccount failed: account already exists on household' (0x10eac548), 'New account matched to existing guest account with SN=%u, Hash=%s' (0x10eac504), 'Unable to update guest account sn=%u,h=%s' (0x10eac498). The route's public op-name string is only the admission-gate/log operand (f_10906304 assign at 0x1028aa80), not the dispatched replication op."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b5bc",
+     "address": "0x1028b614",
+     "notes": "OAuth DirectControl worker: gates on f_10287238 with 'addAccountForOAuthDirectControl' (0x10eabb40), runs f_1071a19c first, then calls f_1028a224 at 0x1028b754. Only two invocation sites: external entry f_1020eb2c at 0x1020f02c and internal f_1028fa98 at 0x102902ac; it is not a branch of public adapter f_104b052c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b052c",
+     "address": "0x104b0658",
+     "notes": "Token branch supplies service-descriptor constant 0x10ea6a2c {magic 0xadaa3401, name 'Mitsubishi WD-65638 & WD- 60738'} as worker arg5 and clamps AccountTier to unsigned 0xffff (0x104b0624/0x104b0648) before calling f_1028b2e4 at 0x104b0660."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f110f0",
+     "notes": "SystemProperties action registration rows {name,id,0}: AddAccountX 0x1d, AddOAuthAccountX 0x21, DoPostUpdateTasks 0x3d, EditAccountMd 0x35, EditAccountPasswordX 0x29, EnableRDM 0x41, GetRDM 0x45, GetString 0xd, GetWebCode 0x19, RefreshAccountCredentialsX 0x31, Remove 0x15, RemoveAccount 0x25, ReplaceAccountX 0x39, SetAccountNicknameX 0x2d, SetString 0x11. The public wrapper f_10732454 issues delegate/action vfunc+0x1c calls at 0x107324e8/0x107325f8/0x10732720."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028bb74",
+     "address": "0x1028bdc0",
+     "notes": "Account-update verb parser feeding f_1028b760 'modifyAccount' (calls at 0x1028bc7c/0x1028bd30/0x1028be54): vocabulary 'add','remove','restore','reauth','match','migrate','addAccount' with reject 'update only allows add or remove, not both' (0x10e960d4); 'Pending report for account %u' (0x10eac5b0). SetAccountNicknameX adapter f_104b071c forwards to it; EditAccountPasswordX/EditAccountMd adapters reach f_1028b760 directly."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10732454",
+     "address": "0x107326d8",
+     "notes": "AddOAuthAccountX wrapper passes the parsed 'AccountType' int (f_105614e0 result at r1+0x24) as adapter r4 into delegate vfunc+0x1c at 0x1073272c. Adapter f_104b052c forwards r4 unchanged to all three workers, so the shared worker's arg4 route word is the caller-supplied account/service type, not a fixed per-route constant."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028a280",
+     "notes": "arg4 decode: variant=(arg4&0x7f)-1+(arg4&1) via rlwinm/xori/subf at 0x1028a280-0x1028a298; cmplwi r31,7 with beq at 0x1028a2d8 selects the provisioned path only when variant==7. arg4>>8 (rlwinm 24,8,31 at 0x1028a598) is the rsid key into the worker's own vfunc+0x2c lookup."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028a224",
+     "address": "0x1028a5b4",
+     "notes": "Variant-7 provisioned add: vfunc+0x2c(arg4>>8,&sd) queries the SD registry; r17 = out word bit 0x20000 via xori 0x4000 + rlwinm 18,31,31. When the bit is clear, duplicate probe f_10570e34(arg4) at 0x1028a96c must miss (r3==0) or the add aborts with r28=0x323=803 at 0x1028a978; when set, the probe is skipped entirely at 0x1028a950."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1020eb2c",
+     "address": "0x1020f010",
+     "notes": "Direct-control call synthesizes arg4 = (*(r28+0x134) << 8) | 7 via rlwinm r4,r4,8,0,23 + ori r4,r4,0x7 at 0x1020f010/0x1020f024: caller-object byte supplies the rsid key, variant forced to 7. Second caller f_1028fa98 repeats the same pattern (*(r1+0x1c) << 8) | 7 at 0x1028fb54/0x1028fb5c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10287238",
+     "address": "0x10287280",
+     "notes": "Admission gate returns a u16 error code, not an entry: key=arg4>>8 (rlwinm at 0x1028724c); f_100c7404 on ctx+8->+0x11a4 (object whose vfunc+0x130 is self-check f_1012ba78). r31==0 admits. Nonzero -> 'Failed to download manifest file (%s) for service %u, error %hu' log and the wrapper returns 802. Inside f_100c6b38: map vfunc+0x20 lookup miss -> 'musicservices' 'Warning. No SD found for %d' -> admit; hit with SD out word bit 0x400000 -> manifest cache probe f_10119c80 ('svcmanifests', 8-byte {key,u16ver} entries at +0xcc/+0xc8, '%d hasLastestVersion %d? %d'); stale -> synchronous fetch f_1011b710 (in-flight byte +0xc4, timevalAddMs 0x2710=10000ms). Registry contents are runtime-registered service descriptors; not statically enumerable."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102892e4",
+     "address": "0x1028948c",
+     "notes": "'setAndUpdatePreferredSerialNum' is a real replication op: the literal string is the f_105709c0 builder operand. Under the accounts lock it compares arg SN against ctx+0xdc, stores it when changed, attaches the account record found via f_105712e4 (36-byte fixed + variable copy loops at 0x10289458/0x10289478), submits f_10289258; same-SN returns 1 early via 0x10289334->0x10289550. Sole caller f_10289648 parses 'sn_%u' out of arg2+0x15c ('Invalid accountId' 0x10eac31c, 'Failed to extract serialNum from accountId' 0x10eac330, 'Error setting preferred account' 0x10eac35c); entry through +0x118-adjustor vfunc thunk f_101b53a8 (vtable 0x10e9af84). Every other 0x10eaba94 reference in .text adds an offset (+0x20 'addAccountWithUserCredentials' .. +0x194 'pushToReplicationService') for a neighboring op-name string."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028be78",
+     "address": "0x10eabc90",
+     "notes": "Account-update verb dispatcher = accountsMgr vfunc+0x24 in vtable 0x10eabc6c (installed by ctor f_10285224, 'accountsMgr' name at this+0x20). Verb descriptor layout from dispatch target f_10284950 (vfunc+0x28): +0x00 asn, +0x04 rsid, +0x1f4 flags; it serializes 'zpam: %s,%d,%d,%u' and writes type/flags/rsid/asn fields at 0x102849c8-0x10284a14."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028be78",
+     "address": "0x1028beb0",
+     "notes": "Verb selection: r5==0 -> conflict path (f_104b16b4 on *(this+0x18), then 'Pending report for account %u' + f_1028bdc0 modifyAccount with stack flag-set word 2), then rsid&0x7f in {7,8} rejoins name dispatch else rsid>>8 -> vfunc+0x2c keyed lookup (f_10284ec0 -> ctx+8->+0x11a4 map vfunc+0x20), a hit with out word bit 0x2000 runs 'addAccount' via f_104abd90 on *(this+0xb0). r5!=0: r6!=0 -> 'match'; r6==0 && r7!=0 -> f_1056fd48 picks 'restore' vs 'reauth'; r6==0 && r7==0 -> 'add'; 'migrate' only in the r5==0 rejoin with r6!=0,r7==0. Each name goes through vfunc+0x28 f_10284950 then post-step vfunc+0x34 f_102850c4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1028b760",
+     "address": "0x1028b8e8",
+     "notes": "modifyAccount field contract: (arg2,arg3) compound key must resolve via f_10570e34 (806 on miss at 0x1028ba14); arg4 when strcmp-different from arg3 must NOT resolve (806 on hit) - rekey uniqueness. r7-arg -> 0x41-byte field (+0x166); r8-arg -> 0x80-byte field (+0xe6) with marker byte '1' at +0xe5; r9-arg (nickname chain) must not equal the name field of another same-group account record with flag bit0 (802 abort before submit); r10-arg -> 0x41 field (+0x1e8); stack+0x10 bits OR into request flags word at ctx+0x250, stack+0x14 bits clear. Build 'modifyAccount' f_105709c0, submit f_10289258 (809), unlock, then post-commit vfunc+0x34 f_102850c4 notifies the shared observer at global 0x11095f88 via f_101b8048. Returns 0/806/802/809/810."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104b052c",
+     "address": "0x104b0610",
+     "notes": "Tier forwarding: token branch clamps AccountTier via isel min(tier,0xffff) then it travels adapter stack+8 -> worker stack arg (r18) -> request field setter f_1056fa28 at 0x1028a6d4. No enum membership check anywhere; {none=1,free=2,paidLimited=3,paidPremium=4} at 0x10ea5b08 is vocabulary only."
     }
-   ],
-   "todo": [
-    "Residual: bind action v[+0x1c] to its concrete implementation and follow the Token/Code/DirectControl routes through their credential parsers. f_1028a224 is now traced through its initial checks and guest-account reauthentication rejection, but is not proven to be the complete OAuth dispatch boundary.",
-    "Established: SystemProperties ownership, the three OAuth add/refresh/replace handlers and their public length/return contracts are audited; internal account acquisition and refresh preconditions are documented in music_accounts. Remaining: verify other action-specific delegates, replace broad action/store/migration mappings with direct evidence and document reachable result, persistence and observer behavior."
    ],
    "resolved_findings": [
     "Resolved: action->dispatch map = the arg set {VariableName,StringValue,AccountUDN,AccountNickname,AccountType,WebCode,AccountPassword,NewAccountPassword,NewAccountMd,AccountToken,AccountKey,OAuthDeviceID,AuthorizationCode,RedirectURI,UserIdHashCode,AccountTier,AccountUI} -> account-store write path.",
@@ -233362,7 +233686,23 @@
     "Correction to the previous OAuthDevID gate attribution: f_1028a224 preserves incoming r6 as r20 and incoming r8 as r24 (0x1028a258/0x1028a260). After f_102887e0 succeeds, 0x1028a400-0x1028a410 requires r24 to be non-null and non-empty, then 0x1028a518-0x1028a528 independently requires r20 to be non-null and non-empty. Failure of either check reaches the same missing required Token or OAuthDevID log and sets 802 (0x322). These instructions implement two required operands on this path, not a demonstrated Token-OR-DeviceID route. 0x1028a460 instead tests r25, an incoming stack argument, before copying the returned UDN through f_1056f254. Following UID extraction f_1056ffb0, f_105714c8 looks up an existing account; when its flags at +0x1f4 have bit 0 set (mask 0x1) and f_105714d8 returns nonzero, the path logs guest upgrade not allowed via reauth and returns 803 (0x323). Operand names and complete route coverage require the concrete caller trace; no OAuth subclass assignment is inferred from this alone.",
     "Bit-index audit with GNU e500 and the fixed repository listing: 0x1028a64c loads account+0x1f4 and 0x1028a650 executes andi. r10,r9,1, followed by the zero branch at 0x1028a654. The guard is mask 0x1, conventional zero-based bit 0, not bit 1/mask 0x2. Only the set branch reaches the additional f_105714d8 test and the guest-reauthentication error path. This corrects the bit label without changing the independently recovered two-required-operand gate.",
     "Instruction audit and concrete adapter mapping establish that f_1028a224 requires both token (argument6) and OAuthDeviceID (argument8) non-null and nonempty. The former Token OR OAuthDevID claim was incorrect. The optional output pointer tested at0x1028a460 is not the second credential input. Public routing is token first, then authorization code, then preinstalled-service fallback in installed adapter f_104b052c.",
-    "Public endpoint correction: AddAccountX, AddOAuthAccountX, RemoveAccount, ReplaceAccountX, RefreshAccountCredentialsX, EditAccountPasswordX, EditAccountMd, SetAccountNicknameX, GetWebCode and DoPostUpdateTasks are under /SystemProperties/Control. AddOAuthAccountX limits are token/key2048, deviceID64, authorization code1024, redirectURI8192 and hash24 bytes, each enforced by strlen before delegate dispatch. RefreshAccountCredentialsX uses delegate slot+0x2c, not+0x14. ReplaceAccountX limits are UDN144, newID128, newPassword64, token/key2048 and deviceID64 bytes."
+    "Public endpoint correction: AddAccountX, AddOAuthAccountX, RemoveAccount, ReplaceAccountX, RefreshAccountCredentialsX, EditAccountPasswordX, EditAccountMd, SetAccountNicknameX, GetWebCode and DoPostUpdateTasks are under /SystemProperties/Control. AddOAuthAccountX limits are token/key2048, deviceID64, authorization code1024, redirectURI8192 and hash24 bytes, each enforced by strlen before delegate dispatch. RefreshAccountCredentialsX uses delegate slot+0x2c, not+0x14. ReplaceAccountX limits are UDN144, newID128, newPassword64, token/key2048 and deviceID64 bytes.",
+    "Resolved: delegate vtable slot +0x1c = f_104b052c, the installed AddOAuthAccountX routing adapter; the token/code/preinstall precedence it implements is the only public OAuth entry selection.",
+    "Resolved: f_1028a224 is the complete OAuth dispatch boundary for account adds. It is int_addAccountWithOAuthToken and is reached by exactly four wrappers: public addAccountWithOAuthToken (thin forward after the f_10287238 gate), public addAccountWithOAuthCode (mints the token through the device-auth exchange f_10286e44 first), addPreinstalledService (shared with internal provisioning callers f_101877c0/f_101b6c20), and addAccountForOAuthDirectControl (internal only, callers f_1020eb2c and f_1028fa98; never a branch of the public adapter).",
+    "Resolved: post-validation behavior inside the OAuth core covers duplicate rejection ('account already exists on household'), guest-account migration through f_1028686c with addNicknameIfNecessary and markAccountsForPushLocked staging, and 'Account added. Returning UDN=%s' on success. Persistence and replication push staging follow the established markAccountsForPushLocked -> pushToReplicationService contract.",
+    "Resolved: AccountTier is forwarded as a saturating unsigned 16-bit value (isel min(tier,0xffff) at 0x104b0648); the enum {none=1,free=2,paidLimited=3,paidPremium=4} is not range-validated at this layer.",
+    "Resolved: settings adapters are positional forwarders into the embedded accounts object (delegate+0x26c, this=+0x118): password f_104b0684 -> modifyAccount arg r7, metadata f_104b06d0 -> arg r8, refresh f_104b0510 tails into object vfunc+0x18, DoPostUpdateTasks f_104b0c90 gates on vfunc+0x4c capability then compares/updates R_PromoVersion via f_1090b418.",
+    "Resolved: action v[+0x1c] is concretely bound on both levels that carry that slot number. The installed account delegate vtable 0x10ed75c4 slot+0x1c = f_104b052c (AddOAuthAccountX); the public wrapper f_10732454 issues the delegate/action vfunc+0x1c dispatches at 0x107324e8/0x107325f8/0x10732720. The full delegate map is now concrete per the 0x10ed75c4 evidence entry.",
+    "Resolved: the OAuth credential routes are four named workers converging on one shared boundary worker. Public adapter f_104b052c selects AccountToken -> f_1028b2e4 ('addAccountWithOAuthToken'), else AuthorizationCode -> f_1028b440 ('addAccountWithOAuthCode' + RedirectURI), else -> f_1028ad54 ('addPreinstalledService'); OAuth DirectControl is the separate worker f_1028b5bc ('addAccountForOAuthDirectControl') invoked only from f_1020eb2c and f_1028fa98. Each wrapper first passes its public name to admission gate f_10287238 (registration-map lookup on ctx+8->+0x11a4 keyed by arg4>>8; missing entry aborts), then assembles credentials and calls f_1028a224.",
+    "Resolved: f_1028a224 is the complete OAuth dispatch boundary, not just initial checks. It locks, begins the account operation through f_102887e0, requires BOTH arg6 token and arg8 OAuthDeviceID non-null/nonempty (802 on either failure), rejects guest-account reauthentication when account flags +0x1f4 bit0 and f_105714d8 both set (803), then builds the replication request via f_105709c0 with literal op 'int_addAccountWithOAuthToken' and submits via f_10289258 at two parallel sites; post-submit branches handle 'account already exists on household' and 'matched to existing guest account with SN=%u, Hash=%s' before the guest serial-number epilogue. Token, code, preinstall and direct-control routes are distinguished only by which credential fields the wrappers populate and the registration key in arg4's high byte.",
+    "Resolved: the delegate surface is exhaustively mapped including negative results. vtable slot+0x14 is f_104b0500, a dead stub returning 802 unconditionally (no action row binds it in this table); 'Remove' (id 0x15) is a distinct small action beside 'RemoveAccount' (0x25) and goes through the shared settings-remove helper f_1066a788 at slot+0x10; GetString/SetString are generic settings accessors with a hardcoded 'R_ForceReIndex' strcmp branch in f_104b1d90; RefreshAccountCredentialsX forwards to the inner account context's own vfunc+0x18 (not a local +0x14).",
+    "Resolved: the packed arg4 route word is the rsid supplied by each entry, not a fixed per-route constant. Public routes forward the caller's 'AccountType' int verbatim (wrapper f_10732454 -> adapter f_104b052c -> workers). The internal direct-control callers synthesize it as (caller-object byte << 8) | 7 at 0x1020f010 and 0x1028fb54, forcing variant 7.",
+    "Resolved: inside f_1028a224 the variant index (arg4&0x7f)-1+(arg4&1)==7 selects the provisioned-add path that consults the SD registry via vfunc+0x2c(arg4>>8); SD out word bit 0x20000 suppresses or requires a duplicate probe f_10570e34(arg4) that must miss (803 on hit). Variants 0..6 skip this consultation.",
+    "Resolved: admission gate f_10287238 is an SD-registry plus manifest-freshness check returning a u16 error code (0 admits). Map miss -> 'No SD found' admit; SD with the 0x400000 flag -> 'svcmanifests' version-cache probe f_10119c80; stale -> synchronous manifest fetch f_1011b710 (10s timeout) whose error becomes the 802 'Failed to download manifest file' result. The registered selector set is a runtime service-descriptor registry whose contents are data-driven; the boundary is documented rather than enumerable statically.",
+    "Resolved: 'setAndUpdatePreferredSerialNum' is a replication op updating the preferred account SN at ctx+0xdc plus the matched account payload, reached through the +0x118-adjustor thunk f_101b53a8 -> f_10289648 'sn_%u' parser -> f_102892e4 submitter. Every other reference to 0x10eaba94 is a rodata block anchor computing a neighboring op-name string.",
+    "Resolved: the account-update verb DSL is accountsMgr vfunc+0x24 f_1028be78 over descriptors {asn@+0, rsid@+4, flags@+0x1f4}. r5==0 marks an add/remove conflict: error report, 'Pending report' flag bit 0x2 via f_1028bdc0, then rsid&0x7f in {7,8} rejoins the verb-name dispatch else rsid>>8 keyed SD lookup with bit-0x2000 -> 'addAccount' via f_104abd90. r5!=0 dispatches 'match'/'add'/restore-vs-'reauth'/'migrate' through vfunc+0x28 f_10284950 ('zpam' serializer) and post-step vfunc+0x34 f_102850c4.",
+    "Resolved: modifyAccount f_1028b760 resolves (arg2,arg3) as the existing key (806 miss), requires a differing arg4 to NOT resolve (806 hit, rekey uniqueness), copies r7/r8/r10 args into fixed payload fields, uniqueness-scans the r9 (nickname) arg against same-group records (802 dup before submit), ORs stack+0x10 bits into request flags and clears stack+0x14 bits, then submits 'modifyAccount' via f_105709c0/f_10289258 and runs post-commit observer vfunc+0x34 f_102850c4 -> shared observer at global 0x11095f88 via f_101b8048.",
+    "Resolved: AccountTier semantics end to end: saturating u16 clamp in the token adapter (isel min at 0x104b0648), forwarded as a request field to the replication op (f_1056fa28 at 0x1028a6d4); the enum table is vocabulary only, no range validation at adapter, worker, or assembly layers."
    ],
    "details": {
     "credential_presence_correction": {
@@ -233378,7 +233718,7 @@
      ]
     },
     "concrete_settings_delegate": {
-     "description": "Zone construction at0x1018e4f8 creates settings delegate f_104b0e84, stores it at the field used as argument4 to account-service constructor f_10732e94 at0x1018e594, and that constructor stores the delegate at service+4. f_104b0e84 installs primary vtable0x10ed75c4. The service therefore does not obtain these account methods from the DeviceProperties vtable0x10e98278. Password slot+0x24 targets f_104b0684 and metadata slot+0x30 targets f_104b06d0; both call f_1028b760 with different optional fields. Post-update slot+0x38 targets f_104b0c90.",
+     "description": "Zone construction at0x1018e4f8 creates settings delegate f_104b0e84, stores it at the field used as argument4 to account-service constructor f_10732e94 at0x1018e594, and that constructor stores the delegate at service+4. f_104b0e84 installs primary vtable0x10ed75c4. The service therefore does not obtain these account methods from the DeviceProperties vtable0x10e98278. Password slot+0x24 targets f_104b0684 and metadata slot+0x30 targets f_104b06d0; both call f_1028b760 with different optional fields. Post-update slot+0x38 targets f_104b0c90. Adapter audit: every account-settings adapter resolves the embedded accounts object at delegate+0x26c and calls with this=+0x118. Password f_104b0684 fills modifyAccount's r7 optional slot only; metadata f_104b06d0 fills r8 only; nickname adapter f_104b071c passes its single arg into r8 (nickname slot); refresh f_104b0510 tails directly into the object's vfunc+0x18. f_1028b760 (modifyAccount) gates on f_102887e0, validates each supplied optional field, invokes the matching virtual setter on the located account, then commits through f_10289258->f_102890b0 with a 'modifyAccount' trace entry. DoPostUpdateTasks f_104b0c90 is gated by delegate vfunc+0x4c == f_100c9be8 and performs R_PromoVersion comparison/fixups through f_1090b418. Per-field validation inside f_1028b760 is now concrete: (arg2,arg3) key must resolve, differing arg4 must NOT resolve (rekey uniqueness, 806), the r9 nickname arg is dedup-scanned across same-group account records (802), stack flag words merge into the request flags, and success notifies the shared accounts observer via vfunc+0x34 f_102850c4 -> f_101b8048 on global 0x11095f88. Verb-DSL operands: accountsMgr vfunc+0x24 f_1028be78 over {asn@0, rsid@4, flags@0x1f4} descriptors with the r5/r6/r7 clause selection and rsid-keyed 'addAccount' fallthrough documented at record level.",
      "evidence": [
       {
        "type": "firmware",
@@ -233400,12 +233740,35 @@
        "build": "86.10-80260",
        "address": "0x104b0684",
        "notes": "Password adapter through account modifier0x1028b760; metadata adapter begins0x104b06d0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_104b0684",
+       "address": "0x104b06bc",
+       "notes": "Password->modifyAccount r7-only forwarding; all other field args zero."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_104b0c90",
+       "address": "0x104b0d0c",
+       "notes": "Post-update adapter: vfunc+0x4c capability check, R_PromoVersion read via settings vfunc+0x24, version compare f_1090b418, fixups f_1090b078/f_1090c360."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_1028b760",
+       "address": "0x1028baec",
+       "notes": "'modifyAccount' trace via f_105709c0 after per-field vfunc setters; commit tail f_10289258->f_102890b0."
       }
-     ],
-     "todo": "Established: actual installed account service delegate and password/metadata forwarding are decoded. Remaining: audit each settings adapter and account modifier to establish operation-specific validation, persistence and event effects."
+     ]
     },
     "oauth_public_routing": {
-     "description": "Installed AddOAuthAccountX adapter f_104b052c first tests AccountToken. A non-null/nonempty token selects f_1028b2e4 (token path), even when AuthorizationCode is also supplied. With no token, non-null/nonempty AuthorizationCode selects f_1028b440 (code acquisition); if neither is supplied it selects f_1028ad54 (preinstalled-service path). OAuthDeviceID is forwarded in all three branches; RedirectURI is forwarded to the code path. The token branch clamps AccountTier to unsigned65535 before forwarding it. This binds the earlier account-manager credential check to public names: shared worker f_1028a224 requires both generated/supplied token and OAuthDeviceID nonempty. The SOAP handler itself only binds/validates fields; this installed adapter owns routing. The separately identified OAuth-direct-control worker is not a fourth branch of this adapter.",
+     "description": "Installed AddOAuthAccountX adapter f_104b052c first tests AccountToken. A non-null/nonempty token selects f_1028b2e4 (token path), even when AuthorizationCode is also supplied. With no token, non-null/nonempty AuthorizationCode selects f_1028b440 (code acquisition); if neither is supplied it selects f_1028ad54 (preinstalled-service path). OAuthDeviceID is forwarded in all three branches; RedirectURI is forwarded to the code path. The token branch clamps AccountTier to unsigned65535 before forwarding it. This binds the earlier account-manager credential check to public names: shared worker f_1028a224 requires both generated/supplied token and OAuthDeviceID nonempty. The SOAP handler itself only binds/validates fields; this installed adapter owns routing. The separately identified OAuth-direct-control worker is not a fourth branch of this adapter. Worker audit: the token branch f_1028b2e4 only early-outs through f_10287238 and tail-calls f_1028a224 unchanged. The code branch f_1028b440 first runs f_10286e44, the device-auth-token exchange (logs 'getDeviceAuthToken failed (res = %d)', smapi dcLogin/zpAM traffic, clock_gettime), then calls f_1028a224 with the minted token. The preinstall branch f_1028ad54 and the internal addAccountForOAuthDirectControl f_1028b5bc enter the same core; the direct-control worker's only callers are f_1020eb2c and f_1028fa98, so it is a separate internal entry, not a public route. f_1028a224 is therefore the single OAuth core: token + OAuthDeviceID must both be nonempty, guest-reauthentication is rejected with 803, duplicates fail with 'account already exists on household', guest migration runs through f_1028686c, and success returns the new UDN. arg4 is now bound end to end: public wrapper forwards the caller 'AccountType' int; internal direct-control synthesizes (object byte << 8) | 7 for variant 7. The admission gate is the SD-registry + manifest-freshness chain (map at ctx+8->+0x11a4, 'No SD found' admit, svcmanifests version probe, synchronous fetch f_1011b710, 802 'Failed to download manifest file' on error). Worker-internal validation: variant==7 performs the vfunc+0x2c SD lookup and applies the bit-0x20000 duplicate-probe gate (803); token+OAuthDeviceID nonempty and guest-reauth 803 unchanged. Tier = saturated u16 request field; enum not validated.",
      "evidence": [
       {
        "type": "firmware",
@@ -233420,9 +233783,32 @@
        "build": "86.10-80260",
        "address": "0x104b0610",
        "notes": "Token branch argument forwarding, unsigned tier clamp0x104b0624/0x104b0648 and token-worker call0x104b0660."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_1028b440",
+       "address": "0x1028b568",
+       "notes": "Code path: f_10286e44 exchange mints token before f_1028a224."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_1028b5bc",
+       "address": "0x1028b754",
+       "notes": "Direct-control worker enters f_1028a224; callers f_1020eb2c/f_1028fa98 only."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "f_104b0624",
+       "address": "0x104b0648",
+       "notes": "Tier: isel min(tier,0xffff) saturating u16 clamp."
       }
-     ],
-     "todo": "Established: concrete public token/code/preinstall routing, precedence and credential-name mapping are decoded. Remaining: trace worker-specific provider/account validation and post-success persistence/event behavior; audit exact tier semantics and the separate direct-control entry."
+     ]
     },
     "tunein_removal": {
      "description": "RemoveAccount is not a uniform deletion operation: installed delegate f_104b0918 treats full AccountType65031 (0xFE07) as R_HideTuneIn=true. The remaining account types enter the normal account-removal path. See music_accounts.public_account_removal for status, commit, manifest cleanup and callback ordering.",
@@ -235288,16 +235674,95 @@
      "build": "86.10-80260",
      "address": "0x100c8c68",
      "notes": "Clock1 plus10000ms deadline before catalog conversion0x100c8ca0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103429f4",
+     "address": "0x10342a24",
+     "notes": "Entry gates in order: root global 0x11095f88 vfunc+0xe0(out, root, *(this+0x6c->+0x178)) produces a session-context object; NULL result -> 400 (f_100b4614 arg 0x190 at 0x10342a5c). f_105b5edc locks the context and returns byte +0xa56; set -> 400; clear -> devmode check f_1054bdc8(*(0x11097374), 7) at 0x10342ae4; nonzero -> 403 (arg 0x193). Then method word this+0: 1 -> GET form f_10342824; 5 -> POST path; anything else -> 405 (arg 0x195). Handler returns -2 after emitting the response. The +0xa56 flag is set during context setup at 0x1035bffc under an f_1053c370 identity check and is read alongside context flag +0xbb4 at 0x1035c160, consistent with a hidden/secondary-session marker."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10342590",
+     "address": "0x103425ec",
+     "notes": "POST body handling: f_10551adc(this, buf, 0x2000, src, 0x7d0, 0) fills an 0x2000-byte body buffer and must return 200 else 400. f_10c3b73c extracts form field 'csrfToken' into an 0x80 buffer; absent -> 400. f_105407bc(*(this+0x7680)+0x810, candidate) validates under a lock: stored issue timestamp at token-obj+0x24 must be nonzero and now-minus-stamp <=299 (sonosClockGetTime domain 1), then strcmp(candidate, token-obj+0); any failure returns 0 -> 400 plus token-reset helper f_1054066c. Backend f_100c8900 is called on the SD-registry object at root+0x292b8 with the raw body."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10342590",
+     "address": "0x103426d0",
+     "notes": "On backend 200: f_100c6e20(root+0x292b8, stack-list) reloads the descriptor registry; then shared_ptr {ptr,ctrl} at root+0xaa48 is retained and f_101b7e90(accountsMgr, list) runs account reconciliation (skipped only when ctrl is NULL); finally f_100b451c(this,200,'Success!') emits the success page. Reconciliation runs regardless of which descriptor changed."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x100c89b8",
+     "notes": "Form parser: f_10c3b72c(state, keybuf r1+0x66d8 size 0x20, valbuf r1+0x673c size 0x400, sep '&'=0x26) returns >0 per pair, 0 at end. Compare chain accepts exactly 13 keys: sid, name, secureUri, containerType, pollInterval, authType, stringsVersion, stringsUri, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps. Unrecognized keys are skipped with no error. cr4.EQ tracks the last URI-setter result and is tested at the top of each iteration (0x100c89dc) and at end-of-parse (0x100c8b58): any failed URI setter -> 'Unable to load %s URI' log then return 500."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x100c8b5c",
+     "notes": "sid validation: parsed sid defaults to 0xff. sid==0xff or sid-0xf0 <= 0xd (unsigned 0xf0..0xfd = 240..253) proceeds to create; any other value falls to 0x100c8e28 returning 200 with no write at all (silent no-op, not a 400). Create stores sid at scratch SD +0x134 via f_10553e74 and fixes SchemaVersion '1.1' via f_10553e94; caps mask stored at +0x130 via f_10553f2c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10553f3c",
+     "address": "0x10553f54",
+     "notes": "authType enum at scratch+0x12c: 'UserId'->0, 'Stateless'->1, 'Anonymous'->2, 'DeviceLink'->3, 'AppLink'->4; any other value leaves the byte unchanged (keeps default/previous). containerType f_10554148 at +0x12d: NULL/empty/'MService'->0, 'SoundLab'->1, 'Preload'->2, 'Preinstall'->3; unmatched unchanged. pollInterval f_105540d4 receives strtol base10 truncated to u16. name f_10553e84 copies at most 0x20 chars."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x10e769cc",
+     "notes": "caps table: 21 entries of {char* name, u32 bit} iterated 0..20 at 0x100c8b20; the whole caps value is strcmp'd per name and a match ORs the bit into the mask accumulated in r22 (repeated caps= fields accumulate). Names/bits: search 0x1, trFavorites 0x2, alFavorites 0x10, arFavorites 0x20, logging 0x40, extendedMD 0x200, disableAlarms 0x400, ucPlaylists 0x800, playbackLogging 0x1000, accountLogging 0x2000, noMultiAccount 0x4000, mediaUriActions 0x8000, contextHeaders 0x10000, deviceCerts 0x20000, playerIds 0x40000, contextReporting 0x80000, userInfo 0x100000, contentFiltering 0x200000, manifest 0x400000, radioExtendedMD 0x800000, playlistExtendedMD 0x1000000. Unknown caps values are ignored; no exclusivity or conflict checks exist. deviceCerts 0x20000 and manifest 0x400000 are the same SD-bit positions consumed by the account_actions SD gate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100c8900",
+     "address": "0x100c8bc8",
+     "notes": "Install path: managed slot at registry+0x128 is cleared (refcounted teardown f_10557afc plus functor release f_100caad8); output fd from f_100c5fd0(0,0) -1 -> return 200 silently; 0x4000 writer f_1038689c/f_10387b7c; serializer object vtable 0x10e767a8 built with {registry+0x1c0 source string, registry+0x1f8-copied name, index count+1}; sonosClockGetTime+timevalAddMs(0x2710=10000) deadline; f_100c5d3c builds the '.tmp' target; f_100cc4f4 serializes then close. Serialize/write failure (r3<0) -> 500. Success -> this->vfunc+0x1c: default impl f_100c7c34 requires trailing arg==5 then f_100c7898(registry, registry+0x1c0, count, tmppath, 5) -> parse gate f_10660e58 (fail -> 0 -> 500), 'replicating services from %s' log, rename(tmp, canonical name built via f_100c5d3c) -> fail -> 500; success updates bookkeeping (registry+0x1d7 source <=24ch, +0x1f0 version, +0x1f8 LastUpdateDevice <=0x40ch, flags +0x1d5/+0x1d6, registry+0x23c reset, observer *(registry+0x1b8) vfunc+0x14 op=6), logs 'Replicated list accepted', reloads via f_100c6e20, rebuilds the SMAPI hostname cache via f_1071f644, and runs f_101b7e90 account reconciliation when the accepted source differs from registry+0x1c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100cc4f4",
+     "address": "0x100cc5dc",
+     "notes": "Serializer writes the complete '<Services LastUpdateDevice=\"..\" Version=\"..\" SchemaVersion=\"..\" [ETag=\"..\"]>\\n' file: existing Service elements are produced through the r28 list iterator vfunc+0x8 with the pending descriptor staged in the iterator state and element filter f_10c3fc68 skipping entries it rejects, then the new descriptor is written, so a posted sid replaces the stored entry with the same key. There is no action/delete field anywhere in the 13-key contract: every stored descriptor not filtered is re-serialized, and nothing in f_100c8900 removes a descriptor; an empty name is stored verbatim (<=0x20 chars) rather than triggering removal."
     }
    ],
    "resolved_findings": [
     "Resolved: POST /customsd write path = csrfToken + {SID 240-253|255, name, secureUri, pollInterval, authType radio {Session ID, Anonymous, DeviceLink, AppLink}} -> descriptor store.",
     "Established: the POST /customsd form fields, the authType radio options, optional manifest fields, containerType values, and the capability checkbox set.",
-    "Established: POST /customsd write path with csrfToken + SID 240-253|255 + field validation."
+    "Established: POST /customsd write path with csrfToken + SID 240-253|255 + field validation.",
+    "Resolved: the availability gates are concrete. The request must yield a session-context object (root vfunc+0xe0 keyed by the request session pointer; none -> 400), its +0xa56 flag must be clear (set -> 400; the flag is laid down during context setup under an identity check and acts as a hidden/secondary-session marker), and devmode feature check f_1054bdc8(*(0x11097374),7) must return 0 (nonzero -> 403). There is no per-user credential check beyond the session requirement plus CSRF token.",
+    "Resolved: the CSRF contract is a server-issued token with a 299-second lifetime: GET mints/stores it (issue timestamp at token-object +0x24), POST must repeat it in the csrfToken field and f_105407bc rejects missing, stale (>299s), or unequal tokens with 400 and resets the stored token via f_1054066c.",
+    "Resolved: parser limits are instruction-level: body buffer 0x2000 bytes, key buffer 0x20, value buffer 0x400, csrfToken buffer 0x80, '&' field separator, 13 recognized keys, unknown keys ignored.",
+    "Resolved: field coercion complete: sid strtol10 default 0xff with allowed set {0xff} u [240,253] and out-of-range -> silent 200 no-op (the earlier 'returns 400' claim corrected); name <=0x20 chars; containerType {MService/empty 0, SoundLab 1, Preload 2, Preinstall 3, else unchanged}; authType {UserId 0, Stateless 1, Anonymous 2, DeviceLink 3, AppLink 4, else unchanged}; pollInterval strtol truncated to u16; the three *Version fields are u16 values passed as companions to their *Uri setters; caps accumulates bits from the 21-name table over repeated caps= fields with no exclusivity checks.",
+    "Resolved: install-failure mapping complete: failed secureUri/stringsUri/presentationMapUri/manifestUri setter -> 'Unable to load' log then HTTP 500 via the cr4-persisted result; output fd -1 -> silent 200; serializer/tmpfile or rename failure -> 500; body read failure -> 400; bad/absent Content-Type -> 400; bad/absent/expired csrfToken -> 400 plus token reset; unsupported method -> 405; context/devmode gates -> 400/403. Backend returns only 200 or 500.",
+    "Resolved: duplicate/delete semantics: posting an existing sid replaces it (the serializer filters the matching stored element while rewriting the whole <Services> file to '.tmp' then atomically renames). No delete action exists in the form contract; an empty name persists an unnamed descriptor rather than removing it.",
+    "Resolved: reconciliation effects are two-stage: the install path (shared with replication, vfunc+0x1c -> f_100c7898) updates version/source bookkeeping, notifies the registry observer (vfunc+0x14, op 6), reloads the registry (f_100c6e20), rebuilds the SMAPI hostname cache (f_1071f644), and conditionally reconciles accounts (f_101b7e90); the HTTP layer then unconditionally reloads f_100c6e20 and runs f_101b7e90 again on 200 before emitting 'Success!'."
    ],
    "details": {
     "http_form_contract": {
-     "description": "Custom-service handler f_103429f4 applies request-context and feature-setting gates before method dispatch; their rejection paths use400 and403 respectively. Method selector1 renders the form; selector5 submits it; other selectors return405. Form rendering obtains a CSRF token, returns500 if that fails, otherwise sends200 with text/html and Cache-Control: no-cache, no-store, must-revalidate. Submission requires Content-Type to equal application/x-www-form-urlencoded under strcasecmp; missing or unequal text returns400, including values with extra media-type parameters. Form/body helper f_10551adc must return200. The csrfToken field must be present and accepted by f_105407bc; either failure returns400 and invokes token-reset helper f_1054066c. Catalog updater f_100c8900 determines subsequent status. On200, the handler reloads descriptors, invokes account reconciliation f_101b7e90 and emits Success!; the reconciliation return is not tested in this path. A successful form response therefore does not prove that all external service accounts have authenticated.",
+     "description": "Custom-service handler f_103429f4 first resolves a session-context object through root global 0x11095f88 vfunc+0xe0 keyed by the request session pointer: none -> 400; a context with flag byte +0xa56 set -> 400; otherwise devmode check f_1054bdc8(*(0x11097374),7) gates at 403. Method selector1 renders the form; selector5 submits it; other selectors return405. Form rendering obtains a CSRF token, returns500 if that fails, otherwise sends200 with text/html and Cache-Control: no-cache, no-store, must-revalidate. Submission requires Content-Type to equal application/x-www-form-urlencoded under strcasecmp; missing or unequal text returns400, including values with extra media-type parameters. Body reader f_10551adc fills an 0x2000 buffer and must return200. The csrfToken field must be present, fresh (issue timestamp within 299 seconds) and string-equal under f_105407bc; failures return400 and invoke token-reset helper f_1054066c. Catalog updater f_100c8900 determines subsequent status (200 or500). On200 the handler reloads descriptors via f_100c6e20, invokes account reconciliation f_101b7e90 on the shared accounts manager (skipped only when its control block is NULL), and emits Success!. A successful form response therefore does not prove that all external service accounts have authenticated.",
      "evidence": [
       {
        "type": "firmware",
@@ -235327,11 +235792,10 @@
        "address": "0x10342590",
        "notes": "Form helper, CSRF field and validation, token reset, catalog updater, reload/reconcile and Success response."
       }
-     ],
-     "todo": "Established: method, Content-Type, CSRF and success/reconciliation response ordering are decoded. Remaining: assign request-context/feature-setting meanings, complete backend field validation and all install/delete failures, and trace authentication requirements, parser limits and reconciliation effects."
+     ]
     },
     "service_id_and_update": {
-     "description": "Backend f_100c8900 defaults SID to255. It accepts255 or unsigned SID240..253; other values return400. The form name is applied through the descriptor setter and the descriptor version is fixed to1.1. Recognized caps values OR bits into a capability mask. The update path uses the existing catalog conversion/temporary-file/installation machinery and a10-second deadline, rather than defining a separate service protocol. Secure endpoint and optional resource setters have their own packing limits; the form input size attributes are display hints rather than proven server limits.",
+     "description": "Backend f_100c8900 parses key=value&.. pairs (0x20 key, 0x400 value buffers) over 13 fixed keys. sid defaults to255; allowed values are255 or unsigned240..253, anything else silently returns200 with no write. The descriptor version is fixed to1.1 and the posted sid becomes SD field +0x134. Field coercions: name <=0x20 chars verbatim; secureUri/stringsUri/presentationMapUri/manifestUri go through URI setters whose failure logs 'Unable to load' and maps to HTTP500 via a persisted cr4 result; the *Version fields are u16 companions to their URI setters; containerType maps MService/empty->0, SoundLab->1, Preload->2, Preinstall->3; authType maps UserId->0, Stateless->1, Anonymous->2, DeviceLink->3, AppLink->4; unmatched enum values keep the existing byte; pollInterval is strtol truncated to u16; caps accumulates bits from the 21-name table (search..playlistExtendedMD, bits 0x1..0x1000000) over repeated fields with no exclusivity checks. Update semantics: the whole <Services> registry is reserialized to a '.tmp' file (existing entries filtered so a same-sid entry is replaced), closed under a10-second deadline and installed through the shared replication accept path (vfunc+0x1c -> f_100c7898: parse gate, rename, bookkeeping, observer notify op6, registry reload, SMAPI hostname-cache rebuild, conditional account reconcile). Output fd failure returns200 silently; serialize or rename failure returns500. No delete action exists; an empty name persists verbatim.",
      "evidence": [
       {
        "type": "firmware",
@@ -235347,11 +235811,9 @@
        "address": "0x100c8c68",
        "notes": "Clock1 plus10000ms deadline before catalog conversion0x100c8ca0."
       }
-     ],
-     "todo": "Established: default/allowed SID values, fixed descriptor version and shared update path are decoded. Remaining: complete each field coercion and invalid/duplicate field outcome, blank-name removal persistence, capability combinations and all converter/install error mappings."
+     ]
     }
-   },
-   "todo": "Established: form vocabulary, HTTP method/content-type/CSRF gates, allowed SID values, update/reload/reconciliation and success response are instruction-traced. Remaining: complete backend field/duplicate/delete validation and install failures, availability/authentication gates and reconciliation effects. Form labels alone do not prove server-side constraints."
+   }
   },
   "network_tools": {
    "name": "network diagnostic tools page",
@@ -236799,7 +237261,7 @@
   },
   "jwt_auth": {
    "name": "muse JWT/device-token auth",
-   "summary": "JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; algorithms RS256 and HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,\"Failed to get the real/relative time\",\"Failed to stringify JWT\",\"Device failed to generate device/guest token\",\"Invalid Base64 encoded JSON object\",\"Device unavailable due to other requests\",\"Player not securely registered\",\"An unexpected grant type was provided\",\"An invalid JWT was provided. Reason:\",\"A malformed JWT header/payload was provided\",\"Player not in the assertion's aud field\",\"POST /authorizeDevice request failed\"}; claims exp+rexp {\"exp is missing\",\"Invalid exp value\",\"Expired exp value\",same for rexp}; token validation {\"Device token not minted in this HH\",\"Token is expired, security settings have changed since the token was issued\",\"Device token expired\",\"missing/invalid expiration time\",\"not minted by this device\",\"Device token is valid\"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; validation failure names {JWT_FAILED_TO_B64_DECODE,INPUT_JWT_HEADER_INVALID,INPUT_JWT_PAYLOAD_INVALID,INPUT_JWT_SIGNATURE_INVALID,INPUT_JWT_ALG_UNSUPPORTED,INPUT_JWT_ALG_MISSING,INPUT_JWT_X5C_MISSING,INPUT_JWT_X5C_INVALID,INPUT_JWT_X5C_UNTRUSTED,INPUT_JWT_PRIVATE_KEY_MISSING,INPUT_JWT_PRIVATE_KEY_INVALID}",
+   "summary": "JWT errors {JWT_FAILED_TO_B64_ENCODE/DECODE,INPUT_JWT_MALFORMED,HEADER_INVALID,PAYLOAD_INVALID,SIGNATURE_INVALID,ALG_UNSUPPORTED,ALG_MISSING,X5C_MISSING,X5C_INVALID,X5C_UNTRUSTED,PRIVATE_KEY_MISSING,PRIVATE_KEY_INVALID,OUTPUT_JWT_SIGNING_ERROR,OUTPUT_JWT_INVALID_STATE}; algorithms RS256 and HS256; endpoint POST https://oauth.{env}ws.sonos.com/oauth/v4/pdsw; grant urn:ietf:params:oauth:grant-type:jwt-bearer; aud urn:sonos:hhid:/urn:sonos:unit-hhid:; scope playback-control-all; keys {guestPermissionsPolicyKey,network_hash}; PIN {PIN Auth not available PIN not set,Invalid PIN,Invalid or expired nonce,Failed to generate nonce}; errors {Forbidden,Unauthorized,\"Failed to get the real/relative time\",\"Failed to stringify JWT\",\"Device failed to generate device/guest token\",\"Invalid Base64 encoded JSON object\",\"Device unavailable due to other requests\",\"Player not securely registered\",\"An unexpected grant type was provided\",\"An invalid JWT was provided. Reason:\",\"A malformed JWT header/payload was provided\",\"Player not in the assertion's aud field\",\"POST /authorizeDevice request failed\"}; claims {iss=urn:dev:ops:44974-zp-<id>,aud=urn:sonos:hhid:<hh>,scp=playback-control-all,jti,sub,systemId,pinEpoch,iat/exp u32 epoch secs exp=iat+3600,riat/rexp relative-time strings rexp=riat+3600} {\"exp is missing\",\"Invalid exp value\",\"Expired exp value\",same for rexp}; token validation {\"Device token not minted in this HH\",\"Token is expired, security settings have changed since the token was issued\",\"Device token expired\",\"missing/invalid expiration time\",\"not minted by this device\",\"Device token is valid\"}; statuses {MALFORMED,REVOKED,HOUSEHOLD,INVALID_REQUIRED_VALUE,NOT_MINTED_THIS_DEVICE}; muse_token_inspector; roles {VOICE_ASSISTANT,GUEST,ADMIN,EMPLOYEE}; validation failure names {JWT_FAILED_TO_B64_DECODE,INPUT_JWT_HEADER_INVALID,INPUT_JWT_PAYLOAD_INVALID,INPUT_JWT_SIGNATURE_INVALID,INPUT_JWT_ALG_UNSUPPORTED,INPUT_JWT_ALG_MISSING,INPUT_JWT_X5C_MISSING,INPUT_JWT_X5C_INVALID,INPUT_JWT_X5C_UNTRUSTED,INPUT_JWT_PRIVATE_KEY_MISSING,INPUT_JWT_PRIVATE_KEY_INVALID}",
    "evidence": [
     {
      "type": "firmware",
@@ -236917,10 +237379,111 @@
      "function": "f_100271c8 / f_10026f58",
      "address": "0x100271c8",
      "notes": "Corrected-disassembly audit of persistent hex-key decoding: f_10026f58 calls f_100271c8 at 0x10026fa8 and requires decoded length 32 at 0x10026fb8. The pair reader rejects odd encoded length and consumes two validated hex characters per output byte; it does not derive a byte value by shifting away its low eight bits. Anacapad IPC length assembly at 0x1064bc5c/0x1064bc60/0x1064bc6c uses genuine SH=24/16/8 left shifts. The hex persistence and big-endian length contracts remain unchanged."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f7d30",
+     "address": "0x1019abcc",
+     "notes": "Builder ctor arg map: +0xb0=*(player+0xc7c) signing provider, +0xb8=&player->0x56c0 time provider (address of embedded object), +0xbc=*(player+0x9d6c)+0x12c claims producer (embedded in player-context object), +0x98=issuer string via f_1055e9f4 (sso<=0xf), +0xc0=player+0xee0, +0xc4=f_10600d50()=singleton 0x110a6ca0, +0xc8=*(player+0x2905c)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10562080",
+     "address": "0x105620fc",
+     "notes": "player+0xc7c is zeroed at construction (r30=0). The only other static store is context-copy stw at 0x10e13158 in f_10e12b24. No code assigns a concrete signer; the signing provider is runtime-injected through the copied context block."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109ef5bc",
+     "address": "0x101948dc",
+     "notes": "player+0x56c0 embeds a polymorphic wrapper: vptr at +0x0, shared_ptr impl at +0x4 (pointee) and +0x8 (control block). f_109ef5bc is the shared_ptr reset/destructor invoked on &player->0x56c0; the concrete clock impl sits behind the shared_ptr."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f86bc",
+     "address": "0x109f8940",
+     "notes": "Claims producer (+0xbc) vfunc+0xc fills extra-claims map at stack+0x78 (merged via f_10a01d50); vfunc+0x14 returns the emission gate. Time provider (+0xb8) vfuncs: +8=optional<u32> real-time, +0x10=optional<u32> relative-time, +0x14=serialize to claim string."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f86bc",
+     "address": "0x109f89f0",
+     "notes": "Gate TRUE path fills claims struct+0x5c flag and +0x60 value with real time and +0x64/+0x68 with real time +0xe10 (3600). Disengaged read jumps to 'Failed to get the real time.' at 0x109f8e8c. Struct base stack+0x134 => numeric iat (struct+0x5c/0x60) and exp (struct+0x64/0x68) per serializer f_10a1dce4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f86bc",
+     "address": "0x109f8a74",
+     "notes": "Second +0xe10: relative-time value from provider vfunc+0x10 is serialized by vfunc+0x14 into optional<string> at claims+0x88 (riat, stack+0x1bc); value+3600 serialized again into claims+0xa4 (rexp, stack+0x1d8). Disengaged read fails with 'Failed to get the relative time.' at 0x109f8df0. Gate FALSE skips the iat/exp block only; riat/rexp are always attempted."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10a1dce4",
+     "address": "0x10a1df64",
+     "notes": "Claims-struct serializer emits members: jti +0x4, iss +0x20, sub +0x38, aud array +0x50, iat flag+0x5c/val+0x60, exp flag+0x64/val+0x68, systemId opt-string +0x6c/+0x70, riat opt-string +0x88, rexp opt-string +0xa4, scp array +0xc0, pinEpoch +0xcc. Serializer object vtable 0x10f9a890 (first slot f_10a1ec9c) installed at stack+0x134 of f_109f86bc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f3bb4",
+     "address": "0x109f3d24",
+     "notes": "Signing: header.payload joined with '.' (r7=0x2e), ZZ0058(selector 1) computes SHA-256 into 32-byte stack+0x5c, then signer vfunc+0x14(mode=1, digest, 0x20, signing-input) returns the raw signature. RS256 alg literal 0x10f04288 at 0x109f879c; base64url via f_109f7eb8 (ZZ0154, alphabet 0x10ef8a38)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f918c",
+     "address": "0x109f9214",
+     "notes": "Device-token wrapper: calls signer vfunc+0x10 first (key-id/header block at stack+0x50), then f_109f86bc. Success logs 'museauth' '%s %s' and prefixes 'Bearer' (0x10ef92e8); failure yields 'Device failed to generate device token.' (0x10f98d48)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109fb4d8",
+     "address": "0x109fb8a8",
+     "notes": "Guest-token vfunc: first calls grant/exchange handler f_109fa93c with providers +0xb0..+0xbc; result 0x34 falls back to a fresh f_109f86bc build. Failure string 'Device failed to generate the guest token.' at 0x109f8bbc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109fa93c",
+     "address": "0x109fb264",
+     "notes": "jwt-bearer grant handler: grant type must equal 'urn:ietf:params:oauth:grant-type:jwt-bearer' (table +0x60, compare at 0x109fab2c, else 'An unexpected grant type was provided.'); presented JWT requires exp ('\"exp\" is missing.' 0x109fb168) and rexp ('\"rexp\" is missing.', 'Invalid \"rexp\" value.', 'Expired \"rexp\" value.'); expiry tested via time-provider vfunc+0x1c at 0x109fb368."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_109f96f4",
+     "address": "0x10f98c9c",
+     "notes": "Token-service vtable 0x10f98c84 installed at 0x1018fe1c (func ~0x1018d27c) and 0x101925a8 (func ~0x101921a0): slots f_109fbb38, f_109fbc8c, f_109f8268, f_109f84d8, f_1019d918, f_109fb4d8 (guest), f_109f96f4 (device). Slots are invoked through the interface on demand; no caching or periodic timer inside."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1009a0d4",
+     "address": "0x1009a0ec",
+     "notes": "Static init of claims string table 0x110b9488: +0x00 guestPermissionsPolicyKey, +0x18 urn:dev:ops:44974-zp- (iss prefix, used 0x109f8838), +0x30 urn:sonos:hhid: (aud prefix, 0x109f88b4), +0x48 playback-control-all (scp entry {ptr,len} at 0x109f8920), +0x60 urn:ietf:params:oauth:grant-type:jwt-bearer, +0x78 urn:sonos:unit-hhid:."
     }
-   ],
-   "todo": [
-    "Established: the registration-signing key is generated by netstartd, persisted/restored as 32 bytes encoded in RegSigningKey, transferred by IPC 0x34, consumed by a concrete HS256 verifier, and cleared on secure-registration IPC 0x18. Executed setup request/response bytes are 0x16/0x17 despite the disagreeing name table. Remaining: bind the concrete signing/time providers supplied at 0x1019abcc (player+0xc7c and player+0x56c0), join the two 3600 additions in f_109f86bc to the exact exp/rexp claim fields, time units and failed-clock behavior, and trace refresh scheduling callers before asserting any token lifetime or periodic rotation policy. Follow provider virtual slots +8/+0x10/+0x14, the claim serializer for vtable 0x10f9a890, and callers of f_109f918c/the guest path at 0x109fb8a8. The prior OAuth-config key-source and per-account token_refresh rotation assertions are withdrawn; this record does not yet establish an exhaustive lifecycle for every JWT consumer."
    ],
    "resolved_findings": [
     "Resolved: JWT-gated routes = the admin/auth surface; key chain = the JWT_* error taxonomy {B64, MALFORMED, HEADER/PAYLOAD/SIGNATURE INVALID, ALG_*, X5C_*, PRIVATE_KEY_*} covering the verification path.",
@@ -236935,7 +237498,13 @@
     "Persistent-key reader binding: startup f_1001eb64 calls f_100223ac with owner+0x5c settings. That reader opens the same configured netstart2.txt and passes f_10020f68 to the line parser f_100224ec. The RegSigningKey comparison selects settings+0xb4, exactly owner+0x110, and f_10026f58 accepts only a successfully decoded 32-byte value. The shared decoder requires an even number of hexadecimal characters and checks each pair before base-16 conversion. Thus a generated 32-byte key round-trips as 64 hexadecimal characters, not Base64.",
     "Registration-message mapping follows executed code: f_10028ddc reads the first input byte unchanged and accepts values through 0x17. The f_1001f820 switch sends byte 0x16 to f_1002d22c, which checks that same value before calling key generation at 0x1001f9c8. The response builder f_1002d2c4 supplies 0x17 to f_1002e690, which writes it unchanged as the first output byte, followed by the key field serialized through f_1002eb84. This differs from the adjacent name/id table, whose LOCK_REGISTRATION row contains 0x17 and REGISTRATION_KEY row contains zero. Those labels must not replace the actual request/response dispatch values; no invented translation from 0x17 to 0x16 is involved.",
     "Invalidation is event-driven on the traced path: netstartd IPC type 0x18 reads the secure-registration flag and calls f_10020d9c at 0x10008c68. A nonzero flag sets owner+0x1ac and, when a key is present, publishes a null/zero replacement, wipes owner+0x110, and persists settings. This path has no periodic key-rotation interval. It does not establish the timing of the external registration event or prove that all other key replacements have been enumerated.",
-    "Expiry/provider boundary: f_109f86bc constructs an RS256 header, obtains time representations through owner+0xb8 virtual slots +8 and +0x10, and performs literal 3600 additions at 0x109f89f0 and 0x109f8a74. The second representation is serialized through provider slot +0x14 before and after addition. A failed optional time read selects error paths rather than a default lifetime. Signing uses owner+0xb0 through f_109f3f9c/f_109f3bb4, a SHA-256 digest and provider virtual slot +0x14 at 0x109f3d24. Constructor f_109f7d30 stores these providers from its r5/r7 inputs; the player setup call at 0x1019abcc supplies player+0xc7c and player+0x56c0. These are token-building arithmetic and provider boundaries, not evidence of symmetric-key rotation or account refresh scheduling."
+    "Expiry/provider boundary: f_109f86bc constructs an RS256 header, obtains time representations through owner+0xb8 virtual slots +8 and +0x10, and performs literal 3600 additions at 0x109f89f0 and 0x109f8a74. The second representation is serialized through provider slot +0x14 before and after addition. A failed optional time read selects error paths rather than a default lifetime. Signing uses owner+0xb0 through f_109f3f9c/f_109f3bb4, a SHA-256 digest and provider virtual slot +0x14 at 0x109f3d24. Constructor f_109f7d30 stores these providers from its r5/r7 inputs; the player setup call at 0x1019abcc supplies player+0xc7c and player+0x56c0. These are token-building arithmetic and provider boundaries, not evidence of symmetric-key rotation or account refresh scheduling.",
+    "Resolved: the token builder's three providers are bound by construction. Signer = *(player+0xc7c) (interface: vfunc+0x10 emits the pre-signing/kid block consumed by f_109f918c, vfunc+0x14 signs a 32-byte SHA-256 digest with mode 1 = RS256); time provider = the polymorphic wrapper embedded at player+0x56c0 holding a shared_ptr clock impl (vfuncs +8 real-time u32 seconds, +0x10 relative-time u32, +0x14 serialize claim string, +0x1c expiry check); claims producer = object embedded at *(player+0x9d6c)+0x12c (vfunc+0xc fills the extra-claims map, vfunc+0x14 gates numeric iat/exp emission).",
+    "Resolved: both 3600 additions are expiry arithmetic in seconds. With the gate set, iat = real-time seconds and exp = iat + 3600 are written as u32 claims; the relative-time value is then always serialized to riat and relative+3600 to rexp as string claims. A token therefore carries a one-hour access expiry (exp) and a one-hour refresh-window bound (rexp) measured from issuance in their respective time bases.",
+    "Resolved: failed-clock behavior is a hard error, not a default lifetime. A disengaged real-time optional (gate TRUE) produces 'Failed to get the real time.'; a disengaged relative-time optional produces 'Failed to get the relative time.'; no token is returned on either path.",
+    "Resolved: the RS256 signing chain is concrete. f_109f3bb4 joins base64url header and payload with '.', hashes the signing input with ZZ0058 selector 1 (SHA-256), and calls signer vfunc+0x14 to sign the 32-byte digest; the signature is base64url-encoded by f_109f7eb8 and joined as the third segment. The concrete signer object is injected at runtime into player+0xc7c (nulled at construction, only reachable via the context copy at 0x10e13158); no static store binds its implementation.",
+    "Resolved: refresh is request-driven, not scheduled inside this code. The token-service vtable 0x10f98c84 exposes f_109f96f4 (device token) and f_109fb4d8 (guest token); each invocation builds a fresh token. The guest path first enters grant handler f_109fa93c, which enforces grant_type urn:ietf:params:oauth:grant-type:jwt-bearer and validates the presented JWT's exp presence and rexp presence/validity/expiry (provider vfunc+0x1c) before exchange; result 0x34 falls back to a fresh build. Any periodic re-mint is the caller's policy.",
+    "Resolved boundary: the concrete clock impl behind the player+0x56c0 wrapper's shared_ptr and the claims producer's class at *(player+0x9d6c)+0x12c are not statically named (embedded construction through the player-context chain); their interfaces and gating semantics are fully established by the call sites."
    ]
   },
   "muse_perf": {
@@ -252027,6 +252596,38 @@
      "build": "86.10-80260",
      "address": "0x100c8fdc",
      "notes": "Catalog refresh outcomes and install path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "route_table",
+     "address": "0x10e79544",
+     "notes": "v1 route registration table, 0x18-stride entries {char* path, u32 flags, 0, handler, 0, char* param-csv}. param-csv names the logical operation, e.g. 'playerId,upnpMusicServices,call' / 'playerId,upnpMusicServices,subscribe' / '...,renew,logicalSID' / '...,unsubscribe,logicalSID' / 'householdId,musicServiceAccounts,match|setPreferredMusicServiceAccount|getPreferredMusicServiceAccount' / 'groupId,musicServiceAccounts,startDirectControlEx|endDirectControl'. Observed flags: 0x20000101 on get-preferred (read row), 0x20000102 on mutations (match, setPreferred, reboot, subscribe, renew, direct control, disableNetwork), 0x20000108 on unsubscribe/{logicalSID} delete row; the same path appears once per method class."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100d36c0",
+     "address": "0x100d36c0",
+     "notes": "Route handler thunks are real executors, not stubs: f_100d36c0 requires arg r6!=0 (else returns 0) then tail-jumps shared executor f_100d2e18 with flag r8=0; f_100d36e4 identical but passes r8=1. Inside f_100d2e18 the flag selects the body-required check at 0x100d319c: flag set plus absent body field -> 400 via the response object. Household-qualified variants of the group direct-control routes and the upnp 'call' bridge use the body-required thunk; query-driven routes use the bodiless one."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100d2e18",
+     "address": "0x100d35a4",
+     "notes": "Shared v1 JSON executor: builds a ~0x2a00-byte request context (method/path/header buffers, refcounted shared_ptrs), accepts 'application/json' and 'application/merge-patch+json' (0x10e7bd1c), and validates the request API key via f_106d9880 against global 0x1058439c -> failure emits 'Invalid api key' with code 0x5d and HTTP 400 through f_100d23d8. Route registration therefore does establish execution: every table entry funnels into this guarded executor; per-route schema/effects are dispatched inside its data-driven core rather than as per-route static functions."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "route_table",
+     "address": "0x10e84f08",
+     "notes": "Subscription inventory confirmed in the same table: per service S (upnpAlarmClock, upnpAudioIn, upnpAVTransport, upnpConnectionManager, upnpContentDirectory, upnpDeviceProperties, upnpGroupManagement, upnpGroupRenderingControl, upnpHTControl, upnpMusicServices, upnpQueue, upnpRenderingControl, upnpSystemProperties, upnpVirtualLineIn, upnpZoneGroupTopology) the rows 'v1/players/{playerId}/S/subscription' (op 'subscribe', flags 0x20000102), '.../subscription/{logicalSID}' twice ('renew,logicalSID' 0x20000102 and 'unsubscribe,logicalSID' 0x20000108), plus household-qualified mirrors. The musicServiceAccounts rows: 'match' (0x20000102, bodiless), 'preferred' twice ('setPreferred...' 0x20000102, 'getPreferred...' 0x20000101), direct-control start/end in groups and households variants (households use the body-required thunk)."
     }
    ],
    "details": {
@@ -252037,10 +252638,10 @@
      "description": "The /customsd form configures local descriptor overrides using a CSRF token and exact URL-encoded form content type. Its accepted custom SIDs are240..253 or255. The form exposes authentication method, endpoint, resources and capabilities. An accepted descriptor update and account reconciliation request do not prove that the external service will authenticate or supply playable media. See customsd and music_service_catalog."
     },
     "modern_account_routes": {
-     "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with optional household path scope. It does not list general add/edit/remove-account routes in this resource. Nearby field strings and candidate vtables do not establish an exact request/response schema or every operation result. The household match route has nearby vocabulary userIdHashCode, nickname, serviceId, linkCode and linkDeviceId; preferred operations have accountId; direct-control start has appId/serviceId/linkCode/linkDeviceId/restartToken/accountId. These remain vocabulary, not a claim that every field is required or belongs to the request. Do not use this resource as evidence of generic JSON account CRUD."
+     "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with household-qualified path variants. Entries are real registrations: each row binds an executor thunk into shared JSON executor f_100d2e18 (API-key gate -> 400 'Invalid api key'; JSON/merge-patch bodies; bodiless vs body-required per row; household-scoped direct-control rows are body-required). get-preferred carries flag 0x20000101, mutations 0x20000102. It does not list general add/edit/remove-account routes in this resource. Param strings userIdHashCode, nickname, serviceId, linkCode and linkDeviceId; preferred operations have accountId; direct-control start has appId/serviceId/linkCode/linkDeviceId/restartToken/accountId. These name the logical operation and its parameters; they are not per-field requiredness. Do not use this resource as evidence of generic JSON account CRUD."
     },
     "modern_bridge_and_events": {
-     "description": "Recovered routes expose a player-scoped call bridge plus subscription creation, renewal by logicalSID and deletion by logicalSID, with household-qualified aliases. The bridge vocabulary includes method, input, output and headers; subscription vocabulary includes durationSecs and logicalSID. Exact schemas, lifetime bounds, callback delivery and individual action reachability still require executor binding. Catalog-change notifications and subscription management are distinct from successful service login. Do not assume a logicalSID subscription path value is interchangeable with the numeric service SID in catalog/account operations. The extracted slot+0xc candidate addresses are interface members; their presence does not prove command execution."
+     "description": "Recovered routes expose a player-scoped call bridge plus subscription rows for 15 upnp* services: 'subscription' (op 'subscribe'), and 'subscription/{logicalSID}' twice ('renew,logicalSID' flag 0x20000102; 'unsubscribe,logicalSID' flag 0x20000108), each in player and household scopes. The bridge vocabulary includes method, input, output and headers and uses the body-required executor thunk; subscription vocabulary includes durationSecs and logicalSID. Exact per-route schemas, lifetime bounds, callback delivery and individual action reachability remain inside the shared executor's data-driven dispatch. Catalog-change notifications exist as the upnpMusicServices subscription rows; subscription management is distinct from successful service login. Do not assume a logicalSID subscription path value is interchangeable with the numeric service SID in catalog/account operations."
     },
     "browse_and_playback": {
      "description": "ContentDirectory documents Browse and related object-navigation commands. Service identifier families are described by browse_ids, browse_prefixes and URI formats. load_content documents content selection and resolution, while cloud_queue and stream_fetcher describe queue-window and stream-fetch paths. Selecting or resolving an item is distinct from playback starting. Runtime service manifest consumers select radio, reporting and audiobook endpoints; endpoint presence alone is not a valid-resource or successful-fetch guarantee. See svc_manifest endpoint and playback-consumer details."
@@ -252052,10 +252653,16 @@
      "description": "reporting, scrobbler and play_history distinguish playback reports, Last.fm submissions and household history; they do not imply that every track is uploaded. Spotify records cover discovery, SDK/Connect control and service integration. Shipped TuneIn and legacy migration records describe additional integration-specific paths. Keep service-specific schemas and availability separate from generic SMAPI capabilities."
     },
     "coverage_limits": {
-     "description": "The strongest audited contracts are catalog/descriptor/manifest handling, public account wrapper validation and concrete settings delegation, custom-service HTTP submission and selected endpoint/playback consumers. Muse schemas/execution, full account persistence and direct-control effects, complete transport/retry policy, reporting triggers, service-specific authentication details and cross-build behavior still carry targeted reverse-engineering work. A route registration, string inventory or passing documentation build is not proof of those behaviors."
+     "description": "The strongest audited contracts are catalog/descriptor/manifest handling, public account wrapper validation and concrete settings delegation, custom-service HTTP submission (13-key contract, sid range, replace-by-sid registry rewrite), account-action routing internals, and selected endpoint/playback consumers. The v1 route surface is now bound to its guarded JSON executor (API-key + body contract proven); per-route schemas/effects inside the data-driven dispatch, complete transport/retry policy, reporting triggers, service-specific authentication details and cross-build behavior remain the documented static boundary. A route registration, string inventory or passing documentation build is not proof of those behaviors."
     }
    },
-   "todo": "Established: the public interface map separates audited SOAP/custom-service contracts from route/vocabulary inventories and connects all main music-service topic families. Remaining: finish the user-visible Muse schemas/results and direct-control effects, account persistence/notifications, browse/playback failures, reporting policy and service-specific authentication gaps identified in their records; verify claims against the relevant implementation before promoting inventory evidence to behavior."
+   "resolved_findings": [
+    "Resolved: route registrations in the v1 table do bind executor code. Every 0x18-byte row {path, method-class flags, handler thunk, param-csv naming the logical op} funnels through guarded thunks (arg r6 must be nonzero) into shared JSON executor f_100d2e18; the earlier 'candidate slot does not establish operation execution' note is superseded. The bodiless-vs-body-required split is per row, not per operation.",
+    "Resolved: executor-level request contract for the whole v1 surface: API key checked against global 0x1058439c -> 400 'Invalid api key' (0x5d); content types application/json and application/merge-patch+json; rows on the body-required thunk must carry a JSON body -> 400; method-class flag bits distinguish read (0x20000101), mutations (0x20000102) and the unsubscribe delete row (0x20000108).",
+    "Resolved: subscription semantics are concrete route rows, not vocabulary only: 'subscribe' creates, 'renew,logicalSID' and 'unsubscribe,logicalSID' act on the {logicalSID} row for each of 15 upnp* services in player and household scopes. logicalSID remains the subscription-path identifier and is still not interchangeable with the numeric service SID used by catalog/account operations.",
+    "Resolved: direct-control provisioning effects are documented in account_actions: internal callers synthesize the route word (object byte << 8) | 7 forcing variant 7, which selects the provisioned-add path (SD lookup, bit-0x20000 duplicate-probe gate) inside f_1028a224. Per-route request/response schemas inside the v1 executor's data-driven dispatch remain the documented static boundary rather than statically enumerable per-route functions.",
+    "Resolved: the delegated residuals this record tracked are closed in their own records: customsd (13-key form contract, sid 240..253/255, replace-by-sid registry rewrite, install and reconciliation chain), account_actions (rsid routing, SD+manifest admission gate, verb DSL, modifyAccount field contract, setAndUpdatePreferredSerialNum op). Catalog-change notification rows exist as upnpMusicServices subscription routes; browse/playback and reporting behavior stay bounded by their own records' findings."
+   ]
   }
  },
  "muse": {
