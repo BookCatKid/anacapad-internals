@@ -215039,7 +215039,7 @@
    "consumers": "entitlements feed RRuntimeZPPolicy (ctor \"Cannot construct RRuntimeZPPolicy [localSettingsMgr=%s,entitlementsMgr=%s]\"): findEntitlementByType(mgr, 2=SFB_MVP) writes isBusinessSubscriber byte@+0x148; changes log \"isBusinessSubscriber has changed\" and reevaluate <Policies> (Line In @+0x14a). The SFB_MVP entitlement also gates Sonos Radio preinstall in startup flow f_0x101b869c (\"found SBiz entitlement; blocking preinstall\" vs \"no SBiz entitlement; preinstalling\"). ENTITLEMENTS_CHANGED (event types 6 and 1) handler f_0x10371d5c rechecks SONOS_RADIO (key 1) and schedules reconsider jobs for Sonos Radio (f_100b950c) and Sonos Business MSP (f_100b952c) via singleton 0x11095f8c. Staleness triggers a refresh job (\"stale entitlements; scheduling job to refresh\"); on change the old set is stashed for diffing (\"stashed existing entitlements to compare later\"); internal subscribe verb internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED into the muse bus; cache lifecycle: \"TTLs updated on refresh (data is unchanged)\" / \"cache re-populated on refresh\" / \"Cache format unexpected\"/\"Corrupt Cache\" -> cloud refetch.",
    "record_schema": "<Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>: proven literal; entitlement = {type, isTrial, sku, startDate, endDate, codes}",
    "known_entitlement_types": "type ordinals proven from two-name enum table at 0x10f99abc: SONOS_RADIO=1, SFB_MVP=2 (f_10a08844 id->name, f_10a08868 name->id; both stride-12 rows over base 0x10f99ab0). Codes (capability categories) proven from nineteen-name table at 0x10f99838: SRADIO_NO_ADS..SRADIO_CAN_SKIP=1..5, SFB_BASIC_UI..SFB_SCHEDULES_ACCESS=6..19 (f_10a08720 id->name, f_10a08744 name->id). businessCore/controlChannels/restrictedAccess/sonosRadio at 0x10f9b91c-0x10f9b940 are a separate four-field capability schema, not type values; credentialTypeAllowed, allowGuestAccess and restUrl at 0x10f9b7e4-0x10f9b804 are sibling cloud-record fields. The earlier type vocabulary claim mixing these name sets was wrong and is corrected here.",
-   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement→policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
+   "runtime_zppolicy": "RRuntimeZPPolicy (runtime_zppolicy.cxx) (the entitlement\u2192policy gate engine. Emits <Policies> XML: {Business subscriber, Cloud Schedule, Effective P2P policy is encrypted, Guest Access Enabled, Unathenticated Control Enabled [sic) binary typo], Insecure UPnP Allowed, Auth Pin Set, Thor Timeout}. Policy state enum: UNDEFINED / ENABLED_AVAILABLE / ENABLED_UNAVAILABLE / DISABLED_AVAILABLE / DISABLED_UNAVAILABLE. CloudSettings JSON (eTag-cached, cacheStatus=get_status_fresh) supplies usageContext=BUSINESS + scheduledChangeValue + the actual gates: enableContentAccess, allowDirectControl, allowLineIn, allowAirplay: a business system can have its content access, local control, line-in and AirPlay disabled by cloud policy on a schedule. Change events: 'isBusinessSubscriber has changed' / 'Line In policy has changed' / 'Business Cloud Schedule has changed' -> 'Reevaluating runtime policies'.",
    "resolved_findings": [
     "Resolved: entitlement schema = cloud-fetched entitlements doc over /entitlements/api with X-Sonos-User-Id header, etag+cache-control cached; internally savePendingEntitlementsLocked -> notifyClients -> version-changed muse event; gate call sites are the featureConfig*/entmt checks guarding cloud features; errors rc/http logged as cloud entitlements: rc %d, http %d.",
     "Schema + gate points closed: cloud document fetched over /entitlements/api with X-Sonos-User-Id and ETag/cache-control caching through HTTPCacheManager (Corrupt Cache -> cloud refetch). Record schema literal: <Entitlements><Entitlement type=\"%s\" isTrial=\"%s\" sku=\"%s\" startDate=\"%s\" endDate=\"%s\" codes=\"%s\"/></Entitlements>; type vocabulary {SBiz,businessCore,sonosRadio,controlChannels,restrictedAccess} + fields {credentialTypeAllowed,allowGuestAccess,isTrial,startDate,endDate}. Muse surface locally served: getEntitlements/getUserEntitlements answered from cache; internalMuseSubscribeToEntitlements wires ENTITLEMENTS_CHANGED. Pipeline: fetch -> cache -> entitlements for \"%s\" changed -> savePendingEntitlementsLocked -> notifyClients -> version-changed muse event, with stash-compare diffing and staleness re-fetch. Gates: RRuntimeZPPolicy ctor requires [localSettingsMgr,entitlementsMgr]; SBiz presence gates Sonos Radio preinstall; BUSINESS usageContext supplies the CloudSettings gates.",
@@ -230976,15 +230976,141 @@
      "build": "86.10-80260",
      "address": "0x1055f358",
      "notes": "Collection scan and bytes+0x31/+0x30; missing-both returns1000 at0x1055f3e0, scan success/empty returns0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072fd50",
+     "notes": "Alternate session call: builds the shared request through f_106fe328 with ns 'urn:schemas-upnp-org:service:MusicServices:1' and action 'GetSessionId', adds literal ServiceId/Username children, binds SessionId to caller (dest,cap) through f_10562fc0+f_1056157c, executes f_106ff03c and stores elapsed req+0xc6b0 to this+0x668."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107252b4",
+     "function": "0x10724f50",
+     "notes": "Gate to the alternate path: lbz 0x110a9af4 nonzero plus caller arg3==0 selects it. It constructs provider-state object f_1072f854, then calls f_1072fd50(obj, *(provider+0x13b0), provider+2, userOut, 0x101) at 0x10725300. Provider-state ctor memsets +0x8/+0xc8/+0x1a9/+0x269 (0xc0 each) and +0x33c (0x306 = six 0x81 header slots), sets +0x648/+0x64c=0x7d0 timeouts and installs vtables 0x10f10cfc/0x10f10d9c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10719e60",
+     "notes": "Sole code that forms address 0x110a9af4: strlcpy(global+0x44,arg1,0xc0), strlcpy(+0x104,arg2,0xc0), strlcpy(+0x1c4,arg3,0x21). No bl/b caller, no data pointer and no formed address of 0x10719e60 in this build, so the alternate-path gate byte stays its BSS zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072a124",
+     "notes": "getMediaURI retry wrapper: calls builder f_10728dc8; result 0x3fc(1020) or 0x40d(1037) re-issues the same 14-arg call once when stack byte sp+0x83 is zero (0x1072a274); either attempt ending 0x3f4(1012) runs session-record invalidation f_10719d5c(global+0x288, *(provider+0x13b0), provider+2) at 0x1072a29c; all other results return unchanged."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10726764",
+     "function": "0x107266a0",
+     "notes": "getContentKey wrapper shares the retry contract: 0x3fc/0x40d reissues f_10725a88 via tail call at 0x107267c4. Identical pairs sit atop reportAccountAction 0x10726be4->0x10726c2c, reportPlayStatus 0x10727160, reportPlaySeconds 0x10727784, setPlayedSeconds 0x10727d50, reportStatus 0x107281e4, getStreamingMetadata 0x107288e8, getUserInfo 0x10728d7c, getMetadata 0x1072b290->0x1072b344, search 0x1072bb10, getMediaMetadata 0x1072c2a8->0x1072c2fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10725a88",
+     "notes": "getContentKey builder: credentials via f_10724d78, request elements id+uri, result bindings deviceSessionToken, deviceSessionKey (CK_deviceSessionKey), contentKey (CK_contentKey with algorithm,keySize,value,expiration), httpHeaders, mediaRequestInfo. Post-execute runs f_1071fc90 'cached %u:%u', key unpack f_10716a08 and f_1072594c refresh; lazy singleton 0x11096a38 initialized with refcounting and __cxa_atexit 0x101a0f88."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072594c",
+     "notes": "Token-refresh commit worker: descriptor caps bit 0x8 at provider+0x13ac gates the whole body (clear returns 1000). On arg!=0 it calls f_1071eb5c(arg+0x28,arg+0x829) which logs 'Null or empty token/key for token refrsh - ignored' on empty input, then f_1071e6f4(*this+0xc, arg+0x102c); tail calls refreshAuthToken f_10725488 at 0x10725a54; logs 'Token refresh for service: %s, res: %hu'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10719d5c",
+     "notes": "Session invalidation under f_10988564/f_10988990 lock: scans the record array (stride 0x10c) matching arg4 serviceId and arg5 name via f_10906404 and zeroes the record +0x108 word on match. Called on result 1020 paths and by the getMediaURI 1012 hook."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10720410",
+     "notes": "Provider-list update after refresh: walks the global+0x1f0 list (nodes chained at +0x1410, registered by f_1071e01c), finds node with +0x13c8==serviceId and +0x1284==arg5, stores flag byte arg6 to node+0x18 under node+0x1538 lock."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072c264",
+     "function": "0x1072bbb0",
+     "notes": "In-builder 1037 handling: after f_1072594c refresh and f_10720410 update, refresh result==0 resumes cleanup path at 0x1072c05c; refresh result==1037 is logged at level5 and returned. Same shape at 0x1072b1d0 (getMetadata) and 0x1072ba70 (search)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10726c30",
+     "notes": "reportPlayStatus element gating: 'contextId' added only when descriptor caps bit 0x80000 set (andis. 0x8 at 0x10726ff8); 'offsetMillis' added only when provider byte+0x18 nonzero, value set from this+0x10/+0x14 through f_1055fd2c. Single f_106ff03c execute at either 0x10726f5c or 0x10727060; on 1037 calls f_1072594c then exits."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072c628",
+     "notes": "getAlbumArtURI is realized through getMediaMetadata: wraps a post-processor object (vtable 0x10f0e5f4 -> f_1072d0b8) with caller URI output and calls shared retry wrapper f_1072c284; logs 'getAlbumArtURI failed for %s, ret = %hu' on nonzero. No distinct wire action."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10728dc8",
+     "notes": "getMediaURI builder: credentials, 'id' element, raw header 'X-Sonos-Playback-Id: %s' via snprintf+f_106fd270 at 0x10729ca8; result bindings getMediaURIResult, deviceSessionToken, deviceSessionKey (MU_deviceSessionKey), contentKey (MU_contentKey), contentKeys, httpHeaders, uriTimeout, positionInformation, privateDataFieldName; post-execute session cache f_1071fc90, key unpack f_10716a08, 'reset session %u:%u' f_10720028 and refresh f_1072594c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104ab388",
+     "notes": "Playback-side getMediaUri worker calls retry wrapper f_1072a124 three times, logs 'getMediaUri: %d', 'URI expires in %us' and 'dereferenced to: %s'; f_1072a124 forwards all args to builder f_10728dc8 and applies the retry/teardown contract."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3ba54",
+     "notes": "Result-class test returning 1 for codes 1042..1045 (code-0x412 unsigned<=3 via isel); used by builders to detect the credential-state result range."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1109790c",
+     "notes": "Hook singleton consumed by alt-path helpers f_106fb140 (vfunc+8), f_106fb0a0 (vfunc+0x10 into req timeouts) and f_106fb848 (vfunc+0x14 token string for req+0xa2a cap0x11); sole static writer f_106fc7b4 at 0x106fc7bc, called once from f_1068f548, so the provider is installed at runtime."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f10cfc",
+     "notes": "Alt-path provider-state vtable: +0x8 f_1072f974 'UpdateAvailableServices', +0xc f_1072fd50 GetSessionId, +0x10 f_1072fb1c 'ListAvailableServices', +0x14 f_1072f6c4; UPnP MusicServices:1 method set, not Services/1.1."
     }
    ],
    "protocol_info": "protocolInfo CSV {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:{audio/mpeg3,audio/wma,audio/wav,audio/aiff,audio/flac,application/ogg,application/dash+xml,application/octet-stream}:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*}; exts {.aiff,.flac,.unknown}; audio/vnd.radiotime; \"Unsupported mime type (%s) for object id (%s)\"",
    "resolved_findings": [
     "Resolved: getMediaURI envelope = the Services/1.1 namespace action {getMediaURI} built like getSessionId/getStreamingMetadata siblings, protocol_info sub-block holds the wire form.",
     "getMediaURI end to end proven: the client issues the SMAPI action (namespace http://www.sonos.com/Services/1.1) and logs getMediaUri: %d result codes; the returned URI is dereferenced (dereferenced to: %s) into a streamable URL with expiry tracking (URI expires in %us). Content gate: Disallow playback of Spotify Free content from Sonos queue - account-tier enforcement on the enqueue path. Metadata side: streamingMetadataCache caches responses; get metadata for %s fetches per-item; each item carries a playback window %d: StartTime: %s %dms - %ums %s and a metadata reference time (Setting metadata reference time %s at %ld / Rejecting invalid stream metadata reference time %s). Bonus adjacent: the sound_swap satellite checker + group-modify muse ops {groups/%s/groups/setGroupMembers -> museCmdSetGroupMembers, groups/%s/groups/modifyGroupMembers -> museCmdModifyGroupMembers} with isFound = %i. isHTSat = %i. playerUDN = %s. HTPrimaryUDN = %s and GC property guards.",
-    "Provider session binding is static: constructor f_10723e90 installs embedded vtable 0x10f0e730 at this+0x13d4; f_1071e01c stores this+0x13d4 at this+0x13d0. The account worker loads that member and invokes slot +0x0c, whose entry is f_10724f50. Its normal path builds an outbound Services/1.1 getSessionId request with username and password, binds getSessionIdResult into a 257-byte output buffer and executes f_106ff03c. A feature byte at 0x110a9af4 and zero third argument select an alternate f_1072fd50 path. The account worker always passes zero for that third argument."
+    "Provider session binding is static: constructor f_10723e90 installs embedded vtable 0x10f0e730 at this+0x13d4; f_1071e01c stores this+0x13d4 at this+0x13d0. The account worker loads that member and invokes slot +0x0c, whose entry is f_10724f50. Its normal path builds an outbound Services/1.1 getSessionId request with username and password, binds getSessionIdResult into a 257-byte output buffer and executes f_106ff03c. A feature byte at 0x110a9af4 and zero third argument select an alternate f_1072fd50 path. The account worker always passes zero for that third argument.",
+    "SMAPI action census complete: exactly 15 Services/1.1 wire actions are built by dedicated functions - getSessionId f_10724f50, refreshAuthToken f_10725488, getContentKey f_10725a88 (previously unlisted: request id+uri, response deviceSessionToken/deviceSessionKey/contentKey/httpHeaders/mediaRequestInfo), reportAccountAction f_107267c8 (type), reportPlayStatus f_10726c30 (id,status,contextId gated by caps 0x80000, offsetMillis gated by provider byte+0x18), reportPlaySeconds f_107271c4 (id,seconds,contextId,privateData,offsetMillis; response interval), setPlayedSeconds f_107277f4, reportStatus f_10727db4 (id,code,message), getStreamingMetadata f_10728248 (id,startTime,duration; response startTime,duration,segmentMetadata), getUserInfo f_10728964, getMediaURI f_10728dc8, getMetadata f_1072a9b4 (id,index,count,recursive; response count,index,total,positionInformation,mediaCollection,mediaMetadata), search f_1072b348 (id,term,index,count; response count,total,mediaCollection,mediaMetadata), getMediaMetadata f_1072bbb0 (id; response mediaMetadata). getAlbumArtURI is not a wire action: f_1072c628 delegates to the getMediaMetadata wrapper f_1072c284 with a metadata post-processor (vtable 0x10f0e5f4).",
+    "Retry/error contract established: every action sits under a fixed wrapper that reissues the identical call exactly once when the builder result is 1020 or 1037 (tail-call sites 0x107267c4,0x10726c2c,0x1072c2fc,0x1072b344 and siblings); getMediaURI wrapper f_1072a124 additionally requires a caller stack byte to be zero before its single retry and maps a final 1012 to session invalidation. Inside builders, result 1037 runs token refresh f_1072594c (descriptor caps bit 0x8; internally calls refreshAuthToken f_10725488 at 0x10725a54, commits through f_1071eb5c/f_1071e6f4 and ignores empty token/key) followed by provider-flag update f_10720410 (sets node+0x18 on the global provider list by serviceId match). Result 1020 runs flag-gated session invalidation f_10719d5c, which zeroes the +0x108 word of the matching (serviceId,name) record under lock. The HTTP layer itself has no retry: the executor makes one poll loop run per call.",
+    "Alternate session path f_1072fd50 resolved and bounded: it issues a UPnP GetSessionId in namespace urn:schemas-upnp-org:service:MusicServices:1 (ServiceId=*(provider+0x13b0), Username=provider+2, SessionId->caller cap0x101) over the same shared HTTPS executor and request vtable, wrapped in the provider-state object whose vtable also exposes UpdateAvailableServices/ListAvailableServices. It is selected only when global byte 0x110a9af4 is nonzero and the worker arg3 is zero. The byte's only writer f_10719e60 (strlcpy to global+0x44/+0x104/+0x1c4) has no caller, no data pointer and no formed address in this build, so the UPnP path is unreachable in 86.10-80260.",
+    "Prior getMediaURI claims verified against control flow: the playback worker f_104ab388 calls retry wrapper f_1072a124 (which forwards the 14-arg call to builder f_10728dc8) and logs 'getMediaUri: %d', 'URI expires in %us', 'dereferenced to: %s'; the builder sends the Services/1.1 getMediaURI action with an 'id' element and an X-Sonos-Playback-Id raw header and binds getMediaURIResult plus deviceSessionToken, deviceSessionKey, contentKey, contentKeys, httpHeaders, uriTimeout, positionInformation and privateDataFieldName, then feeds session fields to the media-sens cache (f_1071fc90 'cached %u:%u', f_1071fe70 'loaded %u:%u', f_10720028 'reset session %u:%u') and the content-key unpack/decrypt path f_10716a08.",
+    "Transport and acceptance boundaries confirmed closed: URI parse/scheme gate (f_1053b4a4), resolution (f_1054a158 selector semantics), socket/connect/TLS handshake/send/receive/close states (f_1053a060 loop, f_10539c64, f_10538918/0x10538998 interest, f_10539e78/f_10539e04 event dispatch, f_10539bd8 bio, f_10539a80 handshake, f_10539304/f_105399d8 drivers, f_105393a4 close_notify) are instruction-traced in details records; parser+0x2e2/+0x2e4 and descriptor+0x30/+0x31 writer census and the full Envelope/Body/Fault/response acceptance grammar are recorded in soap_result_acceptance; request flag writers +0xa44..+0xa48 census is in request_transport_flags."
    ],
-   "todo": "Established: GetSessionId provider binding, getDeviceAuthToken construction, credential/certificate and raw-header gates, preflight/header formatting, shared serializer/status callbacks, poll/deadline loop and response-result scan are instruction-traced. Remaining: reverse URI resolution and socket/TLS/connect/send/receive states, parser/descriptor flag writers and complete XML acceptance, every retry/error mapping and alternate session path f_1072fd50; audit all other SMAPI actions and prior getMediaURI claims against control flow, including authentication, caching, content keys and reporting.",
    "details": {
     "device_auth_token": {
      "description": "f_1072a2a4 implements getDeviceAuthToken in namespace http://www.sonos.com/Services/1.1. Descriptor auth byte+0x12c must be<=4 and its table value at0x10f0e4a4 must equal2; table values are {3,3,1,2,2}, admitting DeviceLink3 and AppLink4 and rejecting other or out-of-range methods with1000. It expands descriptor SecureUri+0x20 into a128-byte buffer and constructs a credentials element. Shared helper f_1071f0c0 can return a setup error that exits before transport. A login child containing username and password is added only when both supplied strings are non-null and nonempty. The body always binds householdId; linkCode, linkDeviceId and callbackPath are included only for non-null, nonempty inputs. The response binding selects getDeviceAuthTokenResult and binds authToken and privateKey directly to caller destinations with caller capacities through f_1056157c; nested userInfo uses a parser object whose output pointer is the supplied userInfo destination. f_1056157c stores the destination/capacity, sets type7, zeroes its write count and flag, but does not itself establish missing-field or overflow policy; that policy lives in the shared sink machinery below. Remaining decoded behavior: a caller-supplied extra blob (arg16) is appended to the request object through f_106fd338 before headers. Parameter order is (desc, householdId, credArg, linkCode, linkDeviceId, callbackPath, authTokenDest, authTokenCap, privKeyDest, privKeyCap, userInfoDest, username, password, extraBlob) where userInfoDest lands at parser+0x25f4. When descriptor caps+0x130 has bit0x40, global interface0x11097928 slot+0x28 writes a manifest header (cap0x81) that reaches f_1071e208 as rawHeader. Request-side text is XML-escaped by f_105779c8 (a vtable slot of the element/attribute writer classes at0x10eeed44-0x10eeedb4), replacing & < > \" ' with &amp; &lt; &gt; &quot; &apos;. The response binding selects getDeviceAuthTokenResult and binds authToken and privateKey directly to caller destinations with caller capacities through f_1056157c; nested userInfo uses a parser object (vtable0x10f0e534) whose fields are userIdHashCode cap0x101, nickname cap0x41 and accountTier cap0x21, each copied at element end by dispatch f_10718760 through bounded-copy f_10906304 (NUL-terminates, truncates at cap-1, null src or cap<2 clears dest). Its shared startElement f_107188a4 also consumes attributes requiresAuthentication (strcasecmp 'true' or leading '1'), stringId cap0x40 and xml:lang cap5 on recognized children, binds an 0x2001-byte scratch type7 sink for element text, and swallows unrecognized children into the same scratch while flag+0x248d suppresses text routing. Response acceptance: sink text append f_10560708 copies entity-decoded text byte-wise while count<cap with no NUL; element-end finalizer f_10560a58 then writes dest[count]=0 when count<cap else forces dest[cap-1]=0 and sets flag+0x31, so oversize strings truncate silently and stay terminated. StartElement lookup f_1055f9cc rematches the same slot on every occurrence without resetting count, so repeated authToken/privateKey elements concatenate into the destination until the cap; repeated userInfo fields last-win because each endElement recopies scratch. A missing element leaves the caller destination entirely untouched (no write, flag+0x31 stays0), so callers must pre-clear or test emptiness. Types1-6 sinks convert accumulated text through strtol/strtoul/strcasecmp('1','true','yes') at finalize; the worker installs no fault sink, fault handling lives in the shared engine. The request executes through shared HTTPS executor f_106ff03c (mbedtls_ssl_write/read with send() fallback, URI scheme checks for 'https://'/'tunnel'/'secure'/'loopback', 'control_client' logging, sonosClockGetTime timing); a nonzero status is logged '%s: %s#%s failed, ret = %hu' with level3 for ret>0x40d else level5 and returned unchanged after teardown, with no clearing of partially filled outputs. Callers:0x101b8f6c in f_101b869c (zpsa provisioning; stack outputs authToken cap0x801 and privKey cap0x801, userInfo stack object, username/password stack buffers, f_10674084-formatted extra blob, no link args); 0x10286f40 and0x10287000 in f_10286e44 (session wrapper forwarding caller buffers; second site is behind a clock_gettime elapsed-interval gate, rate-spacing repeats); 0x1028b0f8 in f_1028ad54 ('Failed to preinstall service' path; descriptor member+0xb0 as credArg, caps0x801). There is no independent authToken/privateKey nonempty check in this outer worker.",
