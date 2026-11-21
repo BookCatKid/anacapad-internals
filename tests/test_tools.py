@@ -539,11 +539,19 @@ class TodoPolicyTests(unittest.TestCase):
         resource = self.doc["muse"]["resources"]["musicServiceAccounts"]
         page = self.pages["muse/resources/content.md"]
         self.assertIn(resource["description"], page)
-        self.assertIn(resource["todo"], page)
+        todo = resource.get("todo")
+        if todo is None:
+            # Resolved record: it must drop out of the open-work index.
+            self.assertNotIn(
+                "muse resource [`musicServiceAccounts`]",
+                self.pages["subsystems/open-work.md"])
+        else:
+            text = todo if isinstance(todo, str) else "\n".join(todo)
+            self.assertIn(text, page)
+            self.assertIn(
+                "muse resource [`musicServiceAccounts`]",
+                self.pages["subsystems/open-work.md"])
         self.assertIn("0x10b01aac", page)
-        self.assertIn(
-            "muse resource [`musicServiceAccounts`]",
-            self.pages["subsystems/open-work.md"])
 
     # -- helpers ----------------------------------------------------------
     def _incomplete(self, o, path="", _in_skipped=False):
