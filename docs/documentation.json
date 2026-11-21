@@ -211149,15 +211149,15 @@
    ]
   },
   "platform_details": {
-   "notes": "Platform descriptor files, seven-field MoreInfo device status, and a separate audioctl diagnostic/output chain. KV entries use name:value. The boot diagnostic removes an optional U-Boot prefix;17.2.7 is a copied output literal, not a version gate.",
+   "notes": "Platform descriptor files, seven-field MoreInfo device status, and a separate audioctl diagnostic/output chain. KV entries use name:value. Only TargetRoomName is produced locally (two producers incl. settings key 0x40003); battery fields arrive only via remote record replication and are stored opaquely; SPID/BtSrcName have no local consumers. Change fanout: member-record copy plus in-process TopologyZpListChangedEvent plus UPnP notifyClients. The boot diagnostic removes an optional U-Boot prefix;17.2.7 is a copied output literal, not a version gate.",
    "build": "dual toolchain: crosstool-NG 1.24.0 GCC 5.5.0 objects + legacy GCC 4.3.2 objects (.comment); debuglink 'anacapad' CRC32 0xd61b897d; PPC EMB apuinfo present; patched-GCC __ptr_guard wrappers + ZZxxxx scrubbed ordinals (see linked_libraries)",
-   "todo": [
-    "Established: platform files/53-flag vocabulary; all seven MoreInfo keys, parsing/storage/duplicate behavior, serializer ordering and escaping, truncation and one-byte escape cycle, outgoing MoreInfo element, battery cache/default/CHARGING consumers, local TargetRoomName set/clear and local-only topology update; boot diagnostic prefix selection and copied17.2.7 literal corrected. Remaining: trace SPID/BtSrcName consumers, battery producer domains and temperature scale, remaining room-name effects and deeper topology notification calls0x10766064/0x1067c6ec; join other platform-output helpers independently rather than treating diagnostic labels as hardware validation. Follow each producer/consumer before removing this TODO."
-   ],
    "keys_read": "The recovered parser matches exactly SPID, RawBattPct, BattPct, BattChg, BattTmp, TargetRoomName and BtSrcName using the table0x10ef33f0. These are device-status strings, not manufacturing serial/fuse keys. Received data at source+134 is parsed at0x10763504; numeric battery fields and the exact CHARGING string update cached receiver fields. A separate local producer updates TargetRoomName at0x105b8530. Manufacturing identity/fuse layouts are documented independently in mdp_flash/bin_mdputil; this parser does not establish any bootloader-version or OTP gate.",
    "resolved_findings": [
     "The seven-key schema and concrete battery receiver are now recovered. The parser consumes colon-separated device-status fields and is distinct from boot environment/manufacturing metadata. See kvpair_contract for parsing, owned string storage, duplicate handling and consumer behavior.",
-    "Resolved: the unit's platform descriptor ships in the rootfs - /etc/arch = 'limelight', /etc/soc_arch = 'limelight', /etc/arch_attrs = the 53-flag capability set {HAS_ORIENTATION_SENSOR,HAS_TV_INPUT,IS_CEP20,IS_HARDWARE,IS_HT_SOURCE,IS_HT_WIRELESS_PRIMARY,IS_STILL_MANUFACTURED,IS_ZONE_PLAYER,LEGACY_BACKTRACE_SUPPORT,MIGHT_SUPPORT_S1} + LACKS_{ASAN,AUDIO_ENCRYPTION,BUTTONS_KERNEL_MODULE,CLOCK_BOOTTIME,DIAGS_BUILD,DSMF,DYNAMIC_DSP,HEAPTRACK_SUPPORT,KERNEL_SECTION_HEADER,LKDTM,MIXER_STATS,MPEGDASH,NATIVE_WAC,OPUS,SETUP_PIN,STACK_USAGE,TSAN,UBSAN,WIDEVINE} + SUPPORTS_{ATHEROS_DIRECT_ATTACH,AUDIODEV,AUDIODEV_SENSOR_EVENTS,CHANNEL_SCAN,CHIRP_ROOM_DETECTION_SEND,CLONE_CHECK,CPU_TEMP_REPORT,DOLBY,DTS,DUAL_SUBS,EXTERNAL_EVENTS,FFMPEG_WMA,HWEVTQ,RDM,RX_HANG_CHECK,SOUNDSWAP,STATION,SYSSW_HAL,TXRX_STATS,V2_CERTS,VLI,WIRELESS_DISABLE,WIRELESS_SETUP} + USES_{LLA,LONG_AMP_POWER_TIMEOUT} - the arch-attr vocabulary the feature_config flags gate against."
+    "Resolved: the unit's platform descriptor ships in the rootfs - /etc/arch = 'limelight', /etc/soc_arch = 'limelight', /etc/arch_attrs = the 53-flag capability set {HAS_ORIENTATION_SENSOR,HAS_TV_INPUT,IS_CEP20,IS_HARDWARE,IS_HT_SOURCE,IS_HT_WIRELESS_PRIMARY,IS_STILL_MANUFACTURED,IS_ZONE_PLAYER,LEGACY_BACKTRACE_SUPPORT,MIGHT_SUPPORT_S1} + LACKS_{ASAN,AUDIO_ENCRYPTION,BUTTONS_KERNEL_MODULE,CLOCK_BOOTTIME,DIAGS_BUILD,DSMF,DYNAMIC_DSP,HEAPTRACK_SUPPORT,KERNEL_SECTION_HEADER,LKDTM,MIXER_STATS,MPEGDASH,NATIVE_WAC,OPUS,SETUP_PIN,STACK_USAGE,TSAN,UBSAN,WIDEVINE} + SUPPORTS_{ATHEROS_DIRECT_ATTACH,AUDIODEV,AUDIODEV_SENSOR_EVENTS,CHANNEL_SCAN,CHIRP_ROOM_DETECTION_SEND,CLONE_CHECK,CPU_TEMP_REPORT,DOLBY,DTS,DUAL_SUBS,EXTERNAL_EVENTS,FFMPEG_WMA,HWEVTQ,RDM,RX_HANG_CHECK,SOUNDSWAP,STATION,SYSSW_HAL,TXRX_STATS,V2_CERTS,VLI,WIRELESS_DISABLE,WIRELESS_SETUP} + USES_{LLA,LONG_AMP_POWER_TIMEOUT} - the arch-attr vocabulary the feature_config flags gate against.",
+    "Downstream fanout of a changed local MoreInfo is now recovered. updateLocalMoreInfo0x1074facc re-serializes the seven-slot cache into 512 bytes, resolves the member record by UUID through the registry at this+0x5a8 (f_10765a00), logs 'informReplicatedSettingsChange updateLocalMoreInfo: %s uuid %s not local or was not found' on domain 'topology' followed by RabortIfUnlocked when the record is missing or not flagged local (record+0x14f8), and only on a changed strcmp result copies the new text over record+0x95c. It then runs two notification paths: (a) f_10766064 posts an in-process TopologyZpListChangedEvent: it marks the pump bytes+0x10/+0x11, logs 'Change in event loop detected' and 'Queued %s(%u) from \"%s\" : { %s }' on domain 'inprocess-events', links refcounted event nodes (vtables 0x10e87548/0x10e87564, payload object vtable 0x10e86f94) onto the global subscriber lists at 0x11096768 and 0x11096760, atomically increments the generation counter at 0x11096348, writes the event name string into the global named-property hub 0x110ba798 under the zone-UUID key (f_10bbca78) plus a 16-bit type tag 4 (f_10bbd280), and invokes registered subscriber callbacks through f_100f14ec; (b) f_1067c6ec tail-calls f_1067c46c, the UPnP event source's notifyClients on the embedded source object at this+8: it latches pending byte+0x110 (logging 'notifyClients(%s)' on 'upnpeventing' only on the 0->1 transition), takes an atomic reference on the notification sender at +0xb8, and wakes the dispatcher at +0xb4 through f_10678c50, which sets dispatcher byte+0x10e and pthread_cond_signals the condition variable embedded at dispatcher+0xb8. With no sender it logs 'Event source %s has no notification sender' at level 3.",
+    "A second local TargetRoomName producer is bound: virtual slot 41 (vtable 0x10ebc630, entry at 0x10ebc6d4) f_1035f698 fetches replicated-settings key 0x40003 through the settings handle at this+0x950 (vfunc+0x24 getter into a 65-byte buffer); a nonempty result is written into cache index5 via f_105bc23c and updateLocalMoreInfo runs unconditionally afterwards, so an absent/empty property still fires the comparison path. The function then registers the change with the in-process subject observer set (header literal '../recipe-sysroot/usr/include/sonos/inprocess-events/subject.h' at 0x10e86c88). The larger producer ~0x105b79a8 fetches sibling settings keys 0x40000 (f_10bf3070), 0x40001 (f_10bf3070, 129-byte buffer) and 0x40002 (f_10bf2d28), additionally calls the UPnP notifyClients thunk f_1067c6ec(this+8) directly at 0x105b8328, and pushes the values into virtual sinks on this+0x964 (vfunc+0x40) and this+0x960 (vfunc+0x24). Byte+0x94c on the zone object is the 'MoreInfo dirty' marker: set by the room-name producer at 0x105b84fc and cleared at 0x105b6418 after the outgoing MoreInfo element finishes rebuilding.",
+    "Consumer inventory for the seven keys is complete and mostly negative. The only users of accessors f_105bc384/f_105bc398 sit inside the remote-record merge f_10762f64: indices1/2/4 become ints at record+0x2544/+0x2548/+0x254c and index3's string drives byte+0x2550. SPID(index0), TargetRoomName(index5) and BtSrcName(index6) are never read back through any accessor; they persist only inside the raw +0x95c/+0x134 status text and are re-serialized. The numeric setter f_105bc2f8 has no callers, and no local code path writes cache slots0-4 or6, so this limelight unit never originates battery data or a Bluetooth source name: producers of those keys are the remote zone players whose status lists replicate in through f_10762f64 (called from ~0x107639bc, which copies remote string fields with strlcpy caps such as 0x41). Both member-record constructors ~0x10762464 and ~0x107628c4 initialize the battery fields to -1, distinct from the wire-absent sentinel -100. BattTmp is carried as an opaque signed 32-bit integer end to end: the marshal copies at ~0x102c9894/~0x106cfbf8 and the record clone ~0x103da928 move it without any scale conversion or threshold, so its unit is defined by the producing node, not by this binary."
    ],
    "kvpair_contract": {
     "schema": [
@@ -211201,7 +211201,10 @@
     "escape_boundary_cycle": "At0x10c39b84 cmplwi cr0,r10,1 records whether exactly one output byte remains before the reserved terminator. Comma or backslash branches to0x10c39bf0. Raw word0x41a2ff88 is BO13/BI2, branching on CR0.EQ back to0x10c39b78. That path performs only comparisons/branches and does not change input pointer, output pointer, remaining count or character. With remaining1 and a nonzero comma/backslash, it repeats indefinitely. A raw-word branch walk verified the cycle for both bytes44 and92. This is static binary verification, not a reproduced live-device hang. Other ordinary characters can consume the final available byte and then stop normally.",
     "outgoing_moreinfo": "Device-description emitter0x105b6370..0x105b63b0 opens MoreInfo, serializes cache object+994 into512-byte stack output at0x105b6394, emits the text via0x10676cf8 and closes the element. Thus the status list is an outgoing MoreInfo value, not a boot-environment string. The receiver already documented consumes the corresponding list at source-record+134.",
     "local_topology_update": "Function0x1074facc is named updateLocalMoreInfo by its diagnostic at0x10f12188. It takes the topology lock at manager+318, serializes the supplied container into512 bytes, and looks up the UUID through0x10765a00 on manager+5a8. Missing record or local byte+14f8 clear logs uuid not local or was not found and calls RabortIfUnlocked; it does not update that record. For a found local record, equal text at+95c does nothing. Different text is copied with strlcpy512, invokes0x10766064 on the table, then0x1067c6ec on manager+8 before releasing the lock. Deeper notification effects remain untraced; the change gate and local-only cached update are proven.",
-    "battery_numeric_examples": "The battery receiver therefore accepts decimal+12, leading-whitespace12,010 as decimal10, negative values and the signed32-bit endpoints when conversion succeeds. It rejects12 followed by whitespace,12x,0x10 and2147483648. No0..100 percentage clamp occurs in the parser/accessor/receiver chain. Parsed-100 is intentionally skipped by the consumer even though the parser accepts it; invalid syntax also falls back to-100. Producer ranges/temperature scale remain open."
+    "battery_numeric_examples": "The battery receiver therefore accepts decimal+12, leading-whitespace12,010 as decimal10, negative values and the signed32-bit endpoints when conversion succeeds. It rejects12 followed by whitespace,12x,0x10 and2147483648. No0..100 percentage clamp occurs in the parser/accessor/receiver chain. Parsed-100 is intentionally skipped by the consumer even though the parser accepts it; invalid syntax also falls back to-100. Producer ranges/temperature scale remain open.",
+    "consumers": "Accessor consumers are confined to the remote-record merge f_10762f64: RawBattPct->+0x2544, BattPct->+0x2548, BattTmp->+0x254c, BattChg string->byte+0x2550. SPID(0), TargetRoomName(5) and BtSrcName(6) have no accessor consumers in this binary; they live only inside the raw status text and the outgoing serialization. The battery fields flow onward only through bulk marshal copies (~0x102c9894, ~0x106cfbf8) and the record clone ~0x103da928; no conversion, comparison or display path for them exists here, and BattTmp's unit is producer-defined. Locally the only populated slot is index5 (TargetRoomName): producers 0x105b8530/0x105b86b0 inside ~0x105b79a8 and settings-key-0x40003 mirror f_1035f698. f_105bc2f8 is dead code.",
+    "change_fanout": "A changed local cache is fanned out by updateLocalMoreInfo0x1074facc: the re-serialized text replaces member-record field+0x95c only when strcmp differs; f_10766064 then emits an in-process TopologyZpListChangedEvent (logs on 'inprocess-events', node lists 0x11096768/0x11096760, generation counter 0x11096348, named-property hub 0x110ba798, subscriber dispatch f_100f14ec), and f_1067c46c runs the UPnP event source's notifyClients at this+8, waking its dispatcher via pthread_cond_signal after latching pending byte+0x110 and refcounting the sender at +0xb8.",
+    "battery_producers": "This unit never writes slots0-4 or6 locally; the numeric setter f_105bc2f8 is unreferenced. Battery text is produced by the remote zone players and replicates in through the record merge f_10762f64 (caller ~0x107639bc), whose source record holds the raw list at +0x134. Stored defaults are -1 at construction (~0x10762464/~0x107628c4); -100 is only the wire-absent sentinel. BattTmp travels as an opaque signed32 with no unit handling in this binary."
    },
    "evidence": [
     {
@@ -211322,6 +211325,69 @@
      "build": "86.10-80260",
      "address": "0x10763550",
      "notes": "Valid literal-100 also suppresses updates; valid0 does not."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074fb94",
+     "notes": "UUID lookup miss or non-local record logs 'informReplicatedSettingsChange updateLocalMoreInfo: %s uuid %s not local or was not found' on 'topology' then RabortIfUnlocked; record+0x14f8 is the is-local flag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074fbf8",
+     "notes": "Changed serialized text: strlcpy into record+0x95c (cap512), then f_10766064(this+0x5a8) and f_1067c6ec(this+8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10766064",
+     "notes": "TopologyZpListChangedEvent fanout: 'Change in event loop detected' and 'Queued %s(%u) from \"%s\" : { %s }' on 'inprocess-events'; event nodes onto globals 0x11096768/0x11096760; generation++ at 0x11096348; named hub 0x110ba798 keyed by zone UUID gets event name (f_10bbca78) and type tag 4 (f_10bbd280); subscribers invoked via f_100f14ec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1067c46c",
+     "notes": "UPnP event-source notifyClients: latches byte+0x110 (logs 'notifyClients(%s)' once), atomic-increfs sender+0xb8, kicks dispatcher+0xb4 through f_10678c50 setting byte+0x10e and pthread_cond_signal on dispatcher+0xb8 condvar; absent sender logs 'Event source %s has no notification sender'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1035f704",
+     "notes": "Second TargetRoomName producer: settings key 0x40003 fetched via handle this+0x950 into 65-byte buffer; nonempty result stores into cache index5; updateLocalMoreInfo follows regardless."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b8328",
+     "notes": "Room-settings producer also calls f_1067c6ec(this+8) directly and pushes values into virtual sinks on this+0x964/+0x960 after fetching keys 0x40000/0x40001/0x40002."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10762998",
+     "notes": "Member-record constructor initializes +0x2544/+0x2548/+0x254c to -1 and byte+0x2550 to 0 (also -1 path at 0x10762760); distinct from the -100 wire-absent sentinel."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b6418",
+     "notes": "Outgoing MoreInfo rebuild clears the dirty byte+0x94c that the room-name producer set."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1035815c",
+     "notes": "Zone-object destructor frees the seven-slot cache at +0x994 via f_105bc1f0; cache lifetime equals the zone object."
     }
    ],
    "boot_diagnostic_contract": {
