@@ -233172,7 +233172,7 @@
   },
   "queue_schema": {
    "name": "track-queue status XML",
-   "summary": "The Queue status XML reports constructor-selected item and string-pool capacities. All three direct calls to the concrete queue constructor are recovered: unnamed queue 200 entries/98304 bytes, Q:0 64900 entries/5439488 bytes, Q:1 250 entries/344064 bytes. Pool allocation and insertion bounds use those byte capacities; there is no additional global StringTableSize cap on these paths. Status-field offsets distinguish the full queue from its embedded state at+0x5c. The Policy field is a flag word, not the previously claimed shared/private enum; its complete bit semantics remain unfinished.",
+   "summary": "The Queue status XML reports constructor-selected item and string-pool capacities. All three direct calls to the concrete queue constructor are recovered: unnamed queue 200 entries/98304 bytes, Q:0 64900 entries/5439488 bytes, Q:1 250 entries/344064 bytes. Pool allocation and insertion bounds use those byte capacities; there is no additional global StringTableSize cap on these paths. Status-field offsets distinguish the full queue from its embedded state at+0x5c. Policy at full queue+0x26e4 is a playback-policy flag word: constructed per queue (0x0173802f unnamed, 0x0173c02f Q:0, 0x0173c02e Q:1), wholesale replaced on cloudqueue playback-policy messages with a type-derived base (0x1173e4a8 audiobook, else 0x1173eca8) and then patched through a masked bit update; its high bits feed the media-item capability mask and its low bits gate playmode-hword updates. The adjacent+0x26dc halfword carries the queue playmode (low 3 bits enum SHUFFLE_NOREPEAT/REPEAT_ALL/SHUFFLE/REPEAT_ONE/SHUFFLE_REPEAT_ONE, 0/other NORMAL; bit3 is a separately gated flag). Two separate content-type vocabularies are bound: a 0-based lowercase id/name map used by the muse side and a 1-based uppercase SMAPI enum used by UPnP serialization; no shared consumer converts between them.",
    "evidence": [
     {
      "type": "firmware",
@@ -233205,6 +233205,66 @@
      "address": "0x1026524c",
      "callsite": "0x10265258 / 0x10146498 / 0x101464b4",
      "notes": "Emitter adjusts original queue pointer by5c before capacity/status loads; original full-object offsets are+26bc/+26c8/+26ca/+26cc/+26d4/+26d8. String insertion uses unsigned required versus capacity-used and returns0 if required exceeds remaining, before copy/update. Zero required bypasses copy. This binds both static capacities and the runtime cap predicate."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10145dc0 / f_10145ddc Policy helpers",
+     "address": "0x10145dc0",
+     "notes": "f_10145dc0 is a masked Policy update: lwz r9,0x26e4(r3); andc r5,r9,r5; or r4,r5,r4; stw r4,0x26e4(r3) computes *policy=(*policy & ~mask) | bits with r4=bits r5=mask. f_10145ddc is a required-bits predicate over low nibble bits0-3: each set bit of r4 must be set in Policy or it returns 0; bit3 additionally returns Policy bit3, so the result is (policy & r4)==r4 for mask bits 1..8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "Policy bit accessors f_10148044/58/6c/80/94/f_10148128",
+     "address": "0x10148044",
+     "notes": "Five one-instruction accessors at0x10148044/58/6c/80 and0x10148128 return Policy bits 0x400000,0x100000,0x4,0x80000 and0x2000000 (rlwinm rotate 22/20/2/19/25 keep bit31). f_10148094 gates on Policy&0x400: if set returns0 without comparing, else builds a name at r5+0x75 via f_10a072ac and strcmps r4. Direct-branch callers: bit0x400000 accessor 76 sites (0x102564a4..0x10270694 incl. f_102587b4), bit0x100000 accessor 2, bit0x80000 accessor 4, bit0x2000000 accessor 7, bit0x4 and the 0x400-name gate have no direct bl callers."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10255af0 cloudqueue playback-policy update",
+     "address": "0x10255b88",
+     "callsite": "0x10255b8c / 0x10255b98 / 0x10255ce4",
+     "notes": "On a policy message: r3=isel(CR7.eq, 0x1173e4a8, 0x1173eca8) stored as the WHOLE word at queue+0x26e4 (0x7c684f9e = isel r3,r8,r9,30, selecting on the f_106e50f4 'audiobook' compare), then f_10145dc0(queue, r4=*(msg+0x90), r5=*(msg+0x8c)) applies a masked bit update. If the update-present byte msg+0x86 is0 and the message policy differs from the live word, it logs 'Ignoring playback policy change for context version %s' to domain 5 'cloudqueue'. Constructor policies set no bit0x10000000; both runtime bases do."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_102587b4 media-item capability derivation",
+     "address": "0x10258810",
+     "notes": "Output mask starts as Policy&0xFE8C7FFF (and r31,r31,0xFE8C7FFF: strips the 0x01738000 queue-identity bits). If Policy&0x80000, additionally clears0xE0000 or0xC0000 selected by isel on (field+0x2800 -5)<3 (0x7fff571e). bit0x400000 accessor result gates propagation of Policy bit0x40000000 (isel r31,r31,r9,2 at0x1025894c) and bit0x1000000 similarly; bit0x100000 accessor gates further clearing. So item capability bits are a filtered copy of queue Policy."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10145e48 / f_10145f20 / f_10145f50 playmode hword",
+     "address": "0x10145e60",
+     "callsite": "0x10145e7c / 0x1014dac4 / 0x10255f0c",
+     "notes": "Queue+0x26dc is a u16 playmode: low3 bits-1 index name table0x10e93560 {SHUFFLE_NOREPEAT,REPEAT_ALL,SHUFFLE,REPEAT_ONE,SHUFFLE_REPEAT_ONE,REPEAT_ONE,SHUFFLE_REPEAT_ONE} and >=7 or0 returns 'NORMAL' (f_10145f50/f_10145f94). bit3 (0x8) is a flag updated by f_10145f20/f_10145e48 only when Policy passes the required-mask test with r4=8 at callers0x10145e7c,0x1014dac4,0x10255f0c; f_10145e48 returns1 unchanged/2 changed/0 denied. +0x26ec is a further word stored at0x10255efc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104ce85c / f_104ce8a8 lowercase content-type map",
+     "address": "0x104ce85c",
+     "callsite": "0x104cea68 / 0x104d10e4",
+     "notes": "Table0x10ed9520 is 12 entries {id,name*}: 0 album..10 track,11 unknown. f_104ce85c maps id->name by ctr-walk comparing entry+0, miss returns '' at0x10ea6a2c; the same loop is inlined again at0x104cea8c and twice at0x104d1108/0x104d1130 (12-iteration ctr loops). f_104ce8a8 maps name->id via strcasecmp bound table+0x60, miss or null input returns11 (unknown)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10a083f4 / f_10a08418 uppercase content-type enum",
+     "address": "0x10a08404",
+     "callsite": "0x1037d8c0 / 0x1048fa88 / 0x10aa80c8 / 0x10aa7b38",
+     "notes": "Table0x10f996b0 is 11 entries {name*,name_len,value} ALBUM=1..TRACK=11 plus {'' ,0,0} terminator; middle field is strlen(name) (SMAPI_CONTAINER=15), the earlier 'class id' reading is withdrawn. f_10a083f4 indexes name by value*12 from table-12 base0x10f996a4; f_10a08418 resolves name->value via length prefilter + strncasecmp with out-param and 1/0 status. Callers:0x10aa80c8 writes the name under key 'type' via f_109d1924 on a serialized object;0x10aa7b38 resolves a parsed name back to a value;0x1037d8c0 and0x1048fa88 feed object/string stores."
     }
    ],
    "resolved_findings": [
@@ -233217,10 +233277,11 @@
     "Lowercase content-type ids at0x10ed9520: {album=0, artist=1, audiobook=2, chapter=3, container=4, episode=5, playlist=6, podcast=7, program=8, stream=9, track=10, unknown=11}. This is a separate vocabulary from the ALBUM..TRACK enum at0x10f996b0; matching names with different numeric bases alone does not certify a wire-value conversion.",
     "All direct constructor arguments are recovered from raw startup words:0x1025f630 uses empty name at0x10ea6a2c, r8=0xc8=200 and r9=0x18000=98304 bytes;0x1025f664 uses Q:0 at0x10ea9390, r8=0xfd84=64900 and r9=0x530000=5439488 bytes;0x1025f6a0 uses Q:1 at0x10ea9394, r8=0xfa=250 and r9=0x54000=344064 bytes. The fd84 value comes from ori on a zero base, not a signed addi; it is not negative or truncated. These concrete entry maxima fit the u16 live counters.",
     "Constructor allocation:0x1014d148 forms EntriesMax*8 with raw0x57a31838 and adds4 for a count header; entries are zeroed in stride8 and pointer stored at full queue+26c0. A separate two-byte-per-entry array is allocated/stored at+26c4. At0x1014d1e4 it loads StringTableSize from+26cc, passes that exact byte count through allocator f_10806f84 and stores the returned pointer at+26d0. No extra constant cap is applied to the string-pool allocation. Allocator f_10809f0c calls malloc, normalizes a zero-size request to one byte and handles allocation failure through the new-handler/exception path; that does not enlarge the recorded logical capacity.",
-    "String insertion checks at0x10146498-0x101464b4 load capacity+26cc and used+26d4, compute remaining=capacity-used, and compare the prospective byte requirement unsigned. If required>remaining the function returns0 through0x101467e0 before writing; zero requirement skips the copy path. Successful insertion updates used/high-water fields before later queue work. Thus the cap for each pool is the recovered constructor byte argument, separately from item count. The status XML displays this capacity and its live usage; a literal in a different Muse item-ID tracking path does not define the TrackQueue capacity."
-   ],
-   "todo": [
-    "Established: all three concrete constructor capacities, byte-pool allocation and insertion cap, corrected full/embedded status offsets, and Policy initialized as a flag word. The original EntriesMax/StringTableSize residual is resolved. Remaining: recover the Policy bit meanings and behavior from loads at0x10145dc0-0x10145e34,0x10148048-0x101480ac and other consumers of full queue+26e4, joining changes to their writers; bind consumers of content-type tables0x10ed9520/0x10f996b0 before claiming a numeric wire conversion. The old shared/private-enum and automatic wire-companion assertions are withdrawn. These are actionable static joins."
+    "String insertion checks at0x10146498-0x101464b4 load capacity+26cc and used+26d4, compute remaining=capacity-used, and compare the prospective byte requirement unsigned. If required>remaining the function returns0 through0x101467e0 before writing; zero requirement skips the copy path. Successful insertion updates used/high-water fields before later queue work. Thus the cap for each pool is the recovered constructor byte argument, separately from item count. The status XML displays this capacity and its live usage; a literal in a different Muse item-ID tracking path does not define the TrackQueue capacity.",
+    "Resolved: Policy bit semantics and writers. Full queue+0x26e4 is the queue playback-policy flag word. Writers: the constructor stores r10 (0x0173802f unnamed, 0x0173c02f Q:0, 0x0173c02e Q:1) at0x1014d174; f_10255af0 replaces the whole word on cloudqueue playback-policy messages with an isel-selected base 0x1173e4a8 (type=='audiobook') or 0x1173eca8, then patches it through masked update helper f_10145dc0 (*policy=(*policy & ~mask)|bits, msg fields +0x8c mask/+0x90 value); rejected changes log 'Ignoring playback policy change' to domain 'cloudqueue'. Other stw sites 0x1014d930,0x10255728,0x10256d78/0x10256dc0,0x102583ac,0x1026b01c..0x1026f1d4,0x103356a8 are the same object policy field across queue operations.",
+    "Resolved: Policy bit consumers. f_10145ddc tests required low-nibble bits (1/2/4/8); its three callers pass mask8 to gate toggling bit3 of the+0x26dc playmode halfword, so bit8 is a playmode-change permission. Bit0x400000 (f_10148044, 76 callers incl. f_102587b4), bit0x100000 (f_10148058), bit0x80000 (f_10148080), bit0x2000000 (f_10148128) and bit0x400 (name-compare gate f_10148094) are boolean accessors. In f_102587b4 the media-item capability mask is built as Policy&0xFE8C7FFF with bits0x40000000 and0x1000000 propagated conditionally, so high policy bits become item capability flags; the0x01738000 constructor-constant bits are queue identity stripped from item masks. Exact product names for individual bits remain compiler-level booleans; no wire conversion uses them directly.",
+    "Resolved: +0x26dc is a u16 playmode word distinct from Policy. f_10145f50/f_10145f94 map low3 bits-1 through table0x10e93560 to {SHUFFLE_NOREPEAT,REPEAT_ALL,SHUFFLE,REPEAT_ONE,SHUFFLE_REPEAT_ONE} with 'NORMAL' for0/out-of-range; bit3 is a flag writable only through the Policy-bit8 check; +0x26ec is a further adjacent policy word stored at0x10255efc.",
+    "Resolved: content-type table consumers. 0x10ed9520 is a 0-based {id,name} map album=0..track=10,unknown=11: f_104ce85c (id->name, miss ''), f_104ce8a8 (name->id strcasecmp, miss 11), plus inline copies of the id->name loop at0x104cea8c and0x104d1108/0x104d1130. 0x10f996b0 is the uppercase SMAPI {name,name_len,value} enum ALBUM=1..TRACK=11 in the generic enum-lookup family at0x10a08xxx: f_10a083f4 value->name, f_10a08418 name->value. Bound consumers: 'type' property serialization at0x10aa80c8 (f_109d1924 key write) and name parsing at0x10aa7b38;0x1037d8c0/0x1048fa88 store the resolved name. The two vocabularies (0-based muse-side vs 1-based UPnP-side) share spellings but have disjoint consumers; no instruction converts one numeric domain to the other, so a numeric wire mapping is not asserted."
    ]
   },
   "accounts_replication": {
