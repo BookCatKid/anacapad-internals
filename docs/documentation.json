@@ -232609,16 +232609,103 @@
      "build": "86.10-80260",
      "address": "0x1053fd18",
      "notes": "Explicit routing-mode writer; configuration source still unresolved."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10086df4",
+     "notes": "Static constructor initializing all 68 override slots {kind,name,NULL,svcid,0} and the 'RSystemOverrides' mutex at table+0x550; kind values show the sparse global enum (gaps at 8,10..16,18)."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x105570a4",
+     "notes": "Sole writer of entry+8/+0x10: provider->vtable+8(name) -> malloc 0x401 copy, valid=1, '%s override - %s'; failure clears valid and logs '%s override cleared'."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10557388",
+     "notes": "Apply-all/per-name iterator under table mutex; skips kind==39 and unresolved svcids; calls f_105570a4 with provider *(0x1109738c)+0."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x105572e0/0x10199190",
+     "notes": "Singleton provider install: f_10809f0c(4) holder -> f_10557218 stores provider, registers 'overrides' section, applies all; published at 0x1109738c; provider arg = init-root+0x29180."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076f590",
+     "notes": "Overrides fetch task: sleep loop on registry state !=2, POST x-www-form-urlencoded (0x800 buf), on 200 f_1076f2ec parse then f_10557388(0); 'Success' reply at 0x1076f6a0."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076f2ec",
+     "notes": "Response scraper extracting 'csrfToken','statement','button','delete'; 'devmode' probe via f_1054c1b8; 'Statement removed.' log on delete path."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10647448/0x1053fd0c",
+     "notes": "Routing byte source: isel r3 = (regcert ctx+0x9c != 0) in regdevicecert.cxx func 0x106472f4; f_1053fd0c stores it at 0x110a4a28."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1053fdb0",
+     "notes": "Lechmere gate: byte-gated suffix match on 'lechmere.<env>.ws.sonos.com'; callers 0x1056be7c (alt request fn 0x110a5668), 0x1056c310, 0x10646e74, 0x10646f28, 0x100b8d0c, 0x1057ac60."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10540460",
+     "notes": "Update URL builder: override slots 39/40 -> '/firmware/swgen/%u/latest/' -> f_1053faf8('https',row31); sibling thunk 0x10540600 bakes ('http',row33 setup)."
     }
    ],
-   "todo": "Residual: bind the environment/domain override writers and global routing-mode setter f_1053fd0c to their configuration sources and service-wrapper callers, including duplicate-prefix registry slots. The 34 compiled {prefix,domain,flags} rows and flag-to-template selection are recovered; per-deployment binding cannot be declared config-only until those writer/caller paths are traced.",
    "resolved_findings": [
     "Registry location corrected: f_1053faf8 computes index*12 at 0x1053fb60-0x1053fb70 and uses table 0x10ee6f80, loading {prefix pointer at +0, domain pointer at +4, flag byte at +8} at 0x1053fb88-0x1053fb90. There are 34 rows, indices 0..33, independently bounded by the hostname-check loop at 0x1053fedc-0x1053fef8. The old evidence address 0x10ee7118 is only sslauth.sonos.com. Thus service-specific routing is partly compiled data, not wholly deployment configuration.",
     "Complete row census, notation index:prefix/domain/flagByte, W=ws.sonos.com, S=sonos.com, E=empty domain: {0:account/W/00,1:thor/E/02,2:ab/W/00,3:iap/W/00,4:api/W/00,5:api/W/02,6:clientdata/W/02,7:crash-upload/W/00,8:thor/E/02,9:feature-config/W/02,10:music-history/W/02,11:keys/W/00,12:lechmere-v1/W/02,13:music-accounts/W/02,14:myaccount/W/00,15:oauth/W/02,16:player-device-files-ab/W/02,17:sve/W/02,18:product-settings/W/00,19:recommendation/E/02,20:registration/W/02,21:service-catalog/W/00,22:feature-config/E/02,23:sonos-nonprod/apigee.net/04,24:smart-play/W/02,25:system-api/S/04,26:system-api-diagnostics/S/04,27:system-api/S/02,28:transfer/W/0c,29:translate/W/02,30:universal-search/W/02,31:update/S/04,32:msmetrics/W/0c,33:setup/W/18}. These are routing rows, not necessarily unique service APIs. Duplicate prefixes must retain their distinct indices and flags rather than being collapsed into a name-only map.",
     "Generic template selection positively traced in f_1053faf8: configuration reader f_10556e10 is called with slot 0x25 for environment and slot 0x30 for domain override at 0x1053fb80-0x1053fba4. Empty environment emits %s://%s.%s%s, using the override domain when nonempty or the row domain otherwise (0x1053fbb4-0x1053fbe8). A nonempty domain override also selects that form when an environment is set (0x1053fc44-0x1053fcbc). Otherwise nonempty environment uses %s://%s%c%s.%s%s at 0x1053fc94, with period when flag 0x04 is clear and hyphen when set; flag 0x08 replaces the environment with literal test. Flag 0x10 instead chooses %s://%s.%s/%s%s at 0x1053fcec, again forcing environment test when 0x08 is set. Scheme and suffix are caller arguments, not per-service hard-coded https in this generic function. GNU e500 isel decoding at 0x1053fc6c confirms the period/hyphen selection.",
     "Alternate routing path: f_1053faf8 first reads global byte 0x110a4a28. If zero it calls f_1053f8c8, which requires row flag 0x02 at 0x1053f8e0-0x1053f8e8 before entering f_1053f8ec. With no environment and no slot-0x31 domain override, the alternate emits https://prefix.sslauth.sonos.com plus suffix. Nonempty environment and empty override instead emit https://prefix-env.lower-sslauth.sonos.com plus suffix (0x1053f9cc-0x1053f9ec). A nonempty slot-0x31 override takes precedence and uses https://prefix.override plus suffix. If the alternate returns null, the generic path is attempted; a nonzero global byte bypasses alternate routing. Both builders return null on nonpositive snprintf result or length >= output capacity (0x1053f990-0x1053f99c and 0x1053fbec-0x1053fbf8). No claim is made that one branch applies to every deployment.",
-    "Runtime configuration is a real input, but its provenance is not yet closed. f_10556e10 indexes a mutable twenty-byte slot array at 0x110a4e90, reads active byte +0x10 and, only when active, returns the pointer at +8; otherwise it returns its caller-provided default (0x10556e54-0x10556e80). f_1053fd0c writes the global routing-mode byte at 0x110a4a28. O_SONOS_CLOUD_API_TEST_ENV is referenced at 0x100872f4, and a Setting cloud env to %s logger at 0x1077687c, but neither name alone proves which of the above slots or mode it controls. Those writer paths and wrapper-to-row bindings are the precise remaining investigation, not a claim that no compiled per-service environment policy exists."
-   ]
+    "Runtime configuration is a real input, but its provenance is not yet closed. f_10556e10 indexes a mutable twenty-byte slot array at 0x110a4e90, reads active byte +0x10 and, only when active, returns the pointer at +8; otherwise it returns its caller-provided default (0x10556e54-0x10556e80). f_1053fd0c writes the global routing-mode byte at 0x110a4a28. O_SONOS_CLOUD_API_TEST_ENV is referenced at 0x100872f4, and a Setting cloud env to %s logger at 0x1077687c, but neither name alone proves which of the above slots or mode it controls. Those writer paths and wrapper-to-row bindings are the precise remaining investigation, not a claim that no compiled per-service environment policy exists.",
+    "Override-table provenance closed: the 68x20 override slot array at 0x110a4e90 is statically initialized by func 0x10086df4 (mutex 'RSystemOverrides'; per-slot {kind,name,NULL,svcid,0}). The only writer of values is f_105570a4, driven by a provider object's vtable+8 name-getter; the singleton provider wrapper is installed by f_105572e0 from the service-init root object at +0x29180. kind is a sparse global key enum (gaps 8,10..16,18 owned by other tables); kind 39 exempts O_SLOW_WIFI_REPORTING_INTERVAL from application.",
+    "Override application trigger bound: HTTP task f_1076f590 waits on registry state, POSTs x-www-form-urlencoded, and on 200 parses the devmode statement response (f_1076f2ec scraping csrfToken/statement/button/delete + 'devmode' probe) then applies every slot; '%s override - %s' and '%s override cleared' are the resulting logs. Values are therefore deployment-pushed through the devmode statement exchange, not local configuration.",
+    "Routing-mode byte bound: 0x110a4a28 = (regdevicecert context+0x9c nonnull) written once per regcert refresh by func 0x106472f4; it gates the 'lechmere.<env>.ws.sonos.com' suffix test in f_1053fdb0 used by six client/response paths including the alternate request fn at 0x110a5668 and regcert 401/403/412 handling.",
+    "Service-wrapper index bindings bound: registry row indices are baked in tail-call wrappers of f_1053faf8 (rows 7,21,25,27,28,31,32,33) and override slot indices in f_1053fa2c callsites (20,25,27,28,32,39,40); the update builder f_10540460 chains override slots 39/40 onto registry row 31 with '/firmware/swgen/%u/latest/'. Per-deployment rows remain overridable data but every code-side index is now bound."
+   ],
+   "override_slot_table": {
+    "layout": "68 slots x 20 bytes at 0x110a4e90, guarded by the 'RSystemOverrides' mutex at table+0x550. Entry = {u32 kind at +0, char* name at +4, char* malloc'd value at +8, i32 svcid at +0xc, u8 valid at +0x10}. A static constructor (func 0x10086df4, registered through the startup init path) fills kind and name for every slot and sets value=NULL, valid=0.",
+    "kind_field": "kind is a sparse global override-key enum, not the table index: values written are 0..7, then 17,9,19..76 with gaps at 8,10..16,18 whose keys are owned by other modules' override tables. kind==39 (slot O_SLOW_WIFI_REPORTING_INTERVAL at index 30) is the sentinel the scan loops test: such entries are treated as already-resolved and are never provider-applied.",
+    "names": "idx0 O_SUBMIT_DIAG_URL,1 O_SUBMIT_AUTO_DIAG_URL,2 O_INITIATE_DIAG_URL,3 O_DISABLE_SUBMIT_AUTO_DIAG,4 O_DIAG_SERVER_INSTRUCT_URL,5 O_MUSIC_SERVICE_URL,6 O_CUSTREG_URL,7 O_CUSTREG_REGSW_URL,8 O_UPDATE_MSG_URL,9 O_USAGE_TRACKING_OPTIN_URL,10 O_PRODUCT_EVENT_LOGGING_URL,11 O_USER_ENTRY_URL,12 O_BETAPROGRAM_URL,13 O_FIRMWARE_UPGRADE_LOGGING_URL,14 O_EVENTMETRICS_URL,15 O_EVENTMETRICS_CONFIG_URL,16 O_EVENTMETRICS_EVENT_REPORTING_INTERVAL,17 O_EVENTMETRICS_CONFIG_REPORTING_INTERVAL,18 O_DZ_STREAMED_MESSAGES_URL,19 O_DZ_TRANSFERO_URL,20 O_MUSIC_SERVICE_CATALOG_URL,21 O_SONAR_SERVER_URL,22 O_SONAR_CALIBRATION_ID,23 O_SONAR_GAIN_ID,24 O_SONAR_DATA_UPLOAD_URL,25 O_CLOUD_API_BASE_URL,26 O_SETUP_SERVER_URL,27 O_HH_ASSOCZPUDN,28 O_TEMPERATURE_REPORTING_INTERVAL,29 O_IR_DB_WS_IRCODE_URL,30 O_SLOW_WIFI_REPORTING_INTERVAL,31 O_SERVICE_OUTAGE_SERVER_URL,32 O_HRMETRICS_URL,33 O_HRMETRICS_INTERVAL,34 O_TRACKPLAYBASE_URL,35 O_SPOTIFY_DC_SID,36 O_DC_DESCRIPTOR_BASE_URL,37 O_SONOS_CLOUD_API_TEST_ENV,38 O_HISTORY_SERVICE_URL,39 OnlineUpdateBaseURL,40 O_UPDATE_SERVER_URL,41 O_AMAZON_LWA_URL,42 O_AMAZON_PCO_URL,43 O_AMAZON_PROFILE_URL,44 O_AMAZON_VOICE_SERVICES_ENDPOINT,45 O_AMAZON_ALEXA_SKILL_ENABLEMENT_BYPASS,46 O_WAKE_WORD_SERVER_URL,47 O_VOICE_WELCOME_BASE_URL,48 O_AUTOMATION_CLOUD_DOMAIN,49 O_AUTOMATION_CLOUD_DOMAIN_MUTUAL_SSL,50 O_AMAZON_SKILL_STAGE_ENV,51 O_UPNP_CONTROL_REQ_EVENT_BITS,52 O_VOICE_LOCALES_SERVER_URL,53 O_VOICE_LOCALES_MAX_DOWNLOAD_INTERVAL_SEC,54 O_VOICE_LOCALES_SKILL_GROUP,55 O_VOICE_GOOGLE_ACTION_ENV,56 O_CLOUD_CONFIG_BASE_URL,57 O_MINIDUMP_SUBMIT_URL,58 O_AMAZON_SHOW_MSP_EDUCATION,59 O_GOOGLE_SHOW_MSP_EDUCATION,60 O_CRASH_UPLOAD_SUBMIT_URL,61 O_VOICE_CLIENT_INT_RESPONSE_CODE,62 O_ZONE_EXPERIMENTS,63 O_UNIVERSAL_SEARCH_URL,64 O_HELPSHEET_SERVER_URL,65 O_SVE_SERVICES_URL,66 O_SVE_TTS_URL,67 O_TIMEZONE_URL",
+    "service_binding": "+0xc svcid selects a backing object in the service registry at 0x11097374 via f_1054bdc8; -1 marks none. Observed values: 7 (default for most slots), 8, 9, 27 (idx39 OnlineUpdateBaseURL), 49 (idx62 O_ZONE_EXPERIMENTS). f_10556ef0(id) reports resolution: kind==39 counts as resolved without a service lookup.",
+    "readers": "f_10556e10(id,default): returns entry+8 when +0x10 valid else the caller default. f_10556ec8(id): returns entry+4 (the name). f_10556f9c(id): returns the valid byte. The environment slot consumed by f_1053faf8 is index 37 O_SONOS_CLOUD_API_TEST_ENV; the domain-override slot is index 48 O_AUTOMATION_CLOUD_DOMAIN; slot 14 O_EVENTMETRICS_URL and slot 39 OnlineUpdateBaseURL are the telemetry and update overrides."
+   },
+   "override_writer_chain": {
+    "writer": "f_105570a4(entry,provider) is the only writer of entry+8/+0x10: it calls provider->vtable+8(entry+4 name, buf@0x401) and on success stores a fresh 0x401-byte copy with valid=1 (logging '%s override - %s'); on failure it clears valid, truncates the stored value and logs '%s override cleared'. There is no local-file or settings-write path into the table.",
+    "apply": "f_10557388(name-or-0) iterates the table under the mutex: for each entry whose kind!=39 and whose svcid resolves, it calls f_105570a4 with the singleton provider *(0x1109738c)+0. Callers: the HTTP task 0x1076f590 (name=0, applies all) and 0x1066b394 (a service-update path).",
+    "provider": "f_105572e0 installs the singleton once: allocates a 4-byte holder via f_10809f0c(4), f_10557218 stores the provider at holder+0, registers the 'overrides' log section and applies all slots immediately; holder is published at 0x1109738c. Sole caller: the monolithic service-init function 0x101981f0 at 0x10199190, passing the provider sub-object at root+0x29180 (computed as addis r28,r3,3 + addi -0x6e80).",
+    "trigger": "f_1076f590 is the fetch-and-apply task: it spin-sleeps until service-registry state f_1054be48(0x11097374)!=2, POSTs an application/x-www-form-urlencoded body (0x800-byte buffer), and on HTTP 200 parses the response with f_1076f2ec then applies all overrides and answers 'Success'. f_1076f2ec scrapes 'csrfToken','statement','button','delete' fields and probes 'devmode' via f_1054c1b8, i.e. the payload is the devmode statement/consent exchange; a sibling handler at 0x1076f7f4 logs 'Statement removed.' on the delete path. Entry is the HTTP-client state callback f_1076f6bc (obj+0==1 + content-type check)."
+   },
+   "routing_mode_byte": {
+    "setter": "f_1053fd0c stores its argument byte at global 0x110a4a28. Sole caller: func 0x106472f4 in '../anacapa-1.0/oc/zone/common/regdevicecert.cxx' at 0x1064744c, which passes isel-selected (context+0x9c != 0), i.e. the byte means a device-certificate context sub-object is present after the regcert refresh sequence.",
+    "reader": "f_1053fdb0 reads the byte; when set and its hostname argument suffix-matches 'lechmere.<env>.ws.sonos.com' (env = f_10556e10 slot 37 default 'prod') it returns true. Six callers: f_1056be7c gates an alternate request path (global fn 0x110a5668) for lechmere hosts, 0x1056c310 is a sibling HTTP helper, 0x10646e74 and 0x10646f28 alter regcert response handling for 401/403/412, 0x100b8d0c and 0x1057ac60 are additional client paths. The byte therefore marks test-environment request routing, not a second public-API registry."
+   },
+   "service_wrapper_bindings": {
+    "shape": "Per-service URL getters are compiled wrappers of two forms: a direct tail-call f_1053faf8(out,len,scheme,row) baking {scheme,registry row}, or an override-first f_1053fa2c(out,len,slot,path) that snprintf's '%s%s' when the override is nonempty and falls back to the registry form.",
+    "bound": "f_10540460 builds update URLs: base from override slot 39 (OnlineUpdateBaseURL), and the '/firmware/swgen/%u/latest/' path from override slot 40 (O_UPDATE_SERVER_URL), falling back to f_1053faf8('https',row31 update). 0x10540600 forces scheme 'http' for row33 setup. Other baked rows seen in tail calls: 21 service-catalog, 25 system-api(0x04), 27 system-api(0x02), 28 transfer, 32 msmetrics, 7 crash-upload. Override slots baked in f_1053fa2c callsites: 25 O_CLOUD_API_BASE_URL, 20 O_MUSIC_SERVICE_CATALOG_URL, 27, 28, 32, 39, 40. Duplicate prefixes keep distinct rows because the flag byte changes the environment-subdomain template (rows 25 vs 27 system-api; rows 4 vs 5 api; 9 vs 22 feature-config)."
+   }
   },
   "ssl_sessions": {
    "name": "Persisted TLS client session cache (standard and household partitions)",
