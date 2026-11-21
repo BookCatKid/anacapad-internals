@@ -227089,7 +227089,7 @@
   },
   "runtime_policy": {
    "name": "runtime policy (RRuntimePolicy)",
-   "summary": "Runtime cloud-policy reevaluation and button-action filtering are separate compiled surfaces. The button checker uses two fixed embedded objects, not an opaque runtime-registered policy list. Their applicability tests select bits0/1 of a shared flag word; both use one concrete action predicate. The relationship of those flags to cloud/business settings still requires producer joins.",
+   "summary": "Two compiled policy surfaces. RRuntimeZPPolicy (runtime_zppolicy.cxx, 'policy' domain) is a singleton at global 0x11096230 holding evaluated state bytes at +0x148/+0x149/+0x14a; its reevaluation path gathers a five-byte record through a source-object virtual, applies it through named change setters gated by an entitlement fetch, and notifies registered watchers. Protocol consumers read the bytes through the indexed gate f_100f642c (idx 1/2/3 -> +0x148/+0x149/+0x14a). The ButtonLockManager singleton ('buttons'/'buttonAction'/'timedjobmgr_btn') holds a flag word at +0x890 whose only writer is primary-vtable +0x2c slot f_103c4b2c; a complete route census demonstrates no statically nameable producer, so the bit sources are reached only through the data-driven settings/property layer.",
    "evidence": [
     {
      "type": "firmware",
@@ -227113,10 +227113,70 @@
      "address": "0x103c4b78",
      "callsite": "0x103c4bd0 / 0x100f6c9c / 0x100f6cb0",
      "notes": "Setter uses register rotate rlwnm on-2 to clear selected bit and slw1 to set. Separate cloud reevaluation fills five-byte stack record via virtual44 and calls f_100f6be4. These concrete paths disprove the alleged opaque registry without certifying their cross-layer semantic join."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100f5c28 constructor / singleton 0x11096230",
+     "address": "0x100f5c28",
+     "callsite": "0x1018f220 / 0x100f5c68",
+     "notes": "RRuntimeZPPolicy ctor: seeds five state bytes at +0x148..+0x14c from static table 0x110acb20, registers 'runtime_policy' via f_105d0f7c, stores singleton at 0x11096230. Getters f_100f5e24(+0x148)/f_100f5eac(+0x149)/f_100f5f34(+0x14a) lock +0x88 with runtime_zppolicy.cxx source refs at lines 0x116/0x11c/0x122."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100f642c public gate / f_100f6574 validity writer",
+     "address": "0x100f642c",
+     "callsite": "0x100bc9b4 / 0x100c7ffc / 0x10129fb0 / 0x10276844 / 0x102ced30 / 0x102d44c8 / 0x102da144 / 0x102da9a0 / 0x1048463c",
+     "notes": "Indexed read: idx1->f_100f5e24(+0x148), idx2->f_100f5eac(+0x149), idx3->f_100f5f34(+0x14a); writes value byte at out+0 and valid flag at out+4, zeroed for other indices. Consumers include the 'muse' cloudqueue suspend path at 0x102d44c8 (idx1, next to 'suspending cloud queue'), cloudqueue evaluations at 0x102da144/0x102da9a0 (idx1, xori value,1), ac_impl.cxx at 0x10276844, zone service checks at 0x100bc9b4/0x100c7ffc, setup 'Password%u=' code at 0x10129fb0, and idx3 at 0x102ced30. f_100f6574 clears out+4 when idx==5 (invalidation path)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100f6c54 reevaluate / f_100f6be4 apply / f_100f6278 entitlement fetch",
+     "address": "0x100f6c54",
+     "callsite": "0x100f59d4 / 0x100f6d14 / 0x100f6c04 / 0x100f62cc",
+     "notes": "f_100f6c54 fills a five-byte record via source-object vptr+0x44 then calls f_100f6be4 and logs 'Reevaluating runtime policies' (domain5). f_100f6be4 calls f_100f6278(this,0xb): vcall slot+0x10 on object +0x150, compares property 0x34, logs 'Failed to fetch latest entitlements in %s [ec=%s]' with 'isEntitlementOn'/'processEntitlements' vocabulary. On entitlement success +0x14a := static default byte 0x110acb22; on failure +0x14a := record byte +3. Both store through f_100f6a48."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100f6d18 (+0x149) / f_100f6a48 (+0x14a) change setters",
+     "address": "0x100f6d18",
+     "callsite": "0x100f6e64 / 0x100f6bb0 / 0x100f6c30 / 0x100f6c50",
+     "notes": "f_100f6d18 compare-stores +0x149, logs 'Business Cloud Schedule has changed', calls f_10658674 and f_100f82c4(r31+4). Producer: f_100f6e14 builds a request (f_10a4cea8/f_109f1118) then calls it at 0x100f6e64; f_100f6ec8 entitlement-refresh tail-calls into the same path. f_100f6a48 compare-stores +0x14a, logs 'Sonos Favorites Radio has changed', then walks a watcher list invoking registered fn+ctx pairs (list nodes carry code at +8 and ctx at +12)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103c4b2c producer census (impossibility)",
+     "address": "0x103c4b2c",
+     "callsite": "0x103c50f8 / 0x103cb8e8 / 0x103caac0 / 0x1018e4b4",
+     "notes": "Flag setter exists only as primary vtable 0x10ec6d10 slot+0x2c. Branch xref empty. Singleton global 0x11097170 written at ctor 0x103c50f8 and dtor 0x103cb8e8, read only at 0x103caac0 (buttonAction handler, which runs f_103c9f0c, never a +0x2c vcall). ctx-0x55d0 written once at 0x1018e4b4 and read in eleven sites across ten functions (f_100b9aac, f_100b9bb0, f_100c3a54, f_10183b34, f_10183c34, f_101931a8, f_10193708, f_101939a4, f_101966e4, f_10196908, f_101981f0); every one consumes through direct calls or non-+0x2c vcall slots. Startup wrapper vtable 0x10e98744 has eight secondary interfaces all forwarding to inner slot+0. hw_events 'buttons' property handlers are stubs returning 0/1 or offset accessors. The bit-index/value producer is unreachable by static naming."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "mutation surface: f_103c4bdc (+0x93e) / f_103c4ab0 (+0x940) + secondary thunks",
+     "address": "0x103c4bdc",
+     "callsite": "0x103c4c50 / 0x103c4b24 / 0x10ec6d74 / 0x10ec6d8c",
+     "notes": "vtable+0x34 f_103c4bdc stores byte r4[0x1f] to +0x93e; -0x1c thunk f_103c4c50 serves secondary vtable 0x10ec6d74 slot+0. vtable+0x30 f_103c4ab0 stores word r4[0] to +0x940 under mutex +0x8a8; -0x3c thunk f_103c4b24 serves secondary vtable 0x10ec6d8c slot+0. Other secondary vptrs: +0x14->0x10ec6d58 (f_103c4a98/f_105d26d0/f_105d2f4c), +0x5c->0x10ec6da4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "flag/byte consumers: f_103c8ab8 / f_103c53fc / f_103c5cf4 / f_103caab8",
+     "address": "0x103c8ab8",
+     "callsite": "0x103c5d04 / 0x100b9b48 / 0x103cab30",
+     "notes": "f_103c8ab8 hw_events 'buttons' dispatch entry stores +0x94 and gates on +0x890 for property types 1/2. f_103c53fc builds the <HWMembers> bitmask from +0x890 bits for HardwareStatusInfo XML at caller 0x100b9b48. f_103c5cf4 timed-job tick reads +0x93e under mutex: nonzero selects alternate dispatch via slots +0x10/+0x14 on backend +0x9c. f_103caab8 'buttonAction' handler reads the singleton and returns last-press time (sonosClockGetTime) or 0x7fffffff when f_103c9f0c reports none pending. SetButtonLockState writes backend property selector 0x20001 (On->1 else 0) at impl+0x950; GetButtonLockState reads it."
     }
-   ],
-   "todo": [
-    "Established: two fixed embedded button-filter objects, exact bit0/bit1 applicability, common action-id rejection set, first-nonzero/empty behavior and numeric reason vocabulary. Remaining: trace all f_103c4b2c callers and their bit-index/value producers to concrete lifecycle/settings states; separately bind the five-byte policy evaluation and f_100f6be4 writers to button or protocol consumers before claiming cloud/business or route-auth enforcement. Start with constructor0x103c5078 and flag stores0x103c4b80/0x103c4bd0. The old registry-data-only and +8-name-getter limitations are withdrawn. This is actionable static work."
    ],
    "resolved_findings": [
     "The button-action checks below are not the route/verb guest/admin authorization test. Their caller f_103c7250 logs the numeric button action and reason and returns allowed only when the preceding checker returns0. Cloud-policy evaluation at f_100f6c54 separately obtains five bytes through virtual+0x44 and applies them with f_100f6be4. A common enforcement identity is not established by nearby policy literals.",
@@ -227124,7 +227184,12 @@
     "Resolved: the 'Disallowed action (%d - %s) because (%d - %s)' vocabulary - the action id is the button-action enum, a 27-entry string table at 0x10ef5090: 0 VOLUME_UP, 1 VOLUME_UP_REPEAT, 2 VOLUME_DOWN, 3 VOLUME_DOWN_REPEAT, 4 VOLUME_DOWN_FAST_RAMP, 5 VOLUME_SLIDE_UP, 6 VOLUME_SLIDE_DOWN, 7 PLAYPAUSE, 8 JOIN_HH, 9 JOIN_HH_CHIME, 10 JOIN_HH_CANCEL, 11 OPEN_AP, 12 NEXT_TRACK, 13 PREV_TRACK, 14 PLAY_RECENT, 15 BECOME_STANDALONE, 16 LED_DIAG_MODE_START, 17 LED_DIAG_MODE_STOP, 18 ORIENTATION_HORIZONTAL, 19 ORIENTATION_VERTICAL, 20 ORIENTATION_WALL_ABOVE, 21 ORIENTATION_WALL_BELOW, 22 FAST_VOLUME_ZERO_ON, 23 FAST_VOLUME_ZERO_OFF, 24 PREPARE_SWAP, 25 PERFORM_SWAP, 26 ENTER_SETUP_READY (>0x1a -> 'UNKNOWN'). The reason table used by f_103c7250 is separately at0x10ec6b58:0 ALLOWED,1 NOT_IN_HOUSEHOLD,2 PROCESSING_PLAYBACK,3 IN_DEMO_MODE,4 IN_RDM_MODE,5 IN_BUTTON_OBSERVATION_MODE,6 IN_TRANSFER_MODE,7 PROCESSING_JOIN,8 JOIN_CHIME_UNAVAILABLE,9 REGISTRATION_CHIME_UNAVAILABLE,10 BUTTONS_LOCKED,11 UNKNOWN,12 DAT_IN_BUTTONLESS_SETUP_MODE,13 DAT_IN_SETUP_DISCOVERY. Virtual+8 is an action predicate, not a policy-name getter or the final logged reason.",
     "Constructor stores0x103c5078-0x103c50a0 install vtable0x10ec6ce0 at owner+894 and0x10ec6cf8 at+898, then put their addresses at+89c/+8a0. Both vtables have+8=f_103c4c58; their+c slots are f_103cba98 and f_103cbaa8, which return sharedFlags&1 and (sharedFlags>>1)&1 respectively. There are two fixed entries in this checked constructor, not a runtime-only class census.",
     "f_103c6d98 locks owner+8a8, reads sharedFlags at+890, and returns0 without probing when it is zero. It probes each embedded object+c with flags; if applicable, object+8 receives the action. The first nonzero result is returned after unlock; exhausting both returns0. The common action predicate f_103c4c58 returns1 for ids0..7,12..15,22,24,25 and0 for the other in-range ids; out-of-range ids also return0. Its0x7080/0x0d03 masks and iseleq were checked against raw instructions. Both embedded entries return1 for that set. The actual caller f_103c6ea0 at0x103c6f00-0x103c6f0c converts any nonzero probe result to reason10 BUTTONS_LOCKED, not reason1 NOT_IN_HOUSEHOLD. Thus the callback return is a predicate, not the externally logged reason.",
-    "Flag writer f_103c4b2c locks the same mutex, sets bit index r5 when r4 is nonzero and clears it when r4 is zero. Clear uses raw register rotate of-2, not a right shift. Constructor initializes+890 to0. The names and complete call-site sources of bits0/1 still need tracing before equating them to household/cloud dimensions."
+    "Flag writer f_103c4b2c locks the same mutex, sets bit index r5 when r4 is nonzero and clears it when r4 is zero. Clear uses raw register rotate of-2, not a right shift. Constructor initializes+890 to0. The names and complete call-site sources of bits0/1 still need tracing before equating them to household/cloud dimensions.",
+    "RRuntimeZPPolicy engine resolved: ctor f_100f5c28 (runtime_zppolicy.cxx) seeds five bytes at +0x148..+0x14c from static table 0x110acb20, registers 'runtime_policy' via f_105d0f7c, and stores the singleton at 0x11096230 (sole ctor caller 0x1018f220). Byte +0x149 is 'Business Cloud Schedule', byte +0x14a is 'Sonos Favorites Radio'; +0x148 is the third evaluated flag read by index1 consumers. All getters lock mutex +0x88.",
+    "The five-byte evaluation is bound to producers and consumers: f_100f6c54 gathers the record via source-object vptr+0x44 and applies it through f_100f6be4, which routes through entitlement fetch f_100f6278 (policy id 0xb against property 0x34) into the +0x14a setter f_100f6a48 with either the record byte +3 or static default 0x110acb22. Reader gate f_100f642c(out,idx) exports +0x148/+0x149/+0x14a as {value,valid} pairs to nine callers including the 'muse' cloudqueue suspend path (idx1, beside 'suspending cloud queue'), cloudqueue evaluations at 0x102da144/0x102da9a0, ac_impl.cxx, zone service checks, and 'Password%u=' setup code; idx3 is read at 0x102ced30. f_100f6574 writes the validity byte (idx5 clears out+4). Cloud/business enforcement is therefore concrete on this engine, independent of the button flags.",
+    "Setter side: f_100f6d18 writes +0x149 logging 'Business Cloud Schedule has changed' then runs f_10658674 and f_100f82c4(r31+4); its producers are f_100f6e14 (builds a request via f_10a4cea8/f_109f1118, calls it at 0x100f6e64) and the f_100f6ec8 entitlement-refresh tail. f_100f6a48 writes +0x14a logging 'Sonos Favorites Radio has changed' then notifies a watcher list of fn+ctx pairs (code at node+8, ctx at +12). f_100f69d4 ('Sonos Favorites Radio' property via f_109f11b0/f_100f68d0) feeds the same byte.",
+    "Producer impossibility demonstrated for button flag setter f_103c4b2c: it occupies primary vtable 0x10ec6d10 slot+0x2c only, has no direct callers and no GOT entry. The singleton is reachable through global 0x11097170 (ctor 0x103c50f8 / dtor 0x103cb8e8 writes, sole read at 0x103caac0 which never vcalls +0x2c) and ctx slot -0x55d0 (written once at 0x1018e4b4; all eleven reads across ten functions consume through direct calls or other vcall slots). The startup wrapper's eight secondary interfaces all forward to inner slot+0, and the hw_events 'buttons' property handlers are stubs. The flag bits therefore flip only through a dynamically registered interface in the data-driven property layer; their bit-index/value producers cannot be named from this binary.",
+    "Verified mutation surface of the ButtonLockManager: flag word +0x890 (writer vtable+0x2c f_103c4b2c under mutex +0x8a8; readers f_103c6d98 probe checker, f_103c8ab8 dispatch gate for property types 1/2, f_103c53fc <HWMembers> bitmask for HardwareStatusInfo), action-mode byte +0x93e (writer vtable+0x34 f_103c4bdc plus -0x1c thunk f_103c4c50 on vtable 0x10ec6d74 slot+0; reader f_103c5cf4 timed-job tick selects alternate dispatch slots +0x10/+0x14 on backend +0x9c when nonzero), mirror word +0x940 (writer vtable+0x30 f_103c4ab0 plus -0x3c thunk f_103c4b24 on vtable 0x10ec6d8c slot+0). SOAP SetButtonLockState stores backend property 0x20001 (On->1 else 0) at impl+0x950 and GetButtonLockState reads it; the 'buttonAction' handler f_103caab8 reports the last press time or 0x7fffffff."
    ]
   },
   "share_indexer": {
