@@ -232709,13 +232709,135 @@
      "build": "86.10-80260",
      "address": "0x105544d8",
      "notes": "Insufficient-capacity fallback strlcpy copies original URI and optional diagnostic; no-placeholder path at 0x10554524 also uses strlcpy."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553460",
+     "function": "0x10552c20",
+     "notes": "SAX adapter element dispatch: 'Service' attributes (Id, Name, SecureUri, Version via f_10552b38, ContainerType, Capabilities) are collected, then processor vfunc+0x0c bctrl; return 0 branches to level-3 log 'Skipping service SID %u (%s) because beginService failed (URLs too long?)' and parser byte +0xe stays clear, so children of that Service are ignored while parsing continues."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552f44",
+     "function": "0x10552c20",
+     "notes": "'Strings' child of 'Presentation': vfunc+0x1c invoked with (version u16, uri); a false return logs 'Failed to load strings %s (URLs too long?)' at level 3 and parsing continues. Identical contract: vfunc+0x20 at 0x105534c4 logs 'Failed to load pmap %s (URLs too long?)'; vfunc+0x28 at 0x10553550 for 'Manifest' Uri is first gated by f_1054bdc8(key=7) option query and, when that returns false, by strncmp(uri,'https',5)==0, otherwise the callback is skipped outright (0x10553938)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553230",
+     "function": "0x10552c20",
+     "notes": "Stub elision: the adapter compares vfunc+0x18 (Presentation begin) to canonical empty body f_10552784 and vfunc+0x10 (BuiltInService begin) to f_10552778 (0x10553840) and skips the call entirely when the slot holds the stub. Presentation begin sets parser byte +0x10; BuiltInService sets +0x16 after 'Type'/'Name' attribute collection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552938",
+     "notes": "End handler: on each close tag it matches the name against the element whose activity byte is set (+0xf Policy, +0x10 Presentation, +0x11 Manifest, +0x13 Rating, +0x12 Ratings, +0xe Service, +0x16 BuiltInService, +0xd Services), clears the byte only on a literal-name match, and dispatches vfunc+0x40 Service end, +0x44 Services end, +0x48 BuiltInService end unconditionally while +0x24 Presentation end, +0x38 Rating end and +0x3c Ratings end are stub-gated. Manifest close performs no callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554e00",
+     "function": "0x10554e00",
+     "notes": "Storage processor Service-begin (vtable 0x10ee9e64 +0x0c): returns 0 when **+0x14c == +0x144 (slot bound reached), else points this+0x13c at array slot **+0x14c of the +0x140 array (record stride 0x138) and returns 1; the pending descriptor is the array slot itself. +0x150 holds duplicate state across calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554c7c",
+     "notes": "Storage Strings slot (+0x1c): no pending service (**+0x14c==+0x144) returns 0; otherwise stores the Version halfword at descriptor+0x124 FIRST, then packs the Uri into +0x60 via f_10553994 and returns its boolean. Siblings: +0x20 f_10554cbc -> version +0x126, pack +0xa0; +0x28 f_10554cfc -> version +0x128, pack +0xe0. A failed pack therefore still leaves the newly supplied version halfword stored beside the old URI."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554f0c",
+     "notes": "Storage Service-end (vfunc+0x40, called unconditionally): scans the record array from index **+0x14c for entries sharing the pending +0x134 Id; per match it runs full-field equality f_1055453c (id, +0x120, +0x124, +0x128, +0x130, +0x12a, +0x12c widened to u16, then strcmp over all four packed URIs), copies content with descriptor-assign f_10553cb4, swaps slots through a stack temp with f_10553dd8, remembers outcome in +0x150 and advances the count *+0x14c only on the commit path. Net: a repeated <Service Id=..> collapses to one stored descriptor and the later record's fields win."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553cb4",
+     "notes": "Descriptor assign: self-assign guarded, copies +0x134 id, name via f_10906304 cap0x20, the four 0x40 URI fields via memcpy, halfwords +0x120..+0x128, bytes +0x12c/+0x12d, word +0x130, halfword +0x12a. f_10553d88 zeroes the four URI fields first then assigns; f_10553dd8 swaps two descriptors through a 0x140 stack temp and resets the temp."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10086d30",
+     "notes": "Static initializer for the catalog-store singleton 'deserializer' at 0x110a4ca8: registers name 'deserializer' through f_10989174, writes storage-processor vtable 0x10ee9e64 at +0x90, constructs and resets a descriptor at +0x94, zeroes catalog state words +0x1cc..+0x1e0, registers dtor with __cxa_atexit. The singleton owns the descriptor array the parser fills."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8fdc",
+     "notes": "Catalog fetch/refresh worker: requests '/catalog/services' accepting 'application/sonos_service_catalog.v1.xml', logs 'MusicSvcList URI: %s; ETag: %s' and '%s downloading music service list from %s; res ETag=%s; zp ETag=%s; ret=%u, lRet=0x%x', builds id lists with 'R_CustomerID'/'%s%u'/',' and '?sonosId=', stages via 'musicservices'+'.tmp', and installs the normalizer vtable 0x10e767a8 for its parse pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8900",
+     "notes": "Form-input descriptor writer (reached from POST handler f_103424c4 after 'csrfToken' validation; 'Success!' page emitted when it returns 200): keys sid, name, secureUri, containerType, pollInterval, authType, stringsVersion, stringsUri, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps are consumed, the descriptor is constructed through f_10554350, each resource-load failure logs 'Unable to load secure/strings/manifest/presentation map URI %s', the record is re-emitted through normalizer f_100cc4f4 and persisted to 'musicservices' via '.tmp'. The HTTP page/handler side ('customsd.htm', the form template at 0x10eba2c8 region) is owned by the customsd subsystem; the descriptor-field mapping is documented here."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6c3c",
+     "notes": "Per-service manifest refresh (object vfunc): on success of this+0 vfunc+0x20 it reads the constructed descriptor's caps word at sp+0x140; bit 0x400000 set SKIPS the manifest fetch entirely, clear expands descriptor+0xe0 through f_105543d0 into a 0x401 stack buffer and calls f_1011b710(this+0x13ad0, arg, uri, manifestVersion=lhz desc+0x128) which logs 'downloading music service manifest from %s'. So caps 0x400000 marks services whose manifest is not fetched from the network."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f0e4a4",
+     "notes": "Caps-word test census on the provider copy at provider+0x13ac (descriptor embedded at provider+0x127c): bit 0x10000 (andis. 1) gates credentials/session material in f_10724d78 and in every Services/1.1 builder (0x10725100,0x10725dc4,0x10726a28,0x10726ecc,0x10727470,0x10727a8c,0x10727fe0,0x10728470,0x10728b80,0x10729248,0x10729cdc,0x1072abf8,0x1072b610,0x1072befc); bit 0x80000 gates contextId in the three report builders; bit 0x8 gates refreshAuthToken key/token elements (0x10725590) and refresh worker f_1072594c; bit 0x8000 gates the session-key cache preload f_1071fe70 inside getMediaURI (0x10729290); bit 0x400000 gates auth-state sync workers f_10722dd4/f_10723780 (strings 'auth_token_key','account_tier','auth_status', also reading provider auth byte +0x13a8) and the manifest-fetch skip; bit 0x1 gates an extra duplicate-check helper f_1071ef60 in browse dispatcher f_1072c300 (0x1072c44c)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e4eb48",
+     "function": "0x10e4ea30",
+     "notes": "Poll-interval consumer: iterates per-service records (lha flag at +0xf8,+0x170,+0x1e8,+0x260 stepping) and for each enabled slot folds lhz +0x12a into an accumulated schedule offset via (poll*8 - poll + 12), i.e. 7*poll+12, spreading service poll times."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10724fb4",
+     "notes": "Endpoint projection: every SMAPI action builder expands the packed secureUri of the provider-embedded descriptor (provider+0x129c == desc+0x127c+0x20) with f_10553ab0 into a local buffer capped 0x80; identical cap at getDeviceAuthToken (desc+0x20) and all four emitter sites f_100cc4f4 (0x100cc818..0x100cccf4). Manifest expansion uses cap 0x401 at the two fetch call sites (0x100c6cec, 0x1011c150) and an internal 0x80 buffer inside f_105543d0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ee9e64",
+     "notes": "Complete processor census: exactly two catalog-processor vtables exist, storage 0x10ee9e64 (+0x0c f_10554e00, +0x10 f_10552778 stub, +0x14 f_10554d9c, +0x18 f_10552784 stub, +0x1c f_10554c7c, +0x20 f_10554cbc, +0x24 stub, +0x28 f_10554cfc, +0x2c..+0x3c all stubs, +0x40 f_10554f0c, +0x44/+0x48 stubs) and normalizer 0x10e767a8 (+0x0c 0x100cb88c, +0x10 0x100cb310, +0x14 0x100cbdf8, +0x18 0x100cb0c0, +0x1c 0x100cbe24, +0x20 0x100cbf40, +0x24 0x100cb128, +0x28 0x100cbebc, +0x2c..+0x3c all stubs, +0x40 0x100cb040, +0x44/+0x48 stubs). Ratings/Rating/Icon/Rating-end/Ratings-end slots are canonical stubs in BOTH, so those attributes are lexed but discarded by every reachable consumer."
     }
    ],
    "resolved_findings": [
     "Separate representations are established: catalog XML fields are documented in payload_formats.music_service_catalog; nested manifest JSON is documented in payload_formats.music_service_manifest. Strings naming reporting, browse, Moment or form capability checkboxes do not alone prove a shared descriptor grammar or a consumer effect.",
     "Auth mapper and poll setter decoded; full manifest internals remain open. authType string->enum via strcmp ladder at 0x10553f4c: {UserId:0, Stateless:1, Anonymous:2, DeviceLink:3, AppLink:4} stored as byte at desc+0x12c (no match leaves prior value). PollInterval parsed as u16 at desc+0x12a clamped to range [1..29], out-of-range/absent default 30 (f_10554044: (v-1)<=0x1c ? v : 0x1e). Manifest capabilities are numeric - 'caps' attribute reported as 'capabilities bitmask: %llu' (0x10fdb95e), not a string-id vocabulary. Descriptor XML: root <Services LastUpdateDevice= Version= SchemaVersion= ETag=>; per-service fields {containerType, secureUri, stringsVersion, stringsUri, authType, pollInterval, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps}; catalog fetch GET /catalog/services?sonosId=&installedIds= with If-None-Match ETag, media type application/sonos_service_catalog.v1.xml.",
     "SMAPI capability checkbox vocabulary recovered from the embedded service-registration debug form (~rodata 0xf1xxxx block): caps = {search, trFavorites, alFavorites, ucPlaylists, logging, playbackLogging, accountLogging, extendedMD, radioExtendedMD, playlistExtendedMD, disableAlarms, noMultiAccount, mediaUriActions, contextHeaders, deviceCerts, playerIds, contextReporting, userInfo, contentFiltering, manifest, authorizationHeader} plus containerType {MService, SoundLab} and authType {UserId, Stateless?, Anonymous, DeviceLink, AppLink} radio set - the form maps the public getCapability mask names.",
-    "The zpETag/rsETag/zpLUD/rsLUD/zpVer/rsVer set is a diagnostic AvailableSvcsSummary attribute set in f_100cb8f0. It must not be used as a descriptor, service-manifest JSON or catalog-install comparison schema. The actual normalized Service attributes are Id, Name, Version, SecureUri, ContainerType and Capabilities, with child sections detailed in payload_formats.music_service_catalog."
+    "The zpETag/rsETag/zpLUD/rsLUD/zpVer/rsVer set is a diagnostic AvailableSvcsSummary attribute set in f_100cb8f0. It must not be used as a descriptor, service-manifest JSON or catalog-install comparison schema. The actual normalized Service attributes are Id, Name, Version, SecureUri, ContainerType and Capabilities, with child sections detailed in payload_formats.music_service_catalog.",
+    "Processor dispatch contract resolved: the SAX adapter f_10552c20 maps elements to vfunc slots Services=+0x08, Service=+0x0c, BuiltInService=+0x10, Policy=+0x14, Presentation=+0x18, Strings=+0x1c, PresentationMap=+0x20, Presentation-end=+0x24, Manifest=+0x28, Ratings=+0x2c, Rating=+0x30, Icon=+0x34, Rating-end=+0x38, Ratings-end=+0x3c, Service-end=+0x40, Services-end=+0x44, BuiltInService-end=+0x48. Slot pointers equal to the canonical stubs f_10552784/f_10552778 are skipped without a call. Boolean slots fail soft: a false beginService leaves the service-active byte +0xe clear and only drops that row; false URI slots log 'Failed to load strings/pmap %s (URLs too long?)' or the manifest equivalent at level 3 and parsing continues, so malformed or overlong fields degrade to skipped items rather than a rejected catalog. The end handler clears each activity byte only when the closing literal matches, then runs the matching end slot.",
+    "Storage processor semantics complete: Service begin binds the pending descriptor to the next array slot (stride 0x138, bound *+0x14c vs +0x144) and returns failure past capacity; Service end f_10554f0c reconciles the pending record against stored entries sharing the same Id with a full-field equality test (f_1055453c over id, versions, caps, poll, auth and all four packed URIs), descriptor assign f_10553cb4 and slot swap f_10553dd8, so repeated Service elements collapse to one descriptor per Id with last-wins fields. URI slots store the supplied Version halfword before packing the URI, so a too-long URI leaves a new version paired with the previous URI. The array lives in the 'deserializer' singleton at 0x110a4ca8 installed by static init f_10086d30.",
+    "Descriptor projections traced: provider nodes embed the descriptor at +0x127c, so secureUri sits at +0x129c, auth enum at +0x13a8, id at +0x13b0 and the caps word at +0x13ac; all fifteen Services/1.1 builders expand the packed secureUri into 0x80-byte buffers. Auth enum consumers are the class table {UserId:3, Stateless:3, Anonymous:1, DeviceLink:2, AppLink:2} consulted by account worker f_101b6efc and getDeviceAuthToken (class 2 only, else 'credentialType' warning), the auth-state sync workers f_10722dd4/f_10723780 ('auth_token_key','account_tier','auth_status') gated by caps 0x400000, and the re-emitter f_10554090. Capability bits observed in use: 0x10000 credentials/session elements, 0x80000 contextId in report calls, 0x8 refreshAuthToken support, 0x8000 session-key cache preload, 0x400000 suppresses the manifest download and gates auth-state sync, 0x1 enables an extra browse duplicate check. Poll +0x12a feeds the service-poll scheduler in f_10e4ea30 as a 7*poll+12 per-slot offset; containerType +0x12d is re-emitted via f_1055438c and read together with auth/caps by the service-enumeration workers f_106c7c94/f_106c811c/f_106cfbf8.",
+    "Malformed and repeated input behavior: repeated Service dedups by Id; repeated Policy and repeated Presentation children overwrite the same descriptor fields, so last occurrence wins; Service rows failing the Id/Name/SecureUri/Version guards are skipped without invalidating the catalog; SchemaVersion>5 only clears the validity byte. Both processor implementations (storage 0x10ee9e64 and normalizer 0x10e767a8) leave all five Ratings slots as canonical stubs, confirming Ratings/Rating/Icon data is parsed but consumed nowhere in this build, while the adapter's sticky rating-Id halfword (+0x14, never reset between Rating elements) retains its previously documented leak.",
+    "Catalog provenance paths closed: network fetch worker f_100c8fdc downloads '/catalog/services' as 'application/sonos_service_catalog.v1.xml' with ETag bookkeeping into 'musicservices' via '.tmp' staging; the customsd POST path f_103424c4 -> f_100c8900 builds a descriptor directly from form keys (sid/name/secureUri/containerType/pollInterval/authType/stringsVersion/stringsUri/presentationMapVersion/presentationMapUri/manifestVersion/manifestUri/caps), reports 'Unable to load X URI %s' on pack failures, re-emits normalized XML through f_100cc4f4 and persists the same 'musicservices' file; the HTTP page mechanics belong to subsystem customsd. Nested manifest JSON parse/emit remains with svc_manifest (f_10239c48/f_10239dc0) per the service_manifest_json note."
    ],
    "catalog_input_rules": {
     "catalog_header": "Start handler f_10552c20 matches the literal Services and recognizes LastUpdateDevice, Version, SchemaVersion and ETag with strcmp. Version and SchemaVersion use strtoul(base=10,endptr=NULL). Both default to zero; source and ETag default to null. The unsigned SchemaVersion must be <=5 to set the valid/root-seen bytes. Larger values leave the validity byte clear. The callback still receives parsed header values; acceptance also depends on the XML parser completion state.",
@@ -232733,7 +232855,7 @@
     "manifest_uri_expansion": "f_105543d0 reads descriptor+0xe0 through f_10553ab0 into a 128-byte stack buffer, finds the first literal {device} with strstr and replaces only that occurrence with the two bytes zp. For expanded source length L, replacement requires unsigned destination capacity >=L-5, which fits the new L-6 bytes plus terminator. On insufficient capacity it copies the original unexpanded string with strlcpy and may log Service manifest URI truncated; the fallback can therefore leave {device} intact, and the diagnostic does not itself establish actual truncation. Without a placeholder it also uses strlcpy. The function returns the destination pointer and does not report truncation or placeholder substitution as a separate status. Other placeholders and subsequent occurrences are unchanged by this helper."
    },
    "auth_and_poll_storage": {
-    "description": "f_10553f3c maps exact strings UserId, Stateless, Anonymous, DeviceLink and AppLink to byte values 0,1,2,3,4 at descriptor+0x12c. An unmatched string leaves the prior byte unchanged. f_10554044 calls that mapper and stores PollInterval at +0x12a as the input when unsigned (value-1)<=28, otherwise 30. Thus 1 through 29 are preserved; zero and values >=30 normalize to 30.",
+    "description": "f_10553f3c maps exact strings UserId, Stateless, Anonymous, DeviceLink and AppLink to byte values 0,1,2,3,4 at descriptor+0x12c; an unmatched string leaves the prior byte unchanged. Constructor f_10554350 clears the four packed URI fields then tail-calls f_10554218, which stores +0x134=id(arg), name at +0x00 cap0x20, sscanf('%d.%d') version into +0x120/+0x122 (0.0 when unparseable), packs secureUri (a false pack aborts the remaining defaults and returns false), containerType enum at +0x12d ({null,empty,MService:0, SoundLab:1, Preload:2, Preinstall:3}, unmatched preserved via f_10554148), +0x130=arg9 caps word, +0x124/+0x126/+0x128=0xffff, +0x12c=1 (Stateless) and +0x12a=30. Reset f_10553b9c instead zeroes the name, URIs, all version fields, +0x12a, +0x12c, +0x12d, +0x130 and +0x134, so a reset descriptor reads UserId/poll0 while a constructed one reads Stateless/poll30. The only semantic writer of +0x12c is f_10553f3c; +0x12a is written by the ctor (30), reset (0), standalone f_105540d4 and the storage-processor Policy slot, all using the same (v-1)<=28?v:30 clamp. f_10554044, the equivalent combined auth+poll entry point taking the descriptor directly, has no bl/b caller and no pointer formation anywhere in this build (dead entry; the live storage path is vtable slot 0x10554d9c -> f_10554db0 which prefixes a *+0x14c==+0x144 early return). Writers to these fields are: catalog XML <Policy> handling (SAX adapter defaults Auth='UserId' and PollInterval=30, converts PollInterval through saturating u16 f_105527f8, then invokes processor vfunc+0x14), the storage processor vtable 0x10ee9e64 whose +0x14 entry 0x10554d9c gates on the service counter and falls into f_10554db0 (f_10553f3c enum store plus clamped halfword at +0x12a of this+0x13c), and the line-form path f_100c8900 which maps 'authType' through f_10553f3c and 'pollInterval' through strtol then f_105540d4. Consequences: XML <Policy> present without Auth yields enum0 UserId, absent <Policy> keeps the constructed enum1 Stateless; the form's absent authType keeps enum1 as well. Normalized-XML emitter f_100cc4f4 converts +0x12c back to a string through f_10554090 (0 or >4 yields 'UserId', 1..4 yield Stateless/Anonymous/DeviceLink/AppLink via table 0x10ee9eec) and +0x12d through f_1055438c (0 or >3 yields 'MService', 1..3 yield SoundLab/Preload/Preinstall via table 0x10ee9efc), so an out-of-enum byte renders as UserId/MService while the raw byte persists in the descriptor. Per-enum authentication behavior is a five-entry class table {UserId:3, Stateless:3, Anonymous:1, DeviceLink:2, AppLink:2} instantiated twice at 0x10e9b0b4 (account worker f_101b6efc) and 0x10f0e4a4 (getDeviceAuthToken): only class2 admits the device-token action (UserId and Stateless share class3 treatment, Anonymous is class1), the worker dispatches class2 entries to the account-entry probe f_10570e34((serviceId<<8)|7) at 0x101b72ec, and the rejection warning prints the class value as 'credentialType' at 0x1072a3e8.",
     "evidence": [
      {
       "type": "firmware",
@@ -232748,11 +232870,80 @@
       "build": "86.10-80260",
       "address": "0x10554064",
       "notes": "Subtract-one unsigned compare and isel before halfword store at 0x10554074."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554218",
+      "function": "0x10554218",
+      "notes": "Descriptor init: +0x134=id at0x10554258, name cap0x20 at0x10554264, sscanf '%d.%d' -> +0x120/+0x122 at0x1055429c-0x105542a4, secureUri pack gate at0x105542b0, containerType f_10554148 at0x105542c0, +0x130=caps at0x105542c8, sth -1 to +0x124/+0x126/+0x128 at0x105542d0-0x105542f0, stb 1 to +0x12c at0x10554304, sth 30 to +0x12a at0x1055430c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10553b9c",
+      "function": "0x10553b9c",
+      "notes": "Reset clears +0x00..+0x20 name/URIs at0x10553bac-0x10553c2c, +0x60/+0xa0/+0xe0 at0x10553c34-0x10553c3c, halfwords +0x120..+0x12a at0x10553c40-0x10553c54, bytes +0x12c/+0x12d at0x10553c58-0x10553c5c, words +0x130/+0x134 at0x10553c60-0x10553c64."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554d9c",
+      "function": "0x10554d9c",
+      "notes": "Storage-processor Policy slot (vtable 0x10ee9e64+0x14): *+0x14c==+0x144 early-return prelude then f_10554db0 body - f_10553f3c(desc=this+0x13c, authString) at0x10554dd0 and clamped sth poll at0x10554de4."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x100c8e04",
+      "function": "0x100c8900",
+      "notes": "Line-form path: 'pollInterval' value strtol at0x100c8e04 then f_105540d4 clamp store at0x100c8e10; 'authType' value to f_10553f3c at0x100c8e20; 'caps' names OR'd via 22-entry table 0x10e769cc into f_10553f2c(+0x130) at0x100c8b9c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554044",
+      "function": "0x10554044",
+      "notes": "Combined auth+poll variant taking desc directly: dead in this build - no bl/b caller found in .text and no pointer formation found by image-wide xref scan."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10554090",
+      "function": "0x10554090",
+      "notes": "Auth enum->string: (v-1)<=3 indexes table 0x10ee9eec {Stateless,Anonymous,DeviceLink,AppLink}, else 'UserId'; sole caller f_100cc4f4 emitter at0x100cc9a8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1055438c",
+      "function": "0x1055438c",
+      "notes": "ContainerType enum->string: (v-1)<=2 indexes table 0x10ee9efc {SoundLab,Preload,Preinstall}, else 'MService' at0x105543c0; sole caller f_100cc4f4 at0x100cc860."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10e9b0b4",
+      "notes": "Auth-class table {3,3,1,2,2} indexed by +0x12c byte: UserId/Stateless class3, Anonymous class1, DeviceLink/AppLink class2. Second copy at 0x10f0e4a4 used by getDeviceAuthToken; rejection log formats the class value as credentialType at0x1072a3e8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x101b7190",
+      "function": "0x101b6efc",
+      "notes": "zpserviceaccounts.cxx worker loop over +0x138-stride descriptor array: lbz +0x12c, cmplwi 4, lwzx class from r27=0x10e9b0b4; class==2 branches at0x101b7178 to f_10570e34 probe with (serviceId<<8)|7 at0x101b72f4-0x101b7304; second per-entry read at0x101b7370 repeats the class2 gate before caps&0x100000 (userInfo) and entry operations."
      }
-    ],
-    "todo": "Established: exact auth enum mapping, unmatched-string preservation and polling normalization are decoded. Remaining: trace descriptor constructor defaults and every setter/caller to establish public-form, JSON and XML differences and authentication behavior for each enum."
+    ]
    },
-   "todo": "Established: catalog input/callback state, normalized XML and nested JSON are separated; schema/ID/version/auth/poll gates, Ratings/Icon retention, namespace-disabled setup and packed URI storage/manifest substitution are instruction-traced. Remaining: exhaust processor return/error effects, descriptor projections, malformed/repeated states, call-site URI capacities and failure propagation. Bind customsd/form inputs, capability tests, presentation/string grammar, authentication enum and Ratings/Icon consumers to concrete behavior. Nested JSON parser/consumer work remains in svc_manifest.",
    "service_manifest_json": "The actual nested service-manifest JSON parser is f_10239c48 with static table 0x10ea5bec; emitter f_10239dc0 writes schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. The structures are documented in payload_formats.music_service_manifest and differ from catalog XML fields.",
    "uri_storage": {
     "packing": "f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4). The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62, followed by a terminator. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
@@ -233279,18 +233470,144 @@
      "build": "86.10-80260",
      "address": "0x1055f358",
      "notes": "Collection scan and bytes+0x31/+0x30; missing-both returns1000 at0x1055f3e0, scan success/empty returns0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072fd50",
+     "notes": "Alternate session call: builds the shared request through f_106fe328 with ns 'urn:schemas-upnp-org:service:MusicServices:1' and action 'GetSessionId', adds literal ServiceId/Username children, binds SessionId to caller (dest,cap) through f_10562fc0+f_1056157c, executes f_106ff03c and stores elapsed req+0xc6b0 to this+0x668."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x107252b4",
+     "function": "0x10724f50",
+     "notes": "Gate to the alternate path: lbz 0x110a9af4 nonzero plus caller arg3==0 selects it. It constructs provider-state object f_1072f854, then calls f_1072fd50(obj, *(provider+0x13b0), provider+2, userOut, 0x101) at 0x10725300. Provider-state ctor memsets +0x8/+0xc8/+0x1a9/+0x269 (0xc0 each) and +0x33c (0x306 = six 0x81 header slots), sets +0x648/+0x64c=0x7d0 timeouts and installs vtables 0x10f10cfc/0x10f10d9c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10719e60",
+     "notes": "Sole code that forms address 0x110a9af4: strlcpy(global+0x44,arg1,0xc0), strlcpy(+0x104,arg2,0xc0), strlcpy(+0x1c4,arg3,0x21). No bl/b caller, no data pointer and no formed address of 0x10719e60 in this build, so the alternate-path gate byte stays its BSS zero."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072a124",
+     "notes": "getMediaURI retry wrapper: calls builder f_10728dc8; result 0x3fc(1020) or 0x40d(1037) re-issues the same 14-arg call once when stack byte sp+0x83 is zero (0x1072a274); either attempt ending 0x3f4(1012) runs session-record invalidation f_10719d5c(global+0x288, *(provider+0x13b0), provider+2) at 0x1072a29c; all other results return unchanged."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10726764",
+     "function": "0x107266a0",
+     "notes": "getContentKey wrapper shares the retry contract: 0x3fc/0x40d reissues f_10725a88 via tail call at 0x107267c4. Identical pairs sit atop reportAccountAction 0x10726be4->0x10726c2c, reportPlayStatus 0x10727160, reportPlaySeconds 0x10727784, setPlayedSeconds 0x10727d50, reportStatus 0x107281e4, getStreamingMetadata 0x107288e8, getUserInfo 0x10728d7c, getMetadata 0x1072b290->0x1072b344, search 0x1072bb10, getMediaMetadata 0x1072c2a8->0x1072c2fc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10725a88",
+     "notes": "getContentKey builder: credentials via f_10724d78, request elements id+uri, result bindings deviceSessionToken, deviceSessionKey (CK_deviceSessionKey), contentKey (CK_contentKey with algorithm,keySize,value,expiration), httpHeaders, mediaRequestInfo. Post-execute runs f_1071fc90 'cached %u:%u', key unpack f_10716a08 and f_1072594c refresh; lazy singleton 0x11096a38 initialized with refcounting and __cxa_atexit 0x101a0f88."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072594c",
+     "notes": "Token-refresh commit worker: descriptor caps bit 0x8 at provider+0x13ac gates the whole body (clear returns 1000). On arg!=0 it calls f_1071eb5c(arg+0x28,arg+0x829) which logs 'Null or empty token/key for token refrsh - ignored' on empty input, then f_1071e6f4(*this+0xc, arg+0x102c); tail calls refreshAuthToken f_10725488 at 0x10725a54; logs 'Token refresh for service: %s, res: %hu'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10719d5c",
+     "notes": "Session invalidation under f_10988564/f_10988990 lock: scans the record array (stride 0x10c) matching arg4 serviceId and arg5 name via f_10906404 and zeroes the record +0x108 word on match. Called on result 1020 paths and by the getMediaURI 1012 hook."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10720410",
+     "notes": "Provider-list update after refresh: walks the global+0x1f0 list (nodes chained at +0x1410, registered by f_1071e01c), finds node with +0x13c8==serviceId and +0x1284==arg5, stores flag byte arg6 to node+0x18 under node+0x1538 lock."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072c264",
+     "function": "0x1072bbb0",
+     "notes": "In-builder 1037 handling: after f_1072594c refresh and f_10720410 update, refresh result==0 resumes cleanup path at 0x1072c05c; refresh result==1037 is logged at level5 and returned. Same shape at 0x1072b1d0 (getMetadata) and 0x1072ba70 (search)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10726c30",
+     "notes": "reportPlayStatus element gating: 'contextId' added only when descriptor caps bit 0x80000 set (andis. 0x8 at 0x10726ff8); 'offsetMillis' added only when provider byte+0x18 nonzero, value set from this+0x10/+0x14 through f_1055fd2c. Single f_106ff03c execute at either 0x10726f5c or 0x10727060; on 1037 calls f_1072594c then exits."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1072c628",
+     "notes": "getAlbumArtURI is realized through getMediaMetadata: wraps a post-processor object (vtable 0x10f0e5f4 -> f_1072d0b8) with caller URI output and calls shared retry wrapper f_1072c284; logs 'getAlbumArtURI failed for %s, ret = %hu' on nonzero. No distinct wire action."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10728dc8",
+     "notes": "getMediaURI builder: credentials, 'id' element, raw header 'X-Sonos-Playback-Id: %s' via snprintf+f_106fd270 at 0x10729ca8; result bindings getMediaURIResult, deviceSessionToken, deviceSessionKey (MU_deviceSessionKey), contentKey (MU_contentKey), contentKeys, httpHeaders, uriTimeout, positionInformation, privateDataFieldName; post-execute session cache f_1071fc90, key unpack f_10716a08, 'reset session %u:%u' f_10720028 and refresh f_1072594c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104ab388",
+     "notes": "Playback-side getMediaUri worker calls retry wrapper f_1072a124 three times, logs 'getMediaUri: %d', 'URI expires in %us' and 'dereferenced to: %s'; f_1072a124 forwards all args to builder f_10728dc8 and applies the retry/teardown contract."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10c3ba54",
+     "notes": "Result-class test returning 1 for codes 1042..1045 (code-0x412 unsigned<=3 via isel); used by builders to detect the credential-state result range."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1109790c",
+     "notes": "Hook singleton consumed by alt-path helpers f_106fb140 (vfunc+8), f_106fb0a0 (vfunc+0x10 into req timeouts) and f_106fb848 (vfunc+0x14 token string for req+0xa2a cap0x11); sole static writer f_106fc7b4 at 0x106fc7bc, called once from f_1068f548, so the provider is installed at runtime."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f10cfc",
+     "notes": "Alt-path provider-state vtable: +0x8 f_1072f974 'UpdateAvailableServices', +0xc f_1072fd50 GetSessionId, +0x10 f_1072fb1c 'ListAvailableServices', +0x14 f_1072f6c4; UPnP MusicServices:1 method set, not Services/1.1."
     }
    ],
    "protocol_info": "protocolInfo CSV {sonos.com-mms:*:audio/x-ms-wma:*,sonos.com-http:*:{audio/mpeg3,audio/wma,audio/wav,audio/aiff,audio/flac,application/ogg,application/dash+xml,application/octet-stream}:*,sonos.com-spotify:*:audio/x-spotify:*,sonos.com-rtrecent:*:audio/x-sonos-recent:*,x-sonosapi-hls:*:*:*,x-sonosapi-hls-static:*:*:*}; exts {.aiff,.flac,.unknown}; audio/vnd.radiotime; \"Unsupported mime type (%s) for object id (%s)\"",
    "resolved_findings": [
     "Resolved: getMediaURI envelope = the Services/1.1 namespace action {getMediaURI} built like getSessionId/getStreamingMetadata siblings, protocol_info sub-block holds the wire form.",
     "getMediaURI end to end proven: the client issues the SMAPI action (namespace http://www.sonos.com/Services/1.1) and logs getMediaUri: %d result codes; the returned URI is dereferenced (dereferenced to: %s) into a streamable URL with expiry tracking (URI expires in %us). Content gate: Disallow playback of Spotify Free content from Sonos queue - account-tier enforcement on the enqueue path. Metadata side: streamingMetadataCache caches responses; get metadata for %s fetches per-item; each item carries a playback window %d: StartTime: %s %dms - %ums %s and a metadata reference time (Setting metadata reference time %s at %ld / Rejecting invalid stream metadata reference time %s). Bonus adjacent: the sound_swap satellite checker + group-modify muse ops {groups/%s/groups/setGroupMembers -> museCmdSetGroupMembers, groups/%s/groups/modifyGroupMembers -> museCmdModifyGroupMembers} with isFound = %i. isHTSat = %i. playerUDN = %s. HTPrimaryUDN = %s and GC property guards.",
-    "Provider session binding is static: constructor f_10723e90 installs embedded vtable 0x10f0e730 at this+0x13d4; f_1071e01c stores this+0x13d4 at this+0x13d0. The account worker loads that member and invokes slot +0x0c, whose entry is f_10724f50. Its normal path builds an outbound Services/1.1 getSessionId request with username and password, binds getSessionIdResult into a 257-byte output buffer and executes f_106ff03c. A feature byte at 0x110a9af4 and zero third argument select an alternate f_1072fd50 path. The account worker always passes zero for that third argument."
+    "Provider session binding is static: constructor f_10723e90 installs embedded vtable 0x10f0e730 at this+0x13d4; f_1071e01c stores this+0x13d4 at this+0x13d0. The account worker loads that member and invokes slot +0x0c, whose entry is f_10724f50. Its normal path builds an outbound Services/1.1 getSessionId request with username and password, binds getSessionIdResult into a 257-byte output buffer and executes f_106ff03c. A feature byte at 0x110a9af4 and zero third argument select an alternate f_1072fd50 path. The account worker always passes zero for that third argument.",
+    "SMAPI action census complete: exactly 15 Services/1.1 wire actions are built by dedicated functions - getSessionId f_10724f50, refreshAuthToken f_10725488, getContentKey f_10725a88 (previously unlisted: request id+uri, response deviceSessionToken/deviceSessionKey/contentKey/httpHeaders/mediaRequestInfo), reportAccountAction f_107267c8 (type), reportPlayStatus f_10726c30 (id,status,contextId gated by caps 0x80000, offsetMillis gated by provider byte+0x18), reportPlaySeconds f_107271c4 (id,seconds,contextId,privateData,offsetMillis; response interval), setPlayedSeconds f_107277f4, reportStatus f_10727db4 (id,code,message), getStreamingMetadata f_10728248 (id,startTime,duration; response startTime,duration,segmentMetadata), getUserInfo f_10728964, getMediaURI f_10728dc8, getMetadata f_1072a9b4 (id,index,count,recursive; response count,index,total,positionInformation,mediaCollection,mediaMetadata), search f_1072b348 (id,term,index,count; response count,total,mediaCollection,mediaMetadata), getMediaMetadata f_1072bbb0 (id; response mediaMetadata). getAlbumArtURI is not a wire action: f_1072c628 delegates to the getMediaMetadata wrapper f_1072c284 with a metadata post-processor (vtable 0x10f0e5f4).",
+    "Retry/error contract established: every action sits under a fixed wrapper that reissues the identical call exactly once when the builder result is 1020 or 1037 (tail-call sites 0x107267c4,0x10726c2c,0x1072c2fc,0x1072b344 and siblings); getMediaURI wrapper f_1072a124 additionally requires a caller stack byte to be zero before its single retry and maps a final 1012 to session invalidation. Inside builders, result 1037 runs token refresh f_1072594c (descriptor caps bit 0x8; internally calls refreshAuthToken f_10725488 at 0x10725a54, commits through f_1071eb5c/f_1071e6f4 and ignores empty token/key) followed by provider-flag update f_10720410 (sets node+0x18 on the global provider list by serviceId match). Result 1020 runs flag-gated session invalidation f_10719d5c, which zeroes the +0x108 word of the matching (serviceId,name) record under lock. The HTTP layer itself has no retry: the executor makes one poll loop run per call.",
+    "Alternate session path f_1072fd50 resolved and bounded: it issues a UPnP GetSessionId in namespace urn:schemas-upnp-org:service:MusicServices:1 (ServiceId=*(provider+0x13b0), Username=provider+2, SessionId->caller cap0x101) over the same shared HTTPS executor and request vtable, wrapped in the provider-state object whose vtable also exposes UpdateAvailableServices/ListAvailableServices. It is selected only when global byte 0x110a9af4 is nonzero and the worker arg3 is zero. The byte's only writer f_10719e60 (strlcpy to global+0x44/+0x104/+0x1c4) has no caller, no data pointer and no formed address in this build, so the UPnP path is unreachable in 86.10-80260.",
+    "Prior getMediaURI claims verified against control flow: the playback worker f_104ab388 calls retry wrapper f_1072a124 (which forwards the 14-arg call to builder f_10728dc8) and logs 'getMediaUri: %d', 'URI expires in %us', 'dereferenced to: %s'; the builder sends the Services/1.1 getMediaURI action with an 'id' element and an X-Sonos-Playback-Id raw header and binds getMediaURIResult plus deviceSessionToken, deviceSessionKey, contentKey, contentKeys, httpHeaders, uriTimeout, positionInformation and privateDataFieldName, then feeds session fields to the media-sens cache (f_1071fc90 'cached %u:%u', f_1071fe70 'loaded %u:%u', f_10720028 'reset session %u:%u') and the content-key unpack/decrypt path f_10716a08.",
+    "Transport and acceptance boundaries confirmed closed: URI parse/scheme gate (f_1053b4a4), resolution (f_1054a158 selector semantics), socket/connect/TLS handshake/send/receive/close states (f_1053a060 loop, f_10539c64, f_10538918/0x10538998 interest, f_10539e78/f_10539e04 event dispatch, f_10539bd8 bio, f_10539a80 handshake, f_10539304/f_105399d8 drivers, f_105393a4 close_notify) are instruction-traced in details records; parser+0x2e2/+0x2e4 and descriptor+0x30/+0x31 writer census and the full Envelope/Body/Fault/response acceptance grammar are recorded in soap_result_acceptance; request flag writers +0xa44..+0xa48 census is in request_transport_flags."
    ],
-   "todo": "Established: GetSessionId provider binding, getDeviceAuthToken construction, credential/certificate and raw-header gates, preflight/header formatting, shared serializer/status callbacks, poll/deadline loop and response-result scan are instruction-traced. Remaining: reverse URI resolution and socket/TLS/connect/send/receive states, parser/descriptor flag writers and complete XML acceptance, every retry/error mapping and alternate session path f_1072fd50; audit all other SMAPI actions and prior getMediaURI claims against control flow, including authentication, caching, content keys and reporting.",
    "details": {
     "device_auth_token": {
-     "description": "f_1072a2a4 implements getDeviceAuthToken in namespace http://www.sonos.com/Services/1.1. Descriptor auth byte+0x12c must be<=4 and its table value at0x10f0e4a4 must equal2; table values are {3,3,1,2,2}, admitting DeviceLink3 and AppLink4 and rejecting other or out-of-range methods with1000. It expands descriptor SecureUri+0x20 into a128-byte buffer and constructs a credentials element. Shared helper f_1071f0c0 can return a setup error that exits before transport. A login child containing username and password is added only when both supplied strings are non-null and nonempty. The body always binds householdId; linkCode, linkDeviceId and callbackPath are included only for non-null, nonempty inputs. The response binding selects getDeviceAuthTokenResult and binds authToken and privateKey directly to caller destinations with caller capacities through f_1056157c; nested userInfo uses a parser object whose output pointer is the supplied userInfo destination. f_1056157c stores the destination/capacity, sets type7, zeroes its write count and flag, but does not itself establish missing-field or overflow policy. The request executes through f_106ff03c and its status is returned unchanged after cleanup. There is no independent authToken/privateKey nonempty check in this outer worker.",
+     "description": "f_1072a2a4 implements getDeviceAuthToken in namespace http://www.sonos.com/Services/1.1. Descriptor auth byte+0x12c must be<=4 and its table value at0x10f0e4a4 must equal2; table values are {3,3,1,2,2}, admitting DeviceLink3 and AppLink4 and rejecting other or out-of-range methods with1000. It expands descriptor SecureUri+0x20 into a128-byte buffer and constructs a credentials element. Shared helper f_1071f0c0 can return a setup error that exits before transport. A login child containing username and password is added only when both supplied strings are non-null and nonempty. The body always binds householdId; linkCode, linkDeviceId and callbackPath are included only for non-null, nonempty inputs. The response binding selects getDeviceAuthTokenResult and binds authToken and privateKey directly to caller destinations with caller capacities through f_1056157c; nested userInfo uses a parser object whose output pointer is the supplied userInfo destination. f_1056157c stores the destination/capacity, sets type7, zeroes its write count and flag, but does not itself establish missing-field or overflow policy; that policy lives in the shared sink machinery below. Remaining decoded behavior: a caller-supplied extra blob (arg16) is appended to the request object through f_106fd338 before headers. Parameter order is (desc, householdId, credArg, linkCode, linkDeviceId, callbackPath, authTokenDest, authTokenCap, privKeyDest, privKeyCap, userInfoDest, username, password, extraBlob) where userInfoDest lands at parser+0x25f4. When descriptor caps+0x130 has bit0x40, global interface0x11097928 slot+0x28 writes a manifest header (cap0x81) that reaches f_1071e208 as rawHeader. Request-side text is XML-escaped by f_105779c8 (a vtable slot of the element/attribute writer classes at0x10eeed44-0x10eeedb4), replacing & < > \" ' with &amp; &lt; &gt; &quot; &apos;. The response binding selects getDeviceAuthTokenResult and binds authToken and privateKey directly to caller destinations with caller capacities through f_1056157c; nested userInfo uses a parser object (vtable0x10f0e534) whose fields are userIdHashCode cap0x101, nickname cap0x41 and accountTier cap0x21, each copied at element end by dispatch f_10718760 through bounded-copy f_10906304 (NUL-terminates, truncates at cap-1, null src or cap<2 clears dest). Its shared startElement f_107188a4 also consumes attributes requiresAuthentication (strcasecmp 'true' or leading '1'), stringId cap0x40 and xml:lang cap5 on recognized children, binds an 0x2001-byte scratch type7 sink for element text, and swallows unrecognized children into the same scratch while flag+0x248d suppresses text routing. Response acceptance: sink text append f_10560708 copies entity-decoded text byte-wise while count<cap with no NUL; element-end finalizer f_10560a58 then writes dest[count]=0 when count<cap else forces dest[cap-1]=0 and sets flag+0x31, so oversize strings truncate silently and stay terminated. StartElement lookup f_1055f9cc rematches the same slot on every occurrence without resetting count, so repeated authToken/privateKey elements concatenate into the destination until the cap; repeated userInfo fields last-win because each endElement recopies scratch. A missing element leaves the caller destination entirely untouched (no write, flag+0x31 stays0), so callers must pre-clear or test emptiness. Types1-6 sinks convert accumulated text through strtol/strtoul/strcasecmp('1','true','yes') at finalize; the worker installs no fault sink, fault handling lives in the shared engine. The request executes through shared HTTPS executor f_106ff03c (mbedtls_ssl_write/read with send() fallback, URI scheme checks for 'https://'/'tunnel'/'secure'/'loopback', 'control_client' logging, sonosClockGetTime timing); a nonzero status is logged '%s: %s#%s failed, ret = %hu' with level3 for ret>0x40d else level5 and returned unchanged after teardown, with no clearing of partially filled outputs. Callers:0x101b8f6c in f_101b869c (zpsa provisioning; stack outputs authToken cap0x801 and privKey cap0x801, userInfo stack object, username/password stack buffers, f_10674084-formatted extra blob, no link args); 0x10286f40 and0x10287000 in f_10286e44 (session wrapper forwarding caller buffers; second site is behind a clock_gettime elapsed-interval gate, rate-spacing repeats); 0x1028b0f8 in f_1028ad54 ('Failed to preinstall service' path; descriptor member+0xb0 as credArg, caps0x801). There is no independent authToken/privateKey nonempty check in this outer worker.",
      "evidence": [
       {
        "type": "firmware",
@@ -233326,12 +233643,67 @@
        "build": "86.10-80260",
        "address": "0x1056157c",
        "notes": "Type7 destination/capacity binding and cursor/flag initialization. It installs a sink rather than validating text here."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10718760",
+       "notes": "userInfo endElement dispatch (vfunc+0x20 of parser vtable0x10f0e534): namespace-prefix match on +0x84/+0x488 then '|', strcmp dispatch to userIdHashCode->+0x248e cap0x101 at0x1071884c, nickname->+0x258f cap0x41 at0x10718878, accountTier->+0x25d0 cap0x21 at0x10718820, all via bounded copy f_10906304; unmatched names return ignored."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107188a4",
+       "notes": "Shared startElement: on namespace mismatch binds catch-all type7 sink (+0x4c->scratch+0x48c cap0x2001) and sets +0x248d; 'ns|title' scans attribute pairs for stringId->+0x4 cap0x40 and xml:lang->+0x44 cap5; 'ns|albumArtURI' scans requiresAuthentication ('true' or leading '1')->+0x4a; 'ns|tags' sets +0x4b."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560708",
+       "notes": "Sink characters append: type8 delegates to child vfunc+8, type0 drops; other types store each byte at dest(+0xc)+count(+0x14) while count<cap(+0x10) with no NUL. Entity-decoded chunks arrive from callers f_105607e0/f_10560d60 (f_1054ea08/f_1054ea68 into 0x400 buffers); f_10560788 gates text on active-slot index+0x2a8!=-1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10560a58",
+       "notes": "Element-end sink finalizer: sets flag+0x31; type7 NUL-terminates dest[count] if count<cap else dest[cap-1] (0x10560b10); types1-6 run strtol/strtoul/strcasecmp('1','true','yes') conversion into+0x8 via jump table0x10eebbdc; type9 delegates child vfunc+0x18."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1055f9cc",
+       "notes": "StartElement binding lookup stores match index at+0x2a8 and type9 forwards to child vfunc+8; no count/flag reset, so repeated elements keep appending (concatenation). EndElement dispatcher f_10560c6c consumes +0x2a8 through f_10560a58."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105779c8",
+       "notes": "Request writer escaping: chars 0x22 0x26 0x27 0x3c 0x3e selected by (c-0x22) bitmask0x14000031 emit &quot; &amp; &apos; &lt; &gt; through writer vfunc+8; registered as a slot in writer vtables0x10eeed44-0x10eeedb4 (incl. DIDL writer0x10ee8954)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x101b8f6c",
+       "notes": "Caller in f_101b869c (zpsa): passes authToken cap0x801 and privKey cap0x801 stack buffers, userInfo stack object, username/password stack buffers, f_10674084-formatted blob, NULL linkCode/linkDeviceId/callbackPath. Sibling callers0x10286f40/0x10287000 in f_10286e44 (second site behind clock_gettime interval gate) and0x1028b0f8 in f_1028ad54 preinstall path."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106ff03c",
+       "notes": "Shared HTTPS executor used by all SMAPI action wrappers: mbedtls_ssl_write/read with send() fallback, URI scheme checks for 'https://'/'tunnel'/'secure'/'loopback', 'control_client' logging, sonosClockGetTime/timevalDiff timing; fault handling is engine-level, this worker binds no fault sink."
       }
-     ],
-     "todo": "Established: authentication-method gate, body/header construction, response destination bindings and execution/result forwarding are decoded. Remaining: finish XML writer escaping, userInfo fields, missing/duplicate/oversized response acceptance and partial-output effects; bind all public inputs and direct callers0x101b8f6c/0x1028b0f8; trace shared HTTP execution, faults, retries and account continuation."
+     ]
     },
     "device_auth_manifest_header": {
-     "description": "During getDeviceAuthToken setup, descriptor capability0x400000 causes an optional call to global interface0x11097928 slot+0x28 with accountType=(descriptor SID<<8)|7 and a129-byte destination. The destination begins empty, and the return value is ignored. The resulting text is passed as the raw-header argument to f_1071e208. That helper adds this text through request slot+0x30 only when the URI begins with the exact case-sensitive first5 bytes https or the setting read through f_1054bdc8(index25) is nonzero. It does not prepend an API-key header name to this text. If a nonempty raw header is supplied for another URI with that setting false, it only logs the HTTPS warning and continues later setup; it does not return an error. getDeviceAuthToken supplies null bearer/signature/certificate/group strings to the other helper arguments. The exact header extraction and whether the supplied text already contains a name/value line remain separate questions.",
+     "description": "During getDeviceAuthToken setup, descriptor capability0x400000 causes an optional call to global interface0x11097928 slot+0x28 with accountType=(descriptor SID<<8)|7 and a129-byte destination (stack buffer, first byte pre-cleared); the return value is ignored. The resulting text is passed as the raw-header argument to f_1071e208. Interface binding:0x11097928 stores &RZP[0x293dc] written at0x1019a20c in RZonePlayer init f_101981f0 and is zeroed at0x101924b8 in ~RZonePlayer f_101921a0; the containing member+0x293d0 is registered as impl index6 on the embedded registrar at+0x2900c by f_10651bd4 at0x101993ec, so the concrete provider class is attached by DI wiring (f_101afaa4) at runtime. The same interface exposes slot+0x2c(provider,serviceId)->bool, consulted before emitting 'X-Sonos-GroupAttribute'. A second caller f_107174c8 forwards to slot+0x28 with accountType=(req+0x13b0<<8)|7 and destination req+0x11e8 cap0x81; the getSessionId builder passes req+0x11e8 as its raw header, so that member buffer is the manifest-header slot for that action. f_1071e208 is the shared request-header builder(req,desc,bearer,unused,rawHeader,msSig,deviceCert,groupCap,groupAttr). It reads devmode bit25 via f_1054bdc8 on global0x11097374 (bit array at+0x404 through f_1054bd60, devmode.cxx; the blob is XOR-applied by writer f_1054beb0) and a5-byte case-sensitive strncmp of req+0x410 against 'https'. On the secure path a nonempty rawHeader is appended verbatim through request vfunc+0x30 (f_106fd270->f_10551678); cap+0x130&8 then enters the auth section, which emits 'AUTHORIZATION: Bearer %s' (cap0x819) when arg3 is nonempty and sets req+0xa47 via f_106fd828, then under cap0x20000 emits 'X-Sonos-MS-Sig: %s' (cap0x2bf) from arg6 and 'X-Sonos-DeviceCert: %s' (cap0x1017) from arg7. On a non-https URI with the flag clear, a supplied nonempty rawHeader (or cap8 plus bearer) only logs 'SMAPI uri must be HTTPS: %s, method=%s' (uri,method=req+0x911) and continues; the raw text is never attached and no error is returned. The tail emits 'X-Sonos-GroupCapability: %s' (cap0x3c) when arg8 is nonempty, evaluates global0x11097920 vfunc+0x20 for sid204 logging 'Apple Music HLSv7 enabled from FCS', and under cap0x400000 emits 'X-Sonos-GroupAttribute: %s' (cap0x3b) only when arg9 is nonempty and provider slot+0x2c(serviceId) returns nonzero. f_1071e208 returns void: the HTTPS gate, provider calls and every header emission are advisory only. Attach-time revalidation: vfunc+0x30 (f_106fd270) calls f_10551678 which requires 'name:value' form, a colon after position0 with no preceding space; the text is stored as name plus ' ' plus value into the bounded header blob at req+0x8a50 by f_105514ec, which on overflow clears flag+0xc and returns0, producing only the level4 log 'Failed to add custom header -- buffer is full?'. So the manifest producer must supply a complete name-colon-value line within its129-byte cap; malformed text or a full blob is log-only. getDeviceAuthToken supplies null bearer/signature/certificate/group strings; the TLS endpoint itself is selected in the transport layer and this helper performs no TLS.",
      "evidence": [
       {
        "type": "firmware",
@@ -233353,12 +233725,72 @@
        "build": "86.10-80260",
        "address": "0x1071e568",
        "notes": "Raw text passed unchanged to request slot+0x30. Non-HTTPS warning path0x1071e3b0 joins continued setup at0x1071e2c4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019a20c",
+       "notes": "0x11097928 stores &RZP[0x293dc] (addi r9,-0x6c24(r28), r28=RZP+0x30000); sibling globals0x1109792c/0x11097930 stored at0x1019a220/0x1019a214. Registrar member+0x2900c gets impl index6=&RZP[0x293d0] via f_10651bd4 at0x101993ec. ~RZonePlayer zeroes it at0x101924b8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1072a544",
+       "notes": "Slot+0x28 call: provider load0x1072a548, vfunc+0x28 at0x1072a564, accountType rlwinm sid<<8|7 at0x1072a568, dest sp+0x120f4 cap0x81 at0x1072a558/0x1072a560, first byte pre-cleared by stbu at0x1072a53c; result untested."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107174c8",
+       "notes": "Alternate slot+0x28 wrapper: tail-calls provider+0x28 with accountType=(req+0x13b0<<8)|7, dest=req+0x11e8, cap0x81; no static callers (indirect dispatch); getSessionId reads req+0x11e8 as rawHeader at0x1072505c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e2e4",
+       "notes": "cap0x400000 and arg9(groupAttr) nonempty -> provider vfunc+0x2c(serviceId) at0x1071e308-0x1071e324; nonzero emits 'X-Sonos-GroupAttribute: %s' cap0x3b at0x1071e528; arg8 emits 'X-Sonos-GroupCapability: %s' cap0x3c at0x1071e590."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e3f8",
+       "notes": "sid==204 path: global0x11097920 vfunc+0x20 at0x1071e408-0x1071e414, nonzero logs 'Apple Music HLSv7 enabled from FCS' at0x1071e440."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1054bd60",
+       "notes": "devmode bit getter (devmode.cxx:0xf7): bit array at this+0x404, count+0x408, ZZ0018 bit test, result negated+normalized; reader wrapper f_1054bdc8 locks+0x568. Writer f_1054beb0 (devmode.cxx:0x10e) XOR-applies a flag blob at0x1054bf88-0x1054bfa4."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1071e458",
+       "notes": "cap8 auth section: 'AUTHORIZATION: Bearer %s' cap0x819 attach at0x1071e474-0x1071e4a4, f_106fd828 sets req+0xa47 at0x1071e4b0; cap0x20000 gate at0x1071e4b4 ->'X-Sonos-MS-Sig: %s' cap0x2bf at0x1071e5d0, 'X-Sonos-DeviceCert: %s' cap0x1017 at0x1071e4f0."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10551678",
+       "notes": "addCustomHeader revalidation (vfunc+0x30 f_106fd270): strchr ':' required at0x105516b0, reject at pos0 or space-before-colon via0x105517b0; name stored then ' ' plus value by f_105514ec into bounded blob req+0x8a50; overflow clears flag+0xc and returns0 ->'Failed to add custom header -- buffer is full?' level4 log at0x106fd2e4."
       }
      ],
-     "todo": "Established: manifest-capability lookup arguments, raw-header forwarding and local HTTPS/setting predicate are decoded. Remaining: bind interface construction and slot+0x28 implementation to manifest API-header extraction; trace header parsing/limits and setting meaning/writers, and verify actual HTTP/TLS behavior and failure propagation."
+     "resolved_findings": [
+      "The concrete manifest provider class is bound at runtime through DI registration: member+0x293d0 is only registered (impl index6 on registrar+0x2900c) and its interface at+0x293dc is exported via0x11097928; no static vtable assignment exists in the binary. Slot+0x28 is therefore identified by contract: it must write a complete 'name: value' header line within the0x81 cap because the request-side attach revalidates that form.",
+      "Which header name the producer emits (for example a key derived from the manifest 'apiKey'/'accountTiers' fields) is runtime manifest data: the binary does not pin the producer to a specific header name.",
+      "TLS termination and endpoint selection happen in the transport layer (executor f_106ff03c, connection f_10538ed0); this helper only gates on the5-byte 'https' URI prefix and performs no TLS itself."
+     ]
     },
     "shared_device_credentials": {
-     "description": "Credentials builder f_1071f0c0 adds zonePlayerId when descriptor capability0x40000 is set and the supplied zone-player string is non-null/nonempty. If a certificate destination exists and capability0x20000 is set, it consults optional global certificate provider0x1109792c. Provider slot+8 returning numeric1 yields result1045 and bypasses certificate retrieval. It still appends deviceId and deviceProvider before returning that error. Other provider states attempt slot+0xc retrieval into the caller buffer; true adds deviceCert, while false merely omits it and returns zero. Missing provider also omits the certificate and returns zero. After these branches it always adds deviceId from global text0x110a9ab0 and deviceProvider literal Sonos. In getDeviceAuthToken the certificate scratch capacity is4097. The caller stops before request execution on any nonzero builder result. These are the observed numeric gates; the certificate-state enum and trust policy are not established by the method names.",
+     "description": "Credentials builder f_1071f0c0 adds zonePlayerId when descriptor capability0x40000 is set and the supplied zone-player string is non-null/nonempty. If a certificate destination exists and capability0x20000 is set, it consults optional global certificate provider0x1109792c. Provider slot+8 returning numeric1 yields result1045 and bypasses certificate retrieval. It still appends deviceId and deviceProvider before returning that error. Other provider states attempt slot+0xc retrieval into the caller buffer; true adds deviceCert, while false merely omits it and returns zero. Missing provider also omits the certificate and returns zero. After these branches it always adds deviceId from global text0x110a9ab0 and deviceProvider literal Sonos. In getDeviceAuthToken the certificate scratch capacity is4097 and the caller stops before request execution on any nonzero builder result. Provider binding:0x1109792c is stored at0x1019a220 inside RZonePlayer init f_101981f0 from member+0xc7c; ctor f_1018d27c passes &RZP[0xc7c] inside a member-address table into DI wiring call f_101afaa4 at0x1018f114, so the concrete provider is attached at runtime. ~RZonePlayer f_101921a0 clears sibling globals0x11097928 and0x11097930 but never0x1109792c. Registered providers are the devicecertmanager family (devicecertmanager.cxx/certmanager.cxx): vtables0x10ef1e60 (ctor f_105a7034) and0x10efc818 (ctor f_1064aca0) share slot+8 state f_10390274, slot+0xc retrieval f_106b1e04, slot+0x10 install f_105a6e44 (URN strings 'urn:sonos:hhid' and 'urn:sonos:user') and slot+0x1c presence f_106b1d64 reporting member+0x9c!=0. state() returns1 when byte+0x10d0 is set, else2 when+0x9c is set, else0;1045 therefore means denylisted. +0x10d0 is cleared by the class ctor at0x105a70e0, assigned by metadata evaluator f_105a7b48 (stored 'state' field: 'denylisted'->1, absent or empty->0, other nonempty logs 'Unknown cert metadata state' and schedules a refresh job through scheduler global0x110a5f8c slot+0xc before clearing it), set at0x105a86cc when refresh routine f_105a7e74 sees HTTP403 plus 'X-Sonos-Denylisted: true' (the same path stores 'state'='denylisted' through setter f_105a7dac) and cleared on the refresh success path at0x105a84e8. Retrieval f_106b1e04 strlcpy's cert text from provider+0xa0 only when+0x9c is nonzero and reports success only when it fits the caller capacity. deviceId source:0x110a9ab0 is a zero-initialized0x20-cap buffer heading a static identity block (further strings at+0x20 cap0x21,+0x44 cap0xc0,+0x104 cap0xc0,+0x1c4 cap0x21; the+0x20 string is filled during init via f_10719e40 at0x10198724). Its only setter is strlcpy thunk f_10719e24; all four callers (f_100c6248, f_100c7c6c, f_100c8230, f_104b1e48) copy the 'R_TrialZPSerial' setting text into it, and f_104b1e48 logs 'Trial ZP has changed from %s to %s'. The emitted deviceId is therefore the last applied R_TrialZPSerial value, or empty when that setting was never applied. Caller audit: shared helper f_10724d78 (call site0x10724dcc, used by ~10 action builders including refreshAuthToken f_10725488 with stack cap0x1001) returns a nonzero builder result unchanged and skips all login-credential work; on zero it dispatches on credential-type word+0x13b4 (state0, or3 with flag+0x11a7, calls vfunc+0x10; byte+0x124 set calls f_1071ee0c; otherwise 'username'/'password'/'login' elements; cap+0x13ac&0x10000 adds tail call f_10724cac). The getSessionId builder call at0x107250cc passes stack capacity0x1001 and stored member+4 as the zonePlayer string, then ignores the builder result entirely and continues to 'username'/'password' emission, so a denylisted device still emits a getSessionId request whose credentials carry only deviceId/deviceProvider. Certificate issuance and renewal run inside refresh routine f_105a7e74, which posts a 'Registration' JSON event ('certType'='deviceCert','secureReg') and consumes 'requestTimeMS','downloadStatusCode','httpResultCode','newETag','previousETag','downloaded','unchanged','state','etag' fields plus the 'X-Sonos-Muse-Household-Id' header, staging results through a '.tmp' file; the concrete backend endpoint is runtime configuration.",
      "evidence": [
       {
        "type": "firmware",
@@ -233387,9 +233819,97 @@
        "build": "86.10-80260",
        "address": "0x1072a3b0",
        "notes": "Builder receives capacity0x1001 and its nonzero result exits before request construction."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x1019a220",
+       "notes": "Global0x1109792c stores [RZP+0xc7c] (lwz0x1019a200, stw0x1019a220); same block stores0x11097928 at0x1019a20c and0x11097930 at0x1019a214. Ctor f_1018d27c writes &RZP[0xc7c] to sp+0x130 at0x1018efb4-0x1018efb8 and feeds the table to f_101afaa4 at0x1018f114. Dtor f_101921a0 zeroes0x11097930/0x11097928 at0x101924a0/0x101924b8, never0x1109792c."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10ef1e60",
+       "notes": "devicecertmanager vtables0x10ef1e60 and0x10efc818 share slot+8 f_10390274, +0xc f_106b1e04, +0x10 f_105a6e44 ('urn:sonos:hhid'/'urn:sonos:user'), +0x18 f_106b1fe4, +0x1c f_106b1d64."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10390274",
+       "notes": "state(): lbz+0x10d0 ->1 at0x10390280; else vfunc+0x1c presence call and isel r3,r0,r9,cr7eq at0x103902b4 gives0 or2. Fast reader0x1038ce88 confirms slot+8 then reads+0x10d0 directly."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a70e0",
+       "notes": "devicecertmanager ctor f_105a7034 clears byte flags+0x10d0/+0x10d1/+0x10d2 (stb at0x105a70e0/0x105a70e4/0x105a70f0)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a7cbc",
+       "notes": "f_105a7b48 metadata load: 'state' absent ->stb0 at0x105a7cc4; 'denylisted'/empty path0x105a7d9c ->booleanized store at0x105a7cb4-0x105a7cbc; other nonempty ->'Unknown cert metadata state: %s. Scheduling cert refresh job.' at0x105a7c54 and scheduler0x110a5f8c vfunc+0xc call at0x105a7c68-0x105a7ca4. Log '%s: loaded:%s (d:%d e:%s)' prints flag at0x105a7d04."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a8644",
+       "notes": "Refresh routine f_105a7e74: httpResultCode cmpwi403 at0x105a8644, 'X-Sonos-Denylisted' header at0x105a8658, strcasecmp 'true' at0x105a8698, then setMetadata('state','denylisted') via f_105a7dac at0x105a86c4 and stb1 to+0x10d0 at0x105a86cc. Success path clears the flag at0x105a84e8."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x105a7e74",
+       "notes": "Cert issuance/refresh routine (stwux prologue): 'Retrieved manufacturing data: %s'0x10ef2300, 'Registration' event0x10ef1f00, 'certType'/'deviceCert'/'secureReg' keys0x10ef1f10-0x10ef1f28, response fields 'requestTimeMS'/'downloadStatusCode'/'httpResultCode'/'newETag'/'previousETag'/'downloaded'/'unchanged'/'state'/'etag', 'X-Sonos-Muse-Household-Id'0x10ef22e4, '.tmp' staging0x10eeb864, '%s: file %s [%s]'0x10ef2408."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x106b1e04",
+       "notes": "Retrieval slot+0xc: reads+0x9c at0x106b1e60, strlcpy dest=arg,src=this+0xa0,cap at0x106b1e78, success iff return<cap at0x106b1e7c; presence f_106b1d64 booleanizes+0x9c via isel r31,r0,1,cr7eq at0x106b1dbc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10719e24",
+       "notes": "deviceId setter = tail strlcpy(0x110a9ab0,src,0x20). Identity block siblings: f_10719e40 writes+0x20 cap0x21, f_10719e60 writes+0x44/+0x104 cap0xc0 and+0x1c4 cap0x21. Setter callers0x100c6308/0x100c7f9c/0x100c87fc/0x104b2288 all load 'R_TrialZPSerial'0x10e76b78; f_104b1e48 logs 'Trial ZP has changed from %s to %s'0x10ed77fc."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10724dcc",
+       "notes": "Helper f_10724d78: cert buf/cap forwarded from its args r9/r10; nonzero builder result returns unchanged via0x10724e7c epilogue skipping login work; zero dispatches on[req+0x13b4] (==2 ->0x10724e70, ==0 ->vfunc+0x10 at0x10724ec0, ==3 ->byte+0x11a7 gate at0x10724eac, else byte+0x124 ->f_1071ee0c or 'username'/'password'/'login' at0x10724e04; cap+0x13ac&0x10000 tail f_10724cac)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x107250cc",
+       "notes": "getSessionId builder (action string0x10f0fb50, f_1071e208 header call at0x10725074): cert buf sp+0x10428 cap0x1001, zonePlayer arg=[r31+4]; no test of builder result, flow continues to 'username' emission under cap+0x13ac&0x10000 at0x10725108."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "address": "0x10725580",
+       "notes": "refreshAuthToken builder f_10725488 calls helper f_10724d78 with stack cert buf sp+0x13688 cap0x1001; result tested at0x10725584, nonzero exits at0x107257f0 before 'refreshAuthToken' SOAP setup at0x107255cc."
       }
      ],
-     "todo": "Established: credential field conditions, missing-provider/retrieval-false behavior,1045 state gate and getDeviceAuthToken failure ordering are decoded. Remaining: bind certificate provider construction, enumerate state writers, trace issuance/renewal/trust and device identifier initialization, and audit other direct callers0x10724dcc/0x107250cc for buffer and error effects."
+     "resolved_findings": [
+      "The concrete certificate-provider class cannot be bound statically: ctor f_1018d27c passes member slot &RZP[0xc7c] into DI registration f_101afaa4 which resolves implementations through the embedded registry at runtime. Both registered devicecertmanager-family classes (vtables0x10ef1e60/0x10efc818) share the audited slot implementations, so state/retrieval/install/presence behavior is class-invariant.",
+      "Certificate issuance endpoint, request signing and server-side trust decisions are runtime/network boundaries: the binary only shows refresh routine f_105a7e74 posting a 'Registration' JSON event with 'certType'='deviceCert'/'secureReg' and consuming the enumerated response fields; no static URL or trust chain is recoverable.",
+      "Emitted deviceId content is runtime configuration: the only setter (strlcpy thunk f_10719e24) is fed exclusively by 'R_TrialZPSerial' reads, so the buffer stays empty until that setting is applied."
+     ]
     },
     "shared_executor_boundaries": {
      "description": "Shared request executor f_106ff03c(this=req) runs the full call. f_106fe160 first builds a0x39-byte session blob from req+0xa918 through f_109bc0cc and attaches it through request vfunc+0x30 (f_106fd338). f_1054b444 converts the stored millisecond values req+0xc6a8/req+0xc6ac (constructor args, e.g. getDeviceAuthToken passes20000/10000) into two absolute deadlines via sonosClockGetTime(1) and timevalAddMs; the poll loop consumes them as phase deadlines (second while connecting or handshaking, first once established). sonosClockGetTime(1) also stamps tvStart. When the global hook provider at0x11097910 is nonnull, its vfunc+8 runs a pre-hook(provider, expectedNs req+0x811, expectedName req+0x911, url req+0x410) before any transport work; the provider pointer is runtime-injected with no static store in the binary. Result starts at1001. f_106fdf60(req,0) runs preflight selector0 (f_1053b724: shared URI parse f_1053b4a4 plus resolve f_1054a158 selector0, so failures are0x80000002 or0x81000003) and invokes header builder f_106fdca0 whenever the preflight result is0 or11 while preserving that result; selector1 (f_1053b6b0, only caller the arg4!=0 path) maps resolve failure to11, which builds headers but still skips the core. A nonzero preflight skips the entire HTTP core and keeps1001. On the zero path the executor constructs the processor at sp+0x50 (f_1053a390) and connection at sp+0x8ec (f_10538ed0) and calls f_1053a060(&conn,&deadline1,&deadline2). After it returns: req+0xa45 still0 keeps1001 (serializer never entered); a nonzero poll return is mapped through f_10c3b8ac (0->0;0x81000003-0x81000005 and0x82000001 ->1001;0x80000025 ->1002; anything else ->1000); a zero poll return produces1037 when req+0xa47 is set and status word+0xa48 equals401, otherwise f_10562e6c on the embedded parser (req+0xc040) supplies the result. Teardown runs f_10538f00(conn) and f_1053881c(proc). Both exit paths merge for telemetry: feature blob f_10557fa8 on the stack receives 'tunnel'=req+0xa93d, 'secure'=(url begins 'https://') and 'loopback'=req+0xa3b through f_105580ac; the provider post-hook vfunc+0xc then runs with (ns,name,url,0,0,req+0xa918,blob,req+0xa940,result,&tvStart); elapsed timevalDiff(now,tvStart) is stored at req+0xc6b0. When req+0xa44 is clear and result nonzero a 'control_client' failure line is emitted at level4 for results below1037 and level5 otherwise: '<host> <name> failed, ret = %hu, httpRes = %d, tvStart = %d s %d us, m_tvConnectDone = %d s %d us, m_tvDone = %d s %d us, tvNow = %d s %d us' (0x10f0bac8) with the host formatted through f_105499c8/f_109bc028 and the four stored timevals. The executor returns the result halfword. Boundaries: no retry loop, no redirect or Location handling and no cancellation/interruption check exist here; transport errors that only collapse poll interests exit as0 from f_1053a060 and resolve through the parser result path, while deadline expiry is the only nonzero loop return (0x80000025->1002). Response acceptance, descriptor flags (+0x30 optional caller-set, +0x31 finalized, +0x32 secure) and fault/errorCode conversion behave exactly as in the response-parser record; conn phase bytes+0x4424..+0x442a are written only inside the0x1053xxxx transport cluster plus the single out-of-cluster clear0x102b5a98. A sibling larger request class (ctor0x106ff3b8, vtable0x10f0b854, parser embedded at+0x498, result field+0x2722) drives the same parser through chunked driver f_10562d64 at0x106ffb24; it is separate machinery from this executor.",
