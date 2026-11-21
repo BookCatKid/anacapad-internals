@@ -221718,10 +221718,43 @@
      "address": "0x1051fcf4",
      "callsite": "0x1051fd20 / 0x1051ffe4",
      "notes": "The generic tag walker is frame-name driven (TIT2/TCON/TRCK/TPOS/COMM/WXXX/TCMP/APIC, 'iTunNORM', 'artworkURL_'/'imageThumbnail'/'imageSmall'/'imageMedium'). For PRIV frames it strcmp-matches the frame owner id against the framer object's owner-id string (member +0x9 via f_1041bad4); a match emits through f_10521f30 ('found PRIV frame id %s len %zu'), a mismatch logs 'file priv data id does not match framer id'. The owner id is runtime framer data, not a compiled service name."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105212a8 parse entry (framer bind at +0x3b0)",
+     "address": "0x105212a8",
+     "callsite": "0x1050948c",
+     "notes": "arg6 framer -> parser+0x3b0; +0x3ac scratch cursor; temp framer built at r1+0x18 via f_1041b98c; calls f_10520ff0 frame loop; arg4->vfunc+0x10 completion callback; +0x3ac/+0x3b0 zeroed on exit."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_105091c8 private-frame extractor",
+     "address": "0x105091c8",
+     "callsite": "0x10509638 / 0x1050948c",
+     "notes": "Builds the +0x3b0 framer locally via f_1041ba8c(&local r1+0x3dc, arg7 owner string) when arg7[0]!=0, else passes null so every PRIV frame skips. Framer value layout (vt 0x10eccb94, ctor f_1041b9f4): +4 dataLen, +8 flag, +9 ownerId[128], +0x89 data[0x400]. Matched private data copy-assigned into host +0x22c; emits 'TYPE=SNG|TITLE %s|ARTIST %s|ALBUM %s' at +0x1c and logs 'Found %zu bytes of%s private frame data for %s' / 'new meta: %s'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10509798 adts ID3 pump (owner-id producer)",
+     "address": "0x10509b84",
+     "callsite": "0x10509b6c / 0x10432dfc / 0x1050a65c",
+     "notes": "arg7 owner-id for the framer = virtual+0x40() on the arg4 source object; two callers supply distinct sources, so the PRIV owner filter is a per-source runtime value, not a compiled constant. Outer's bounds: 'attempted oob read, toRead: %zu, read: %zu', 'corrupt file'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "walker malformed/advance grammar",
+     "address": "0x105220d0",
+     "callsite": "0x1051fdb8 / 0x1051ffc0",
+     "notes": "Unmatched or gate-failed frames skip payload via f_105220d0; ctx+0xc abort flag and ctx+0x10 per-copy budget checked by every arm; short payload sets parser+0x1eb; PRIV owner strcmp failure logs 'file priv data id does not match framer id'."
     }
-   ],
-   "todo": [
-    "Established: reader factory f_103b89bc (hlsaudio v+0xa0, recreation via v+0x98/0x9c), codec-token mode select in f_104cc7e0, the deadline-bounded PID pump f_104cdff0, and the downstream join to the generic ID3 walker f_1051da18 with its runtime framer owner-id PRIV gate. No compiled service-specific metadata selection exists in this path; service binding is structural through the hlsaudio source object. Remaining: bind the framer object at parser+0x3b0 to its producer and recover the concrete owner-id value(s); enumerate the complete frame-name-to-consumer bindings and malformed-frame grammar inside f_1051da18's walker."
    ],
    "resolved_findings": [
     "Reachable segment configuration: f_103b89bc calls f_104cc7e0 at 0x103b8a2c for its embedded reader at +0x18, supplying the segment string, source interface and configuration arguments. f_104cc7e0 obtains the segment extension via f_105a3bd4, compares ts/aac/mp3, selects TS mode0 or raw AAC mode1 in reader+0x54 for the first two, and explicitly rejects the recognized mp3 extension with status0x80000004. This checked layer chooses a container mode, not a named music-service ID. That does not prove upstream service-specific source/URI/configuration selection is absent.",
@@ -221732,7 +221765,11 @@
     "The prior assertion that the named-service residual is necessarily only external configuration is withdrawn: no service-name/ID predicate appears in the checked segment setup, PMT selector or timed-buffer routines, but the upstream configuration writers and downstream consumer binding have not been exhaustively joined. The generic ID3 frame vocabulary below is not itself proof that every TS metadata payload reaches that parser or that its PRIV owner string denotes a music service. Actual provider emission additionally depends on supplied manifests/segments; no named-service emission list is established here.",
     "Independent generic ID3 parser vocabulary retained from the earlier trace: standard v2.3/v2.4 frames with v2.2 aliases {TPE1/TP1 artist, TCOM/TCM composer, TPE2/TP2 album-artist, TALB/TAL album, TIT2/TT2 title, TCON/TCO genre, TRCK/TRK track number, TPOS/TPA disc number}; artwork via APIC/PIC frames with format sniffing {JPG,PNG,GIF}; COM comment frames; vendor extensions MusicMatch_TrackArtist, Media Jukebox: Album Artist, iTunes TCMP/TCP compilation; WXXX user-URL frames carry remote artwork keys {artworkURL_, imageThumbnail, imageSmall, imageMedium} with WXXX=%s emit and skipping unsupported key=%s rejects. PRIV frames are framer-keyed: found PRIV frame id %s len %zu / file priv data id does not match framer id - the same private-data channel as logical track MD %s with %zu bytes of private data (PRIV data for %s is too big, only %zu bytes allowed). Windows Media frames {AverageLevel, WM/WMCollectionID} recognized. Tag framing: ID3 magic + Advancing pos beyond ID3 tag (%zu bytes). This vocabulary is not a certified complete TS-to-track-metadata dataflow or full malformed-input grammar audit.",
     "f_103b89bc is the hlsaudio source object's reader-factory method (v+0xa0); the embedded reader at ctx+0x18 is rebuilt through sibling slots v+0x98/0x9c that destroy it first. Its only compiled mode selection is the segment codec token ('ts'/'aac'/'mp3' strcasecmp in f_104cc7e0); no service-name dispatch exists in the reader path. The reader's own log domain is 'tsclient'; nearby 'spotify-connect' literals are coincidental rodata adjacency, and the 'sonos.com-*' URI-scheme vocabulary is not consulted by the reader or parser.",
-    "f_104cdff0 (reader virtual+8) is the deadline-bounded pump that drains each selected PID's payload into the shared read output via f_104cd1bc; the ID3 path is joined downstream, where the generic frame-name walker f_1051da18 gates PRIV frames by a runtime framer owner-id strcmp before emitting through f_10521f30."
+    "f_104cdff0 (reader virtual+8) is the deadline-bounded pump that drains each selected PID's payload into the shared read output via f_104cd1bc; the ID3 path is joined downstream, where the generic frame-name walker f_1051da18 gates PRIV frames by a runtime framer owner-id strcmp before emitting through f_10521f30.",
+    "The framer behind parser+0x3b0 is a caller-supplied value object bound per parse: f_105212a8 stores its arg6 at +0x3b0 (with a scratch cursor at +0x3ac; both zeroed before return, f_1041cd04 on failure). Framer ctor f_1041b9f4 installs vtable 0x10eccb94 on a fixed layout {+4 dataLen, +8 flag, +9 ownerId[128], +0x89 dataBuf[0x400]}; f_1041ba8c writes the id by strlcpy(+9,0x80), f_1041bad4/f_1041bae4/f_1041baf4 return the id string, data length and 0x400 capacity, and f_1041ba1c copy-assigns the whole record. The only in-module caller, f_105091c8, constructs the framer on its own stack from arg7's string via f_1041ba8c; an empty arg7 passes a null framer, which makes the walker skip every PRIV frame.",
+    "The concrete owner-id value is not compiled into this path: it is virtual+0x40 on the source object, called at 0x10509b6c inside f_10509798 and handed to f_105091c8 as arg7. The two upstream callers pass different source objects (f_10432a78 at 0x10432dfc supplies *(ctx+0); f_1050a4a0 at 0x1050a65c supplies its own), so the PRIV owner filter is a per-source runtime string - no literal owner-id is embedded here (the only reverse-DNS literal present, 'com.apple.streamingkeydelivery', is unreferenced JSON config). On a match the extracted private payload is copy-assigned into the host's +0x22c framer-shaped member and logged 'Found %zu bytes of%s private frame data for %s'; the consumer then formats 'TYPE=SNG|TITLE %s|ARTIST %s|ALBUM %s' and logs 'new meta: %s'.",
+    "Complete frame-name-to-consumer vocabulary of walker f_1051da18: each arm first requires frame vtable+8 == f_105213c4, the frame nameEquals predicate (memcmp(frame+4, name, 4)), then compares frame+4. Text arms: TPE1/TP1 artist, TCOM/TCM composer, TPE2/TP2 album artist, TALB/TAL album, TIT2/TT2 title, TCON/TCO genre, TRCK/TRK track, TPOS/TPA disc; APIC/PIC artwork; COMM/COM comment with special-cased contents iTunNORM, MusicMatch_TrackArtist and 'Media Jukebox: Album Artist'; TCMP/TCP compilation flag; WXXX emits the URL keyed on {artworkURL_, imageThumbnail, imageSmall, imageMedium} logging 'Found WXXX tag', 'WXXX=%s' and 'WXXX: skipping unsupported key=%s'; PRIV takes the framer owner-id gate. 'WM/WMCollectionID' and 'AverageLevel' also occur in the name vocabulary.",
+    "Malformed-frame grammar: on entry the walker calls frame->vfunc+0xc and returns early when it fails; every handler arm re-checks ctx+0xc abort flag and decrements the ctx+0x10 budget per copied field. A name miss, an unsupported WXXX key, or a PRIV whose owner id fails the framer strcmp (or whose framer is null) routes to payload-skip f_105220d0; a short payload sets parser+0x1eb and aborts the frame; a skip/underflow failure marks the framer through f_1041bca0. Outer bounds come from the caller's 'attempted oob read, toRead: %zu, read: %zu' and 'corrupt file' guards in f_10509798."
    ]
   },
   "diagnostics": {
