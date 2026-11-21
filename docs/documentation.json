@@ -232602,15 +232602,54 @@
      "build": "86.10-80260",
      "address": "0x104f0b58",
      "notes": "Control producer f_104f1488 -> call0x104f1694 -> frame validation0x104f0c18/0x104f0d98 -> sendmsg0x104f0cd4 -> result comparison54 at0x104f0cd8. Raw GNU disassembly0x104f0b9c-0x104f0c2c verifies or. length gate, mullw and masked-rotate BE header stores. Zero-length initialization0x104f0d6c differs from nearby stride16 bookkeeping; neither certifies a nodetx envelope. Audio packet log caller f_104f1994 inspected separately."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104f21c0 satellite audio sendmsg (vtable 0x10edc180 +0)",
+     "address": "0x104f257c",
+     "callsite": "0x104f240c / 0x104f2538 / 0x104f25a0",
+     "notes": "sendmsg(fd=+0x9ac, msghdr at +0xa80). iovecs at +0xa88: iov0 = 54B header +0xa10, then per active channel {4B tag, samples*2 PCM} from +0xaf8+idx*0x200; iovlen +0xa8c = 2*nchan+1. Total = 0x36 + nchan*(2*samples+4); +0xa42/+0xa43 type tag must be nonzero. Error -> f_104f0994 'audio frame'; success -> f_1052d158 enqueue + byte +0x15d."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104ee774 htmesh_tx SBC send (vtable 0x10edbf94 +0)",
+     "address": "0x104ee774",
+     "callsite": "0x104ee7f8 / 0x104ee844 / 0x104ee874",
+     "notes": "f_104eeb3c SBC-encodes 14 (or 4) samples per call into SBCPacket at +0xb30; packet stamps {sec,usec} into +0xb44/+0xb48 on open; codec-ready +0xb4c from +0x60 vfunc+0x50; dispatch via injected +0x60 vfunc+0x14 with +0x740 params, 'send to mesh failed %u'. demangled: _ZN9SBCPacketC1EPhj, getPayloadFrameEj, getNumFramesEv, setNumFramesEj, resetEv."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104f1994 satellite-set refresh (vtable 0x10edc180 +0x1c)",
+     "address": "0x104f1994",
+     "callsite": "0x104f1b74 / 0x104f1b84",
+     "notes": "Snapshots satellite list under +0xb8 lock: +0x22c count, +0x230 satellitesActive, +0x234 bondedSubs, +0x238 last, +0x86c..+0x874 stats. Bonded-count change folds into +0x9a8[11..20], triggers resync f_104f1070 and control f_104f1488, sets +0x15c. 'pkt: %zu channels, %zu samples, payload:%zu, rl:%d' uses the 0x36+nchan*(2*samples+4) formula."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "frame header layout (this+0xa10, 54 bytes)",
+     "address": "0x104f22d0",
+     "callsite": "0x104f2504 / 0x104f2558",
+     "notes": "+0 BE32 total len, +4 3x type-tag + 0x36 marker, +9 channel count, +0xa..+0xf stat bytes, +0x10 u32, +0x18 u32be samples, +0x1c +0x9a8 flags, +0x20 u32, +0x24/+0x28 {sec,usec} send ts (f_105a90a8), +0x2c play-latency (f_105a8e70), +0x30 u16 seq, +0x34 tail bytes."
     }
    ],
    "control_frames": "Concrete control TX f_104f0b58 requires a54-byte frame, not16 bytes. In its zero payload-length branch it writes a big-endian total length at frame+0 and0x00000036 at frame+4 in the ctx+0x9b4 header. It validates computed length54 before sendmsg and compares the send result with54. The0x36 word is not established as a one-byte control opcode.",
-   "todo": "Established: concrete54-byte control construction/send and volume/EQ producer, disproving16-byte control and universal1032-byte nodetx framing. Remaining: follow actual HT audio producers, encoder selection and send iovecs to the serialized frame stores; recover timestamp/offset fields, widths, units and bounds from those builders and their receive consumers. Start with f_104f1994, its downstream calls f_104f1070/f_104f1488, the real data-send branches and frame buffer ctx+0x9b4. Keep control and audio formats separate; an unrelated nodetx serializer is not the missing join. This is actionable static work.",
    "resolved_findings": [
     "The named TX statistics describe transmission/serialization errors, lateness, resynchronization, playback-end frames and mixer/transmitter processing. They are diagnostic counters, not an on-wire packet schema. SBC encoding and mesh/socket error paths do not by themselves bind the audio transport to nodetx.",
     "Concrete control producer f_104f1488 collects volume/EQ/LED-related members into the control buffer and reaches f_104f0b58 at0x104f1694 when the satellite count is nonzero. This TX path builds/checks a54-byte frame and calls sendmsg at0x104f0cd4; return values other than54 take the send-error reporter. The per-satellite stride16 used for nearby bookkeeping is not the transmitted control-frame size.",
     "Raw objdump at0x104f0b9c-0x104f0c2c verifies a two-byte length test, control header stores and computed total54 + byte(ctx+0x9bd)*(2*u32be(ctx+0x9cc)+4), followed by the exact54 check. The zero-length branch stores0x00000036 at header+4 and the big-endian computed length at header+0. The alternative control initialization at0x104f0d6c zeros the same first header region and sets its final byte0x36. These stores do not prove a universal nodetx {id,version,nibbles,u16} envelope.",
-    "The old satellite-TX-rides-nodetx and every-packet-is1032-bytes conclusions are withdrawn: the concrete54-byte send is a counterexample. The duplicated nodetx nibble assignment was also reversed; its separate decoder maps high nibble to record+5 and low to record+6. That independent format is not a demonstrated HT audio payload grammar. The actual audio/frame-builder joins must precede assigning timestamp/offset locations."
+    "The old satellite-TX-rides-nodetx and every-packet-is1032-bytes conclusions are withdrawn: the concrete54-byte send is a counterexample. The duplicated nodetx nibble assignment was also reversed; its separate decoder maps high nibble to record+5 and low to record+6. That independent format is not a demonstrated HT audio payload grammar. The actual audio/frame-builder joins must precede assigning timestamp/offset locations.",
+    "HT audio has two real producers, both virtual slot +0 on their objects. The satellite path f_104f21c0 (vtable 0x10edc180, 'htsat_tx' domain, htaudio_satellite_tx.cxx) is a per-satellite sendmsg loop: after refreshing the control producer f_104f1488 it walks the +0x23c satellite table (0x58 stride, +0x234 count), calls f_104f2130 for the active mask, f_104f0e20 + f_104f1f54 for the per-satellite channel set ('satellite sub also receives non sub channels', 'Sonar center delay %d samples, %d usec' via roundf), then builds an iovec list at +0xa88: iov[0] is the 0x36-byte staged header at +0xa10, then two iovecs per active channel - a 4-byte channel tag and the PCM payload of samples*2 bytes from +0xaf8 + channelIndex*0x200 (channel ptr table at +0xab0 + idx*4). iovlen = 2*channelCount+1; channelCount is stored at header +0xa19 and the active-channel mask is bit-tested per satellite. The sendmsg fires on socket +0x9ac; a return value != computed length takes the 'could not send %s to satellite %s;%s. rc %d' report through f_104f0994 with 'audio frame'.",
+    "The serialized 54-byte audio header at this+0xa10 (staged through a stack copy): +0..+3 BE32 total frame length = 0x36 + channelCount*(2*sampleCount + 4), +4..+7 three copies of the frame-type byte +0xa43 plus the 0x36 marker (tag 0 serializes as 0x00000036, the control value), +9 channel count, +0xa..+0xf six stat bytes folded from +0xaa0..+0xaaa, +0x10 u32, +0x18 u32be sample count per channel, +0x1c flags mirror of +0x9a8, +0x20 u32, +0x24/+0x28 the {sec,usec} send timestamp from f_105a90a8 (1e6-scaled pair), +0x2c play-latency delta from f_105a8e70 (clock-pair difference, microsecond domain), +0x30 u16 sequence, +0x34/+0x35 two tail bytes. The u16 frame type at +0xa42/+0xa43 gates the entire send - zero means no audio frame this pass. +0x878 is a send-batch counter and +0x15d is set when a frame was committed through f_1052d158 on the +0x2ef8 queue.",
+    "Encoder selection is two-format, not universal: satellite sendmsg carries raw 16-bit PCM, while the mesh path f_104ee774 (vtable 0x10edbf94 +0, 'htmesh_tx' domain) SBC-encodes through vendored sbc_init/sbc_encode into an SBCPacket C++ object at +0xb30 (sbc config staged at +0x72c, 'unexpected sbc config result expected=%u->%u got=%zu->%zu', 'encode error %zd', 'unexpected sbc encode result expected=%u->%u got=%zd->%zd', 'invalid number of frames per sbc packet %zu'). f_104eeb3c encodes 14 samples per call in one mode and 4 in the other, guarding count<=14 and evenness; the codec-ready flag +0xb4c is lazily set from the injected +0x60 transport's vfunc+0x50, and the packet opens by stamping {sec,usec} into +0xb44/+0xb48 before dispatch via +0x60 vfunc+0x14 ('send to mesh failed %u'). 'sample type changed from %d to %d' at +0x87c selects the encode configuration.",
+    "The producer trigger is f_104f1994 (vtable +0x1c): under the +0xb8 lock it snapshots the satellite list via f_107ca4f8 into {count +0x22c, satellitesActive +0x230, bondedSubs +0x234, lastCount +0x238, stats +0x86c..+0x874}, logs 'satellites active [0x%x]' and 'bonded sub(s) %zu', folds the bonded count into +0x9a8 bits 11..20, requests resync via f_104f1070 ('Request resync'/'Request resyncLocked', +0x9a8/+0x15c/+0x878) and rebuilds control via f_104f1488 whenever the bonded count changed; 'pkt: %zu channels, %zu samples, payload:%zu, rl:%d' reports the audio frame stats, and f_1052d828 commits the +0x23c set on the +0x2ef8 queue."
    ]
   },
   "spdif_burst": {
