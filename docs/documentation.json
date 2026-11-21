@@ -108266,9 +108266,9 @@
      "state_dependencies": {
       "description": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind. Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so accepted local mute returns zero. No equality shortcut, general +0x7ff rejection or rollback occurs. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish.",
       "todo": [
-       "Established: Source/cache/topology guards, sound-device readiness, deferred per-zone mute and LED-state gating.",
-       "Unknown: Remaining source-control providers, concrete DSP registrations, optional LED subclass and cleanup sessions.",
-       "Next: Bind the DSP observer objects iterated at f_10d8ca38 virtual +0x18 and playback-gain consumer f_10d54ca8; finish the renderer+0x3b4 attachment through media-player+0x274/+0x278 to its LED subclass. Bind remaining VLI source-control providers and topology-cleanup sessions below f_1046c148."
+       "Established: Source/cache/topology guards, sound-device readiness, deferred per-zone mute and LED-state gating. Source-control chain bound: registry f_106a76b8 fills manager+0x2e8 slots via provider+0x08, but the only in-build registration is Spotify ID 2 (provider zp+0x59f8+8, vptr 0x10ea53a8) whose +0x30 interface getter returns null, so the f_106a7f44 hook returns zero and local fallback f_100d99b0 always runs. Cleanup bound: f_1046c148 = VerifyThenRemoveSystemwide over 'topology'/'Master' sessions. DSP listeners bound: 'DSPControl'/'DSPControlChProc' obj+8 subobjects (vptrs 0x10fe8b7c/0x10fe8db4; +0x18 stub, +0x20 f_10d724c8 -> obj+0x708 store, +0x24 f_10d72aec -> internal +0x98 chain) plus '%s-dsp' AudioStreamDSP listeners (vptr 0x10f2c2e8, stub slots) in the 22-slot array of mgr+0xc4. Playback-gain consumer bound: ampManager f_10d54ca8 -> 'manageAmpStateLocked_notifyVolume'. LED chain bound: rc+0x3b4/+0x3b8 copies mp+0x274/+0x278 shared_ptr<RLEDsZP> (vptr 0x10fba500).",
+       "Unknown: Internal work below DSPControl's own +0x98 handler chain (f_10d74b84 slot) and amp 'manageAmpStateLocked_notifyVolume'; the per-entry flag-byte semantics in the 22-slot listener array; which interface table exposes public registration wrapper f_107f5958, which has no static callers in this binary.",
+       "Next: Enumerate the callback table consumed by DSPControl vptr+0x98 and the obj+0x708 consumer under f_10d724c8; trace f_107f5958's indirect caller table if deeper listener inventory is still wanted."
       ],
       "evidence": [
        {
@@ -108354,6 +108354,86 @@
         "build": "86.10-80260",
         "address": "0x107f7078",
         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetMute still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8bf0c",
+        "address": "0x10d8bf0c",
+        "notes": "DSPStateManager addVolumeChangeCallback: fills the first free of 22 listener slots in the array at mgr+0x90..+0xe4 (mtctr 0x16, aborts 'Too many volume change callbacks added'), storing listener pointer, name and a flag byte per entry; removal mirror f_10d8c06c scans the same +0x8c-based array. Iterators: f_10d8ca38 calls listener vptr+0x18, f_10d8cacc calls f_10d8ca38 then calls +0x20 per entry, f_10d8cc50 calls +0x24."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f9100",
+        "address": "0x107f9660",
+        "notes": "Sound-device ctor registers *(dev+0xcc)+8 as 'DSPControlChProc' (name 0x10f2b5c0) at 0x107f9660 and *(dev+0xc8)+8 as 'DSPControl' (0x10f2b5d4) at 0x107f9684 via f_10d8bf0c on mgr dev+0xc4. This is the normal path; the alternate branch at 0x107f9894 only applies 'app/debug/dsp/persistentEQ.xml' when that debug file exists (fopen64 'r', 'Found and applying persistent EQ xml file')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f8ab8",
+        "address": "0x107f8bc8",
+        "notes": "Sound-device dtor removes the same two listener subobjects via f_10d8c06c at 0x107f8bc8 (*(dev+0xcc)+8) and 0x107f8be0 (*(dev+0xc8)+8), then calls vfunc+0x18 on dev+0xd0 and releases dev+0xd4 amp via f_10d5635c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d74c2c",
+        "address": "0x10fe8b7c",
+        "notes": "DSPControl ctor f_10d74c2c installs listener-interface vptr 0x10fe8b7c at obj+8 (variant ctor f_10d74ca0 installs 0x10fe8db4; identical handler set). Slots: +0x18 f_104f502c no-op stub, +0x20 f_10d724c8 locks object mutex and stores the argument at obj+0x708, +0x24 f_10d72aec which forwards into the object's own vptr+0x98 callback chain (slot f_10d74b84)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10800dec",
+        "address": "0x10801118",
+        "notes": "AudioStreamDSP ctor (audio_stream_dsp.cxx; names itself '<name>-dsp' via snprintf) registers the object itself with mgr *(this+0xa8) at 0x10801118, flag byte this+0x9c; vptr 0x10f2c2e8. Embedded in player objects at +0x780 and +0x860 (ctor calls in f_107fe1a4 at 0x107fe2a0/0x107fe464, another in f_10de0994 at 0x10de0a90); dtor f_10800704 deregisters at 0x1080072c. Its +0x18/+0x20/+0x24 slots are empty stubs f_104f502c/f_104f5044/f_104f5050."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d54ca8",
+        "address": "0x10d54ca8",
+        "notes": "AmpManager (ampManager.cxx) notifyVolume on dev+0xd4 amp object: stores the level at amp+0xd8 and calls vptr+0x14 'manageAmpStateLocked_notifyVolume'; 'zone %d volume %f -> %f' logged on 'amp'. The playback-gain consumer paired with the mute apply."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a76b8",
+        "address": "0x106a76b8",
+        "notes": "vli source registry: first free of 9 slots at manager+0x2e8 (12-byte entries {id,provider,ctx}); calls provider vfunc+0x08 then stores {id@+0, provider@+4, ctx@+8}; failure logs 'Error (0x%x) registering vli source (%d)' on 'vli'. Sole callsite 0x10219cf0 in f_10219600 registers ID 2 with provider *(zp+0x59f8)+8; no other bl, addis/addi or rodata references to f_106a76b8 exist and no direct stores into +0x2e8..+0x350 occur, so no IDs 1,3,6,8 providers are registered in this build."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a7f44",
+        "address": "0x106a7f44",
+        "notes": "Active-source dispatch used by rc_impl f_100d8568 (channel must strcmp 'Master' or 'FocusMode', then f_100d846c validation): locks manager mutex +0x150, node=*(manager+0x354), provider=node+4, iface=provider->vfunc+0x30(provider), then iface->vfunc+0x0c(iface, arg, halfword). Returns zero when node/provider/iface is null; Spotify provider vptr 0x10ea53a8 +0x30 = f_1022abbc -> f_1022abac returns literal null, so this hook cannot consume a source in this build."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046c148",
+        "address": "0x1046c148",
+        "notes": "VerifyThenRemoveSystemwide (tag 0x10e8bcdc): snapshots topology via f_10759984(+0xbc8,+0x9c8), looks up session URIs for the 'Master' group ('lookup of %s URIs for %s failed' on 'topology'), then removes the matched sessions systemwide through f_10765a00/f_10762d0c/f_106f88cc/f_106fbf80. Called by f_10470968 at 0x10470a1c and f_10470a34 at 0x10470b44 after f_1046e57c builds the URI set."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fd65c",
+        "address": "0x103fdcd4",
+        "notes": "rc_impl+0x3b4/+0x3b8 LED shared_ptr is copied from media-player+0x274/+0x278 by f_103fd65c -> f_100dd650 during RC configuration. mp+0x274/+0x278 itself is filled at 0x103fa994-0x103fa9a0 in the incoming-config filler f_103fa434 (called from f_1040fffc at 0x10410744 and f_101afaa4 at 0x101b0140). The pointed object is RLEDsZP: vptr 0x10fba500, ctor f_10c8ef38 (+8=1, +0xa0=0, +0xb0=9), 0xc0-byte allocation at 0x100c1a14 with control block vptr 0x10e72ad0, dtor f_10c8e804 ('~RLEDsZP'), 'bEnableLedSwap=%s, bCanSetWhiteBrightness=%s' at 0x10fba5c0."
        }
       ]
      },
