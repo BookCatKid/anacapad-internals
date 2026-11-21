@@ -1,6 +1,6 @@
 # anacapad-internals
 
-Reverse-engineering documentation for the Sonos `anacapad` daemon — the
+Reverse-engineering documentation for the Sonos `anacapad` daemon, the
 process that serves the player UPnP/SOAP surface, the `/api/v1` "muse" REST
 API, HTTP endpoints, IPC buses, and related native subsystems.
 
@@ -8,17 +8,17 @@ Target binary: `anacapad` from firmware **build 86.10-80260**, **model 9 /
 Playbar** (stripped 32-bit big-endian PowerPC ELF).
 
 > **Scope.** This is a *static analysis* project. Everything here was
-> recovered from the binary and its shipped XML — no live device was
+> recovered from the binary and its shipped XML. No live device was
 > probed, and runtime verification is intentionally out of scope. Analysis
 > of this build is at its practical static ceiling.
 
 ## What's inside
 
-- **205 documented SOAP actions** across 17 services — dispatch records,
-  handlers, arguments, validation, error surfaces, state variables, event
-  wiring — including 6 reject-all stubs and 8 removed/ghost actions that
-  still appear in the shipped SCPD XML.
-- **603 muse API routes** (`/api/v1/...`) — 332 operations, request
+- **205 documented SOAP actions** across 17 services: dispatch records,
+  handlers, arguments, validation, error surfaces, state variables, and
+  event wiring, including 6 reject-all stubs and 8 removed/ghost actions
+  that still appear in the shipped SCPD XML.
+- **603 muse API routes** (`/api/v1/...`): 332 operations, request
   pipeline, op-object dispatch model, and all 103 embedded nanopb schema
   descriptors decoded to wire format.
 - HTTP (non-SOAP) endpoints, URI schemes, opaque payload formats, event
@@ -28,7 +28,7 @@ Playbar** (stripped 32-bit big-endian PowerPC ELF).
 ## Repository layout
 
 ```
-docs/documentation.json     canonical dataset — every claim + evidence
+docs/documentation.json     canonical dataset; every claim + evidence
 docs/client_text.json       hand-written reader-friendly overlay
 docs/documentation.schema.json
 docs/crossbuild_matrix.json per-build/feature availability data
@@ -120,7 +120,7 @@ python3 tools/import_extract.py        # fold into docs/documentation.json
 `tools/extract_upd.py` can pull the ELF out of a Sonos `.upd` container.
 `tools/` also contains the analysis helpers used during the RE work
 (`disas.py`, `xref.py`, `sfind.py`, `expand_surface.py`, `parse_scpd.py`,
-`worksheet.py`, `_errdomain*.py`) — they all honor
+`worksheet.py`, `_errdomain*.py`); they all honor
 `ANACAPAD`.
 
 ## GitHub Pages
@@ -133,6 +133,6 @@ push.
 ## Not included (by design)
 
 - The firmware binary / rootfs (not redistributable)
-- Local Ghidra project state (`ghidra_proj*/`, ~900MB) — gitignored;
+- Local Ghidra project state (`ghidra_proj*/`, ~900MB), gitignored;
   `*.gbf`/`*.rep/` database files regenerate on each Ghidra open
-- `.cache/`, `.venv/` — local caches
+- `.cache/`, `.venv/`: local caches

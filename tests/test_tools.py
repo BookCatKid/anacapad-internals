@@ -535,6 +535,24 @@ class TodoPolicyTests(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp)
 
+    def test_muse_resource_limits_survive_rendering(self):
+        resource = self.doc["muse"]["resources"]["musicServiceAccounts"]
+        page = self.pages["muse/resources/content.md"]
+        self.assertIn(resource["description"], page)
+        todo = resource.get("todo")
+        if todo is None:
+            # Resolved record: it must drop out of the open-work index.
+            self.assertNotIn(
+                "muse resource [`musicServiceAccounts`]",
+                self.pages["subsystems/open-work.md"])
+        else:
+            text = todo if isinstance(todo, str) else "\n".join(todo)
+            self.assertIn(text, page)
+            self.assertIn(
+                "muse resource [`musicServiceAccounts`]",
+                self.pages["subsystems/open-work.md"])
+        self.assertIn("0x10b01aac", page)
+
     # -- helpers ----------------------------------------------------------
     def _incomplete(self, o, path="", _in_skipped=False):
         """Yield (path, signal) for records that still carry structured
@@ -598,11 +616,39 @@ class TodoPolicyTests(unittest.TestCase):
 
     def test_open_work_page_collects_todos(self):
         ow = self.pages.get("subsystems/open-work.md", "")
-        self.assertIn("## Subsystems", ow)
-        self.assertIn("## SOAP services", ow)
-        self.assertIn("## State variables", ow)
-        self.assertIn("## Internal functions", ow)
-        self.assertIn("## Other records", ow)
+        self.assertIn("# Open work", ow)
+
+        def has_todo(o):
+            if isinstance(o, dict):
+                return bool(o.get("todo")) \
+                    or any(has_todo(v) for v in o.values())
+            if isinstance(o, list):
+                return any(has_todo(v) for v in o)
+            return False
+
+        doc = self.doc
+        services = doc.get("services") or {}
+        soap = {p: {k: v for k, v in (svc or {}).items()
+                    if k != "state_variables"}
+                for p, svc in services.items()}
+        state_vars = dict(doc.get("state_variables") or {})
+        for svc in services.values():
+            state_vars.update((svc or {}).get("state_variables") or {})
+        misc = {k: doc.get(k) for k in
+                ("request_vtable", "routing", "muse", "cert_layer")}
+
+        # each section header is rendered only when its row source
+        # actually carries todos (gendocs omits empty categories)
+        sections = {
+            "## Subsystems": doc.get("subsystems"),
+            "## SOAP services": soap,
+            "## State variables": state_vars,
+            "## Internal functions": doc.get("internal_functions"),
+            "## Other records": misc,
+        }
+        for header, src in sections.items():
+            if has_todo(src):
+                self.assertIn(header, ow)
 
     def test_no_placeholder_todo_rendered(self):
         hits = [l for t in self.pages.values() for l in t.split("\n")
