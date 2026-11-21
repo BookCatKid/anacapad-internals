@@ -12008,7 +12008,7 @@
     }
    },
    "events": {
-    "mechanism": "The /AudioIn/Event route enters shared GENA handling. The AudioIn event-source registration is separately gated by the audio-input capability and is not performed by the SOAP action stub.",
+    "mechanism": "The /AudioIn/Event route enters shared GENA handling (f_105e8290 -> f_1068faa4). The concrete event source behind zp+0xaa64 is now identified: the AudioInputZP implementation built by f_10208dcc embeds an 'AudioInput' source at impl+8 (vptr 0x10ea1274, WSS topic index 9). In this build its GENA serializer slot +0x14 is the empty stub f_10208b28, so accepted subscriptions are plumbed end to end but the NOTIFY body serializes no properties.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -12037,9 +12037,51 @@
       "build": "86.10-80260",
       "address": "0x10189cd8",
       "notes": "The later HTControl registration uses a separate pointer at zp+0x3d508; its event-source slot +0x14 reaches f_10243170. That HTControl binding does not identify the AudioIn renderer."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10208e2c",
+      "notes": "f_10208dcc builds AudioInputZP: pre-store 0x10ea0e9c at impl+0, then f_1067aec4(impl+8, configuration, 'AudioInput', topic idx 9, opt-byte-ptr); post-ctor installs impl vptr 0x10ea1240 at impl+0 and source vptr 0x10ea1274 at impl+8 (0x10208f44)."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10ea1288",
+      "notes": "Source vptr 0x10ea1274 slot +0x14 is f_10208b34, a this-8 thunk to f_10208b28; f_10208b28 is exactly stwu r1,-0x10 / addi r1,0x10 / blr, an empty serializer that emits no propertyset content."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018e7d8",
+      "notes": "zp init f_1018d27c stores the impl returned through 0xc4(r1) at zp+0xaa64 and zp+0xaa68 (stw r11,-0x559c/-0x5598 with r30=zp+0x10000); the impl is built by f_10208dcc via f_101ada1c at callsite 0x10190378."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a2ac",
+      "notes": "f_1018a20c case '/AudioIn/Event': requires capability byte zp+0x5704, loads r31=*(zp+0xaa64) and yields impl+8 when non-null; null impl falls through to the generic registered-map path at 0x1018a2d8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10180274",
+      "notes": "Producer f_1018014c posts internal typed entries 0xd/0x13 (f_109dadb8/f_109dad10) after wrapping sources with f_1067cff4, then calls f_1067c6ec(*(zp+0xaa64)+8) to raise source+0x110 and wake the sender."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068406c",
+      "notes": "Shared delivery call site inside f_10683da0: invokes source vptr+0x18 (f_1067ab54) -> primary +0x14 serializer for each populated eligible group, then f_1068108c transmits the NOTIFY per unique callback sockaddr."
      }
     ],
-    "notify_path": "Capability-gated source registration at 0x10189ad8; no AudioIn-specific render or send target established.",
+    "notify_path": "zp+0xaa64 holds the AudioInputZP impl (ctor f_10208dcc called at 0x101adb7c inside f_101ada1c, itself invoked at 0x10190378 in zp init; the pointer is stored at zp+0xaa64 and zp+0xaa68 at 0x1018e7d8-0x1018e7dc). Its embedded source at impl+8 is constructed by f_1067aec4 at 0x10208e2c with name 'AudioInput' and WSS topic index 9; the derived source vptr 0x10ea1274 is stored at 0x10208f44 and carries getName f_100c9bac at +0x08, serializer thunk f_10208b34 at +0x14, bridge f_1067ab54 at +0x18 and default hasEventsToSend f_100e4ef4 at +0x1c. SUBSCRIBE on /AudioIn/Event reaches f_1068faa4, which resolves the path through gena-server vptr+0x44 (f_1018a570 -> f_1018a20c): the case at 0x1018a2ac requires capability byte zp+0x5704 and yields (*(zp+0xaa64))+8 when the impl pointer is non-null, otherwise falling to the generic map path. f_1067e4d8 stores the parsed callback sockaddr subscriber on source+0x98/+0xa0 and the handler answers 200 with SID and TIMEOUT headers, then wakes the sender (gena vptr+0xa0 -> sender+4 -> f_10678c50) for the initial notify. Producer side, f_1018014c wraps the source through f_1067cff4 and emits internal typed entries 0xd and 0x13 via f_109dadb8/f_109dad10 before calling f_1067c6ec(*(zp+0xaa64)+8) at 0x10180274, which raises source+0x110 through f_1067c46c and sets sender+0x10e under mutex +0x28 signalling cond +0xb8. The shared 'upnpeventing' sender (singleton at zp+0x5740, thread spawned at 0x101997fc) runs f_10679b14 -> f_10683da0: it walks source+0xa0 dropping expired subscriptions, groups eligible subscribers, invokes the serializer at 0x1068406c via vptr+0x18 -> +0x14, and delivers per callback sockaddr through f_1068108c (NOTIFY 'NTS: upnp:propchange', TCP with optional mbedTLS, 5000ms poll for 'HTTP/1.1 200 OK', failures reaped by f_1067c0bc). The serializer reached on this source is f_10208b34 -> f_10208b28, a three-instruction empty function: it writes no propertyset elements, so the notification body carries no AudioIn state in this build.",
     "payload_model": null,
     "wss_registry": [
      {
@@ -12055,11 +12097,12 @@
       "tag": 15
      }
     ],
-    "todo": [
-     "Residual: identify the concrete event-source implementation behind zp+0xaa64 on a model with the capability enabled, and trace its notification renderer and delivery. No AudioIn emission follows from route registration alone. The WSS names audioInput and lineInStatus are registry entries, not publisher evidence."
-    ],
     "resolved_findings": [
-     "The event source and the reject-all SOAP object are separate. The optical-input and IR-repeater renderer is bound to HTControl, not to the AudioIn SOAP stub."
+     "The event source and the reject-all SOAP object are separate. The optical-input and IR-repeater renderer is bound to HTControl, not to the AudioIn SOAP stub.",
+     "The object behind zp+0xaa64 is the AudioInputZP implementation: f_10208dcc constructs it (primary vptr 0x10ea1240, label 'AudioInputZP' at 0x10ea1314, module tag 'audioinzoneplayer'), and f_101ada1c at callsite 0x10190378 supplies it to zp init, which stores it at zp+0xaa64 and zp+0xaa68.",
+     "Its embedded GENA source at impl+8 is named 'AudioInput' (WSS topic index 9) with derived vptr 0x10ea1274; the +0x14 serializer resolves to f_10208b28, an empty three-instruction function, so an eligible batch produces a NOTIFY with no propertyset body in this build.",
+     "Subscription intake, dirty propagation (producer f_1018014c via f_1067c6ec at 0x10180274), sender wakeup and TCP callback delivery through f_1068108c are the shared upnpeventing chain also used by every other service; the AudioIn-specific gap is the empty renderer, not missing plumbing.",
+     "The 'lineInStatus' WSS registry name (idx 19) belongs to a different topic than this source's idx 9 and remains name-based attribution only."
     ]
    },
    "errors": [
