@@ -217656,6 +217656,41 @@
      "address": "0x10a62568",
      "callsite": "0x10a6258c / 0x10a625b4 / 0x10a625dc",
      "notes": "Group id has length+c/pointer+8 guard, name length+24/pointer+20, coordinatorId length+3c/pointer+38. Resource serializer reaches additional nested models, images/tags, explicit and mimeType; these invalidate treating resource name/type/objectId shorthand or invalidation-event strings as the full POST schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a35360",
+     "notes": "Resource serializer: _objectType + 16 optional members {name+0x8, type+0x24, id(f_10ab5c9c), service(f_10aa05d0), book(f_10a276bc), podcast(f_10a86118), imageUrl+0x454, images+0x468, tags+0x52c, explicit+0x53c, htInputFormat+0x540(f_10a63d24), bluetoothSource+0x56c, lineInSource+0x588, audioInputName+0x5a4, audioInputIcon+0x5c0, mimeType+0x5dc}; string triples flag+ptr+len."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a6251c",
+     "notes": "Group serializer: id(+0xc/+0x8), name(+0x24/+0x20), coordinatorId(+0x3c/+0x38); +0x50 nonzero suppresses both arrays; playerIds +0x54 clamped 0x20 at +0x58, areaIds +0x358 clamped 0x21 at +0x35c, 0x18-stride elems with +0x4 presence."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a624d0",
+     "notes": "Group presence predicate: isel chain = (id-flag+0xc && name-flag+0x24) || coordinatorId-flag+0x3c || playerIds[0].ptr+0x5c."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a8870c/0x10a35350",
+     "notes": "Entry serializer: _objectType always, 'resource' member unconditional (f_10a35350 returns 1), 'group' member iff f_10a624d0(entry+0x600); resource at entry+8, group at entry+0x600."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a33840/0x10a61b30",
+     "notes": "Copy routines propagate {flag,ptr,len} triples and clamp arrays (0x20/0x21) at copy; called back-to-back from posting f_103b00a0 at 0x103b0470/0x103b0484 after validation at 0x103b0400-0x103b044c."
     }
    ],
    "cloud_routes": "v1/households/{householdId}/history (getHistory/postHistory), v1/households/{householdId}/history/{id} (removeHistoryItem), clearHistory; ratings: v1/groups/{groupId}/playbackMetadata/ratings + household-scoped variant; per-item 'item/%s/rating'",
@@ -217664,9 +217699,6 @@
    "gating": "'History is disabled, history is not POSTed': opt-out gate; entries dropped when 'resource incomplete - name, type, or objectId missing' / 'group incomplete - name, id, or coordinatorId missing'; 'Failed to queue history entry, buffer full' + 'Post History Buffer Cleared'",
    "ratings": "r:rating DIDL element + urn:schemas-rinconnetworks-com:metadata-1-0/|rating; 'rating is only implemented for cloud queue', 'cloud queue server does not supporting rating', 'rating.type is not recognized'",
    "pipeline": "trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory",
-   "todo": [
-    "Established: posting reaches compiled request/body serializers; body is an array with a resource child per entry and a model-dependent group child, not a recentlyPlayed wrapper. Zero count produces an empty array; the entry/resource serializer predicates return1, while producer-side validation can exclude entries before model copying. Remaining: enumerate every transitive member and presence/type predicate in resource f_10a35360 (including nested id/service/content models, images/tags and explicit) and group f_10a6251c, then join those predicates to producer initialization/copy routines f_10a33840/f_10a61b30. Keep the historyEntryInvalid event and household recentlyPlayed settings key separate from POST grammar. This is actionable static work, not server-defined-only nesting."
-   ],
    "resolved_findings": [
     "Deepened (historyEntryInvalid event doc): the invalidation event emitted on channel 'rphistory' via 'historyService' (~f_103aee78) carries ordered members {objectId, groupName, groupId, coordinatorId, reason, ucsType, serviceId, type, name, errorCode, cacheControl, historyRequest, hrc, postEtag, preEtag} - literal-load order at 0x103aeee8-0x103af1e4. This is the reject/invalidation event doc (paired with the {bufferFull,invalidContentType,resourceIncomplete,groupIncomplete} reject codes), not the posted history entry.",
     "Rating enum at 0x10f99d88: {STAR=1, THUMBSUP=2, THUMBSDOWN=3, LOVE=4, HATE=5, BAN=6, ...}; abort-reason enum at 0x10face10 {NONE=1, ABORT_UNRECOGNIZED_OP=2, ABORT_INCORRECT_MODE=3, ABORT_NO_SOURCE=4, ABORT_INVALID_OP=5, ABORT_REFUSED=6, ...}.",
@@ -217674,8 +217706,19 @@
     "The old flat body containing trackMetadata/deviceId/householdId/container/action and the recentlyPlayed-array-wrapper claim are withdrawn. Reachable posting f_103b00a0 constructs request model f_10c7e960, copies accepted entries, sets its count at model+0x40, and calls f_10c684e8 at0x103b04d4. That helper directly calls request builder f_10c7f858, which selects namespace history, verb postHistory and households/ addressing via its PIC data, and invokes body-string builder f_10c7f780. The latter calls serializer f_10c7e9ec. These are compiled body-grammar paths, not a server-only schema boundary.",
     "Body serializer f_10c7e9ec emits an array using f_109d0a30 (writes [), reads count at model+0x40 and iterates model+0x44 in0xc74-byte strides. Zero count emits an empty array. The predicate f_10a886fc at0x10c7ea4c returns literal1, so the zero-result skip edge at0x10c7ea58 does not suppress any counted entry in this image. Each counted entry opens an object, calls f_10a8870c, closes the object and finally closes the array. No recentlyPlayed property is written by this body serializer. The literal use at0x103b004c instead compares a household-settings change key before reevaluating posting state.",
     "Entry serializer f_10a8870c conditionally emits _objectType, then tests resource at entry+8 via f_10a35350 and group at entry+0x600 via f_10a624d0. The resource helper returns literal1, so resource is always written and delegated to f_10a35360; group is model-dependent and delegated to f_10a6251c. Group id/name/coordinatorId are optional strings guarded by both length and pointer; additional playerIds-related fields exist and must not be omitted from a claimed complete schema. Resource includes nested id/service/content-related models, images/tags, explicit and other conditional members; the former three-name resource shorthand is not a complete wire grammar.",
-    "Posting validation before model copying remains distinct from serializer omission. Resource helper checks and group string-presence tests at0x103b0400-0x103b044c can reject queued entries; accepted entries are copied with f_10a61b30/f_10a33840, then the local buffer is cleared at0x103b04a0 before transport submission. Existing historyEntryInvalid event fields are not automatically POST fields. The earlier claim that a userMetricsTracking migration literal proves the posting gate is withdrawn; f_103affcc handles the separate recentlyPlayed settings key."
-   ]
+    "Posting validation before model copying remains distinct from serializer omission. Resource helper checks and group string-presence tests at0x103b0400-0x103b044c can reject queued entries; accepted entries are copied with f_10a61b30/f_10a33840, then the local buffer is cleared at0x103b04a0 before transport submission. Existing historyEntryInvalid event fields are not automatically POST fields. The earlier claim that a userMetricsTracking migration literal proves the posting gate is withdrawn; f_103affcc handles the separate recentlyPlayed settings key.",
+    "Resource member set fully enumerated in f_10a35360: 16 optional members. Six string triples {flag,ptr,len} (name +0x8, type +0x24, bluetoothSource +0x56c, lineInSource +0x588, audioInputName +0x5a4, audioInputIcon +0x5c0, mimeType +0x5dc); four embedded-object members gated by nonzero-field predicates (id via f_10ab5c9c, service f_10aa05d0, book f_10a276bc, podcast f_10a86118); imageUrl +0x454, images +0x468, tags count +0x52c, explicit flag +0x53c value +0x53d, htInputFormat via f_10a63d24 on sub-object +0x540.",
+    "Group member set fully enumerated in f_10a6251c: scalars id/name/coordinatorId emit on flag+ptr, and byte +0x50 is a member-list suppression flag - when nonzero both playerIds and areaIds arrays are omitted. Lists are count-clamped (playerIds 0x20 at +0x54, areaIds 0x21 at +0x358) with per-element +0x4 presence tests on 0x18-stride entries.",
+    "Group emission predicate f_10a624d0 = (id-flag && name-flag) || coordinatorId-flag || playerIds[0] nonzero, matching the producer-side 'group incomplete - name, id, or coordinatorId missing' rejection.",
+    "Producer join bound: f_103b00a0 validates then copies entries via f_10a61b30 (group) and f_10a33840 (resource); both copy routines propagate presence flags verbatim and enforce the 32/33 element caps at copy time, so serializer omission cannot drop producer-validated members."
+   ],
+   "entry_model": {
+    "resource_members": "f_10a35360(builder, resource) emits, in order: _objectType (when f_109ecb4c/f_109ecb5c supply one); 'name' iff flag +0x8 && ptr +0xc && len +0x10; 'type' iff flag +0x24 && +0x28 && +0x2c; 'id' sub-object iff f_10ab5c9c(id+0x28 !=0), serialized by f_10ab5cb8; 'service' iff f_10aa05d0, serialized by f_10aa05dc; 'book' iff f_10a276bc, serialized by f_10a276d8; 'podcast' iff f_10a86118, serialized by f_10a86134; 'imageUrl' iff +0x454 && +0x450; 'images' array iff +0x468 (elems via f_10a6927c/f_10a6928c); 'tags' array iff count +0x52c > bound; 'explicit' bool +0x53d iff flag +0x53c; 'htInputFormat' iff f_10a63d24(obj+0x540 field +0x18 !=0), serialized by f_10a63d40; 'bluetoothSource' iff +0x56c && +0x570 && +0x574; 'lineInSource' iff +0x588 && +0x58c && +0x590; 'audioInputName' iff +0x5a4 && +0x5a8 && +0x5ac; 'audioInputIcon' iff +0x5c0 && +0x5c4 && +0x5c8; 'mimeType' iff +0x5dc && +0x5e0 && +0x5e4. String members are {byte flag, char* ptr, u32 len} triples; every member is optional.",
+    "group_members": "f_10a6251c(builder, group) emits: _objectType; 'id' iff flag +0xc && ptr +0x8; 'name' iff flag +0x24 && +0x20; 'coordinatorId' iff flag +0x3c && +0x38; then iff +0x50 == 0: 'playerIds' array (count +0x54 isel-clamped to 0x20, elems +0x58 stride 0x18, each emitted only when its +0x4 is nonzero) and 'areaIds' array (count +0x358 clamped to 0x21, elems +0x35c stride 0x18, same +0x4 element presence). A nonzero +0x50 suppresses BOTH member arrays while scalars still emit.",
+    "group_presence": "f_10a624d0(group) chains isel tests to return byte: (+0x24 name-flag && +0xc id-flag) || (+0x3c coordinatorId-flag) || (+0x5c first playerIds element ptr). Any satisfied term emits the whole group member.",
+    "copy_routines": "f_10a33840(dst,src) deep-copies the resource: per-member it reconciles flag mismatches (src flag clear while dst set triggers dst string reset, e.g. +0xc block restored to inline buffer at 0x10a3388c-0x10a33898) then assigns flag and string via f_10a32e68; presence flags propagate verbatim so the serializer emits exactly what producers populated. f_10a61b30(dst,src) copies the group: strings +0x8/+0x20/+0x38 via f_1082deb8, flag +0x50 verbatim, playerIds clamped to 0x20 into +0x58 (0x18-stride f_1082deb8 copies) with count at +0x54, areaIds clamped to 0x21 into +0x35c with count at +0x358. The 32/33 caps are enforced at copy time, so the serializer clamps are defensive duplicates.",
+    "join": "Entry copy at 0x103b0470 (group) + 0x103b0484 (resource) inside posting function f_103b00a0 runs the two copy routines back to back after the validation checks at 0x103b0400-0x103b044c (resource name/type/objectId and group name/id/coordinatorId) reject entries; entry serializer f_10a8870c then reads entry+8 (resource, always emitted) and entry+0x600 (group, f_10a624d0-gated) via wrapper f_10a88810. The flag discipline means serializer output equals producer validation output: an accepted entry cannot lose required members in serialization."
+   }
   },
   "playlist_parsers": {
    "name": "playlist sniffers",
