@@ -232675,6 +232675,33 @@
      "address": "0x107e0e80",
      "callsite": "0x10f27fcc / 0x10f27fe4",
      "notes": "sub+0 class takes names {INITIAL, UNKNOWN_BITSTREAM, PCM, BITSTREAM_CONFIRMATION, ALIGN_TO_BURST, ENCODED} from table 0x10f27fe4. Classes 0-4 dispatch through signed-offset jumptable 0x10f27fcc to handlers at 0x107e0f5c/0x107e0f44/0x107e0f28/0x107e0f0c/0x107e0ea0; class >=5 logs 'Unexpected state: %d' under tag 'spdif'. The loop repeats while a handler result stays <= count-1. The INITIAL handler scans 8-byte input records for the first nonzero low-24 value ('non-zero frame'); the PCM handler f_107df840 packs 32-bit stream words into IEC 16-bit subframe pairs with bound checks ('No room in parsing output buffer. Buffer max: %zu buffered: %u')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_107e0dc4 class dispatch + rate-band recompute",
+     "address": "0x107e0e80",
+     "callsite": "0x10f27fcc / 0x10f27fe4",
+     "notes": "+0x0 class (0..5, bound cmplwi 5, 'Unexpected state: %d' default) -> jumptable: INITIAL inline+f_107df200, UNKNOWN_BITSTREAM f_107df328, PCM f_107df840, BITSTREAM_CONFIRMATION f_107e0110, ALIGN_TO_BURST f_107e063c, ENCODED f_107dfd10. On +0x28 rate change: +0x14 = rate*100/1000 (rate/10 = samples per 100 ms), +0x24 = f_107def18 Pc from rate band (48000 -> 0xd, <=705599 -> 0x16), out-ctx +0x14 = parser+0x4 toggled xor 1, +0x20 = parser+0x8 (=-1 filtered)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "input-side field writers (+0xf1c/+0xf24/+0xf28)",
+     "address": "0x107d3070",
+     "callsite": "0x107d2fb0 / 0x107d3138",
+     "notes": "Channel setter f_107d3070: accepts only 2 or 8, stores +0xf28=count and +0xf24=count>>1 under +0x1af0 lock, 'Input channel count change: %u -> %u'. Rate setter (~f_107d2f60): stores +0xf1c/+0xf24 = num and +0xf20 = den, 'Sample rate changed from (%u : %u) to (%u : %u)', notifies +0x19b4 via f_107e2a80."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "class machine object layout (parser sub-object = receiver+0x8ec)",
+     "address": "0x107e0e00",
+     "callsite": "0x107d3610 (addi r3,0x8ec)",
+     "notes": "+0x00 class index, +0x4 out flag (copied to ctx+0x14 then xor-1 toggled), +0x8 emitted Pc (-1 sentinel), +0x14 rate/10 decisecond tick, +0x24 f_107def18 Pc, +0x28 stored rate, +0x2c state flags; per-class logs: 'State change %s -> %s. %s' with names INITIAL/UNKNOWN_BITSTREAM/PCM/BITSTREAM_CONFIRMATION/ALIGN_TO_BURST/ENCODED."
     }
    ],
    "code_module": {
@@ -232705,9 +232732,6 @@
     ]
    },
    "pic_call_model": "The earlier complete-private-GOT/never-bl interpretation is withdrawn. The checked function at0x10e6f328 uses absolute address formation and ordinary direct branches, including logger calls0x10e6f550/0x10e6f5d8; its caller0x10d5b000 is also direct. This does not establish the linkage model or ownership of every entry in the unrelated pointer run at0x1108b594.",
-   "todo": [
-    "Established: TX extract path f_107d3560 -> f_107e0dc4, the emitted-Pc band map {DTS3 at 48000, AC-3 <=176399, E-AC-3 <=705599, MAT above} on rate*(channels/2), the six-class state machine with name table 0x10f27fe4, and output record publication at receiver+0x1478/+0x1530. Remaining: per-handler acceptance semantics for the five dispatched classes, the producers writing receiver+0xf1c/+0xf28 (input driver side) and the units of sub+0x14 (value*100*0x10624dd3>>38). The 120-entry Pc table is reporting vocabulary, not a TX mask."
-   ],
    "resolved_findings": [
     "Reported Dolby/DTS labels and unsupported-type names are not an executable TX selector or a verified model capability mask.",
     "f_10e6f328 obtains the input base from receiver+0xc then buffer+0x28 plus descriptor+0x38, and length from descriptor+0x34. It can return base/length/timestamp through optional output pointers. The loop rotates each selected input word left12, examines high status bits, stores the low24 bits back and advances by8 bytes. This modifies existing input words; no Pa/Pb/Pc/Pd emission sequence is established by this function.",
@@ -232716,7 +232740,10 @@
     "Audio-pipeline phase vocabulary at 0x10f26030: {INITIAL, READING, PARSING, DECODING, DECODER_DSP, NOISE_SILENCE_DETECTION, HT_SWAP, SRC, WRITING, WAITING, INPUT_ERROR, RECORDING, MONITOR_IDLING} (13 phases). Loss/interrupt-reason enum at 0x10f2990c: {NO_REASON, SIGNAL_LOST, INPUT_ERROR, CHANNEL_NUM_CHANGE, INPUT_RATE_CHANGE, BITSTREAM_DISCONTINUITY, DECODER_ERROR, DECODER_DSP_ERROR, HT_SWAP_ERROR, HT_SWAP_START, HT_SWAP_END, ASRC_ERROR, DIALOG_EXTRACTOR_ERROR, STREAM_ERROR, CONFIG_CHANGE, MODE_CHANGE, AV_SYNC_EXCURSION, GROUP_LATENCY_CHANGE, MONITOR_START} (19 reasons).",
     "The status path compares frame counter+0x48 with192 at0x10e6f4dc. A new boundary before192 logs Restart; above192 logs OVERSIZE, then both reset counter and accumulation state. Zero usable length skips the loop and returns0. Low24 and counter-low3 operations are masks; the counter/8 extraction is an actual rotate29/mask3..31 at0x10e6f530. These are status-block recovery operations, not codec acceptance decisions.",
     "TX-side emitted-format selection is traced: f_107d3560 -> f_107e0dc4 picks exactly one of Pc 13 'DTS3', 1 'AC-3', 21 'Enhanced AC-3' or 22 'MAT' from the rate*(channels/2) band map (exactly 48000, <=176399, <=705599, above). This is a fixed four-value computation over the IEC Pc field, not a configurable per-model mask; the 120-entry name table remains reporting vocabulary, distinct from the four emitted types.",
-    "Output record produced by f_107e0dc4: byte +0x14 = sub+0x4, byte +0x16 = sub+0x4 XOR 1 when the slot was 0, word +0x18 = 0, +0x1c = sub+0x3c, and +0x20 = the first of sub+0x8/sub+0xc that is not -1. Two such records are published at receiver+0x1478 and receiver+0x1530 through f_107d34f0."
+    "Output record produced by f_107e0dc4: byte +0x14 = sub+0x4, byte +0x16 = sub+0x4 XOR 1 when the slot was 0, word +0x18 = 0, +0x1c = sub+0x3c, and +0x20 = the first of sub+0x8/sub+0xc that is not -1. Two such records are published at receiver+0x1478 and receiver+0x1530 through f_107d34f0.",
+    "The six-class machine is dispatched inside the extract function itself: f_107e0dc4 reads the burst-parser sub-object's +0x0 class word, bounds it at 5 and dispatches through signed-offset jumptable 0x10f27fcc in a consume loop over the frame buffer. Per-class acceptance: INITIAL (inline at 0x107e0f5c plus f_107df200) scans {ptr,flag} frame records for the first non-zero frame ('State change INITIAL -> UNKNOWN_BITSTREAM. non-zero frame'), then hunts an apparent Pa/PcPd preamble, warning 'Possible frame misalignment detected! Pa seen in subframe B' and 'Found apparent PcPd with only %u frames padding! This might be a lookalike PCM signal' before moving to PCM when padding fails. UNKNOWN_BITSTREAM (f_107df328) accepts on preamble presence only: 'Found bitstream type %d with %u-frame stride' -> BITSTREAM_CONFIRMATION 'databurst %d'; 'no preamble in %u frames. Last playing %s' -> PCM; reset -> INITIAL. PCM (f_107df840) copies audio unconditionally but realigns multichannel ('Multichannel PCM not aligned to channel 0 (index %u), correcting.'), reports 'Discontinuity detected: [%s]' and promotes to the burst path on 'Sync acquired for databurst (%d) index (%u)' / 'PaPb preamble not found at expected position'. BITSTREAM_CONFIRMATION (f_107e0110) revalidates at the expected repetition position: 'Unable to confirm databurst (%d) of unexpected size %u expected %u', 'Broken padding during bitstream confirmation', 'Unknown repetition period for burst type %d', 'Unsupported databurst %d confirmed', 'null burst terminated by non-zero frame' or 'no preamble in %u frames' -> PCM, else ALIGN_TO_BURST. ALIGN_TO_BURST (f_107e063c) buffers until the first encoded sample lines up ('Aligning to first encoded audio sample. %u frames copied. %u more required', 'Too many frames to cache %u > %zu', 'Requested exactly %u frames'), verifying Pc/Pd agreement ('Databurst mismatch during alignment. Expected %d but found %d', 'Failure to align bitstream. PaPb preamble not found at expected position. Instead found %08x - %08x : %08x - %08x' with Pb checked as xori 0x4e1f) then enters ENCODED. ENCODED (f_107dfd10) is the steady state: burst-type continuity ('Databurst mismatch in encoded state. Expected %d but found %d'), preamble re-checks and output-room bounds ('No room in parsing output buffer. Buffer max: %zu buffered: %u'), sharing the confirmation error strings.",
+    "The input-side producers of receiver+0xf1c/+0xf24/+0xf28 are two setters running under the +0x1af0 lock: the sample-rate setter (~f_107d2f60) writes +0xf1c and +0xf24 = new rate num, +0xf20 = rate den, logging 'Sample rate changed from (%u : %u) to (%u : %u)' and signalling the +0x19b4 notify object; the channel-count setter f_107d3070 validates the new count is exactly 2 or 8 ('Invalid input channel count: %u'), logs 'Input channel count change: %u -> %u', stores +0xf28 = count and +0xf24 = count>>1. PARSING's call f_107d3560 receives +0xf24/+0xf28 but the emitted-Pc band select runs inside f_107e0dc4 on the parser's own +0x28 stored rate.",
+    "sub+0x14 units resolved: when the parser's +0x28 rate changes, f_107e0dc4 recomputes +0x14 = rate*100*0x10624dd3>>38 (0x107e0e4c..0x107e0e6c), which is rate/10 - the sample count per 100 ms, i.e. a decisecond tick used as the burst pacing basis. The same block re-derives the emitted Pc via f_107def18 into +0x24 from the rate band (0xbb80/0xac43f compares picking codes 0xd/0x16), and refreshes out-ctx +0x14 from parser+0x4 and +0x20 from parser+0x8 (-1 suppressed)."
    ]
   },
   "addrmon": {
