@@ -232525,7 +232525,7 @@
   },
   "product_models": {
    "name": "product codename + ZPS model table",
-   "summary": "Product identity uses parallel name arrays, while DSP defaults use a separate bounded model-index switch returning a0xc8-byte record. The switch, version subrecord and named DSPConfig lookup consumers are recoverable. Earlier overlapping per-index counts, interleaved tuning-row grammar and low/mid/high-dB or port-count labels were not verified and are withdrawn; remaining scalar semantics require concrete consumer joins.",
+   "summary": "Product identity uses parallel name arrays, while DSP defaults use a separate bounded model-index switch returning a 0xc8-byte record. Record layout now joined to named consumers: +0 codename, +4/+8/+c per-model breakpoint-table pointer triplet, +0x10 breakpoint count, +0x14/+0x1c/+0x20/+0x24/+0x28/+0x30 scalar words, +0x2c SUB-only flag byte, +0x34 SUB-only constant, +0x38 version subrecord. +0x1c is emitted as 'Sub full gain SPL dB' by the DSPStateManager dump; the table pointers are the compiled equivalent of the named DSPConfigParams volume/gain breakpoint arrays assembled by f_107c5c68. Earlier overlapping per-index counts, interleaved tuning-row grammar and low/mid/high-dB or port-count labels remain withdrawn; scalar semantics that are not name-joined are stated as positions, not guesses.",
    "evidence": [
     {
      "type": "firmware",
@@ -232558,17 +232558,62 @@
      "address": "0x107c5a44",
      "callsite": "0x107c5ac8 / 0x107c5bd4 / 0x107c5ce0",
      "notes": "Named bonded-gain lookup uses count+a04, entries+a08, stride2c and value+a30 relative to owner+index*2c. Volume-breakpoint lookup count+50, entries+54,stride134, returns owner+index*134+80. Assembly looks up default/bonded names and compares volume/gain lengths at0x107c5d0c onward. Missing-name paths log distinct diagnostics and return their fallback; none names every compiled scalar."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "spec-field store census across all table arms",
+     "address": "0x107c4584",
+     "callsite": "all 26 entry targets of f_107c44fc",
+     "notes": "Fields written by every arm: +0 codename, +4/+8/+c table pointers, +0x10 count, +0x1c word (9 arms also write +0x20, 4 write +0x24, 3 write +0x28). Single-writer fields: +0x14 word from *0x10f24798 (Default arm only), +0x30 word from *0x10f247bc (Optimo2 arm only), +0x2c byte and +0x34 word (SUB arm only: stb 1 at 0x107c48dc, stw 0xc7d at 0x107c48e4). Example arms: Default +4=0x10f244a4, +8=+0xc=base+0xc, count 5; Play1 +4/+8/+c=table+0x158/+0x160/+0x170, count 4; Optimo1/Optimo2 +4/+8/+c=table+0x2a4/+0x2ac/+0x2bc and +0x2cc/+0x2d4/+0x2e4, count 4. All arms merge into a shared tail that stores +0x24/+0x28 defaults and runs f_107c69e8."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "spec-field consumers, all five lookup callers",
+     "address": "0x10d91d70",
+     "callsite": "0x102a52e8 / 0x107c80d4 / 0x10d7e628 / 0x10d8fcac / 0x10d91d70",
+     "notes": "f_102a52cc returns spec+0x34; f_1030d0f8 stores it at obj+0x2868 (with +0x286c..+0x28c4 init block); f_107caef0 and f_107cbd00 call it through f_107c8064 (channel-mask 0x8 path, qsort-using volume-table assembly, htsat_tx 'satellite sub also receives non sub channels'). f_10d8fb20 reads spec+0x2c byte and stores it at obj+0x325 (from f_107f8914). f_10d7e5c8 reads spec+0x1c into the channel-processing loop. f_10d90ab0 reads +0x1c and writes it as the named value 'Sub full gain SPL dB' via name-value writer f_10d93154 in the DSPStateManager dump."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "named join: DSPConfigParams assembly f_107c5c68 on owner 0x110b61a0",
+     "address": "0x107c5c68",
+     "callsite": "via f_10d74658 wrapper 0x107f6f78 region",
+     "notes": "strlcpy owner+0x120 <- config name (0x28); f_107c5b68(owner,'default') and (owner,'bonded') return volume-breakpoint entries (stride 0x134, count +0x50, entries +0x54): entry+0 volume count must equal entry+0x84 gain count ('volume (%i) and gain (%i) lengths differ in default/bonded volume breakpoints'), entry+4 u16 arrays are compared element-wise ('default (%i) and bonded (%i) volume breakpoint lengths differ' when counts mismatch; 'no bonded volume breakpoints specified, using default instead' at level 6). Assembled u16 arrays land at owner+0x148 (volumes) and +0x158/+0x178 (gains); cap 7 iterations ('%zu' bounded, log 0x10f24c64). f_107c5a44(owner,'sub') and (owner,'gravity') return bonded-gain entry+0x28 (stride 0x2c, count +0xa04, 'Bonded gain for \"%s\" not found in DSPConfig'). Owner words +0x9f4..+0xa00, byte +0xf88, words +0xf8c/+0xf90 and the f_107c6258-processed +0xf94..+0xfa4 words feed the emitted record. 'DSPConfigParams conversion successful' then version write."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "named field vocabulary of the spec dump",
+     "address": "0x10feb394",
+     "callsite": "f_10d90ab0 named-value emission",
+     "notes": "The dump writer pairs record values with names: 'Sub full gain SPL dB' (record +0x1c), and from the same vocabulary family 'Sub gain offset dB', 'Supports volume limit sub level', 'Music surround level dB', 'TV surround level dB', 'Music full surround mode', 'Height level dB', 'Max height channel cut boost dB', 'Play time delta seconds', 'Night mode enabled', 'Dialog enhancement level', 'AI Speech Enhancement', 'TV Source gain offset', 'Number of breakpoints', 'Breakpoint %zu volume', 'Breakpoint %zu gain'. These names give the units (dB, seconds, counts) for the scalar fields; only +0x1c is directly joined to a record offset in this build."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "unread compiled fields",
+     "address": "0x10f244a4",
+     "callsite": "n/a",
+     "notes": "spec +4/+8/+c table pointers, +0x10 count, +0x14/+0x20/+0x24/+0x28/+0x30 scalars have no reader among the five lookup callers in this build: each caller extracts only +0x1c, +0x2c or +0x34 off the stack record. The corresponding runtime data flows through the named DSPConfigParams owner arrays (volume breakpoints at owner+0x148/+0x158/+0x178, bonded gains via f_107c5a44) instead. The table rows behind +4/+8/+c carry float constants (e.g. Default row: -80.0, -61.0, -45.0, -4.0) but per the standing rule they are recorded as float payloads, not relabelled."
     }
-   ],
-   "todo": [
-    "Established: corrected DSP switch/index census, Default fallback behavior, returned-record offsets, version-subrecord grammar and concrete named bonded-gain/volume-breakpoint consumers. Remaining: propagate each anonymous spec field (+4/+8/+c/+10 and scalar words+14..+34) through callers of f_107c44fc and configuration assembly, joining them to named DSPConfig fields and actual units. Start at0x10d7e628 (+1c),0x107c80d4/0x102a52e8 (+34), then f_107c5c68 and the named lookup results from f_107c5a44/f_107c5b68. Do not restore low/mid/high-dB, gain-limit, port-count or hardware-revision labels from pool shape alone. This remains actionable static work."
    ],
    "resolved_findings": [
     "The identity-array bases are internalId0x10f7c1f4, displayName0x10f7c2f0 and modelId0x10f7c3ec, not displayName0x10f7c3cc. Raw row10 is S9/Playbar/ZPS9. These identity arrays are distinct from the DSP codename string pool and the returned DSP spec; string-pool adjacency alone does not pair codenames with hardware revisions. Empty identity rows do not establish that missing model numbers are unreleased products.",
     "DSP lookup f_107c44fc uses unsigned model<=0x3f and a stride4 signed-self-relative table at0x10f243a4. All64 words were decoded:26 distinct entry targets;11 indices enter the logged default path0x107c454c,4 enter default initialization0x107c4584,3 enter0x107c4b60, and46 enter23 specialized targets. The0x107c4b60 path also clears then initializes the Default spec, including out-of-range inputs; it does not return a null/empty spec. The earlier26-default/34-special count and overlapping codename census are withdrawn.",
     "Exact numeric index->entry map (decimal indices, hexadecimal entry PCs): 0x107c454c:0,1,2,4,5,6,11,49,61,62,63; 0x107c4584:3,17,25,50; 0x107c4634:7; 0x107c46b0:51; 0x107c46b8:59; 0x107c4714:47; 0x107c471c:46; 0x107c4748:44; 0x107c47a0:43; 0x107c4828:41,42,48,58; 0x107c4894:39; 0x107c48fc:37,38,60; 0x107c4904:36; 0x107c490c:32; 0x107c4934:31; 0x107c4990:29,35,55; 0x107c49ec:21,34,53,57; 0x107c49f4:19; 0x107c4a20:18; 0x107c4a28:16; 0x107c4a30:13; 0x107c4a38:12,26; 0x107c4ab0:10; 0x107c4ab8:9,14,15,20,22,23,24,30,33,40,45; 0x107c4b14:8,28,56; 0x107c4b60:27,52,54. This is an entry-point census, not a claim of one independent full function per arm.",
     "Default initialization clears0xc8 bytes; writes codename at+0, pointers into0x10f244a4 at+4/+8/+c, numeric count5 at+10, and scalar words at+14/+1c/+24/+28. Specialized entries replace these and other fields. The old20-byte-row {flags,u16 pair,low/mid/high dB} grammar is not established by these pointer stores and is withdrawn. f_107c69e8 tail-calls f_107c6988, which copies four version words and formats them into the following128-byte buffer using %d.%d.%d.%d. Called with out+38, this explains the version portion of the0xc8-byte record; it is not a generic tuning-block append routine.",
-    "Checked consumers disprove a source-only semantic boundary without certifying all scalar names. Calls0x102a52e8 and0x107c80d4 return the lookup result word at+34; the latter is reached for a channel-mask0x8 branch. Call0x10d7e628 consumes word+1c in subsequent processing. Separately, f_107c5a44 searches named bonded-gain entries at owner+a08/stride2c/count+a04 and returns entry+28; f_107c5b68 searches volume-breakpoint entries at owner+54/stride134/count+50 and returns entry+2c. Their named DSPConfig records are not automatically the anonymous compiled pool rows. f_107c5c68 joins default/bonded volume and gain arrays and checks their lengths; those concrete joins are the next path to scalar meaning."
+    "Checked consumers disprove a source-only semantic boundary without certifying all scalar names. Calls0x102a52e8 and0x107c80d4 return the lookup result word at+34; the latter is reached for a channel-mask0x8 branch. Call0x10d7e628 consumes word+1c in subsequent processing. Separately, f_107c5a44 searches named bonded-gain entries at owner+a08/stride2c/count+a04 and returns entry+28; f_107c5b68 searches volume-breakpoint entries at owner+54/stride134/count+50 and returns entry+2c. Their named DSPConfig records are not automatically the anonymous compiled pool rows. f_107c5c68 joins default/bonded volume and gain arrays and checks their lengths; those concrete joins are the next path to scalar meaning.",
+    "Every anonymous spec field now has a documented fate: +4/+8/+c/+0x10 (table triplet + count), +0x14, +0x20, +0x24, +0x28, +0x30 are write-only in this build (no lookup-caller reads them; the named DSPConfigParams owner supplies the same data through its own arrays, so the compiled breakpoint tables exist but are superseded by named config). +0x1c is consumed twice and named 'Sub full gain SPL dB' in the DSPStateManager dump. +0x2c is the SUB-model flag byte stored into the channel object. +0x34 is the SUB-model constant 0xc7d consumed by the channel-mask-0x8 path and stored into the settings object at +0x2868. +0x38 is the four-word version subrecord (%d.%d.%d.%d).",
+    "Named-config assembly is the authoritative source: f_107c5c68 converts the DSPConfigParams owner (0x110b61a0) into spec-shaped output. It enforces volume-count == gain-count per breakpoint set, prefers 'bonded' over 'default' with an explicit fallback log, names its bonded-gain rows ('sub', 'gravity'), and joins owner words +0x9f4..+0xa00, +0xf88, +0xf8c/+0xf90 into the emitted record. This is the configuration-assembly side the todo asked to join; the compiled-table floats remain payload data consistent with that interpretation but are not relabelled.",
+    "The earlier per-index census stands; what changed is that the returned record is no longer opaque: two fields are name-joined (+0x1c SPL dB, +0x2c/+0x34 SUB-markers), the count +0x10 and the +4/+8/+c pointers are the compiled volume-breakpoint table that mirrors the named config structure, and the remaining scalars are explicitly catalogued as unreferenced in this build rather than silently absorbed into speculative dB/port labels."
    ]
   },
   "htaudio_satellite_tx": {
