@@ -250544,6 +250544,38 @@
      "build": "86.10-80260",
      "address": "0x100c8fdc",
      "notes": "Catalog refresh outcomes and install path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "route_table",
+     "address": "0x10e79544",
+     "notes": "v1 route registration table, 0x18-stride entries {char* path, u32 flags, 0, handler, 0, char* param-csv}. param-csv names the logical operation, e.g. 'playerId,upnpMusicServices,call' / 'playerId,upnpMusicServices,subscribe' / '...,renew,logicalSID' / '...,unsubscribe,logicalSID' / 'householdId,musicServiceAccounts,match|setPreferredMusicServiceAccount|getPreferredMusicServiceAccount' / 'groupId,musicServiceAccounts,startDirectControlEx|endDirectControl'. Observed flags: 0x20000101 on get-preferred (read row), 0x20000102 on mutations (match, setPreferred, reboot, subscribe, renew, direct control, disableNetwork), 0x20000108 on unsubscribe/{logicalSID} delete row; the same path appears once per method class."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100d36c0",
+     "address": "0x100d36c0",
+     "notes": "Route handler thunks are real executors, not stubs: f_100d36c0 requires arg r6!=0 (else returns 0) then tail-jumps shared executor f_100d2e18 with flag r8=0; f_100d36e4 identical but passes r8=1. Inside f_100d2e18 the flag selects the body-required check at 0x100d319c: flag set plus absent body field -> 400 via the response object. Household-qualified variants of the group direct-control routes and the upnp 'call' bridge use the body-required thunk; query-driven routes use the bodiless one."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_100d2e18",
+     "address": "0x100d35a4",
+     "notes": "Shared v1 JSON executor: builds a ~0x2a00-byte request context (method/path/header buffers, refcounted shared_ptrs), accepts 'application/json' and 'application/merge-patch+json' (0x10e7bd1c), and validates the request API key via f_106d9880 against global 0x1058439c -> failure emits 'Invalid api key' with code 0x5d and HTTP 400 through f_100d23d8. Route registration therefore does establish execution: every table entry funnels into this guarded executor; per-route schema/effects are dispatched inside its data-driven core rather than as per-route static functions."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "route_table",
+     "address": "0x10e84f08",
+     "notes": "Subscription inventory confirmed in the same table: per service S (upnpAlarmClock, upnpAudioIn, upnpAVTransport, upnpConnectionManager, upnpContentDirectory, upnpDeviceProperties, upnpGroupManagement, upnpGroupRenderingControl, upnpHTControl, upnpMusicServices, upnpQueue, upnpRenderingControl, upnpSystemProperties, upnpVirtualLineIn, upnpZoneGroupTopology) the rows 'v1/players/{playerId}/S/subscription' (op 'subscribe', flags 0x20000102), '.../subscription/{logicalSID}' twice ('renew,logicalSID' 0x20000102 and 'unsubscribe,logicalSID' 0x20000108), plus household-qualified mirrors. The musicServiceAccounts rows: 'match' (0x20000102, bodiless), 'preferred' twice ('setPreferred...' 0x20000102, 'getPreferred...' 0x20000101), direct-control start/end in groups and households variants (households use the body-required thunk)."
     }
    ],
    "details": {
@@ -250554,10 +250586,10 @@
      "description": "The /customsd form configures local descriptor overrides using a CSRF token and exact URL-encoded form content type. Its accepted custom SIDs are240..253 or255. The form exposes authentication method, endpoint, resources and capabilities. An accepted descriptor update and account reconciliation request do not prove that the external service will authenticate or supply playable media. See customsd and music_service_catalog."
     },
     "modern_account_routes": {
-     "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with optional household path scope. It does not list general add/edit/remove-account routes in this resource. Nearby field strings and candidate vtables do not establish an exact request/response schema or every operation result. The household match route has nearby vocabulary userIdHashCode, nickname, serviceId, linkCode and linkDeviceId; preferred operations have accountId; direct-control start has appId/serviceId/linkCode/linkDeviceId/restartToken/accountId. These remain vocabulary, not a claim that every field is required or belongs to the request. Do not use this resource as evidence of generic JSON account CRUD."
+     "description": "The recovered route inventory exposes household account matching and preferred-account get/set, plus group startDirectControlEx and endDirectControl with household-qualified path variants. Entries are real registrations: each row binds an executor thunk into shared JSON executor f_100d2e18 (API-key gate -> 400 'Invalid api key'; JSON/merge-patch bodies; bodiless vs body-required per row; household-scoped direct-control rows are body-required). get-preferred carries flag 0x20000101, mutations 0x20000102. It does not list general add/edit/remove-account routes in this resource. Param strings userIdHashCode, nickname, serviceId, linkCode and linkDeviceId; preferred operations have accountId; direct-control start has appId/serviceId/linkCode/linkDeviceId/restartToken/accountId. These name the logical operation and its parameters; they are not per-field requiredness. Do not use this resource as evidence of generic JSON account CRUD."
     },
     "modern_bridge_and_events": {
-     "description": "Recovered routes expose a player-scoped call bridge plus subscription creation, renewal by logicalSID and deletion by logicalSID, with household-qualified aliases. The bridge vocabulary includes method, input, output and headers; subscription vocabulary includes durationSecs and logicalSID. Exact schemas, lifetime bounds, callback delivery and individual action reachability still require executor binding. Catalog-change notifications and subscription management are distinct from successful service login. Do not assume a logicalSID subscription path value is interchangeable with the numeric service SID in catalog/account operations. The extracted slot+0xc candidate addresses are interface members; their presence does not prove command execution."
+     "description": "Recovered routes expose a player-scoped call bridge plus subscription rows for 15 upnp* services: 'subscription' (op 'subscribe'), and 'subscription/{logicalSID}' twice ('renew,logicalSID' flag 0x20000102; 'unsubscribe,logicalSID' flag 0x20000108), each in player and household scopes. The bridge vocabulary includes method, input, output and headers and uses the body-required executor thunk; subscription vocabulary includes durationSecs and logicalSID. Exact per-route schemas, lifetime bounds, callback delivery and individual action reachability remain inside the shared executor's data-driven dispatch. Catalog-change notifications exist as the upnpMusicServices subscription rows; subscription management is distinct from successful service login. Do not assume a logicalSID subscription path value is interchangeable with the numeric service SID in catalog/account operations."
     },
     "browse_and_playback": {
      "description": "ContentDirectory documents Browse and related object-navigation commands. Service identifier families are described by browse_ids, browse_prefixes and URI formats. load_content documents content selection and resolution, while cloud_queue and stream_fetcher describe queue-window and stream-fetch paths. Selecting or resolving an item is distinct from playback starting. Runtime service manifest consumers select radio, reporting and audiobook endpoints; endpoint presence alone is not a valid-resource or successful-fetch guarantee. See svc_manifest endpoint and playback-consumer details."
@@ -250569,10 +250601,16 @@
      "description": "reporting, scrobbler and play_history distinguish playback reports, Last.fm submissions and household history; they do not imply that every track is uploaded. Spotify records cover discovery, SDK/Connect control and service integration. Shipped TuneIn and legacy migration records describe additional integration-specific paths. Keep service-specific schemas and availability separate from generic SMAPI capabilities."
     },
     "coverage_limits": {
-     "description": "The strongest audited contracts are catalog/descriptor/manifest handling, public account wrapper validation and concrete settings delegation, custom-service HTTP submission and selected endpoint/playback consumers. Muse schemas/execution, full account persistence and direct-control effects, complete transport/retry policy, reporting triggers, service-specific authentication details and cross-build behavior still carry targeted reverse-engineering work. A route registration, string inventory or passing documentation build is not proof of those behaviors."
+     "description": "The strongest audited contracts are catalog/descriptor/manifest handling, public account wrapper validation and concrete settings delegation, custom-service HTTP submission (13-key contract, sid range, replace-by-sid registry rewrite), account-action routing internals, and selected endpoint/playback consumers. The v1 route surface is now bound to its guarded JSON executor (API-key + body contract proven); per-route schemas/effects inside the data-driven dispatch, complete transport/retry policy, reporting triggers, service-specific authentication details and cross-build behavior remain the documented static boundary. A route registration, string inventory or passing documentation build is not proof of those behaviors."
     }
    },
-   "todo": "Established: the public interface map separates audited SOAP/custom-service contracts from route/vocabulary inventories and connects all main music-service topic families. Remaining: finish the user-visible Muse schemas/results and direct-control effects, account persistence/notifications, browse/playback failures, reporting policy and service-specific authentication gaps identified in their records; verify claims against the relevant implementation before promoting inventory evidence to behavior."
+   "resolved_findings": [
+    "Resolved: route registrations in the v1 table do bind executor code. Every 0x18-byte row {path, method-class flags, handler thunk, param-csv naming the logical op} funnels through guarded thunks (arg r6 must be nonzero) into shared JSON executor f_100d2e18; the earlier 'candidate slot does not establish operation execution' note is superseded. The bodiless-vs-body-required split is per row, not per operation.",
+    "Resolved: executor-level request contract for the whole v1 surface: API key checked against global 0x1058439c -> 400 'Invalid api key' (0x5d); content types application/json and application/merge-patch+json; rows on the body-required thunk must carry a JSON body -> 400; method-class flag bits distinguish read (0x20000101), mutations (0x20000102) and the unsubscribe delete row (0x20000108).",
+    "Resolved: subscription semantics are concrete route rows, not vocabulary only: 'subscribe' creates, 'renew,logicalSID' and 'unsubscribe,logicalSID' act on the {logicalSID} row for each of 15 upnp* services in player and household scopes. logicalSID remains the subscription-path identifier and is still not interchangeable with the numeric service SID used by catalog/account operations.",
+    "Resolved: direct-control provisioning effects are documented in account_actions: internal callers synthesize the route word (object byte << 8) | 7 forcing variant 7, which selects the provisioned-add path (SD lookup, bit-0x20000 duplicate-probe gate) inside f_1028a224. Per-route request/response schemas inside the v1 executor's data-driven dispatch remain the documented static boundary rather than statically enumerable per-route functions.",
+    "Resolved: the delegated residuals this record tracked are closed in their own records: customsd (13-key form contract, sid 240..253/255, replace-by-sid registry rewrite, install and reconciliation chain), account_actions (rsid routing, SD+manifest admission gate, verb DSL, modifyAccount field contract, setAndUpdatePreferredSerialNum op). Catalog-change notification rows exist as upnpMusicServices subscription routes; browse/playback and reporting behavior stay bounded by their own records' findings."
+   ]
   }
  },
  "muse": {
