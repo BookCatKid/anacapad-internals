@@ -212600,15 +212600,15 @@
    ]
   },
   "platform_details": {
-   "notes": "Platform descriptor files, seven-field MoreInfo device status, and a separate audioctl diagnostic/output chain. KV entries use name:value. The boot diagnostic removes an optional U-Boot prefix;17.2.7 is a copied output literal, not a version gate.",
+   "notes": "Platform descriptor files, seven-field MoreInfo device status, and a separate audioctl diagnostic/output chain. KV entries use name:value. Only TargetRoomName is produced locally (two producers incl. settings key 0x40003); battery fields arrive only via remote record replication and are stored opaquely; SPID/BtSrcName have no local consumers. Change fanout: member-record copy plus in-process TopologyZpListChangedEvent plus UPnP notifyClients. The boot diagnostic removes an optional U-Boot prefix;17.2.7 is a copied output literal, not a version gate.",
    "build": "dual toolchain: crosstool-NG 1.24.0 GCC 5.5.0 objects + legacy GCC 4.3.2 objects (.comment); debuglink 'anacapad' CRC32 0xd61b897d; PPC EMB apuinfo present; patched-GCC __ptr_guard wrappers + ZZxxxx scrubbed ordinals (see linked_libraries)",
-   "todo": [
-    "Established: platform files/53-flag vocabulary; all seven MoreInfo keys, parsing/storage/duplicate behavior, serializer ordering and escaping, truncation and one-byte escape cycle, outgoing MoreInfo element, battery cache/default/CHARGING consumers, local TargetRoomName set/clear and local-only topology update; boot diagnostic prefix selection and copied17.2.7 literal corrected. Remaining: trace SPID/BtSrcName consumers, battery producer domains and temperature scale, remaining room-name effects and deeper topology notification calls0x10766064/0x1067c6ec; join other platform-output helpers independently rather than treating diagnostic labels as hardware validation. Follow each producer/consumer before removing this TODO."
-   ],
    "keys_read": "The recovered parser matches exactly SPID, RawBattPct, BattPct, BattChg, BattTmp, TargetRoomName and BtSrcName using the table0x10ef33f0. These are device-status strings, not manufacturing serial/fuse keys. Received data at source+134 is parsed at0x10763504; numeric battery fields and the exact CHARGING string update cached receiver fields. A separate local producer updates TargetRoomName at0x105b8530. Manufacturing identity/fuse layouts are documented independently in mdp_flash/bin_mdputil; this parser does not establish any bootloader-version or OTP gate.",
    "resolved_findings": [
     "The seven-key schema and concrete battery receiver are now recovered. The parser consumes colon-separated device-status fields and is distinct from boot environment/manufacturing metadata. See kvpair_contract for parsing, owned string storage, duplicate handling and consumer behavior.",
-    "Resolved: the unit's platform descriptor ships in the rootfs - /etc/arch = 'limelight', /etc/soc_arch = 'limelight', /etc/arch_attrs = the 53-flag capability set {HAS_ORIENTATION_SENSOR,HAS_TV_INPUT,IS_CEP20,IS_HARDWARE,IS_HT_SOURCE,IS_HT_WIRELESS_PRIMARY,IS_STILL_MANUFACTURED,IS_ZONE_PLAYER,LEGACY_BACKTRACE_SUPPORT,MIGHT_SUPPORT_S1} + LACKS_{ASAN,AUDIO_ENCRYPTION,BUTTONS_KERNEL_MODULE,CLOCK_BOOTTIME,DIAGS_BUILD,DSMF,DYNAMIC_DSP,HEAPTRACK_SUPPORT,KERNEL_SECTION_HEADER,LKDTM,MIXER_STATS,MPEGDASH,NATIVE_WAC,OPUS,SETUP_PIN,STACK_USAGE,TSAN,UBSAN,WIDEVINE} + SUPPORTS_{ATHEROS_DIRECT_ATTACH,AUDIODEV,AUDIODEV_SENSOR_EVENTS,CHANNEL_SCAN,CHIRP_ROOM_DETECTION_SEND,CLONE_CHECK,CPU_TEMP_REPORT,DOLBY,DTS,DUAL_SUBS,EXTERNAL_EVENTS,FFMPEG_WMA,HWEVTQ,RDM,RX_HANG_CHECK,SOUNDSWAP,STATION,SYSSW_HAL,TXRX_STATS,V2_CERTS,VLI,WIRELESS_DISABLE,WIRELESS_SETUP} + USES_{LLA,LONG_AMP_POWER_TIMEOUT} - the arch-attr vocabulary the feature_config flags gate against."
+    "Resolved: the unit's platform descriptor ships in the rootfs - /etc/arch = 'limelight', /etc/soc_arch = 'limelight', /etc/arch_attrs = the 53-flag capability set {HAS_ORIENTATION_SENSOR,HAS_TV_INPUT,IS_CEP20,IS_HARDWARE,IS_HT_SOURCE,IS_HT_WIRELESS_PRIMARY,IS_STILL_MANUFACTURED,IS_ZONE_PLAYER,LEGACY_BACKTRACE_SUPPORT,MIGHT_SUPPORT_S1} + LACKS_{ASAN,AUDIO_ENCRYPTION,BUTTONS_KERNEL_MODULE,CLOCK_BOOTTIME,DIAGS_BUILD,DSMF,DYNAMIC_DSP,HEAPTRACK_SUPPORT,KERNEL_SECTION_HEADER,LKDTM,MIXER_STATS,MPEGDASH,NATIVE_WAC,OPUS,SETUP_PIN,STACK_USAGE,TSAN,UBSAN,WIDEVINE} + SUPPORTS_{ATHEROS_DIRECT_ATTACH,AUDIODEV,AUDIODEV_SENSOR_EVENTS,CHANNEL_SCAN,CHIRP_ROOM_DETECTION_SEND,CLONE_CHECK,CPU_TEMP_REPORT,DOLBY,DTS,DUAL_SUBS,EXTERNAL_EVENTS,FFMPEG_WMA,HWEVTQ,RDM,RX_HANG_CHECK,SOUNDSWAP,STATION,SYSSW_HAL,TXRX_STATS,V2_CERTS,VLI,WIRELESS_DISABLE,WIRELESS_SETUP} + USES_{LLA,LONG_AMP_POWER_TIMEOUT} - the arch-attr vocabulary the feature_config flags gate against.",
+    "Downstream fanout of a changed local MoreInfo is now recovered. updateLocalMoreInfo0x1074facc re-serializes the seven-slot cache into 512 bytes, resolves the member record by UUID through the registry at this+0x5a8 (f_10765a00), logs 'informReplicatedSettingsChange updateLocalMoreInfo: %s uuid %s not local or was not found' on domain 'topology' followed by RabortIfUnlocked when the record is missing or not flagged local (record+0x14f8), and only on a changed strcmp result copies the new text over record+0x95c. It then runs two notification paths: (a) f_10766064 posts an in-process TopologyZpListChangedEvent: it marks the pump bytes+0x10/+0x11, logs 'Change in event loop detected' and 'Queued %s(%u) from \"%s\" : { %s }' on domain 'inprocess-events', links refcounted event nodes (vtables 0x10e87548/0x10e87564, payload object vtable 0x10e86f94) onto the global subscriber lists at 0x11096768 and 0x11096760, atomically increments the generation counter at 0x11096348, writes the event name string into the global named-property hub 0x110ba798 under the zone-UUID key (f_10bbca78) plus a 16-bit type tag 4 (f_10bbd280), and invokes registered subscriber callbacks through f_100f14ec; (b) f_1067c6ec tail-calls f_1067c46c, the UPnP event source's notifyClients on the embedded source object at this+8: it latches pending byte+0x110 (logging 'notifyClients(%s)' on 'upnpeventing' only on the 0->1 transition), takes an atomic reference on the notification sender at +0xb8, and wakes the dispatcher at +0xb4 through f_10678c50, which sets dispatcher byte+0x10e and pthread_cond_signals the condition variable embedded at dispatcher+0xb8. With no sender it logs 'Event source %s has no notification sender' at level 3.",
+    "A second local TargetRoomName producer is bound: virtual slot 41 (vtable 0x10ebc630, entry at 0x10ebc6d4) f_1035f698 fetches replicated-settings key 0x40003 through the settings handle at this+0x950 (vfunc+0x24 getter into a 65-byte buffer); a nonempty result is written into cache index5 via f_105bc23c and updateLocalMoreInfo runs unconditionally afterwards, so an absent/empty property still fires the comparison path. The function then registers the change with the in-process subject observer set (header literal '../recipe-sysroot/usr/include/sonos/inprocess-events/subject.h' at 0x10e86c88). The larger producer ~0x105b79a8 fetches sibling settings keys 0x40000 (f_10bf3070), 0x40001 (f_10bf3070, 129-byte buffer) and 0x40002 (f_10bf2d28), additionally calls the UPnP notifyClients thunk f_1067c6ec(this+8) directly at 0x105b8328, and pushes the values into virtual sinks on this+0x964 (vfunc+0x40) and this+0x960 (vfunc+0x24). Byte+0x94c on the zone object is the 'MoreInfo dirty' marker: set by the room-name producer at 0x105b84fc and cleared at 0x105b6418 after the outgoing MoreInfo element finishes rebuilding.",
+    "Consumer inventory for the seven keys is complete and mostly negative. The only users of accessors f_105bc384/f_105bc398 sit inside the remote-record merge f_10762f64: indices1/2/4 become ints at record+0x2544/+0x2548/+0x254c and index3's string drives byte+0x2550. SPID(index0), TargetRoomName(index5) and BtSrcName(index6) are never read back through any accessor; they persist only inside the raw +0x95c/+0x134 status text and are re-serialized. The numeric setter f_105bc2f8 has no callers, and no local code path writes cache slots0-4 or6, so this limelight unit never originates battery data or a Bluetooth source name: producers of those keys are the remote zone players whose status lists replicate in through f_10762f64 (called from ~0x107639bc, which copies remote string fields with strlcpy caps such as 0x41). Both member-record constructors ~0x10762464 and ~0x107628c4 initialize the battery fields to -1, distinct from the wire-absent sentinel -100. BattTmp is carried as an opaque signed 32-bit integer end to end: the marshal copies at ~0x102c9894/~0x106cfbf8 and the record clone ~0x103da928 move it without any scale conversion or threshold, so its unit is defined by the producing node, not by this binary."
    ],
    "kvpair_contract": {
     "schema": [
@@ -212652,7 +212652,10 @@
     "escape_boundary_cycle": "At0x10c39b84 cmplwi cr0,r10,1 records whether exactly one output byte remains before the reserved terminator. Comma or backslash branches to0x10c39bf0. Raw word0x41a2ff88 is BO13/BI2, branching on CR0.EQ back to0x10c39b78. That path performs only comparisons/branches and does not change input pointer, output pointer, remaining count or character. With remaining1 and a nonzero comma/backslash, it repeats indefinitely. A raw-word branch walk verified the cycle for both bytes44 and92. This is static binary verification, not a reproduced live-device hang. Other ordinary characters can consume the final available byte and then stop normally.",
     "outgoing_moreinfo": "Device-description emitter0x105b6370..0x105b63b0 opens MoreInfo, serializes cache object+994 into512-byte stack output at0x105b6394, emits the text via0x10676cf8 and closes the element. Thus the status list is an outgoing MoreInfo value, not a boot-environment string. The receiver already documented consumes the corresponding list at source-record+134.",
     "local_topology_update": "Function0x1074facc is named updateLocalMoreInfo by its diagnostic at0x10f12188. It takes the topology lock at manager+318, serializes the supplied container into512 bytes, and looks up the UUID through0x10765a00 on manager+5a8. Missing record or local byte+14f8 clear logs uuid not local or was not found and calls RabortIfUnlocked; it does not update that record. For a found local record, equal text at+95c does nothing. Different text is copied with strlcpy512, invokes0x10766064 on the table, then0x1067c6ec on manager+8 before releasing the lock. Deeper notification effects remain untraced; the change gate and local-only cached update are proven.",
-    "battery_numeric_examples": "The battery receiver therefore accepts decimal+12, leading-whitespace12,010 as decimal10, negative values and the signed32-bit endpoints when conversion succeeds. It rejects12 followed by whitespace,12x,0x10 and2147483648. No0..100 percentage clamp occurs in the parser/accessor/receiver chain. Parsed-100 is intentionally skipped by the consumer even though the parser accepts it; invalid syntax also falls back to-100. Producer ranges/temperature scale remain open."
+    "battery_numeric_examples": "The battery receiver therefore accepts decimal+12, leading-whitespace12,010 as decimal10, negative values and the signed32-bit endpoints when conversion succeeds. It rejects12 followed by whitespace,12x,0x10 and2147483648. No0..100 percentage clamp occurs in the parser/accessor/receiver chain. Parsed-100 is intentionally skipped by the consumer even though the parser accepts it; invalid syntax also falls back to-100. Producer ranges/temperature scale remain open.",
+    "consumers": "Accessor consumers are confined to the remote-record merge f_10762f64: RawBattPct->+0x2544, BattPct->+0x2548, BattTmp->+0x254c, BattChg string->byte+0x2550. SPID(0), TargetRoomName(5) and BtSrcName(6) have no accessor consumers in this binary; they live only inside the raw status text and the outgoing serialization. The battery fields flow onward only through bulk marshal copies (~0x102c9894, ~0x106cfbf8) and the record clone ~0x103da928; no conversion, comparison or display path for them exists here, and BattTmp's unit is producer-defined. Locally the only populated slot is index5 (TargetRoomName): producers 0x105b8530/0x105b86b0 inside ~0x105b79a8 and settings-key-0x40003 mirror f_1035f698. f_105bc2f8 is dead code.",
+    "change_fanout": "A changed local cache is fanned out by updateLocalMoreInfo0x1074facc: the re-serialized text replaces member-record field+0x95c only when strcmp differs; f_10766064 then emits an in-process TopologyZpListChangedEvent (logs on 'inprocess-events', node lists 0x11096768/0x11096760, generation counter 0x11096348, named-property hub 0x110ba798, subscriber dispatch f_100f14ec), and f_1067c46c runs the UPnP event source's notifyClients at this+8, waking its dispatcher via pthread_cond_signal after latching pending byte+0x110 and refcounting the sender at +0xb8.",
+    "battery_producers": "This unit never writes slots0-4 or6 locally; the numeric setter f_105bc2f8 is unreferenced. Battery text is produced by the remote zone players and replicates in through the record merge f_10762f64 (caller ~0x107639bc), whose source record holds the raw list at +0x134. Stored defaults are -1 at construction (~0x10762464/~0x107628c4); -100 is only the wire-absent sentinel. BattTmp travels as an opaque signed32 with no unit handling in this binary."
    },
    "evidence": [
     {
@@ -212773,6 +212776,69 @@
      "build": "86.10-80260",
      "address": "0x10763550",
      "notes": "Valid literal-100 also suppresses updates; valid0 does not."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074fb94",
+     "notes": "UUID lookup miss or non-local record logs 'informReplicatedSettingsChange updateLocalMoreInfo: %s uuid %s not local or was not found' on 'topology' then RabortIfUnlocked; record+0x14f8 is the is-local flag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1074fbf8",
+     "notes": "Changed serialized text: strlcpy into record+0x95c (cap512), then f_10766064(this+0x5a8) and f_1067c6ec(this+8)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10766064",
+     "notes": "TopologyZpListChangedEvent fanout: 'Change in event loop detected' and 'Queued %s(%u) from \"%s\" : { %s }' on 'inprocess-events'; event nodes onto globals 0x11096768/0x11096760; generation++ at 0x11096348; named hub 0x110ba798 keyed by zone UUID gets event name (f_10bbca78) and type tag 4 (f_10bbd280); subscribers invoked via f_100f14ec."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1067c46c",
+     "notes": "UPnP event-source notifyClients: latches byte+0x110 (logs 'notifyClients(%s)' once), atomic-increfs sender+0xb8, kicks dispatcher+0xb4 through f_10678c50 setting byte+0x10e and pthread_cond_signal on dispatcher+0xb8 condvar; absent sender logs 'Event source %s has no notification sender'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1035f704",
+     "notes": "Second TargetRoomName producer: settings key 0x40003 fetched via handle this+0x950 into 65-byte buffer; nonempty result stores into cache index5; updateLocalMoreInfo follows regardless."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b8328",
+     "notes": "Room-settings producer also calls f_1067c6ec(this+8) directly and pushes values into virtual sinks on this+0x964/+0x960 after fetching keys 0x40000/0x40001/0x40002."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10762998",
+     "notes": "Member-record constructor initializes +0x2544/+0x2548/+0x254c to -1 and byte+0x2550 to 0 (also -1 path at 0x10762760); distinct from the -100 wire-absent sentinel."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105b6418",
+     "notes": "Outgoing MoreInfo rebuild clears the dirty byte+0x94c that the room-name producer set."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1035815c",
+     "notes": "Zone-object destructor frees the seven-slot cache at +0x994 via f_105bc1f0; cache lifetime equals the zone object."
     }
    ],
    "boot_diagnostic_contract": {
@@ -216999,7 +217065,7 @@
    ]
   },
   "ibt_plans": {
-   "summary": "Muse intended-target plan generation and execution. A request with intendedTargets selects the plan path; generated target strategies execute in sequence and stop on a non-success result. There is no enablePitchfork gate proven by the former init-function evidence.",
+   "summary": "Muse intended-target plan generation and execution. Each IBT-capable provider embeds a target-provider base at ctx+0x78 whose -0x78 secondary vtable supplies generatePlan (+0xc) and a per-command dispatchToTarget (+0x10); plans hold 8-byte {vtable,provider} strategies executed in sequence while results stay 0x34. enablePitchfork is a stored feature-config bool with no runtime consumer in this image.",
    "anchors": [
     "executing ibt plan for command",
     "unsupported IBT command",
@@ -217063,6 +217129,41 @@
      "address": "0x109eb280",
      "callsite": "0x109eb2a8 / 0x10b9846c / 0x103cd54c / 0x10a585a8",
      "notes": "f_109e5dc0 loads request+0x21a0, tested before IBT dispatch to f_10b98840. f_10b983fc calls provider vtable+0xc and requires result 0x34; an already nonempty plan vector skips generation, not execution. f_10b985c4 calls f_109e80b0 at 0x10b9871c, assigns 0x48 on failure, and at 0x10b98810 invokes each strategy's +8 method while result remains 0x34. Raw cmplwi r4,1 at 0x103cd3f4 and branches at 0x103cd3f0/f8 distinguish strategy kinds 0/1. f_103cd46c logs unsupported when provider virtual+0x10 returns non-0x34, not after a command-name switch. Config field +0xf00 is passed to JSON writer with enablePitchfork at 0x10a58594-a8 and 0x10a587c8-d8. Copy/compare sites independently disprove the former interpretation of these reads as gates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f96a74",
+     "notes": "Provider-interface base vtable: +0xc/+0x10 NULL, +0x14 0x109ebd74, +0x18/+0x1c 0x10809540, +0x20 f_109ec9e0 (default ctx accessor), +0x24 0x109eac1c, +0x28 f_109eb04c (shared command entry). Namespace-name table 0x10f96aa4..: 83 names UNKNOWN,zones,alarms,...,voice(idx 81),zones(idx 82)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d12f4",
+     "notes": "Command-class factory: u16 cmdId bound 0x52, jump table 0x10e781d8; each case allocates a 0x3c command host and ctors it (e.g. idx 81 voice -> f_10b87ce8 vt 0x10fab8a4; idx 13 groups -> f_101c4ce0 vt 0x10e9c0ac). Host +0x38 holds the command-ctx pointer returned by provider vfunc+0x20."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e9c088",
+     "notes": "IBT provider model: the executor's provider is &ctx[0x78], an embedded target-provider base with a -0x78 secondary vtable. Slots +0xc generatePlan / +0x10 dispatchToTarget default to f_109e857c/f_109e858c (return 0x5a). 20 secondaries override the pair with -0x78 this-thunks: groups vt 0x10e9c088 gen f_101c6c1c disp f_101c43a8; hardwareStatus vt 0x10e9d04c f_101d4c14/f_101ce0b0; homeTheater 0x10e9db28,0x10e9dbb0 f_101de87c/f_101d9c64,f_101d9cc4; playback cluster 0x10e9e8ac..0x10e9ed74 gen f_101ea3d0/f_101ea464; playerVolume 0x10ea09e4..0x10ea0c04 f_102058a4/f_1020591c; settings 0x10fa6378 f_10b2b864/f_10b23a78."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101e3624",
+     "notes": "dispatchToTarget impls build per-target household REST requests (snprintf 0x401): v1/groups/%s/playback/{play,pause,playMode,skipToNextTrack,skipToPreviousTrack,seek,seekRelative,loadContainer,trackList,loadStream}; v1/players/%s/playerVolume/{volume,mute,duck,unduck}; v1/players/%s/hardwareStatus/battery; v1/players/%s/homeTheater{,/tvPowerState}; v1/groups/%s/groups/modifyGroupMembers; v1/players/%s/settings/player. Store 1 at req+0x420, ret 0x34."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101c6c1c",
+     "notes": "groups generatePlan impl: registers target schema {playerIds (list type 0x15, required), musicContextGroupId (string, optional)} via f_109cc8f4; disp f_101c43a8 converts target list, rejects with 0x48 when entry lacks required field."
     }
    ],
    "mechanics": "f_109eb04c tests f_109e5dc0(request) at 0x109eb280 and takes f_10b98840 when request+0x21a0 is nonzero. f_10b985c4 generates a plan through f_10b983fc, materializes targets through f_109e80b0, then executes strategy virtual slot +8 while the result remains 0x34. This is plan-local deduplication, not proof that repeating a wire command is idempotent.",
@@ -217086,14 +217187,11 @@
     "provenance": "literal block .rodata 0x10ec78a8-0x10ec79dc"
    },
    "zone_command_namespace": "The '{verb,namespace}' registry tail at .data 0x11094380-0x110943f4 binds these verbs to namespace 'zones': subscribe, unsubscribe, getActiveZoneList, getZoneDefinition, getZoneDefinitionList, addZoneDefinition, addMissingZoneDefinition, updateZoneDefinition, updateActiveZone, updateZoneMemberSettings, removeZoneDefinition, activateZone, deactivateZone, joinZone, unjoinZone: terminated {0xffffffff,0xffffffff}. Same record format as the main muse_verb_ns_registry @0x110941d8.",
-   "todo": [
-    "Established: intendedTargets selects the plan path, plan-local generation is reused, two compiled strategy kinds dispatch/group are constructed by f_103cd3d8, and enablePitchfork's previously cited uses serialize config rather than gate execution. Remaining: the exact set of Muse command providers that implement target conversion and the actual enablePitchfork execution consumer. Trace the provider virtual +0xc used at 0x10b9846c and virtual +0x10 at 0x103cd54c back to their constructors and command registrations; trace the feature-config field accessors beyond its serialized +0xf00 representation. These remain actionable static RE, not proven runtime-only boundaries."
-   ],
    "resolved_findings": [
-    "Resolved: plan executor decoded - commands compile into generated target lists (failed to generate target list for command (%s)), then dispatch per-target returning per-target result strings ([dispatch] dispatched (%s) to target (%s), result [%s]); the target type is a player/device descriptor; the previous channel-auth claim is not established by this executor.",
-    "IBT (intent-based target) plan model decoded (literals at 0x10fac6xx + 0x10ec78xx): commands arrive in muse command bodies carrying an intendedTargets parameter parsed into implicit vs explicit target forms (implicit target parsed [%s] / explicit target parsed [%s]; invalid intendedTargets parameter, command does not support intendedTargets parameter, invalid muse command body format). Plan generation is deduplicated (already generated ibt plan, no action taken) then executed per-target (executing ibt plan for command (%s), failed to generate target list/ibt plan for command (%s)), with per-target dispatch logging [dispatch] dispatched (%s) to target (%s), result [%s] and [dispatch] unsupported IBT command (%s). Targets are player/area id sets - validation vocabulary: no players or areas were specified, has repeated player id, Effective player id set is empty, has too many player ids, contains invalid player ids. The proven command family is [group] group formation: adding player [%s] to group, forwarding player [%s], created new group [%s, %s], created new group but no GC, Grouping ungroupable player to other players is not supported; compatibility is enforced by validateProtocolVersionCompatibility over {Audio TX, HT Audio} protocol types (protocol versions are incompatible / Protocol versions that do not match). The previously asserted enablePitchfork gate is withdrawn: its cited function serializes the field.",
-    "The unsupported-command log is emitted when a provider's virtual +0x10 conversion returns a status other than 0x34 at 0x103cd550. The dispatcher itself does not compare command strings there; this is not evidence that command names are absent from the compiled provider implementations. Factory f_103cd3d8 recognizes kind 0 (group strategy, vtable 0x10ec7880) and kind 1 (dispatch strategy, vtable 0x10ec786c), returning null for other kinds. Its factory vtable 0x10ec7894 is installed at 0x1018ea44.",
-    "enablePitchfork is a boolean config field at +0xf00: f_10a581b0 passes its value and key to JSON writer f_109d14e0 at 0x10a585a8 and 0x10a587d8. Copy operations at 0x10a5741c/28 and 0x10a57834/40 and equality comparison at 0x10a57f30-3c are not feature gates. No per-command bundle or init-time gating follows from these sites."
+    "Bound: the IBT provider is the embedded target-provider base at ctx+0x78 of the command context (the object provider vfunc+0x20 returns, stored on the host at +0x38). Its -0x78 secondary vtable slots +0xc (generatePlan) and +0x10 (dispatchToTarget) are the two vfuncs the plan executor calls: +0xc at 0x10b9846c must yield 0x34 to reuse/fill the strategy vector; +0x10 at 0x103cd54c is the per-target dispatch whose non-0x34 return logs 'unsupported IBT command'.",
+    "Exact provider set: 20 -0x78 secondaries carry non-default impls (default f_109e857c/f_109e858c return 0x5a). Namespaces proven: groups (gen registers {playerIds list required, musicContextGroupId optional}; disp builds v1/groups/%s/groups/modifyGroupMembers), hardwareStatus (v1/players/%s/hardwareStatus/battery), homeTheater (v1/players/%s/homeTheater and .../tvPowerState), playback-family secondaries (gen pushes a single implicit-target strategy, returns 0x34; disp builds v1/groups/%s/playback/<verb> for play, pause, playMode, skipToNextTrack, skipToPreviousTrack, seek, seekRelative, loadContainer, trackList, loadStream), playerVolume secondaries (v1/players/%s/playerVolume verbs volume(+muted body), mute, duck, unduck), settings (v1/players/%s/settings/player). All other providers keep the 0x5a defaults and cannot serve intendedTargets.",
+    "Strategy objects are 8-byte {vptr, provider-iface} made by f_103cd3d8: kind 0 -> group strategy (vt 0x10ec7880, exec f_103cdc74 logs '[group] adding player [%s] to group' and drives the coordinator iface vfunc+8 per 0x34-byte target), kind 1 -> dispatch strategy (vt 0x10ec786c, exec f_103cd46c calls provider +0x10 per target and logs per-target results). vtable 0x10ec7894's exec is f_103cd3d8 itself, a meta strategy that materializes kind 0/1 strategies at execution time.",
+    "enablePitchfork consumer resolved: cfg byte +0xf00 inside the ~0xf60 household feature-config struct. Every access in the image enumerated: ctor init stb (0x10a56fe4, 0x10a571ec), struct copy (0x10a5741c, 0x10a57834), equality compare (0x10a57f30), serializer reads (0x10a58594, 0x10a587c8), deserializer address formation (0x10a596f8, 0x10a59ee4). No instruction reads it to gate execution; the flag is document data only here. Neighbors serialized in the same group: enableSslClientCacheRefresh +0xf01, enableDhcpProxyFailureTelemetry +0xf48, homeTheaterWifiPerfTelemetry +0xf4c, enableOnDeviceSoundGeneration +0xf5c, enableRadioSocTemperatureTelemetry +0xf5d, enableHomeTheaterWifi6GHzFronthaul +0xf5e."
    ]
   },
   "lechmere_wss": {
@@ -219770,16 +219868,141 @@
      "address": "0x104a968c",
      "callsite": "0x104a96f0 / 0x104a9708 / 0x104a9724 / 0x104a9154",
      "notes": "u16-key search, hit and allocation paths;16-byte node with key+4 and returned+8 pair. Constructor passes literal0x300c. Does not certify all start/role transitions or semantic clock names."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104a79bc / handleSntpRequest",
+     "address": "0x104a7d24",
+     "callsite": "0x104a7c3c sendto / 0x104a7b60-0x104a7b7c",
+     "notes": "'SNTP server thread loop starting'. Iterates clock nodes off manager+0x1b0; per node+0xc clock object validates request via f_106670a8 recvmsg (accepts 0x30..0x44), builds 48-byte NTP response with f_10666fb8/f_106675d4 and sendto; 'failed sntp response on %s:%u' names clock via f_104a796c ('No clock set!' fallback) and node+4 port."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104a8d74 / installVirtualClock vfunc",
+     "address": "0x104a8de4",
+     "callsite": "0x104a8e34 map find / 0x104a8eb0 -> f_104a8878",
+     "notes": "Rejects port 0 and already-mapped ports ('cannot install virtual clock on port:%u'). Otherwise logs 'request virtual clock %s install on port:%u' with %s = cfg->vfunc+8() and calls setNewVirtualClockLocked f_104a8878. f_104a8ec4 is the symmetric removeVirtualClock ('request virtual clock removal on %s:%u','cannot remove virtual clock on port %u')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104a8878 / setNewVirtualClockLocked",
+     "address": "0x104a8c8c",
+     "callsite": "0x104a8b1c fd-set insert f_105c49a4 / 0x104a8a7c remove f_105c4cfc",
+     "notes": "__FUNCTION__ strings 'handleSntpRequest'/'setNewVirtualClockLocked' in %s:%d sites. Adds/removes the cfg clock's fd in manager+0x1d0 poll set ('trying to %s %s clock (%s on:%u)' with 'install'/'remove'+'the same'/'unavailable'; '%s %s:%u:%u:%d' with 'installed'/'removed'; 'adding/removing virtual clock fd %d:%u')."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104a9014 / sntp_srv manager init",
+     "address": "0x104a9154",
+     "callsite": "caller f_1018d27c @0x1018ed84",
+     "notes": "Manager ctor installs handler vtable 0x10ed62bc on obj+0, embedded request iface 0x10ed62d8 at +0x1a4 ({thunk,thunk,installVirtualClock,removeVirtualClock}), u16-port map at +0x1a8, fd set +0x1d0, interrupt fd +0x570. Directly constructs default server clock f_104a7734 on literal 0x300c=12300 with cfg = vfunc+0xc() of root+0x5738; registers socket fd and logs 'added server clock <fd> on 12300'. Caller passes the 'AudioCore'-registered component (f_102a3f34 name 'AudioCore', vtable 0x10eae1cc); vfunc+0xc = f_102a3df0 returns embedded clock-source cfg at member+0x34+0xe0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_103f8498 / sntp subsystem init",
+     "address": "0x103f85e4",
+     "callsite": "0x103f85d4 f_106aa13c -> tx settings +0xa port",
+     "notes": "Adds second server clock via f_104a8104(manager, cfg=0, port=u16 at vli-tx-settings+0xa) - the VLI 'sntp port'. Also registers {+0x19a0 clock-cfg delegate -> tx+0x5a4, manager+0x1a4 iface -> tx+0x5a8} via f_102b1cb0. Teardown f_103fe5c4 removes the port clock via f_104a843c."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "BecomeGroupCoordinator installClock",
+     "address": "0x102ded3c",
+     "callsite": "0x102ded18 delegate vfunc+0x28 / 0x102ded28 f_106aa13c / 0x102ded30 port lhz",
+     "notes": "Named-clock install pattern: cfg delegate at tx+0x5a4 is invoked through vfunc+8 with (handle = delegate+0x5a0->vfunc+0x28(), port = VLI tx-settings sntp port). Same installClock sequence in ChangeCoordinator f_102af490, ChangeTransportSettings f_102b1d40, setTransportToVLIStreamURI f_102c3a34 - i.e. the VLI clock source is installed on coordinator/transport transitions."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_1030f028 / seamless transition to local src",
+     "address": "0x1030f4bc",
+     "callsite": "0x1030f408 suspend / 0x1030f4a4 inet_addr 127.0.0.1 / 0x1030f4c4 resume",
+     "notes": "Local-source switch: f_10497594 suspend poller, f_104973d4 'set SNTP server' to inet_addr('127.0.0.1') with port lhz(r18+0xa), f_10494bf8 resume. Remote-side producers f_10308e48 ('Starting SNTP server switch.' -> remote IP:port + 'Completed SNTP server switch in %dms'), f_10309b34 and f_10310b90 local-path repoints (port = chsnk+0xf0 VLI sntp port). So 'server switch' is the client poller repointing: coordinator-IP for satellites, 127.0.0.1:<vli sntp port> when this node is the stream source."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104964e4 / poll worker loop",
+     "address": "0x1049685c",
+     "callsite": "0x10496738 interval / 0x104966f8 server-change / 0x104968b4 band2",
+     "notes": "Retry bands: +0x234 consecutive-failure count incremented per failure; band = count mod 10 via 0xCCCCCCCD. While the 64-bit request counter (+0x1908:+0x190c) < +0x244=100 the bound is 5, afterwards 2: count%10>bound resends immediately, count%10<=bound takes the timed-wait path, and count==bound logs 'SNTP request failed, will retry.'. Success with count>=5 logs 'SNTP success after %u failures' then clears +0x234."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104964e4 / poll worker loop",
+     "address": "0x10496738",
+     "callsite": "0x10496744 +0x1ac gate / 0x10496768 wait / 0x10497a9c defaults",
+     "notes": "Poll cadence: 64-bit request counter <100 -> 500ms (0x1f4), else 2000ms (0x7d0); when +0x1ac set, f_10495d80 replaces it with fmin(estimator,2000.0) then fmax(...,250.0). Wait = interval - elapsed f_105a8e64, floored +10ms, condvar sleep f_10987584 on poller+0x98. Mid-poll server IP:port changes (+0x218/+0x21c vs loop-start copies) abort to repoll."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10494ff4 / sample ingest",
+     "address": "0x10495160",
+     "callsite": "0x10495214 gettimeofday / 0x10495254 clock vfunc+0xc / 0x104953bc fprintf dump",
+     "notes": "64-deep ring at +0x17d8 (index wraps after 63); each slot stores 10 doubles at +0x2d8/+0x4d8/.../+0x15d8 and the last-request elapsed ms at (+0x334+i)*4. Optional full dump to FILE* global 0x110a42b0 via fprintf '%3.12f x11' rows. EWMA: +0x18f0 mean and +0x18f8 squared-residual updated with alpha 0.01 (0x10ed4be8) via efdsub/efdmul/efdadd sequence; a second constant 0.0029024943310657597 (0x10ed4be0) is loaded earlier in the same block."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104942c8 / servo update",
+     "address": "0x104944f0",
+     "callsite": "0x10496cec caller",
+     "notes": "Pull = offset*0.25f*1e6f ppm rail-clamped [-10.0,+10.0]f ('Clock pull hit the bottom/top rail.'), stored +0x26c; 'Current Rate:%d, adjustment:%d, Target delta ppm:%g' and 'Estimated offset(ms):%g, n:%llu' with 1000.0f scale. Pull-rate constant +0x268 = 0.01f normal, 0.05f after 'Clock transition into PCM' (which also sets +0x260=0.0f, +0x238=1, posts queue event 2, applies s16 rate through adjuster +0x1a8 vfunc+0xc)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104977bc / poller init",
+     "address": "0x104979dc",
+     "callsite": "ctor wiring",
+     "notes": "Defaults: +0x238=1, +0x244=100 (first-100-requests retry/interval selector), +0x248=1000, +0x24c=300, +0x250=60000, +0x254=300000, +0x25c=1; servo constants at +0x260/+0x264/+0x268/+0x26c zeroed from 0x10ed4b38. Installs clock-time iface +0x1a4 (vfunc+0xc getTime; 'clock audio sourced: %c'), rate adjuster +0x1a8, transition-enable +0x1ac, estimator +0x17e0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_104971c4 / complete sync reset",
+     "address": "0x10497214",
+     "callsite": "f_10497594 Suspend path",
+     "notes": "Reads adjuster +0x1a8 vfunc+4 current rate, zeroes pull +0x26c=0.0f, stores s16 status +0x278, resets poller (f_104940d4), estimator (+0x17e0 f_10497038) and SPE-zeroes the +0x18f0/+0x18f8 statistics. 'complete sync reset' log."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "f_10496e78 / staleness + transitions",
+     "address": "0x10496e8c",
+     "callsite": "0x10496f90 PCM arm / 0x10496f54 system-time arm",
+     "notes": "If elapsed since +0x2c0 stamp >= 120000ms calls f_10495e94 (fmax-clamps estimator fields at +0x70/+0xa8 against {90.0, 2e-05, 30.0, 0.002} constants at 0x10ed4c08-0x10ed4c68). 'Clock transition into system time' stamps +0x2c0/+0x2c4; +0x1928 state set to 2 during early requests when a double test against 0.5 (0x10e87720) succeeds."
     }
    ],
-   "upstream": "0-3.sonostime.pool.ntp.org pool; /ntpsources HTTP endpoint; ntpSync poll op; 'set SNTP server: %d.%d.%d.%d'",
-   "server": "'Created SNTP Server, port: %hu clock: %s', thread loop with 'sntp-%u-clock' request handling: MULTIPLE named clocks; server role switches at runtime ('Completed SNTP server switch in %dms'), plausibly to the group coordinator",
-   "client": "sntppoll.cxx: 'SNTP request to group coordinator failed', 'SNTP success after %u failures', 'Time went backward, discard SNTP offset'; ToS marking attempted ('Unable to set ToS for SNTP'); offset persisted via sntp.txt/save_sntp",
-   "sync_play": "'SNTP waiting for valid at %d.%06d', 'SNTP valid %d continue to play %d at %d.%06d', 'synchronizedPlay: noderx I/O error while waiting for SNTP': grouped playback start times are scheduled on SNTP time; htsnk_invld_sntp faults the HT sink",
+   "upstream": "0-3.sonostime.pool.ntp.org pool; /ntpsources HTTP endpoint; ntpSync poll op; 'set SNTP server: %d.%d.%d.%d'; coordinator IP from the seamless-handoff source descriptor, or 127.0.0.1 with the VLI tx-settings sntp port when this node is the stream source.",
+   "server": "sntpsrv.cxx: the 'sntp_srv' manager (init f_104a9014, called once from the root-object ctor f_1018d27c) runs a request thread (handleSntpRequest f_104a79bc) that selects on an fd set plus a self-pipe interrupt fd and answers each datagram with a 48-byte NTP response. Clocks are keyed by u16 port in a map at manager+0x1a8: the default clock on literal port 12300 serves the AudioCore-registered component's embedded clock source; the subsystem init f_103f8498 binds a second clock on the VLI tx-settings 'sntp port'; further named 'virtual clocks' are installed/removed via manager+0x1a4 iface vfuncs installVirtualClock/removeVirtualClock (vfunc+8/+0xc on vtable 0x10ed62d8) from the ChangeCoordinator, ChangeTransportSettings, setTransportToVLIStreamURI and BecomeGroupCoordinator installClock paths, and their fd joins the monitored set. So a player serves time on ports chosen by its coordinator/transport role, not by a one-time household election.",
+   "client": "sntppoll.cxx poller f_104964e4: each iteration re-reads the configured server IP:port at +0x218/+0x21c and repolls if it changed mid-cycle; posts queue events through f_10499e94; gets time from clock iface +0x1a4 vfunc+0xc ('clock audio sourced: %c'). Failure accounting: consecutive-failure counter +0x234, bands on count mod 10 (bound 5 while the 64-bit request counter <100, then 2): count%10>bound resends immediately, <=bound waits one interval, count==bound logs 'SNTP request failed, will retry.'; success with count>=5 logs 'SNTP success after %u failures' and clears. Base interval 500ms for the first 100 requests then 2000ms, replaced by an estimator-derived fmin/fmax-clamped [250,2000]ms value when +0x1ac is set, minus elapsed, on a condvar wait; 'SNTP request to group coordinator failed, ret = %x, error = %f' and 'status:%u, error:%g' report each failure; 'Time went backward, discard SNTP offset' rejects bad replies; ToS marking attempted ('Unable to set ToS for SNTP'); offset persisted via sntp.txt/save_sntp.",
+   "sync_play": "'SNTP waiting for valid at %d.%06d', 'SNTP valid %d continue to play %d at %d.%06d', 'synchronizedPlay: noderx I/O error while waiting for SNTP': grouped playback start times are scheduled on SNTP time; htsnk_invld_sntp faults the HT sink. Poller flag +0x1928 marks the valid state; channel-sink transitions repoint the poller (remote source -> coordinator IP:port; local source -> 127.0.0.1:VLI sntp port) through the suspend/set/resume trio f_10497594/f_104973d4/f_10494bf8.",
    "vli": "VLI streams carry SNTP config: 'vli sntp port %u', 'vli src tx settings sntp port'",
-   "unresolved": "Complete server-role producer joins, clock-config implementations and poll timing/quality policy remain to be traced; port12300 and one exact quality-statistic gate are recovered.",
-   "server_detail": "sntpsrv.cxx: local SNTP responder: 'failed sntp response on %s:%u', per-clock request handling 'could not process sntp-%u-clock request; thread exit', 'processing sntp-%u-clock evtMask: %u fd: %d' under domain 'sntp_srv', interrupt fds added/removed dynamically. sntppoll.cxx: '{sntppoll' status XML + sntp.txt dump + save_sntp key; zone/common/sntp.cxx provides 'sntp.poll'. VLI transport is SNTP-disciplined: 'vli src tx settings sntp port: %u', 'vli sntp port %u', 'htsnk_invld_sntp' (HT sink rejects invalid sntp). Drift telemetry: 'error was %.0f ms %s; cpu usage was %.01f%%; sntp v:%d f:%d'.",
-   "todo": "Established: default port12300, configured port variants, concrete u16-keyed16-byte node allocation and a raw-SPE quality gate combining sample count>300 with a floating comparison against0.2. Remaining: enumerate all server-start/switch producers before certifying coordinator-only election; bind per-port config vtables and event labels to actual clock sources; trace poll sample normalization, statistic units, retry timing and every quality/reset branch. Start at f_104a9654/f_104a7734 and0x104950c8-0x10495430. The unrelated shared_ptr and integer-counter-only interpretations are withdrawn. This remains actionable static reverse engineering.",
+   "unresolved": "Recoverable structure exhausted: producer enumeration, manager/thread mechanics, clock-config binding and poll timing/quality policy are traced. Runtime-selected content remains open as a boundary, not a todo: the literal name string each cfg vfunc+8 returns (AudioCore's embedded clock-source and the VLI tx delegate produce it at runtime), the VLI sntp port value, and the exact semantics of the estimator constants {180.0, 1.5e10, 3800.0, 3e-08} beyond their bound roles.",
+   "server_detail": "sntpsrv.cxx: local SNTP responder. 'SNTP server thread loop starting' -> select loop over registered clock fds; per datagram: 48-byte request check (f_106670a8 accepts 0x30..0x44), response header from f_10666fb8 (echoes request VN bits, sets mode/stratum/poll/precision), timestamps from f_106675d4 (byte-swapped NTP 64-bit fields fed by the clock object), 'failed sntp response on %s:%u'. Clock registry: map<u16 port, pair> at manager+0x1a8 via f_104a937c/f_104a9654; add/remove server clock handlers f_104a8104 ('server clock on %u already present','added server clock <fd> on <port>' where %d is the bound socket fd) / f_104a843c ('server clock on %u not found','server clock on %u removed'); virtual clock install/remove f_104a8d74/f_104a8ec4 -> setNewVirtualClockLocked f_104a8878 ('adding/removing virtual clock fd %d','installed'/'removed'/'the same'/'unavailable'). Config objects supply the clock name through vfunc+8 ('request virtual clock %s install on port:%u','Created SNTP Server, port: %hu clock: %s'; missing -> 'No clock set!'). Server clock objects expose their socket fd through vfunc+8 (f_104a936c -> this+8). The request path goes through manager+0x1b0 and the +0x570 interrupt pipe ('added/removed/failed sntp interrupt fd'); 'could not process sntp-%u-clock request; thread exit' is the per-port worker diagnostic. sntppoll.cxx is the separate client poller (below).",
    "resolved_findings": [
     "The seamless-handoff worker f_10308e48 reaches SNTP switch calls f_10497594/f_104973d4/f_10494bf8 and the completion diagnostic. This establishes one role-transfer path, not an exhaustive election predicate for every server instance or proof that playback never loses valid time.",
     "The handoff worker reaches SNTP switch calls, but literal neighborhood does not prove an exhaustive household election rule or uninterrupted time validity. The old therefore-coordinator-only/no-loss-of-reference inference is withdrawn pending all server-start/role-change callers.",
@@ -219789,7 +220012,13 @@
     "Resolved: constant bindings inside sntppoll - the pull computation loads {1e6, 0.25, +10.0, -10.0} at 0x1049436c-0x104943c4: offset*gain(0.25) scaled to ppm (1e6), rail-clamped to [-10,+10] with 'Clock pull hit the bottom/top rail.' logs on saturation; 1000.0 at 0x104944e4 scales the 'Estimated offset(ms):%g, n:%llu' report; the pull-rate field obj+0x268 gets 0.01 in the normal arm (0x10496e70) and 0.05 in the 'Clock transition into PCM' arm (0x10496fa8) - i.e. a 5x faster pull during PCM clock transitions; obj+0x238 is the transition flag byte. Quality handling at0x10495198-0x104951d0 increments a64-bit sample counter at owner+0x1900. When the high word is nonzero or low word>300, it also executes an SPE floating-point less-than comparison of the updated statistic against double0.2 at0x10ea6540. The true-result branch reaches the clock-quality-suspect diagnostic and clears the caller output double, then rejoins processing at0x104951d4. This is not an integer-counter-only rejection or a function-wide return. The previous only-reported-Sdev assertion is withdrawn.",
     "Within this actual SNTP receiver, owner+0x18f0/+0x18f8 are64-bit floating-point state, not a shared_ptr pair. Raw SPE operations at0x10495160-0x10495194 load them, update a running mean and an exponentially weighted squared residual, and store the updated statistic at+0x18f8. The diagnostic0x104953f4 loads that same double into its varargs pair. Shared-pointer stores at0x103fcf0c belong to a different receiver/layout and cannot establish these members. No seconds/ms interpretation of the0.2 statistic is certified here.",
     "Resolved (SNTP port): the server ctor (f_104a7734, port arg r5 compared against -1) is instantiated twice: 0x104a9154 passes literal 0x300c = UDP 12300 and also stores it into the sockaddr word (sthu 0x300c); 0x104a8260 passes a 2-byte field filled by f_104a9654 (runtime-configured port). The SNTP inter-node service rides 12300 by default.",
-    "f_104a9654 reads a u16 key from its argument, searches via f_104a72ac, and returns existing node+8 when found. Otherwise it allocates16 bytes, stores the key at node+4, zeroes words0/+8/+c, inserts through f_104a93fc and returns node+8. The default constructor supplies key12300 and installs a config object into the returned pair; this is concrete per-port bookkeeping, not evidence of an opaque clock-id allocator. Config clock names and all event-label joins still require tracing."
+    "f_104a9654 reads a u16 key from its argument, searches via f_104a72ac, and returns existing node+8 when found. Otherwise it allocates16 bytes, stores the key at node+4, zeroes words0/+8/+c, inserts through f_104a93fc and returns node+8. The default constructor supplies key12300 and installs a config object into the returned pair; this is concrete per-port bookkeeping, not evidence of an opaque clock-id allocator. Config clock names and all event-label joins still require tracing.",
+    "Resolved (server-start producers, exhaustive): exactly three code paths construct or register SNTP server clocks. (a) Manager init f_104a9014 from root ctor f_1018d27c builds the default clock on literal port 12300 whose clock-source config is the AudioCore-registered component's embedded object (root+0x5738 -> vfunc+0xc -> member+0x34+0xe0). (b) Subsystem init f_103f8498 calls addServerClock f_104a8104 with cfg=0 and the VLI tx-settings sntp port (u16 via f_106aa13c(obj+0x19a0)+0xa); teardown f_103fe5c4 removes it. With a null cfg the bound socket skips fd-set registration and the 'added server clock' log. (c) Named virtual clocks install/remove through the manager+0x1a4 iface vfuncs (installVirtualClock f_104a8d74 / removeVirtualClock f_104a8ec4) invoked as installClock from four transition functions - ChangeCoordinator, ChangeTransportSettings, setTransportToVLIStreamURI, BecomeGroupCoordinator - each passing the VLI tx-settings sntp port and a delegate-provided handle. No other direct callers of the server ctor f_104a7734, add/remove handlers f_104a8104/f_104a843c or the install iface exist in .text, so the 'server switch' producers are fully enumerated.",
+    "Resolved (election semantics): the 'SNTP server switch' producers are the channel-sink poller repoints, not a household-wide server election. Playing a remote source repoints this node's SNTP client at the remote/coordinator IP:port (f_10308e48 'Starting SNTP server switch.'/'Completed ... in %dms', f_10309b34); playing a local source repoints it at 127.0.0.1 on the VLI sntp port (f_1030f028, f_10310b90 with chsnk+0xf0). Who answers satellite polls is therefore decided by who is the stream source, and the default 12300 clock stays bound on every node.",
+    "Resolved (poll timing): poller f_104964e4 waits on a condvar for (interval - elapsed) where interval is 500ms while the 64-bit request counter (+0x1908:+0x190c) is below the +0x244=100 default, 2000ms afterwards, or an estimator-derived value clamped [250,2000]ms by f_10495d80 when +0x1ac is set. Failure handling uses consecutive count +0x234 with mod-10 bands (bound 5 early, 2 steady): count%10>bound resends immediately, count%10<=bound waits, count==bound logs 'SNTP request failed, will retry.'; a success with count>=5 logs 'SNTP success after %u failures' and clears the counter. A 120000ms staleness test on the +0x2c0 stamp calls f_10495e94 to re-clamp estimator fields.",
+    "Resolved (sample normalization + quality): f_10494ff4 stores each accepted reply as a ring-64 slot of ten doubles (+0x2d8..+0x15d8) plus the request elapsed-ms, refreshes the EWMA mean +0x18f0 and squared-residual +0x18f8 with alpha 0.01 over the offset estimate, and counts samples in +0x1900:+0x1904. When the count exceeds 300 it compares +0x18f8 against double 0.2 (0x10ea6540); a below-threshold result logs 'clock quality suspect. Sdev: %f', zeroes the caller's output double and resets the sample counter. The estimator f_10495fb4 clamps samples to [0,10] (fmin/fmax, constants {180.0, 1.5e10, 3800.0, 3e-08, 2e-05, 30.0, 0.002}) and owns the 'Slope change detected. bumping slope dispersion' guard; an optional fprintf dump of all 64 samples goes to FILE* global 0x110a42b0.",
+    "Resolved (servo + reset branches): f_104942c8 computes pull = offset*0.25f*1e6f ppm, clamps to [-10,+10]f ('Clock pull hit the bottom/top rail.'), stores it at +0x26c and reports 'Current Rate:%d, adjustment:%d, Target delta ppm:%g' and 'Estimated offset(ms):%g, n:%llu'. 'Clock transition into PCM' switches the pull rate constant +0x268 from 0.01f to 0.05f, sets +0x260=0.0f, +0x238=1, posts queue event 2 and applies the s16 rate through the +0x1a8 adjuster; 'Clock transition into system time' stamps +0x2c0. complete sync reset f_104971c4 reads the adjuster's current rate, zeroes +0x26c, stores status +0x278 and clears poller+estimator+statistics; 'Suspend and reset' f_10497594 sets +0x188=1 then runs it; resume f_10494bf8 clears +0x188 and signals.",
+    "Boundary recorded: the clock-name strings are produced at runtime by each clock-source cfg's vfunc+8 (the AudioCore embedded config for port 12300, the VLI tx delegate +0x19a0 for the VLI port); no static store pins a literal, so the emitted names are established as runtime-produced values, not a static-analysis gap."
    ]
   },
   "spotify_esdk": {
@@ -237859,7 +238088,7 @@
   },
   "voice_skill": {
    "name": "voice-skill onboarding fields",
-   "summary": "Compiled skill-input members {skillId,skillStage,skillAuthCodeUS,skillAuthCodeEU,skillAuthCodeFE,skillRedirectUrl,authCode,redirectUrl}; presence-aware output serialization; separate startup MSP-education setting registrations.",
+   "summary": "Eight-command voice-account management surface (class 81 in the command-class factory): a settings model with per-service account records; each account nests an 8-member skill-onboarding object and a token record; presence-aware serializers redact secrets on request.",
    "evidence": [
     {
      "type": "firmware",
@@ -237872,16 +238101,56 @@
      "build": "86.10-80260",
      "address": "0x10ba6b9c",
      "notes": "Concrete input callback at vtable0x10fae208+0x28; EU name comparison0x10ba6c10 and serializer call0x10ba7f78. Output wrapper0x10ba8194 reaches f_10ba7da0 with presence/pointer tests. Startup MSP setting references0x10087588/0x100875a0 inspected separately from these model callbacks."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86230",
+     "notes": "Voice command dispatcher (vfunc +0x18 of host vtable funcs 0x10fab8a4; host ctor f_10b87ce8). strcmp over cmd+0x26 against 8 names: getVoiceAccounts->f_10b86800, createVoiceAccount->f_10b86e7c, updateVoiceAccount->f_10b87358, removeVoiceAccount->f_10b87630, createAmazonChallenge->f_10b876fc, notifyInitiateOnboarding->f_10b87a08, subscribe->f_10b87ad4, unsubscribe->f_10b87c14. Result object swapped into host+0x38, prior result freed via vfunc+4."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100d12f4",
+     "notes": "Command-class factory: u16 cmdId at request+0, bound 0x52, jump table 0x10e781d8. Index 81 (0x51) allocates 0x3c host and ctors f_10b87ce8 (vptr 0x10fab8a4, zeroes +0x38). f_100d12f4 itself is a vfunc reached via vtable slot 0x10e78334."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86950",
+     "notes": "Settings model schema registrar (model 0x384 bytes, vtables 0x10fab524 + secondary 0x10fab588@+0x78; ctor f_10b86cf8). Member pairs (type@+0x28, flag@+0x29): service(0,1), nickname(5,1), status(0,0), wakeword(0,0), amazon(0,0), timeoutSeconds(2,2), allowVoiceDataCollection(1,2). Type bytes seen: 0=object/enum, 1=bool, 2=int, 5=string; flag bit0=required."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86660",
+     "notes": "timeoutSeconds input callback (vtable+0x20): int store at +0x36c, default 180 (+0x36c and shadow +0x374 set in ctor). Bounds f_109c7cb4(>=0x1e) and f_109c8004(<=0x708) enforce range 30..1800; violation returns 8. allowVoiceDataCollection bool cb f_10b85f0c stores +0x378. Composite setter f_10b85fec: service->+0x15c via f_10a09590, nickname->+0x180 cap 0x80, status->+0x348 via f_10b9a7c0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10b86598",
+     "notes": "Settings child-model factory (vtable+0x2c): input member wakeword -> 0xa0 model f_10bb7ca8 {variant(0,1), locale(5,1), localeSynced(1,0)} stored +0x198; amazon -> 0x200 account model f_10ba59b4 stored +0x1c0; neither present returns 1."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ba59b4",
+     "notes": "Amazon account model ctor (vtable 0x10fae198 over base f_10ba502c/vt 0x10fae17c): members authFlow(5,0), setup(0,0), clientId(5,0), refreshToken(5,0), accessToken(5,0), hasToken(1,0), token(0,0). hasToken bool cb f_10ba4f9c (vt+0x38) stores +0x1bd flag +0x1bc; serializer reads +0x144/+0x145. Child factory f_10ba4ed4 (vt+0x48): setup -> 0x144 skill model f_10ba744c, token -> 0xb8 token model f_10bb6fe8 {errorMessage,errorTime,expirationTime all (5,0)}. Serializer f_10ba6200 emits _objectType, authFlow, setup(via f_10ba7da0), clientId, refreshToken, accessToken, hasToken, token; secrets emitted as REDACTED when arg flag set."
     }
    ],
-   "todo": [
-    "Established: the eight-name compiled skill-input callback and separate presence-aware output serializer, including an independently reachable EU emission. Remaining: bind vtable0x10fae208, its command constructors and output wrapper f_10ba8194 to concrete service implementations; decode each member conversion, accepted type/range, requiredness, omission and failure path. Join hasToken/timeoutSeconds through their own models and trace actual per-service config producers rather than startup MSP-setting rows. Start with f_10ba6b9c, f_10ba7da0 and their metadata/implementation injection. This is actionable static work, not a demonstrated cloud-document boundary."
-   ],
    "resolved_findings": [
-    "The compiled input callback f_10ba6b9c, referenced by vtable0x10fae208+0x28, recognizes eight member names: skillId, skillStage, skillAuthCodeUS, skillAuthCodeEU, skillAuthCodeFE, skillRedirectUrl, authCode and redirectUrl. It returns0 for an unknown name and1 through the recognized-member paths. It calls concrete conversion/storage helpers, including f_109c8afc/f_109c8a64 for string-backed fields. These are recoverable in-image models, not proof of an external-only cloud schema.",
-    "Output wrapper f_10ba8194 calls f_10ba7da0. That serializer has separate presence/pointer checks before emitting the skill and authorization members through f_109d1924; EU is independently emitted at0x10ba7f6c-0x10ba7f78, not inferred merely from adjacent US/FE literals. Missing storage can omit a member. Input and output objects have different layouts, so input offsets cannot be reused as output presence semantics, and omission alone does not prove request requiredness.",
-    "hasToken and timeoutSeconds literals are not members of the checked eight-name input callback. They must be joined through their own enclosing command/model before treating them as part of one authorization exchange. Likewise, region-like field names, Alexa capability/account strings and authorizationGrant/authz vocabulary do not by themselves bind this model to a complete Alexa CBL or OAuth protocol.",
-    "The O_AMAZON_SHOW_MSP_EDUCATION and O_GOOGLE_SHOW_MSP_EDUCATION references at0x10087588/0x100875a0 belong to separate startup setting registrations. They establish named settings, not the complete per-service voice-config body or a shared Amazon/Google skill-field shape. The prior pairwise-config-schema and cloud-only limitation is withdrawn."
+    "Bound: vtable 0x10fae208 is the skill-setup document model (0x144 bytes, secondary vtable 0x10fae1ec at +0x78). Ctor f_10ba744c registers 8 members, all (type5 string): skillId(1), skillStage(1), skillAuthCodeUS(1), skillAuthCodeEU(1), skillAuthCodeFE(0, optional), skillRedirectUrl(1), authCode(1), redirectUrl(1). It is instantiated on demand by factory vfunc f_10ba4ed4 when an account model contains a 'setup' member; account models nest under the 'amazon' member of the voice settings model created by createVoiceAccount.",
+    "Input callback f_10ba6b9c (vtable+0x28) matches 8 names against the input map at this+0x50 and stores strings via f_109c8afc/f_109c8a64 capped 0xff into 0x18-stride fields +0x80..+0x12c; unknown name returns 0, conversion result otherwise. Output wrapper f_10ba8194 (secondary vtable+0x08) swaps (struct,writer) and calls f_10ba7da0: presence-flag checks (+0xc,+0x24,+0x3c,+0x54, byte+0x68+word+0x70 for skillAuthCodeFE, +0x88,+0xa0,+0xb8) gate each member through f_109d1924; when arg flag (r29) is nonzero skillRedirectUrl/authCode/redirectUrl emit literal 'REDACTED' instead of the stored value.",
+    "timeoutSeconds joined: int member of the settings model, not the skill model. Callback f_10b86660 (vtable+0x20) requires member presence, enforces range 30..1800 via f_109c7cb4/f_109c8004, stores +0x36c, returns 8 on range failure. Default 180 written to +0x36c and +0x374 by ctor f_10b86cf8.",
+    "hasToken joined: bool member of the account model (amazon child). Callback f_10ba4f9c (vtable+0x38) stores value at +0x1bd with seen-flag +0x1bc; output serializer f_10ba6200 emits it via f_109d14e0 from +0x144/+0x145. The token member nests a 0xb8 error record {errorMessage, errorTime, expirationTime}.",
+    "Per-service config producers: the 8 command handlers are the producers; createVoiceAccount allocates the 0x384 settings model and the incoming document drives member callbacks. amazon account = {authFlow, clientId, refreshToken, accessToken, hasToken, setup{8-member skill onboarding}, token{error fields}}; wakeword = {variant, locale, localeSynced}. No 'google' member exists; the 'google' literal in this image is com.google.RemoteSonosReceiver (Cast), unrelated. Google presence is limited to allowVoiceDataCollection plus the separate O_GOOGLE_SHOW_MSP_EDUCATION startup setting."
    ]
   },
   "cert_files": {
