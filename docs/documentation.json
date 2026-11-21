@@ -230412,13 +230412,135 @@
      "build": "86.10-80260",
      "address": "0x105544d8",
      "notes": "Insufficient-capacity fallback strlcpy copies original URI and optional diagnostic; no-placeholder path at 0x10554524 also uses strlcpy."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553460",
+     "function": "0x10552c20",
+     "notes": "SAX adapter element dispatch: 'Service' attributes (Id, Name, SecureUri, Version via f_10552b38, ContainerType, Capabilities) are collected, then processor vfunc+0x0c bctrl; return 0 branches to level-3 log 'Skipping service SID %u (%s) because beginService failed (URLs too long?)' and parser byte +0xe stays clear, so children of that Service are ignored while parsing continues."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552f44",
+     "function": "0x10552c20",
+     "notes": "'Strings' child of 'Presentation': vfunc+0x1c invoked with (version u16, uri); a false return logs 'Failed to load strings %s (URLs too long?)' at level 3 and parsing continues. Identical contract: vfunc+0x20 at 0x105534c4 logs 'Failed to load pmap %s (URLs too long?)'; vfunc+0x28 at 0x10553550 for 'Manifest' Uri is first gated by f_1054bdc8(key=7) option query and, when that returns false, by strncmp(uri,'https',5)==0, otherwise the callback is skipped outright (0x10553938)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553230",
+     "function": "0x10552c20",
+     "notes": "Stub elision: the adapter compares vfunc+0x18 (Presentation begin) to canonical empty body f_10552784 and vfunc+0x10 (BuiltInService begin) to f_10552778 (0x10553840) and skips the call entirely when the slot holds the stub. Presentation begin sets parser byte +0x10; BuiltInService sets +0x16 after 'Type'/'Name' attribute collection."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10552938",
+     "notes": "End handler: on each close tag it matches the name against the element whose activity byte is set (+0xf Policy, +0x10 Presentation, +0x11 Manifest, +0x13 Rating, +0x12 Ratings, +0xe Service, +0x16 BuiltInService, +0xd Services), clears the byte only on a literal-name match, and dispatches vfunc+0x40 Service end, +0x44 Services end, +0x48 BuiltInService end unconditionally while +0x24 Presentation end, +0x38 Rating end and +0x3c Ratings end are stub-gated. Manifest close performs no callback."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554e00",
+     "function": "0x10554e00",
+     "notes": "Storage processor Service-begin (vtable 0x10ee9e64 +0x0c): returns 0 when **+0x14c == +0x144 (slot bound reached), else points this+0x13c at array slot **+0x14c of the +0x140 array (record stride 0x138) and returns 1; the pending descriptor is the array slot itself. +0x150 holds duplicate state across calls."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554c7c",
+     "notes": "Storage Strings slot (+0x1c): no pending service (**+0x14c==+0x144) returns 0; otherwise stores the Version halfword at descriptor+0x124 FIRST, then packs the Uri into +0x60 via f_10553994 and returns its boolean. Siblings: +0x20 f_10554cbc -> version +0x126, pack +0xa0; +0x28 f_10554cfc -> version +0x128, pack +0xe0. A failed pack therefore still leaves the newly supplied version halfword stored beside the old URI."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10554f0c",
+     "notes": "Storage Service-end (vfunc+0x40, called unconditionally): scans the record array from index **+0x14c for entries sharing the pending +0x134 Id; per match it runs full-field equality f_1055453c (id, +0x120, +0x124, +0x128, +0x130, +0x12a, +0x12c widened to u16, then strcmp over all four packed URIs), copies content with descriptor-assign f_10553cb4, swaps slots through a stack temp with f_10553dd8, remembers outcome in +0x150 and advances the count *+0x14c only on the commit path. Net: a repeated <Service Id=..> collapses to one stored descriptor and the later record's fields win."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10553cb4",
+     "notes": "Descriptor assign: self-assign guarded, copies +0x134 id, name via f_10906304 cap0x20, the four 0x40 URI fields via memcpy, halfwords +0x120..+0x128, bytes +0x12c/+0x12d, word +0x130, halfword +0x12a. f_10553d88 zeroes the four URI fields first then assigns; f_10553dd8 swaps two descriptors through a 0x140 stack temp and resets the temp."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10086d30",
+     "notes": "Static initializer for the catalog-store singleton 'deserializer' at 0x110a4ca8: registers name 'deserializer' through f_10989174, writes storage-processor vtable 0x10ee9e64 at +0x90, constructs and resets a descriptor at +0x94, zeroes catalog state words +0x1cc..+0x1e0, registers dtor with __cxa_atexit. The singleton owns the descriptor array the parser fills."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8fdc",
+     "notes": "Catalog fetch/refresh worker: requests '/catalog/services' accepting 'application/sonos_service_catalog.v1.xml', logs 'MusicSvcList URI: %s; ETag: %s' and '%s downloading music service list from %s; res ETag=%s; zp ETag=%s; ret=%u, lRet=0x%x', builds id lists with 'R_CustomerID'/'%s%u'/',' and '?sonosId=', stages via 'musicservices'+'.tmp', and installs the normalizer vtable 0x10e767a8 for its parse pass."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c8900",
+     "notes": "Form-input descriptor writer (reached from POST handler f_103424c4 after 'csrfToken' validation; 'Success!' page emitted when it returns 200): keys sid, name, secureUri, containerType, pollInterval, authType, stringsVersion, stringsUri, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps are consumed, the descriptor is constructed through f_10554350, each resource-load failure logs 'Unable to load secure/strings/manifest/presentation map URI %s', the record is re-emitted through normalizer f_100cc4f4 and persisted to 'musicservices' via '.tmp'. The HTTP page/handler side ('customsd.htm', the form template at 0x10eba2c8 region) is owned by the customsd subsystem; the descriptor-field mapping is documented here."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100c6c3c",
+     "notes": "Per-service manifest refresh (object vfunc): on success of this+0 vfunc+0x20 it reads the constructed descriptor's caps word at sp+0x140; bit 0x400000 set SKIPS the manifest fetch entirely, clear expands descriptor+0xe0 through f_105543d0 into a 0x401 stack buffer and calls f_1011b710(this+0x13ad0, arg, uri, manifestVersion=lhz desc+0x128) which logs 'downloading music service manifest from %s'. So caps 0x400000 marks services whose manifest is not fetched from the network."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f0e4a4",
+     "notes": "Caps-word test census on the provider copy at provider+0x13ac (descriptor embedded at provider+0x127c): bit 0x10000 (andis. 1) gates credentials/session material in f_10724d78 and in every Services/1.1 builder (0x10725100,0x10725dc4,0x10726a28,0x10726ecc,0x10727470,0x10727a8c,0x10727fe0,0x10728470,0x10728b80,0x10729248,0x10729cdc,0x1072abf8,0x1072b610,0x1072befc); bit 0x80000 gates contextId in the three report builders; bit 0x8 gates refreshAuthToken key/token elements (0x10725590) and refresh worker f_1072594c; bit 0x8000 gates the session-key cache preload f_1071fe70 inside getMediaURI (0x10729290); bit 0x400000 gates auth-state sync workers f_10722dd4/f_10723780 (strings 'auth_token_key','account_tier','auth_status', also reading provider auth byte +0x13a8) and the manifest-fetch skip; bit 0x1 gates an extra duplicate-check helper f_1071ef60 in browse dispatcher f_1072c300 (0x1072c44c)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10e4eb48",
+     "function": "0x10e4ea30",
+     "notes": "Poll-interval consumer: iterates per-service records (lha flag at +0xf8,+0x170,+0x1e8,+0x260 stepping) and for each enabled slot folds lhz +0x12a into an accumulated schedule offset via (poll*8 - poll + 12), i.e. 7*poll+12, spreading service poll times."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10724fb4",
+     "notes": "Endpoint projection: every SMAPI action builder expands the packed secureUri of the provider-embedded descriptor (provider+0x129c == desc+0x127c+0x20) with f_10553ab0 into a local buffer capped 0x80; identical cap at getDeviceAuthToken (desc+0x20) and all four emitter sites f_100cc4f4 (0x100cc818..0x100cccf4). Manifest expansion uses cap 0x401 at the two fetch call sites (0x100c6cec, 0x1011c150) and an internal 0x80 buffer inside f_105543d0."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ee9e64",
+     "notes": "Complete processor census: exactly two catalog-processor vtables exist, storage 0x10ee9e64 (+0x0c f_10554e00, +0x10 f_10552778 stub, +0x14 f_10554d9c, +0x18 f_10552784 stub, +0x1c f_10554c7c, +0x20 f_10554cbc, +0x24 stub, +0x28 f_10554cfc, +0x2c..+0x3c all stubs, +0x40 f_10554f0c, +0x44/+0x48 stubs) and normalizer 0x10e767a8 (+0x0c 0x100cb88c, +0x10 0x100cb310, +0x14 0x100cbdf8, +0x18 0x100cb0c0, +0x1c 0x100cbe24, +0x20 0x100cbf40, +0x24 0x100cb128, +0x28 0x100cbebc, +0x2c..+0x3c all stubs, +0x40 0x100cb040, +0x44/+0x48 stubs). Ratings/Rating/Icon/Rating-end/Ratings-end slots are canonical stubs in BOTH, so those attributes are lexed but discarded by every reachable consumer."
     }
    ],
    "resolved_findings": [
     "Separate representations are established: catalog XML fields are documented in payload_formats.music_service_catalog; nested manifest JSON is documented in payload_formats.music_service_manifest. Strings naming reporting, browse, Moment or form capability checkboxes do not alone prove a shared descriptor grammar or a consumer effect.",
     "Auth mapper and poll setter decoded; full manifest internals remain open. authType string->enum via strcmp ladder at 0x10553f4c: {UserId:0, Stateless:1, Anonymous:2, DeviceLink:3, AppLink:4} stored as byte at desc+0x12c (no match leaves prior value). PollInterval parsed as u16 at desc+0x12a clamped to range [1..29], out-of-range/absent default 30 (f_10554044: (v-1)<=0x1c ? v : 0x1e). Manifest capabilities are numeric - 'caps' attribute reported as 'capabilities bitmask: %llu' (0x10fdb95e), not a string-id vocabulary. Descriptor XML: root <Services LastUpdateDevice= Version= SchemaVersion= ETag=>; per-service fields {containerType, secureUri, stringsVersion, stringsUri, authType, pollInterval, presentationMapVersion, presentationMapUri, manifestVersion, manifestUri, caps}; catalog fetch GET /catalog/services?sonosId=&installedIds= with If-None-Match ETag, media type application/sonos_service_catalog.v1.xml.",
     "SMAPI capability checkbox vocabulary recovered from the embedded service-registration debug form (~rodata 0xf1xxxx block): caps = {search, trFavorites, alFavorites, ucPlaylists, logging, playbackLogging, accountLogging, extendedMD, radioExtendedMD, playlistExtendedMD, disableAlarms, noMultiAccount, mediaUriActions, contextHeaders, deviceCerts, playerIds, contextReporting, userInfo, contentFiltering, manifest, authorizationHeader} plus containerType {MService, SoundLab} and authType {UserId, Stateless?, Anonymous, DeviceLink, AppLink} radio set - the form maps the public getCapability mask names.",
-    "The zpETag/rsETag/zpLUD/rsLUD/zpVer/rsVer set is a diagnostic AvailableSvcsSummary attribute set in f_100cb8f0. It must not be used as a descriptor, service-manifest JSON or catalog-install comparison schema. The actual normalized Service attributes are Id, Name, Version, SecureUri, ContainerType and Capabilities, with child sections detailed in payload_formats.music_service_catalog."
+    "The zpETag/rsETag/zpLUD/rsLUD/zpVer/rsVer set is a diagnostic AvailableSvcsSummary attribute set in f_100cb8f0. It must not be used as a descriptor, service-manifest JSON or catalog-install comparison schema. The actual normalized Service attributes are Id, Name, Version, SecureUri, ContainerType and Capabilities, with child sections detailed in payload_formats.music_service_catalog.",
+    "Processor dispatch contract resolved: the SAX adapter f_10552c20 maps elements to vfunc slots Services=+0x08, Service=+0x0c, BuiltInService=+0x10, Policy=+0x14, Presentation=+0x18, Strings=+0x1c, PresentationMap=+0x20, Presentation-end=+0x24, Manifest=+0x28, Ratings=+0x2c, Rating=+0x30, Icon=+0x34, Rating-end=+0x38, Ratings-end=+0x3c, Service-end=+0x40, Services-end=+0x44, BuiltInService-end=+0x48. Slot pointers equal to the canonical stubs f_10552784/f_10552778 are skipped without a call. Boolean slots fail soft: a false beginService leaves the service-active byte +0xe clear and only drops that row; false URI slots log 'Failed to load strings/pmap %s (URLs too long?)' or the manifest equivalent at level 3 and parsing continues, so malformed or overlong fields degrade to skipped items rather than a rejected catalog. The end handler clears each activity byte only when the closing literal matches, then runs the matching end slot.",
+    "Storage processor semantics complete: Service begin binds the pending descriptor to the next array slot (stride 0x138, bound *+0x14c vs +0x144) and returns failure past capacity; Service end f_10554f0c reconciles the pending record against stored entries sharing the same Id with a full-field equality test (f_1055453c over id, versions, caps, poll, auth and all four packed URIs), descriptor assign f_10553cb4 and slot swap f_10553dd8, so repeated Service elements collapse to one descriptor per Id with last-wins fields. URI slots store the supplied Version halfword before packing the URI, so a too-long URI leaves a new version paired with the previous URI. The array lives in the 'deserializer' singleton at 0x110a4ca8 installed by static init f_10086d30.",
+    "Descriptor projections traced: provider nodes embed the descriptor at +0x127c, so secureUri sits at +0x129c, auth enum at +0x13a8, id at +0x13b0 and the caps word at +0x13ac; all fifteen Services/1.1 builders expand the packed secureUri into 0x80-byte buffers. Auth enum consumers are the class table {UserId:3, Stateless:3, Anonymous:1, DeviceLink:2, AppLink:2} consulted by account worker f_101b6efc and getDeviceAuthToken (class 2 only, else 'credentialType' warning), the auth-state sync workers f_10722dd4/f_10723780 ('auth_token_key','account_tier','auth_status') gated by caps 0x400000, and the re-emitter f_10554090. Capability bits observed in use: 0x10000 credentials/session elements, 0x80000 contextId in report calls, 0x8 refreshAuthToken support, 0x8000 session-key cache preload, 0x400000 suppresses the manifest download and gates auth-state sync, 0x1 enables an extra browse duplicate check. Poll +0x12a feeds the service-poll scheduler in f_10e4ea30 as a 7*poll+12 per-slot offset; containerType +0x12d is re-emitted via f_1055438c and read together with auth/caps by the service-enumeration workers f_106c7c94/f_106c811c/f_106cfbf8.",
+    "Malformed and repeated input behavior: repeated Service dedups by Id; repeated Policy and repeated Presentation children overwrite the same descriptor fields, so last occurrence wins; Service rows failing the Id/Name/SecureUri/Version guards are skipped without invalidating the catalog; SchemaVersion>5 only clears the validity byte. Both processor implementations (storage 0x10ee9e64 and normalizer 0x10e767a8) leave all five Ratings slots as canonical stubs, confirming Ratings/Rating/Icon data is parsed but consumed nowhere in this build, while the adapter's sticky rating-Id halfword (+0x14, never reset between Rating elements) retains its previously documented leak.",
+    "Catalog provenance paths closed: network fetch worker f_100c8fdc downloads '/catalog/services' as 'application/sonos_service_catalog.v1.xml' with ETag bookkeeping into 'musicservices' via '.tmp' staging; the customsd POST path f_103424c4 -> f_100c8900 builds a descriptor directly from form keys (sid/name/secureUri/containerType/pollInterval/authType/stringsVersion/stringsUri/presentationMapVersion/presentationMapUri/manifestVersion/manifestUri/caps), reports 'Unable to load X URI %s' on pack failures, re-emits normalized XML through f_100cc4f4 and persists the same 'musicservices' file; the HTTP page mechanics belong to subsystem customsd. Nested manifest JSON parse/emit remains with svc_manifest (f_10239c48/f_10239dc0) per the service_manifest_json note."
    ],
    "catalog_input_rules": {
     "catalog_header": "Start handler f_10552c20 matches the literal Services and recognizes LastUpdateDevice, Version, SchemaVersion and ETag with strcmp. Version and SchemaVersion use strtoul(base=10,endptr=NULL). Both default to zero; source and ETag default to null. The unsigned SchemaVersion must be <=5 to set the valid/root-seen bytes. Larger values leave the validity byte clear. The callback still receives parsed header values; acceptance also depends on the XML parser completion state.",
@@ -230525,7 +230647,6 @@
      }
     ]
    },
-   "todo": "Established: catalog input/callback state, normalized XML and nested JSON are separated; schema/ID/version/auth/poll gates, Ratings/Icon retention, namespace-disabled setup and packed URI storage/manifest substitution are instruction-traced. Remaining: exhaust processor return/error effects, descriptor projections, malformed/repeated states, call-site URI capacities and failure propagation. Bind customsd/form inputs, capability tests, presentation/string grammar, authentication enum and Ratings/Icon consumers to concrete behavior. Nested JSON parser/consumer work remains in svc_manifest.",
    "service_manifest_json": "The actual nested service-manifest JSON parser is f_10239c48 with static table 0x10ea5bec; emitter f_10239dc0 writes schemaVersion, presentationMap, strings, endpoints, apiKey, accountTiers and advertising. The structures are documented in payload_formats.music_service_manifest and differ from catalog XML fields.",
    "uri_storage": {
     "packing": "f_10553994 packs a non-null input string into a 64-byte descriptor URL field. In order, strncasecmp tests https://www. (12 bytes, marker 1), http://www. (11, marker 2), https:// (8, marker 3) and http:// (7, marker 4). The first matching prefix is removed and replaced by its marker byte; the remaining suffix must have strlen<=62, followed by a terminator. If no prefix matches, strlen<=63 is copied as a plain string. An overlong matched suffix or plain string returns false without writing the destination; it does not try another encoding or truncate. Empty plain input is accepted. These are byte-count limits, not a complete URL syntax validator. Case-insensitive prefix matching followed by expansion through lowercase literals normalizes the prefix case while preserving the suffix.",
