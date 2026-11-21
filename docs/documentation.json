@@ -167861,15 +167861,60 @@
      "build": "86.10-80260",
      "address": "0x104454dc",
      "notes": "The base register is r1 (stack), not an instance pointer."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x101f0c98",
+     "address": "0x101f0d40",
+     "notes": "SMAPI object serializer emits '_objectType','playback'(this+8,f_101e7c34),'playbackError'(this+0xcc,f_101e885c),'metadata'(this+0x1a0,f_10a6d518); presence predicates f_101e7c24/f_101e8850/f_10a6d508 gate each member"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10a6d518",
+     "address": "0x10a6d564",
+     "notes": "metadata member map: container +8 (f_10a35350/f_10a35360), currentItem +0x600, nextItem +0xfe0 (f_10a8d250/f_10a8d25c), currentShow +0x19c0, currentVideo +0x1b28, streamInfo +0x1c60, playbackSession +0x1c78; SMAPI+0xcd8 = metadata+0xb38 inside item span"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10a8d25c",
+     "address": "0x10a8d2a8",
+     "notes": "item serializer: id +8/+0x10, track +0x28 (f_10aafbe0/f_10aafbf0), deleted +0x970, policies +0x9c8, rating (f_10a95fe4); item+0x538 = track+0x510"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x10aafbf0",
+     "address": "0x10aafc50",
+     "notes": "track serializer member offsets +8/+0x10,+0x24/+0x2c,+0x40,+0x58,+0x70,+0x88,+0x8c..+0x14c,+0x150,+0x164,+0x27c,+0x308,+0x394,+0x52c,+0x5b8,+0x6bc..+0x6cc,+0x758,+0x760,+0x7b8,+0x8d4..+0x900,+0x938,+0xc,+0x28; offset +0x510 absent from presence checks"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101f3034",
+     "notes": "whole-.text scan: no stb/stw writes the SMAPI presence byte +0xcd8 or ptr +0xcdc outside ctor/reset paths; write path is via shared helpers only"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1033e2e8",
+     "notes": "whole-.text scan: chsnk flag +0xcdc is only lbz-read in dtors f_1033e00c/f_1033e640/f_1033a6c4 (also sibling flag +0xcd4 in f_1033a6c4); no store site exists in .text"
     }
    ],
    "notes": null,
-   "todo": [
-    "Residual: identify the source-level data associated with the optional chsnk subobject at +0xcdc and with the owned buffer in the SMAPI object at +0xcdc. Their cleanup roles are known; the load-site labels alone do not identify their contents."
-   ],
    "resolved_findings": [
     "The recorded libcurl instructions load +0x8a0 rather than +0xcdc. 0x104454dc stores to sp+0xcdc, a stack slot rather than an object member. Neither is evidence about the +0xcdc member offset.",
-    "systemstate +0xcdc word resolved: in the boot-init path (netsettings/systemtimeoffset module, f_101981f0) the word is seeded to 0x2000 then conditionally overwritten by env-option index 0x33 parsed as hex (strtol base 16 at 0x10199afc). So on this class +0xcdc is a numeric tunable with compiled default 8192, not a bitmask bit. The env-name table is runtime-built in .bss (0x110a53e0, stride 0x14) so the option name for selector 0x33 is registration data."
+    "systemstate +0xcdc word resolved: in the boot-init path (netsettings/systemtimeoffset module, f_101981f0) the word is seeded to 0x2000 then conditionally overwritten by env-option index 0x33 parsed as hex (strtol base 16 at 0x10199afc). So on this class +0xcdc is a numeric tunable with compiled default 8192, not a bitmask bit. The env-name table is runtime-built in .bss (0x110a53e0, stride 0x14) so the option name for selector 0x33 is registration data.",
+    "SMAPI +0xcdc member placed: it is the payload string of an optional-string record {flag +0xcd8, ptr +0xcdc, inline buf +0xce4} located at metadata.currentItem.track+0x510 inside the SMAPI playback-state model; the track serializer f_10aafbf0 proves it is not part of the emitted JSON grammar, and the absence of any direct store site in .text shows it is filled only by generated copy/deserialize machinery.",
+    "chsnk +0xcdc member bounded: an identical optional byte-buffer record {flag +0xcdc, ptr +0xce0, inline +0xce8} inside the runtime channel-state object (vtable 0x10eb9e54), one of ~8 sibling optional strings freed by the three destructor variants f_1033e00c/f_1033e640/f_1033a6c4. The flag and pointer have no direct store anywhere in .text; only helper-level writes can set them, so the source-level field name is not recoverable from this image. The record is internal engine bookkeeping, not a device capability."
    ],
    "per_class": [
     {
@@ -167880,7 +167925,7 @@
     {
      "owner": "chsnk crossfade engine",
      "evidence": "f_1033e00c/f_1033e640: 'chsnk' log + 'crossfade %zu samples'/'crossfaded %zu bytes' literals",
-     "field": "One-byte presence flag for the adjacent buffer record: f_1033e00c at 0x1033e2e8 and f_1033e640 at 0x1033e91c read it with lbz; when nonzero, each loads +0xce0 and frees it unless it points at inline storage at +0xce8."
+     "field": "One-byte presence flag of an optional byte-buffer record {flag +0xcdc, heap ptr +0xce0, inline storage +0xce8} inside the large chsnk/zone-state object (vtable 0x10eb9e54; same record family as +0xd10, +0xcf8, +0xca4, +0xc70, +0xc18, +0xbe4 freed by dtors f_1033e00c/f_1033e640/f_1033a6c4). No byte store to +0xcdc and no pointer store to +0xce0 exists anywhere in .text: the record is populated only through shared member-init/copy helpers, so its contents cannot be bound to a named source-level field from this image."
     },
     {
      "owner": "gm_impl (GroupManagement impl)",
@@ -167900,7 +167945,7 @@
     {
      "owner": "SMAPI subscription/playback object",
      "evidence": "f_101f2328 and f_101f3a80 are adjacent vtable slots at 0x10e9f6e8/0x10e9f6ec; sibling vfuncs reference 'subscription/{logicalSID}', 'subscribe'/'unsubscribe', 'playbackError', 'playbackExtended', 'metadata', '_objectType'",
-     "field": "Buffer pointer freed at 0x101f3034 and 0x101f478c only when presence byte +0xcd8 is nonzero and the pointer does not equal inline storage at +0xce4."
+     "field": "Optional string member {presence byte +0xcd8, ptr +0xcdc, inline storage +0xce4} of the SMAPI playback-state model (vtable 0x10e9f6e8; serializer f_101f0c98 emits {_objectType, playback, playbackError, metadata}). Offset resolves inside 'metadata' (this+0x1a0) at sub-offset +0xb38, which falls inside the 'currentItem'/'nextItem' item record (+0x600..+0xfe0) at item+0x538, i.e. inside the 'track' sub-record (item+0x28) at track+0x510. The generated track serializer f_10aafbf0 enumerates every serialized member (mediaUrl, linkUrl, imageUrl, images, contentType, releaseDate, episodeNumber, durationMillis, trackNumber, chapterNumber, type, name, tags, explicit, advertisement, quality, replayGain, album, artist, author, book) and never touches +0x510; no store site for +0xcd8/+0xcdc exists in .text. It is an unserialized optional string field of the generated track model, populated only via the model copy/deserialize helpers."
     },
     {
      "owner": "lastUpdateDevice-related object",
@@ -201646,15 +201691,15 @@
   },
   "devmode": {
    "obj": "RDevMode + <DevMode>%s</DevMode> var: dev-mode flag",
-   "todo": [
-    "Established: verifier/bitmap/lifecycle and metadata-use contracts; callback installation sites, first IPC endpoint/subobject, shipped command13 method/frame/transport semantics, and netstartd receiver framing/return-only command13 branch. Remaining: join the main-owner concrete callback tables outside the protected implementation-object work, trace second callback delivery/effects, and map other grant-bit consumers. Follow exact installed objects and consumers before removing this TODO."
-   ],
    "mechanism": "Developer mode is gated by a verified statement payload bitmap. The manager-held bit0 enables developer-mode permission; bit47 is the separately tested SSH public-key-install permission. Persistence uses a direct truncated write to persistent-root/debug/devmode.bin plus a separate runtime/tmp/devmode.tmp.bin output. File and callback failures do not roll back the already-replaced in-memory statement.",
    "resolved_findings": [
     "Developer mode is a signed grant bitmap, not a compile-time flag or textual capability list. Bit0 and bit47 have distinct startup/submission retention predicates; direct file writes and callback statuses are traced below.",
     "The persistent path is constructed from debug/devmode.bin under the persistent root. The runtime output is/tmp/devmode.tmp.bin. Capability labels RDevMode and R_ALLOW_SSH_PUBKEY_INSTALL correspond to bitmap indices0 and47; they are not NUL strings inside the payload. Any previously described atomic temporary-file rename is corrected by statement_file_contract.",
     "Resolved: devmode.bin load path (f_1054c0c0 region, devmode.cxx strings @0x10ee9744+) reads the statement file and passes it to libsonoscrypto import ZZ0137 before \"Loaded persistent statement.\" - the blob is crypto-verified at load, and on failure or when the statement carries R_ALLOW_SSH_PUBKEY_INSTALL the persistent statement is removed (\"Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL\"). Paths: {debug/devmode.bin source, /devmode.bin active, /tmp/devmode.tmp.bin staging}. The R_* name family is a project-wide result/reason enum vocabulary (~350 names spanning service errors, LED states, stream ops, play ops, SSL errors), not exclusively devmode capabilities.",
-    "ZZ0137 is the outer binary-statement parser, with magic/model/constraint-range/length-prefixed identifier and payload guards. It verifies through a signature-envelope delegate. The trust callback loads an embedded2048-bit RSA key and matches its20-byte SHA1 identifier; it does not pass a verifying-key filename to ZZ0064. Detailed joins are in statement_outer_format/statement_key_source."
+    "ZZ0137 is the outer binary-statement parser, with magic/model/constraint-range/length-prefixed identifier and payload guards. It verifies through a signature-envelope delegate. The trust callback loads an embedded2048-bit RSA key and matches its20-byte SHA1 identifier; it does not pass a verifying-key filename to ZZ0064. Detailed joins are in statement_outer_format/statement_key_source.",
+    "Main-owner callback tables are fully joined: owner-cluster constructor0x10691e00 writes IPC primary0x10ef5f10 into owner+8c0 and secondary0x10ef5f64 into owner+8d4 at0x1069204c/0x10692050, then constructs the second callback object in place at owner+c8c via0x106b3328. The installed callbacks provably take these shipped tables.",
+    "Second callback is the embedded DevModeEventGenerator. Its slot+8 method0x106b33fc tests bit15 of the delivered change bytes through ZZ0018; on a set transition it dedupes via global0x110978c8, logs 'inprocess-events'/'Change in event loop detected', pushes a refcounted0x14 node onto global list0x110978f0 and walks subscriber ring0x110978e8. The first callback discards the byte array and sends a bare command13 IPC frame. These are the 'processes' and 'listeners' of the two notify-failure log strings.",
+    "Grant-bit consumers are mapped: beyond bit0(developer-mode/persist predicate) and bit47(R_ALLOW_SSH_PUBKEY_INSTALL), wrapper0x1054bdc8 callers query bits5,6,7,12,13,18,19,22,23,25,28,37 and three sites take the index dynamically; only0x1054bd60 and0x106b33fc call ZZ0018 in the whole binary."
    ],
    "statement_outer_format": {
     "parser": "ZZ0137 at libsonoscrypto.so.3:0xca14(size604) parses an unaligned byte buffer(r3) and byte length(r4). Words are copied bytewise to a stack word before comparison, giving big-endian fields on this PPC target. It returns0 on any local rejection and delegates cryptographic acceptance to ZZ0121 -> ZZ0123 -> ZZ0126 -> ZZ0125. No NUL-terminated capability scan occurs in this outer parser.",
@@ -201912,7 +201957,7 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "address": "0x101998f8",
-     "notes": "Second callback installed as owner+c8c; concrete table not yet bound."
+     "notes": "Second callback installed as owner+c8c, the embedded DevModeEventGenerator."
     },
     {
      "type": "firmware",
@@ -202003,7 +202048,7 @@
    },
    "grant_bitmap_contract": {
     "representation": "The outer length-prefixed payload is a byte bitmap. libsonoscrypto ZZ0018 at0xcc70 takes payload pointer,length,bit index and returns0 when index>=8*length; otherwise it reads payload[length-1-(index>>3)], shifts by index&7 and returns its low bit. It allocates nothing and does not scan strings. For outer payload length<=255, bit domain is0..2039. Bit0 is the least significant bit of the final byte. RDevMode manager0x1054bd60 invokes it on statement+404 offset and+408 length under the manager-lock assertion, then converts exact result1 to true.",
-    "known_capabilities": "Load/submission paths query index0 for developer-mode permission and index0x2f(47) for R_ALLOW_SSH_PUBKEY_INSTALL. Evidence includes0x1054c36c/0x1054c54c and the matching removal/retention diagnostic strings. Thus01 is a minimal bit0 payload;800000000000 is a six-byte bit47-only payload;800000000001 sets both. These are byte-encoding examples, not signed usable grant files. Other capability-index consumers remain to be joined; the R_* string vocabulary is not a textual grant-payload grammar.",
+    "known_capabilities": "Load/submission paths query index0 for developer-mode permission and index0x2f(47) for R_ALLOW_SSH_PUBKEY_INSTALL. Evidence includes0x1054c36c/0x1054c54c and the matching removal/retention diagnostic strings. Thus01 is a minimal bit0 payload;800000000000 is a six-byte bit47-only payload;800000000001 sets both. These are byte-encoding examples, not signed usable grant files. All other consumers query through public wrapper0x1054bdc8(index argument in r4) or are already listed: bit5 gates AudioTap/spdiftap 'Feature not supported', bit6 'Forced GTK rekey', bit7 service config and itms11 endpoint, bit12 AudioTap/codecout/irdecoder/mixersat, bit13 two form-POST endpoints, bit15 the DevModeEventGenerator trigger, bit18 RDM retail-demo /rdmbuttonfwd, bit19, bit22 the 'bApiKeyRequired&&!bHasApiKey&&!bHasBearerToken violation' API-key relaxation, bits23 and37 updsched 'Got manifest with invalid signature', bit24 a text/plain endpoint, bit25 'SMAPI uri must be HTTPS'/'Apple Music HLSv7 enabled from FCS', bit28 hlsaudio key uri. Dynamic-index callsites0x100d416c(/bin/pcap),0x10556cc0 and0x106ba5b0 take the index from context. Only0x1054bd60 and0x106b33fc invoke ZZ0018 in this binary; the R_* string vocabulary is not a textual grant-payload grammar.",
     "startup": "0x1054c220 reads the persistent file, validates the statement and installs parser outputs directly into the manager. Failed verification clears/deletes through0x1054c048. A verified statement without bit0 also clears/deletes. When bit0 is present, bit47 causes the Removing persistent statement with R_ALLOW_SSH_PUBKEY_INSTALL path and clears/deletes. Only bit0 present plus bit47 absent reaches Loaded persistent statement and retains the statement. Startup does not accept an SSH-only file as a persistent grant.",
     "submission": "0x1054c424 rejects length>1024 or verifier failure with return0 before replacing manager data. After verification it computes a notification byte array, clears the1024-byte statement buffer, copies the supplied statement and stores size/payload offset/length/compatibility bounds. If bit47 and bit0 are both set, it calls clear0x1054c048 and returns1. Otherwise bit0 requests a persistent write; bit0 absent removes the old persistent file. Both accepted cases then write the runtime file and notify configured callbacks. Full accepted completion returns2; save/notification failures return0. These are manager method statuses, not HTTP status codes. State replacement precedes writing/notification and has no rollback on later failure."
    },
@@ -202014,21 +202059,22 @@
     "clear": "0x1054c048 computes a removal notification payload, clears statement bytes and fields+400/+404/+408/+40c/+410, attempts to unlink both persistent and runtime files, then invokes each nonnull manager callback at+4a8 and+4ac via vtable slot+8 with byte buffer and length. It logs callback-1 failures and continues, including trying the second callback after the first fails. Submission instead stops on first callback-1 and returns0 without calling the second."
    },
    "grant_notification_bytes": {
-    "mechanism": "0x1054beb0 clears the caller output buffer using its supplied capacity. New payload length0 copies the old bitmap and reports its length, supplying removal bytes. Equal old/new lengths with equal bytes reports length0. Otherwise it reports max(old_length,new_length), zeroes a255-byte stack workspace, then XORs that workspace with bytes read from the old manager payload. The callback interpretation of this byte array remains untraced.",
-    "alignment_and_quirk": "When old length>=new length, it right-aligns the new payload in the zeroed workspace then XORs all old bytes, producing a big-endian-aligned difference. When old length<new length,0x1054bfe8 instead copies the old payload into the right-aligned workspace, then the common loop at0x1054bf90 still reads max-length bytes from the old manager payload. It does not read the supplied new payload in this arm and can read into the following statement bytes. This asymmetry is established from the copy and loop arguments; do not describe this helper as an always-correct old-XOR-new delta. Both outer payload lengths are byte-sized, keeping the workspace span<=255 in these callers."
+    "mechanism": "0x1054beb0 clears the caller output buffer using its supplied capacity. New payload length0 copies the old bitmap and reports its length, supplying removal bytes. Equal old/new lengths with equal bytes reports length0. Otherwise it reports max(old_length,new_length), zeroes a255-byte stack workspace, then XORs that workspace with bytes read from the old manager payload.",
+    "alignment_and_quirk": "When old length>=new length, it right-aligns the new payload in the zeroed workspace then XORs all old bytes, producing a big-endian-aligned difference. When old length<new length,0x1054bfe8 instead copies the old payload into the right-aligned workspace, then the common loop at0x1054bf90 still reads max-length bytes from the old manager payload. It does not read the supplied new payload in this arm and can read into the following statement bytes. This asymmetry is established from the copy and loop arguments; do not describe this helper as an always-correct old-XOR-new delta. Both outer payload lengths are byte-sized, keeping the workspace span<=255 in these callers.",
+    "callback_interpretation": "The first callback discards the array entirely: secondary-table method0x105d304c overwrites the buffer arguments with command13/pointer0/length0. The second callback, DevModeEventGenerator method0x106b33fc, passes the array and length to ZZ0018 and tests index15; a set transition fires the inprocess-events notification described in notification_ipc_contract. No consumer reads any other bit of the delivered bytes."
    },
    "notification_ipc_contract": {
-    "installation": "Owner initialization0x101998d8..0x101998f8 installs manager callback+4a8=owner+8d4 and callback+4ac=owner+c8c. The first pointer is the+14 secondary interface of the IPC object at owner+8c0, configured immediately beforehand by0x105d364c with endpoint/tmp/netstartd.ipc. Callback setters0x1054c738/0x1054c748 only store the object pointers, with no retain operation or null check in these setters.",
-    "shipped_interface_method": "The concrete shipped IPC secondary table0x10ef5f64 has slot+8=0x105d3070, a thunk that subtracts0x14 from this and tail-branches to0x105d304c. The method ignores the change-buffer arguments and sets command13,payload pointer0,payload length0, then tail-dispatches primary slot+34. For the corresponding primary table0x10ef5f10, that slot is0x105d3c7c, which locks IPC+88 and delegates to0x105d3b10. The full main-owner installation of this concrete primary/secondary table pair still needs joining before treating the installed callback as proved to take this exact implementation.",
+    "installation": "Owner initialization0x101998d8..0x101998f8 installs manager callback+4a8=owner+8d4 and callback+4ac=owner+c8c. The first pointer is the+14 secondary interface of the IPC object embedded at owner+8c0, configured immediately beforehand by0x105d364c with endpoint/tmp/netstartd.ipc. The second pointer is the DevModeEventGenerator embedded at owner+c8c. Both objects are constructed by owner-cluster constructor0x10691e00 inside the sub-object at owner+3a8: it writes primary0x10ef5f10 to owner+8c0 and secondary0x10ef5f64 to owner+8d4 at0x1069204c/0x10692050, and calls0x106b3328 on owner+c8c at0x1069216c. Callback setters0x1054c738/0x1054c748 only store the object pointers, with no retain operation or null check in these setters.",
+    "shipped_interface_method": "The concrete shipped IPC secondary table0x10ef5f64 has slot+8=0x105d3070, a thunk that subtracts0x14 from this and tail-branches to0x105d304c. The method ignores the change-buffer arguments and sets command13,payload pointer0,payload length0, then tail-dispatches primary slot+34. For the corresponding primary table0x10ef5f10, that slot is0x105d3c7c, which locks IPC+88 and delegates to0x105d3b10. The constructor writes at0x1069204c/0x10692050 prove this primary/secondary pair is the installed implementation.",
     "frame": "For command13 with zero payload,0x105d3b10 emits exactly16 bytes with four u32 words [12,1,4,13], in the native big-endian representation of this PPC build. The fields are built at0x105d3c44..0x105d3c60. No capability bitmap bytes follow them. It sends a control-IPC command; this is distinct from the NS2 over-the-air opcode13(GET_PSK). The shipped netstartd control table maps13 directly to its common return: it performs no statement reload or state effect. See bin_netstartd.control_ipc_command_13 for receiver bounds/table evidence.",
     "transport_result": "The send helper rejects fd+18c<0 and payload lengths beyond the virtual limit(default2048). A zero-payload frame uses the common write loop. It accumulates partial positive writes until all16 bytes are sent, returns0 on that completion and-1 for zero/negative write or unusable connection. Unlike the statement-file writer, this loop has no EINTR retry. The return proves transport write completion, not daemon acknowledgement, statement reload or grant application. The manager treats-1 as notification failure.",
-    "second_callback_boundary": "The second installed pointer(owner+c8c) and its invocation slot+8 are proved, but its concrete table/receiver still needs tracing. The developer-mode event-generator label alone is insufficient to assign it that role. Existing state clear/submission callback ordering remains as documented; no delivery/event effect is inferred from the label."
+    "second_callback_delivery": "The second installed pointer(owner+c8c) is the DevModeEventGenerator embedded object: ctor0x106b3328 initializes it with name string 'DevModeEventGenerator' at0x10f053c8 and leaves primary table0x10f053a8 at+0 and secondary0x10f053bc at+14. Its slot+8 is0x106b33fc, which passes the delivered byte array to ZZ0018 testing index15. On a set transition it dedupes via global byte0x110978c8, logs 'inprocess-events'/'Change in event loop detected', builds an event record via0x10988564/0x10bba944, wraps it in a0xc node via0x109a687c, compare-exchange pushes a refcounted0x14 node(vptr0x10e87548) onto global list0x110978f0, then walks subscriber ring0x110978e8. Return-1 logs 'Failed to notify listeners about the change.' on submission or 'Failed to notify about the change.'(nonfatal) on clear."
    },
    "metadata_use_in_developer_grants": {
     "decoded_array_scope": "Type5 parser creates a pointer/count descriptor. Getter ZZ0180 at0xa864 requests normalized type5 and internal descriptor length40 via tail branch to0x9d78. A direct branch audit found no call to this getter in libsonoscrypto, and no import in the checked shipped executable directories bin,sbin,opt/bin,wifi. This audit does not prove absence of every indirect/external caller. In the traced ZZ0137 verification chain, ZZ0126/ZZ0125 invoke the trust/hash/RSA callbacks and retrieve type2 digest metadata; they do not call the type5 getter or read individual array entries. The manager later queries only the separately located capability bitmap.",
     "primary_metadata": "Primary entries are structurally parsed, type-checked and included in the normalized duplicate-type rejection. The developer verifier does not use their values as capabilities or compatibility bounds. Generic expected metadata-counter handling is disabled because ZZ0123 passes0 for that argument. The copied u16+a envelope field likewise has no local predicate or value-dependent branch in this traced grant path. These fields cannot be assigned a developer-mode permission meaning from their presence.",
     "signature_coverage": "The signed outer statement prefix ends before the envelope. Direct layout hashes that prefix, not the envelope header/primary list. Metadata layout first checks the outer-prefix digest, then hashes the secondary count and encoded secondary entries; it still does not include the envelope header or primary list in that hash input. Thus valid primary metadata can affect framing/duplicate rejection without being part of the RSA-protected data in either traced layout. A secondary type5 entry is covered as encoded bytes by the metadata signature, even though grant application does not interpret its array contents.",
-    "scope_limit": "This establishes concrete use and nonuse inside developer-grant verification/application. It does not name the generic type5 formats from their strides, or establish their use in another application. The unavailable concrete notification-object installation chain remains explicit because continuing into shared implementation initialization would enter the other agent's protected lane."
+    "scope_limit": "This establishes concrete use and nonuse inside developer-grant verification/application. It does not name the generic type5 formats from their strides, or establish their use in another application."
    }
   },
   "mod_zp": {
@@ -216500,10 +216546,71 @@
      "build": "86.10-80260",
      "address": "0x10372f48",
      "notes": "XML entitlement report emits trial/date strings from bounded record loop, not policy predicates."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f9b85c",
+     "function": "entitlement-record schema",
+     "notes": "{code,name,aux} triples (4,'sku'),(1,'isTrial'),(3,'startDate'),(1,'endDate'),(1,'type'),(0,'codes'), then (5,0,0),(6,0,0) bounding the codes child; descriptor vtable 0x10f9b83c = {0x10a4dc94,0x100d3728,f_10a4caf4 field-iter,f_10a4cc34,f_10a4cd30,f_10a4cd64}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a4d9b8",
+     "function": "f_10a4d98c",
+     "notes": "Entitlement-record read helper: f_10a4d8ac ctor then f_109ecc24 engine read; sibling f_10a4da0c uses f_109ecd3c. Each engine op has 50 callsites (one per generated field)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ac3e2c",
+     "function": "f_10ac3db8",
+     "notes": "codes-name converter: f_109cfe58 length gate <=0x28 else error 0x10; walks {name,len,mask} triples at 0x10f9f654 with strncasecmp; stores mask to out ptr; 0 match / 3 unknown."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f9f654",
+     "function": "capability mask tables",
+     "notes": "businessCore(6)+restrictedAccess(6)+sonosRadio(5)+controlChannels(2) contiguous triples; index-to-name getters at f_10ac41bc/f_10ac4228/f_10ac4260/f_10ac41f0 read +0/+0x48/+0x90/+0xcc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10372e98",
+     "function": "f_10372d34",
+     "notes": "XML report reads isTrial byte pair at cursor-0x24/-0x23 ('yes' string 0x10e71a70), sku at -0x3c, dates at -0x22/-0x14 via f_1098baf4, codes array <=0x14 at +0; stride +0x98."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101ba18c",
+     "function": "zpsa provisioning",
+     "notes": "f_109f11b0(obj,2,buf): 0 -> 'no SBiz entitlement; preinstalling Sonos Radio' (r18=1), nonzero -> 'found SBiz entitlement; blocking preinstall'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x100f6920",
+     "function": "f_100f68d0",
+     "notes": "isBusinessSubscriber byte at this+0x148; change -> 'isBusinessSubscriber has changed' + f_100f82c4(this+4,{1}) notify + f_100f5b84 re-eval; runtime_zppolicy.cxx."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x103729c0",
+     "function": "f_103726fc",
+     "notes": "Entitlement refresh: cmpwi 304 eTag short-circuit, 'Fetch from cloud returned with status=%s', cache stash at this+0x158."
     }
-   ],
-   "todo": [
-    "Residual: trace the input parser and enforcement predicates for trial status and start/end dates, and enumerate per-SFB consumer call paths. Output serializers and per-category numeric mask fields are now distinguished from policy evaluation; server-defined predicate semantics are not established by output vocabulary."
    ],
    "resolved_findings": [
     "Resolved: SyncSonosBusinessMSP pulls the business-MSP policy document from the household settings service and applies tier gating at the entitlements/featureConfig layer - the sync reads the MSP-managed settings doc and enforces the managed-tier flags via the same featureConfig* predicates as entitlements.",
@@ -216512,8 +216619,27 @@
     "SFB bit indices recovered from the rodata table at 0x10f99838 - {name*, strlen, bit_index} triples, 19 entries: SRADIO_NO_ADS=1, SRADIO_HD_CONTENT=2, SRADIO_SPECIAL_CONTENT=3, SRADIO_ONDEMAND_ARCHIVE=4, SRADIO_CAN_SKIP=5, SFB_BASIC_UI=6, SFB_COMMERCIAL_MSP=7, SFB_ESSENTIALS_MSP=8, SFB_PREMIUM_MSP=9, SFB_DASHBOARD_ACCESS=0xa, SFB_CNTRL_MEDIA_SRCS=0xb, SFB_CNTRL_THIRD_PARTY=0xc, SFB_RSTC_CONTENT_ACS=0xd, SFB_RSTC_SAVE_CONTENT_ACS=0xe, SFB_RSTC_SETTINGS_ACS=0xf, SFB_RSTC_ALARMS_ACS=0x10, SFB_RSTC_MESSAGING_ACS=0x11, SFB_RSTC_SAVE_GROUPS_ACS=0x12, SFB_SCHEDULES_ACCESS=0x13.",
     "Lowercase capability-name table at 0x10f9f654 uses bitmask ids: {basic-ui=1, commercial-msp=2, essentials-msp=4, premium-msp=8, dashboard-access=16, schedules-access=32} then restricted-access {content=1, content-saving=2, settings=4, alarms=8, messaging=16, save-groups=32}, sradio {no-ads=1, hd-content=2, special-content=4, on-demand-archive=8, can-skip=16}, and control {media-sources=1, third-party-integ=2} - these are per-category bit positions (matches the ordinal SFB bit table shape).",
     "The f_10a4e0e4 path is an output serializer, not evidence of a document reader or enforcement predicate. It loads four 32-bit members from input+8/+0xc/+0x10/+0x14 and passes them with names businessCore/controlChannels/restrictedAccess/sonosRadio to f_109d1570 at 0x10a4e134/0x10a4e148/0x10a4e15c/0x10a4e184. f_109d1570 formats the supplied integer with %d at 0x109d159c-0x109d15bc and writes the resulting bytes via output virtual slot +8. _objectType is emitted separately if present. This positively binds category members as integer output fields; it does not prove that these names are four nested policy objects.",
-    "Trial/date evidence separated from enforcement: the isTrial/startDate/endDate strings at 0x10ebfca3/0x10ebfcb9/0x10ebfcc8 are substrings of one XML output format beginning at 0x10ebfc8c, not standalone parser-key references. The report loop at 0x10372e60-0x10372f54 iterates fixed 0x98-byte entitlement records, formats two date values via f_1098baf4 at 0x10372e80/0x10372e94, selects the trial text through byte tests at cursor-0x24/-0x23, and invokes the output routine with type, trial, sku, two date strings and codes at 0x10372f20-0x10372f48. It caps the report count at five at 0x10372e20-0x10372e30. That is a bounded diagnostic rendering path, not a date-range/trial eligibility comparison. Neither the four-category serializer nor this XML loop establishes the missing policy predicates, so the earlier server-defined-value assertion is not used as a closure justification."
-   ]
+    "Trial/date evidence separated from enforcement: the isTrial/startDate/endDate strings at 0x10ebfca3/0x10ebfcb9/0x10ebfcc8 are substrings of one XML output format beginning at 0x10ebfc8c, not standalone parser-key references. The report loop at 0x10372e60-0x10372f54 iterates fixed 0x98-byte entitlement records, formats two date values via f_1098baf4 at 0x10372e80/0x10372e94, selects the trial text through byte tests at cursor-0x24/-0x23, and invokes the output routine with type, trial, sku, two date strings and codes at 0x10372f20-0x10372f48. It caps the report count at five at 0x10372e20-0x10372e30. That is a bounded diagnostic rendering path, not a date-range/trial eligibility comparison. Neither the four-category serializer nor this XML loop establishes the missing policy predicates, so the earlier server-defined-value assertion is not used as a closure justification.",
+    "Entitlement-record input parse bound: descriptor 0x10f9b830 + field schema {sku,isTrial,startDate,endDate,type,codes} at 0x10f9b85c is consumed by the same databinding engine in both directions; the read helpers f_10a4d98c/f_10a4da0c build a record via f_10a4d8ac and hand each field to engine readers f_109ecc24/f_109ecd3c, which are each called from exactly 50 generated-class callsites. The descriptor and its field-name strings are reached only through class vtables, never by lis/addi.",
+    "'codes' values are decoded client-side: per-category name-to-mask tables at 0x10f9f654..0x10f9f738 ({name,strlen,mask} triples) are walked by converter f_10ac3db8 and siblings f_10ac3ec8/f_10ac3f98/f_10ac40a8 from holder vtables at 0x10f9f5dc..0x10f9f63c, with a 0x28-byte input-length gate (error 0x10) and strncasecmp matching (0 match / 3 unknown). This is the input direction of the four integer mask members businessCore/controlChannels/restrictedAccess/sonosRadio that f_10a4e0e4 serializes out.",
+    "Record layout recovered from the XML report loop: 0x98-byte records, isTrial value+present byte pair, sku pointer, two 0xe-byte date members formatted by f_1098baf4, codes array of up to 0x14 strings.",
+    "Trial/date semantics resolved to server-driven enforcement: after the parse, the only uses of isTrial/startDate/endDate in anacapad are the diagnostic XML dump and the entitlements-version diff; no wall-clock window comparison exists in the binary. SBiz gating (Sonos Radio preinstall) is a record-presence test via f_109f11b0(obj,2) at 0x101ba1ac/0x101ba1fc, and isBusinessSubscriber at this+0x148 is the policy-doc evaluation flag in RRuntimeZPPolicy.",
+    "Lifecycle bound: eTag-conditional cloud fetch (304 short-circuit) in f_103726fc, cache stash at this+0x158, storage under settings keys 'entitlements'/'entmt' via the this+0x1e8 typed store, refresh scheduling through f_100b944c on timer 0x11095f8c, and change notification as 'entitlementsVersionChanged'. R_TrialZPSerial is a real read+write settings key; R_AvailableSvcTrials is dead string data in this build."
+   ],
+   "entitlement_input_parse": {
+    "record_schema": "The entitlement-record databinding descriptor at 0x10f9b830 carries a {code,name,aux} field schema at 0x10f9b85c in member order: (4,'sku'), (1,'isTrial'), (3,'startDate'), (1,'endDate'), (1,'type'), (0,'codes'), then two nameless entries (5,0,0)/(6,0,0) that bound the 'codes' child shape. The same descriptor drives both directions: write-side name emission via f_109d1924 and %d integer emit via f_109d1570 (f_10a4e0e4 path), read-side via the class read helpers.",
+    "record_read_entry": "f_10a4d98c and f_10a4da0c are the record's read helpers: each constructs a record (ctor f_10a4d8ac) then calls a generic engine reader, f_109ecc24 or f_109ecd3c. Each of those engine ops has exactly 50 callsites across the generated databinding classes, i.e. one call per parsed field of every generated document type; the helpers themselves are reached through class vtables/descriptors (no direct bl callers), which is why no lis/addi reference to the descriptor or its name strings exists.",
+    "codes_converters": "Each 'codes' string is converted by a per-category name-to-mask lookup. Four contiguous {name,strlen,mask} triple tables at 0x10f9f654 (businessCore: basic-ui=1, commercial-msp=2, essentials-msp=4, premium-msp=8, dashboard-access=0x10, schedules-access=0x20), 0x10f9f69c (restrictedAccess: content=1, content-saving=2, settings=4, alarms=8, messaging=0x10, save-groups=0x20), 0x10f9f6e4 (sonosRadio: no-ads=1, hd-content=2, special-content=4, on-demand-archive=8, can-skip=0x10), 0x10f9f720 (controlChannels: media-sources=1, third-party-integ=2). Converter f_10ac3db8 (vtable slot +8 of the holder descriptor at 0x10f9f5dc; siblings f_10ac3ec8/f_10ac3f98/f_10ac40a8 in vtables 0x10f9f5fc/0x10f9f61c/0x10f9f63c) first runs the input through the 0x28-byte length gate f_109cfe58 (error 0x10 when longer), then walks its triple table comparing strlen + strncasecmp and stores the mask word to the out pointer; returns 0 on match, 3 on unknown name. Mask-to-name getters f_10ac41bc/f_10ac4228/f_10ac4260/f_10ac41f0 index the same tables at +0/+0x48/+0x90/+0xcc for the serialize direction.",
+    "record_layout": "0x98-byte records (stride proven by the report loop cursor addi +0x98 at 0x10372f50): isTrial is a value+present byte pair read at cursor-0x24/-0x23, sku string ptr at -0x3c, two 0xe-byte date fields at -0x22 and -0x14 rendered through date formatter f_1098baf4, and a codes array of up to 0x14 string pointers at +0 whose elements resolve through f_10a08720."
+   },
+   "enforcement_consumers": [
+    "SBiz record presence: the zpsa boot/provisioning function calls f_109f11b0(obj,2,buf); a zero return logs 'no SBiz entitlement; preinstalling Sonos Radio' (0x101ba1ac, sets preinstall flag r18=1) and nonzero logs 'found SBiz entitlement; blocking preinstall of Sonos Radio' (0x101ba1fc). This is a record-presence predicate, not a date test. The same f_109f11b0(obj,2,...) query feeds RRuntimeZPPolicy at 0x100f6a0c.",
+    "isBusinessSubscriber: f_100f68d0 (runtime_zppolicy.cxx, filename string 0x10e88d8c) writes the flag byte at this+0x148; on change it logs 'isBusinessSubscriber has changed', signals the notifier at this+4 via f_100f82c4({1,...}) and re-evaluates through f_10559024 -> f_100f5b84. The policy document it evaluates is built by f_100f9d9c as {global:{usageContext:{value:BUSINESS}}} from the CloudSettings fields.",
+    "Entitlement lifecycle: 'stale entitlements; scheduling job to refresh' (0x101b99fc) schedules f_100b944c on the shared timer object at global 0x11095f8c. The refresh path f_103726fc is eTag-conditional: HTTP 304 keeps the cache, otherwise it stashes the current blob ('stashed existing entitlements to compare later', this+0x158, serialized via f_10988564) then fetches via this->vfunc+0x3c ('Fetch from cloud returned with status=%s'), parses, stores under settings keys 'entitlements'/'entmt' (f_10370864/f_10371c10/f_103717d0 typed-store access at this+0x1e8), and the diff produces the 'entitlementsVersionChanged' notification (string 0x10f9630c used at 0x1009921c inside f_10098d34).",
+    "Trial surface: 'R_TrialZPSerial' is a settings key, read through a settings-object vfunc+0x24 dispatch at 0x104b1594 (implementation f_100c9be8) and written by the settings-set handler at 0x104b1e9c via f_1066b320 + f_10121518. 'R_AvailableSvcTrials' has no code references in this build.",
+    "Policy document wrapper: fields 'apiKey','policyKey','entitlements' are emitted from the policy object by the serializer at 0x10a24be8..0x10a24c48 (f_109d1924 name writes + f_109d1474 nested-object write); this+0x7c is checked through f_10a4e0d4 before the 'entitlements' member is touched."
+   ],
+   "unresolved": "isTrial/startDate/endDate now parse into proven record members, but their only client-side reads found in this build are the bounded diagnostic XML render in f_10372d34 (max 5 records, dates formatted by f_1098baf4, isTrial rendered as 'yes') and whatever fieldwise comparison feeds 'entitlementsVersionChanged'. No instruction in the binary compares startDate/endDate against wall-clock time, so trial-window and expiry semantics are server-driven: the client acts on record presence and 'codes' masks. A consumer-side date predicate therefore cannot be ruled out only in code outside this binary, not in anacapad itself."
   },
   "buttons_ir": {
    "summary": "button + IR input pipeline: hw-message BUTTON multicast group carries events, longpress.cxx handles holds, events forward to the group coordinator ('Forwarding button events'), /button_triggered[.xml] diagnostic capture, /rdmbuttonfwd retail hook, virtualRemoteControl/buttonCommand muse route injects button presses from the cloud; irdecoder.cxx learns TV-remote codes against the ir.ws.sonos.com database; zp-level FSM: 'zp_pre_setup_state','init minimal node','processing local %s'; skipBack/skipToNextTrack dispatch 'playback#skipBack'/'playback#skipToNextTrack' via group UUID ('Could not get group UUID for player %s to send skipBack command','Error sending skipBack command to local: %s','playback#skipBack response: %s'); play/pause FSM 'entering play/pause toggle','processing the play/pause button up event','executing pause','playback paused (cid: %s)','Error (%d) invoking pause','Pause failed - Cleared fast volume zero','executing un-mute instead of pause' (un-mute fallback when mute state can't be read),'waiting for PlaybackStateChangedEvent to clear fast volume zero','play/pause toggle cleared HW fault'; demo-mode IR learn loop 'Starting IR remote learning','Remote learning successfully configured remote for demo mode.','Remote learning one button code not found in DB for demo mode.','Remote learning timed out before remote was configured for demo mode.','Remote learning failed to configure for demo mode.'; config-mode entries: '%sentering speaker-detect config mode' alongside button-notify and room_calibration-calibrate; 'Entering %s config mode.','invalid input parameters v:%s t:%s'; IR decoder detail (irdecoder.cxx): debounce layer 'handling debounced input'/'debounced volume up'/'debounced volume Down','currently not playing','handling raw volume up'/'raw volume down'/'raw volume mute'/'raw input code'; install guards 'attempted to install a null code'/'null remote','unknown IR control target while installing code','unknown IR code pattern while installing code','attempting to add null remote to db'/'remote to full db','attempting to set too long a controller name'/'excessively long main code'/'alt code'/'repeat code','Cannot add {repeat,vol up,vol down,input,vol mute} code: list full.','Failed to open IR device! (%d)','Could not get IR file descriptor!','Failed to close IR device','Could not write ir configuration!','db code length [%d] exceeds buffer','exceeded temp buff size: i = %d','Input buffer too large (%d > %d), contents truncated','Ignoring excessively long code during learn, length: [%d]','new capture %d','Successful long code learn.','total bytes received: %d'",
@@ -219973,6 +220099,41 @@
      "address": "0x10a62568",
      "callsite": "0x10a6258c / 0x10a625b4 / 0x10a625dc",
      "notes": "Group id has length+c/pointer+8 guard, name length+24/pointer+20, coordinatorId length+3c/pointer+38. Resource serializer reaches additional nested models, images/tags, explicit and mimeType; these invalidate treating resource name/type/objectId shorthand or invalidation-event strings as the full POST schema."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a35360",
+     "notes": "Resource serializer: _objectType + 16 optional members {name+0x8, type+0x24, id(f_10ab5c9c), service(f_10aa05d0), book(f_10a276bc), podcast(f_10a86118), imageUrl+0x454, images+0x468, tags+0x52c, explicit+0x53c, htInputFormat+0x540(f_10a63d24), bluetoothSource+0x56c, lineInSource+0x588, audioInputName+0x5a4, audioInputIcon+0x5c0, mimeType+0x5dc}; string triples flag+ptr+len."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a6251c",
+     "notes": "Group serializer: id(+0xc/+0x8), name(+0x24/+0x20), coordinatorId(+0x3c/+0x38); +0x50 nonzero suppresses both arrays; playerIds +0x54 clamped 0x20 at +0x58, areaIds +0x358 clamped 0x21 at +0x35c, 0x18-stride elems with +0x4 presence."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a624d0",
+     "notes": "Group presence predicate: isel chain = (id-flag+0xc && name-flag+0x24) || coordinatorId-flag+0x3c || playerIds[0].ptr+0x5c."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a8870c/0x10a35350",
+     "notes": "Entry serializer: _objectType always, 'resource' member unconditional (f_10a35350 returns 1), 'group' member iff f_10a624d0(entry+0x600); resource at entry+8, group at entry+0x600."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10a33840/0x10a61b30",
+     "notes": "Copy routines propagate {flag,ptr,len} triples and clamp arrays (0x20/0x21) at copy; called back-to-back from posting f_103b00a0 at 0x103b0470/0x103b0484 after validation at 0x103b0400-0x103b044c."
     }
    ],
    "cloud_routes": "v1/households/{householdId}/history (getHistory/postHistory), v1/households/{householdId}/history/{id} (removeHistoryItem), clearHistory; ratings: v1/groups/{groupId}/playbackMetadata/ratings + household-scoped variant; per-item 'item/%s/rating'",
@@ -219981,9 +220142,6 @@
    "gating": "'History is disabled, history is not POSTed': opt-out gate; entries dropped when 'resource incomplete - name, type, or objectId missing' / 'group incomplete - name, id, or coordinatorId missing'; 'Failed to queue history entry, buffer full' + 'Post History Buffer Cleared'",
    "ratings": "r:rating DIDL element + urn:schemas-rinconnetworks-com:metadata-1-0/|rating; 'rating is only implemented for cloud queue', 'cloud queue server does not supporting rating', 'rating.type is not recognized'",
    "pipeline": "trackplayrecorder.cxx (TrackPlayRecorder) + trackplaymonitor.cxx (selthrd.RTrackPlayMonitor.* select-thread events: reset/data/except/timeout) feed the manager; O_TRACKPLAYBASE_URL / O_HISTORY_SERVICE_URL config keys; historyVersionChanged + postHistoryConfig events; 'Securely Registered' gate on getHistory",
-   "todo": [
-    "Established: posting reaches compiled request/body serializers; body is an array with a resource child per entry and a model-dependent group child, not a recentlyPlayed wrapper. Zero count produces an empty array; the entry/resource serializer predicates return1, while producer-side validation can exclude entries before model copying. Remaining: enumerate every transitive member and presence/type predicate in resource f_10a35360 (including nested id/service/content models, images/tags and explicit) and group f_10a6251c, then join those predicates to producer initialization/copy routines f_10a33840/f_10a61b30. Keep the historyEntryInvalid event and household recentlyPlayed settings key separate from POST grammar. This is actionable static work, not server-defined-only nesting."
-   ],
    "resolved_findings": [
     "Deepened (historyEntryInvalid event doc): the invalidation event emitted on channel 'rphistory' via 'historyService' (~f_103aee78) carries ordered members {objectId, groupName, groupId, coordinatorId, reason, ucsType, serviceId, type, name, errorCode, cacheControl, historyRequest, hrc, postEtag, preEtag} - literal-load order at 0x103aeee8-0x103af1e4. This is the reject/invalidation event doc (paired with the {bufferFull,invalidContentType,resourceIncomplete,groupIncomplete} reject codes), not the posted history entry.",
     "Rating enum at 0x10f99d88: {STAR=1, THUMBSUP=2, THUMBSDOWN=3, LOVE=4, HATE=5, BAN=6, ...}; abort-reason enum at 0x10face10 {NONE=1, ABORT_UNRECOGNIZED_OP=2, ABORT_INCORRECT_MODE=3, ABORT_NO_SOURCE=4, ABORT_INVALID_OP=5, ABORT_REFUSED=6, ...}.",
@@ -219991,8 +220149,19 @@
     "The old flat body containing trackMetadata/deviceId/householdId/container/action and the recentlyPlayed-array-wrapper claim are withdrawn. Reachable posting f_103b00a0 constructs request model f_10c7e960, copies accepted entries, sets its count at model+0x40, and calls f_10c684e8 at0x103b04d4. That helper directly calls request builder f_10c7f858, which selects namespace history, verb postHistory and households/ addressing via its PIC data, and invokes body-string builder f_10c7f780. The latter calls serializer f_10c7e9ec. These are compiled body-grammar paths, not a server-only schema boundary.",
     "Body serializer f_10c7e9ec emits an array using f_109d0a30 (writes [), reads count at model+0x40 and iterates model+0x44 in0xc74-byte strides. Zero count emits an empty array. The predicate f_10a886fc at0x10c7ea4c returns literal1, so the zero-result skip edge at0x10c7ea58 does not suppress any counted entry in this image. Each counted entry opens an object, calls f_10a8870c, closes the object and finally closes the array. No recentlyPlayed property is written by this body serializer. The literal use at0x103b004c instead compares a household-settings change key before reevaluating posting state.",
     "Entry serializer f_10a8870c conditionally emits _objectType, then tests resource at entry+8 via f_10a35350 and group at entry+0x600 via f_10a624d0. The resource helper returns literal1, so resource is always written and delegated to f_10a35360; group is model-dependent and delegated to f_10a6251c. Group id/name/coordinatorId are optional strings guarded by both length and pointer; additional playerIds-related fields exist and must not be omitted from a claimed complete schema. Resource includes nested id/service/content-related models, images/tags, explicit and other conditional members; the former three-name resource shorthand is not a complete wire grammar.",
-    "Posting validation before model copying remains distinct from serializer omission. Resource helper checks and group string-presence tests at0x103b0400-0x103b044c can reject queued entries; accepted entries are copied with f_10a61b30/f_10a33840, then the local buffer is cleared at0x103b04a0 before transport submission. Existing historyEntryInvalid event fields are not automatically POST fields. The earlier claim that a userMetricsTracking migration literal proves the posting gate is withdrawn; f_103affcc handles the separate recentlyPlayed settings key."
-   ]
+    "Posting validation before model copying remains distinct from serializer omission. Resource helper checks and group string-presence tests at0x103b0400-0x103b044c can reject queued entries; accepted entries are copied with f_10a61b30/f_10a33840, then the local buffer is cleared at0x103b04a0 before transport submission. Existing historyEntryInvalid event fields are not automatically POST fields. The earlier claim that a userMetricsTracking migration literal proves the posting gate is withdrawn; f_103affcc handles the separate recentlyPlayed settings key.",
+    "Resource member set fully enumerated in f_10a35360: 16 optional members. Six string triples {flag,ptr,len} (name +0x8, type +0x24, bluetoothSource +0x56c, lineInSource +0x588, audioInputName +0x5a4, audioInputIcon +0x5c0, mimeType +0x5dc); four embedded-object members gated by nonzero-field predicates (id via f_10ab5c9c, service f_10aa05d0, book f_10a276bc, podcast f_10a86118); imageUrl +0x454, images +0x468, tags count +0x52c, explicit flag +0x53c value +0x53d, htInputFormat via f_10a63d24 on sub-object +0x540.",
+    "Group member set fully enumerated in f_10a6251c: scalars id/name/coordinatorId emit on flag+ptr, and byte +0x50 is a member-list suppression flag - when nonzero both playerIds and areaIds arrays are omitted. Lists are count-clamped (playerIds 0x20 at +0x54, areaIds 0x21 at +0x358) with per-element +0x4 presence tests on 0x18-stride entries.",
+    "Group emission predicate f_10a624d0 = (id-flag && name-flag) || coordinatorId-flag || playerIds[0] nonzero, matching the producer-side 'group incomplete - name, id, or coordinatorId missing' rejection.",
+    "Producer join bound: f_103b00a0 validates then copies entries via f_10a61b30 (group) and f_10a33840 (resource); both copy routines propagate presence flags verbatim and enforce the 32/33 element caps at copy time, so serializer omission cannot drop producer-validated members."
+   ],
+   "entry_model": {
+    "resource_members": "f_10a35360(builder, resource) emits, in order: _objectType (when f_109ecb4c/f_109ecb5c supply one); 'name' iff flag +0x8 && ptr +0xc && len +0x10; 'type' iff flag +0x24 && +0x28 && +0x2c; 'id' sub-object iff f_10ab5c9c(id+0x28 !=0), serialized by f_10ab5cb8; 'service' iff f_10aa05d0, serialized by f_10aa05dc; 'book' iff f_10a276bc, serialized by f_10a276d8; 'podcast' iff f_10a86118, serialized by f_10a86134; 'imageUrl' iff +0x454 && +0x450; 'images' array iff +0x468 (elems via f_10a6927c/f_10a6928c); 'tags' array iff count +0x52c > bound; 'explicit' bool +0x53d iff flag +0x53c; 'htInputFormat' iff f_10a63d24(obj+0x540 field +0x18 !=0), serialized by f_10a63d40; 'bluetoothSource' iff +0x56c && +0x570 && +0x574; 'lineInSource' iff +0x588 && +0x58c && +0x590; 'audioInputName' iff +0x5a4 && +0x5a8 && +0x5ac; 'audioInputIcon' iff +0x5c0 && +0x5c4 && +0x5c8; 'mimeType' iff +0x5dc && +0x5e0 && +0x5e4. String members are {byte flag, char* ptr, u32 len} triples; every member is optional.",
+    "group_members": "f_10a6251c(builder, group) emits: _objectType; 'id' iff flag +0xc && ptr +0x8; 'name' iff flag +0x24 && +0x20; 'coordinatorId' iff flag +0x3c && +0x38; then iff +0x50 == 0: 'playerIds' array (count +0x54 isel-clamped to 0x20, elems +0x58 stride 0x18, each emitted only when its +0x4 is nonzero) and 'areaIds' array (count +0x358 clamped to 0x21, elems +0x35c stride 0x18, same +0x4 element presence). A nonzero +0x50 suppresses BOTH member arrays while scalars still emit.",
+    "group_presence": "f_10a624d0(group) chains isel tests to return byte: (+0x24 name-flag && +0xc id-flag) || (+0x3c coordinatorId-flag) || (+0x5c first playerIds element ptr). Any satisfied term emits the whole group member.",
+    "copy_routines": "f_10a33840(dst,src) deep-copies the resource: per-member it reconciles flag mismatches (src flag clear while dst set triggers dst string reset, e.g. +0xc block restored to inline buffer at 0x10a3388c-0x10a33898) then assigns flag and string via f_10a32e68; presence flags propagate verbatim so the serializer emits exactly what producers populated. f_10a61b30(dst,src) copies the group: strings +0x8/+0x20/+0x38 via f_1082deb8, flag +0x50 verbatim, playerIds clamped to 0x20 into +0x58 (0x18-stride f_1082deb8 copies) with count at +0x54, areaIds clamped to 0x21 into +0x35c with count at +0x358. The 32/33 caps are enforced at copy time, so the serializer clamps are defensive duplicates.",
+    "join": "Entry copy at 0x103b0470 (group) + 0x103b0484 (resource) inside posting function f_103b00a0 runs the two copy routines back to back after the validation checks at 0x103b0400-0x103b044c (resource name/type/objectId and group name/id/coordinatorId) reject entries; entry serializer f_10a8870c then reads entry+8 (resource, always emitted) and entry+0x600 (group, f_10a624d0-gated) via wrapper f_10a88810. The flag discipline means serializer output equals producer validation output: an accepted entry cannot lose required members in serialization."
+   }
   },
   "playlist_parsers": {
    "name": "playlist sniffers",
@@ -220269,7 +220438,7 @@
    ]
   },
   "scrobbler": {
-   "summary": "The image contains both legacy Audioscrobbler submission and local Last.fm mobile-session authentication. The latter computes authToken locally through imported MD5 helpers and appends a fixed compiled signature suffix, rather than receiving an unexplained external secret. Legacy submission scheduling and retry/queue behavior still need a complete control-flow join.",
+   "summary": "The image contains both legacy Audioscrobbler submission and local Last.fm mobile-session authentication. The latter computes authToken locally through imported MD5 helpers and appends a fixed compiled signature suffix, rather than receiving an unexplained external secret. Legacy submission is driven by a 'tpm' event subscriber whose delivery vfunc is f_104cbf1c; its eligibility gates, per-account handshake/submission transport, in-object pending/deadline retry state and account-record binding are traced below.",
    "anchors": [
     "http://post.audioscrobbler.com/",
     "https://ws.audioscrobbler.com/2.0/",
@@ -220353,6 +220522,78 @@
      "address": "lib0x6b30 / 0x6c08 / 0x6c4c",
      "callsite": "lib0x6bd8 / 0x6be0 / 0x6c2c / 0x6ca4",
      "notes": "Exported symbol bounds and PPC objdump prove selector2 is MD5 init/update/finish, resolving the imported crypto edge missed by the old local-call census."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ed8fa0",
+     "function": "f_104c9d9c",
+     "notes": "Subscriber descriptor: primary vtable {0x104c9d9c,0x104c9eec,0x104cbf1c,0x104caf08}, secondary 0x10ed8fb8 at obj+4, then {0x20,'paused',4,'skippedTrack','smapi','spotify-connect','airplay','uri','Delivering %s(%u) event to \"%s\"'}. Only materialization of the vtable in the binary."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cbfd8",
+     "function": "f_104cbf1c",
+     "notes": "Gate A: e500 SPE float ops convert f_104c37d8(evt) result to double and bgt cr7 vs constant 0.0 (rodata 0x10ed8fe8) routes to the r28=0 reset path."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc454",
+     "function": "f_104cbf1c",
+     "notes": "Sole call to f_105236c8: args (this+0x24 registry, r22 track from src->vfunc+8, &0x3a0 report ctx, now-trackstart elapsed, 0, tag). Post-call andi. on r27 bit2 selects reset(0x104cc1a8) vs record dispatch(0x104cc4d4)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10523aec",
+     "function": "f_105236c8",
+     "notes": "Handshake auth: ZZ0062 MD5 ctx at stack+0x4f30, f_10713d1c md5-hex(record+0x102 credential), ZZ0064 feeds 32 bytes then the '&t=' timestamp string, f_10713da4 finalizes the &a= token."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x1052424c",
+     "function": "f_105236c8",
+     "notes": "Response machine: 'OK' line flips capture into session buffer; 'BADTIME' line steals clock from Date: header once per call (stack+0x38 flag); status line requires strcmp 'OK' else 'Scrobbling failed.  Status returned: %s'; failures continue to next account record."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x105235a4",
+     "function": "f_10523398",
+     "notes": "Account/class gate: first type-{0xb,0xc} record; class 'object.item.audioItem.podcast' requires +0x363 not in {0,'.','#'}; 'object.item.audioItem.audioBook.chapter' the same at +0x36d."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x101b8954",
+     "function": "f_101b8954 caller (account provisioning loop)",
+     "notes": "f_10714924(entry+8, entry+0x10a, out, 0x80): requires exactly one '@' in the +0x10a credential, authenticates halves through f_10713db0 -> f_10713ed4 mobile-session auth; same 0x250-record walk with type mask {0xb,0xc}."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104cc1a8",
+     "function": "f_104cbf1c",
+     "notes": "Reset block writes +0x40=0,+0x44=0x3c,+0x50=0,+0x38=0,+0x3c=0: the pending-flag/deadline pair is the only resubmission state; re-evaluated per delivered event."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x104ca2b4",
+     "function": "f_104ca278",
+     "notes": "Dedup check: byte at 0x110a4584 set to1 when event stamp (f_104c36b4 -> f_105a8e20 on event+0xc8) exceeds atomic64 at this+0x30."
     }
    ],
    "handshake": "GET /?hs=true&p=1.2&c= HTTP/1.1 to http://post.audioscrobbler.com/ (c= = client id); service token 'lastfm'; on BADTIME response it logs 'BADTIME -- stealing time from Date: header' and resyncs clock from the HTTP Date: response header",
@@ -220364,11 +220605,8 @@
     "last.fm-radio-http URI scheme (func ~0x1041d43c)"
    ],
    "result_codes": "R_LASTFM_BAD_ACCOUNT, R_LASTFM_BAD_SUBLEVEL, R_LASTFM_NO_ACCOUNT, R_LASTFM_NO_CONTENT, R_LASTFM_STREAM_LIMIT",
-   "unresolved": "Legacy scheduling thresholds, early-return predicates, account/session lifetime and retry/queue ownership remain actionable static work; v2 authToken and signature suffix are recovered locally.",
+   "unresolved": "The subscriber object's own constructor/registration callsite is not statically pinned: the only materialization of primary vtable 0x10ed8fa0 in the binary is inside its destructor f_104c9d9c (the secondary table 0x10ed8fb8 is computed as primary+0x18), no GOT slot, data prototype or direct caller names it, and every method including f_104cbf1c is reached only through the vtable. Registration therefore happens through a path that never names the vtable constant (runtime-supplied vptr/base-class handoff); the subscription contract itself is established by the descriptor block at 0x10ed8fc0. The 0x250 account-record blob at record+0x106 is used both as the scrobble-handshake MD5 input and as the '@'-separated auth input of f_10714924; which stored form (separated password vs combined user@secret) a given account holds depends on whether the email-to-username migration rewrite has run, a runtime/data distinction not decided by the binary.",
    "endpoint": "https://ws.audioscrobbler.com/2.0/ (Audioscrobbler 2.0 REST); xmlpost CONTENT-LENGTH; \"openConnection to %s failed\"; \"Data overflowed; ignore submit\"",
-   "todo": [
-    "Established: local username/password copies, exact nested MD5 authToken derivation, imported MD5 dispatch and fixed compiled api_sig suffix. Original unknown-secret/crypto-boundary residual is resolved. Remaining: trace legacy f_105236c8 eligibility, early returns and transport results back through play-report caller f_104cbf1c, then session state producers and any scheduling/retry owners. Bind caller inputs at0x10714890/0x10714924 to account storage before claiming persistence provenance. The post-call flag at0x104cc458 is not an invocation gate, and absent retry strings do not prove absent retries. This is actionable static work."
-   ],
    "resolved_findings": [
     "Audioscrobbler1.2 handshake and submission form fields are present, along with BADTIME/Date-header clock recovery. A concrete play-report calling context is recovered below; a complete set of eligibility or play-state predicates is not established by these literals.",
     "Legacy form fields and socket-response literals identify the submission implementation, but absence of retry vocabulary does not prove fire-and-forget behavior. The repeated f_1056fb1c calls at the start of f_105236c8 initialize temporary objects (zeroing fields), not music-account settings getters. Their former account-provenance interpretation is withdrawn.",
@@ -220379,8 +220617,31 @@
     "The no-MD5-outside-vendored-region claim is false because it missed libsonoscrypto imports. f_10713ed4 initializes ZZ0062 with selector2, feeds username at receiver+11, invokes f_10713d1c on password at+92 to obtain a32-character lowercase MD5 hex string, feeds those32 bytes, then finalizes through f_10713c7c. This implements MD5(username || hex(MD5(password))) locally. Constructor f_10713db0 copies the supplied username/password into these fields; caller0x107148c0 constructs the object and0x107148d8 invokes authentication. Persistent account storage before those caller arguments is not established here.",
     "SONOS_DC_* error enum at 0x10ea1684: {SONOS_DC_OK=0, NO_ACCOUNT=1, STALE_ACCOUNT=2, LOGIN_FAILED=3, UNSUPPORTED_SERVICE=4, UNEXPECTED=5}.",
     "Mobile-session auth builds api_key/authToken/method/username parameters and a separate MD5 accumulator in that name order. After the username bytes,0x107142ec-0x107142fc unconditionally feeds32 bytes from literal0x10f0e188, the lowercase hexadecimal MD5 of the empty string. This is an actual fixed signing suffix, not a missing-parameter default and not an untraced member-supplied secret. f_10713c7c finalizes the digest and hex-encodes16 bytes;0x10714328 produces api_sig before form encoding it. No additional secret-input call appears between that suffix update and finalization. This describes the shipped computation, not a claim that a server accepts it.",
-    "Crypto boundary verified in shipped libsonoscrypto.so.3: selector2 in ZZ0062 dispatches to mbedtls_md5_init/starts; ZZ0064 dispatches to md5_update; ZZ0061 to md5_finish/free. The in-image wrapper f_10713c7c formats the16 digest bytes using a hexadecimal alphabet and terminates at output+32. Empty strings therefore pass through real MD5, not a missing-credential fallback branch."
-   ]
+    "Crypto boundary verified in shipped libsonoscrypto.so.3: selector2 in ZZ0062 dispatches to mbedtls_md5_init/starts; ZZ0064 dispatches to md5_update; ZZ0061 to md5_finish/free. The in-image wrapper f_10713c7c formats the16 digest bytes using a hexadecimal alphabet and terminates at output+32. Empty strings therefore pass through real MD5, not a missing-credential fallback branch.",
+    "f_104cbf1c is the sole caller of submission builder f_105236c8 and is itself invoked only through the subscriber vtable (slot+8 of the object whose primary/secondary tables are 0x10ed8fa0/0x10ed8fb8). Its descriptor block lists 'paused' and 'skippedTrack' plus source names 'smapi','spotify-connect','airplay','uri' beside the shared 'Delivering %s(%u) event to \"%s\"' dispatcher log format.",
+    "The submission builder re-shakes per account: for every enabled record it emits 'GET /?hs=true&p=1.2&c=son&v=1.0&u=<user>&t=<unix>&a=<auth>' where auth = MD5(md5(record credential) + the same &t= decimal), sends through its own connection via f_10545ff4, scans response lines so an 'OK' line redirects capture into the session buffer and a 'BADTIME' line steals the wall clock from the HTTP Date header once per invocation (flag at stack+0x38), then POSTs 's=<session>&a[0]=..&t[0]=..&i[0]=..&o[0]=P?&r[0]=&l[0]=&b[0]=..&n[0]=..&m[0]=..', reads the status line and requires 'OK'. Any failure logs and moves to the next account record.",
+    "Retry ownership is confined to the subscriber object: pending flag +0x50, deadline pair +0x40:0x44 (reset {0,60}) and pending marker +0x38:0x3c are written and re-read only inside the event-delivery vfunc; no timer or persistent queue schedules legacy resubmission. Report events are additionally fanned out as a 0x24-byte record through f_1071db0c -> f_104aba18 to the global event registry when the r27 bit2 flag is set.",
+    "Eligibility is bound: float position gate f_104c37d8>0.0 suppresses, f_104c9acc reportability predicate, f_104ca278 atomic-stamp dedup (+0x30, sets global 0x110a4584 on newer events), and account gate f_10523398 requiring a type-{0xb,0xc} record with '1' flag and hex bit0, plus the podcast/audiobook-class byte predicates at +0x363/+0x36d.",
+    "Account binding resolved: records are 0x250 bytes in the registry at this+0x24; username is the &u= source, record+0x106 supplies both the handshake MD5 input and the '@'-split f_10714924 credential; f_10714924 authenticates split user/pass through f_10713db0 -> f_10713ed4 during the zpsa email-to-username migration that rewrites the record. f_10714890 is an unused direct (user,pass) wrapper.",
+    "Constructor boundary (proven): the only materialization of vtable 0x10ed8fa0 in the binary is the dtor itself; the secondary table is derived as +0x18; no GOT slot, prototype data or direct method caller exists, so the concrete registration callsite is reached through a runtime-supplied vptr and cannot be named from this image alone."
+   ],
+   "event_dispatch": {
+    "subscriber": "f_104cbf1c is primary-vtable slot +8 (0x10ed8fa8) of the 'tpm' play-report subscriber object. Primary vtable 0x10ed8fa0 = {dtor f_104c9d9c, deleting-dtor f_104c9eec(size0x70), f_104cbf1c, f_104caf08}; secondary vtable 0x10ed8fb8 at obj+4 = {f_104c9ee4,f_104c9f20 this-adjust thunks}; the event bus holds the obj+4 interface. The rodata descriptor block at 0x10ed8fc0 lists the subscribed vocabulary: {0x20,'paused',4,'skippedTrack','smapi','spotify-connect','airplay','uri'} followed by the shared dispatcher log 'Delivering %s(%u) event to \"%s\"', the float 0x447a0000, the constant 0 read as the gate constant at 0x10ed8fe8, and 0x11096a30.",
+    "object_layout": "+0x24 account registry member (f_1052338c trivial dtor; *member feeds f_101b688c enumeration); +0x30 atomic64 last-processed event stamp (read via __atomic_load_8 in f_104ca278); +0x38:0x3c pending-marker pair written {0,tagptr-or-0} after report computation; +0x40:0x44 64-bit deadline pair reset to {0,60}; +0x48:0x4c timeval used in the ms computation; +0x50 pending-report flag byte loaded from the event record's +0x14/+0x10 fields via r30->vfunc+0x38(); +0x68 refcounted helper; +0x6c uuid string printed in 'submitting play report for uuid: %s'.",
+    "reset_contract": "r27 bit2 (set from report-ctx word stack+0x18c & 0x40) selects post-processing: bit clear resets {+0x38,+0x3c,+0x40,+0x44,+0x50} to {0,0,0,60,0} at 0x104cc1a8; bit set instead builds a 0x24-byte report record at stack+0x30 through f_1071db0c {+0 track,+4 flags,+8 zero,+0xc tag,+0x10/+0x14 pair,+0x18 byte,+0x1c val,+0x20 zero} and dispatches it to the global event registry via f_104aba18(uuid,record)."
+   },
+   "eligibility_chain": [
+    "Gate A (0x104cbfc4..0x104cbfd8): f_104c37d8(eventobj) returns a float = member+0x70 + f_104c371c, where f_104c371c converts a position pair (event +0x88/+0x8c, or +0xc8/+0xcc when f_105a8f88 fails) through f_105a9328(obj+0x80) and clamps results >0.0 to the float global at 0x10ed867c. The sum is converted to double and compared against constant 0.0 (rodata 0x10ed8fe8); result >0 takes the r28=0 path, which suppresses submission and lands on the reset block.",
+    "r22 = event-source r30->vfunc+8() supplies the track object; f_104c9fd8 snapshots the source into stack+0x194.",
+    "The household/settings object loaded as *(member+0x20 + 0xa86c) is queried through vfunc+0x20; on a zero result f_1011c078/f_1011c29c(&0x3a0,obj,2) build the report context that later carries the upnp-class string and account name.",
+    "Event flag word r27: bit0 enables the f_104ca5a4 call, bit1 enables f_104ca71c(this,src,event,0,tag), bit2 is set when report-ctx word stack+0x18c carries 0x40.",
+    "f_104c9acc(track,src,member+0x20) must return nonzero: it accepts a non-empty string from src->vfunc+0x1c immediately, else requires track+0 byte 0, f_101477e4(track) nonzero, and the f_1071a9cc/f_1071aeb0 -> f_1011c078/f_1011c29c predicate chain against the same +0xa86c settings object.",
+    "When f_104c9acc fails, f_104ca278(this,event) performs the dedup/ordering check: atomic64 at this+0x30 is compared against the event stamp derived through f_104c36b4 -> f_105a8e20(event+0xc8); a newer event sets global byte 0x110a4584=1 and returns 1. event+0xd2==0 returns 1 without comparison.",
+    "Account gate f_10523398(this+0x24,&0x3a0,0,tag): enumerates the registry via f_101b688c(*member,stack) into 0x250-byte records; the first record with type&0x7f in {0xb,0xc} is required to have flag byte +0x89 == '1' and sscanf('%x') of the +0x8a string produce bit0 set; a record whose +0x89 != '1' reads the all-zero rodata 0x10ea6a2c and fails. When the report-context class string at r31+0x346 starts with 'object.item.audioItem.podcast' the byte at +0x363 must be nonzero and not '.'/'#'; for 'object.item.audioItem.audioBook.chapter' the same applies at +0x36d. The gate also assigns the account name into the report context via f_1041ce64.",
+    "Submit block: f_104ca364 serializes the report into the 0x401-byte stack buffer, f_10338a34 reparses it, f_104cb228 computes the final payload with a forced flag ((event+8 & ~event+9) & 0x24), the track start is (s32)(f_105a9328(event+0xc8,f_104c36a4(event)) double), and arg r6 = sonosClockGetTime(1) minus that start = elapsed seconds."
+   ],
+   "retry_and_session": "There is no persistent scrobble queue or timer owner in the traced path. Retry/debounce state lives inside the subscriber object: +0x50 pending flag (from the event record's +0x14 byte through r30->vfunc+0x38(), whose record also supplies the 64-bit pair at +0/+0x8 tested before reload), +0x40:0x44 deadline pair (reset {0,60}; the 64-bit compare at 0x104cc560 evaluates deadline = 'tagptr' minus the +0x38:0x3c marker), +0x48:0x4c timeval converted sec*1000 at 0x104cc098..0x104cc0d8. These fields are re-evaluated on each subsequent event delivery, so re-checks are event-driven. The session id is transient per invocation: the handshake response parser captures the line following the 'OK' line into the session buffer used by 's='. Transport failures only log ('scrobbling openConnection to %s %s failed', 'Scrobbling failed.  Status returned: %s') and advance to the next account record; nothing stores the report for later retransmission.",
+   "account_records": "0x250-byte records enumerated from *(this+0x24) by f_101b688c; selection keeps type&0x7f in {0xb,0xc}. Relative to the f_105236c8 record pointer (type at -4): +0 username string appended after '&u=', +0x81 flag byte that must equal '1', +0x82 hex flag string parsed by sscanf('%x') whose bit0 is the submit enable and bit1 the second flag byte, +0x102 credential blob hashed into the handshake auth token. In the provisioning pass (the function containing 0x101b8954) the same records supply entry+8 (username out-buffer target) and entry+0x10a to f_10714924, which requires exactly one '@' and authenticates the split halves through f_10713db0 -> f_10713ed4; on success the caller rewrites the record through a global vfunc+0x34 ('zpsa' id, 'failed to replace email with username for last.fm' on failure). f_10714890 is the direct (user,pass) form of the same auth constructor and has no static caller in this build."
   },
   "semisleep_power": {
    "summary": "low-power 'SemiSleep' suspend/resume: gated by featureConfigSemiSleep/enableSemiSleep + semiSleepConfig cloud config; 'Supported only on suspendable devices' capability check; suspends VLI sessions (onVirtualLineInSuspendSession, AHA_SUSPEND_VLI_SESSION, SUSPEND_SESSION op), playback sessions (muse playbackSession/suspend verb), cloud queue (during snooze/alarm), and local timers track suspend ('considering suspend'); group topology marks suspended members ('Found Suspended Rooms While Processing %s Group Info') | Local timers (timers_impl.cxx / MuseTimerImpl): ops set/set-duration/set-relative-duration/create/delete/pause-delete/pause/resume each log \"...(considering suspend) %s\" on failure - suspend gates every timer mutation; timers persist across suspend in SQLite table timers(id TEXT PK, trigger_time TEXT, total_duration INTEGER, triggered NUMERIC) @0x10edcf88; \"Unable to remove time on a ringing timer\" guards firing timers. | Pause persistence: paused_timers(id PK, remaining_seconds, paused_utc_time, total_duration) @0x10edd018: parked timers survive suspend; resume recomputes.; powPrvntIdlM/powWakLkMgr guards: 'ERROR: modifyPreventIdleLockForOperationTimeout(%d, %lld) not acquired by guard','ERROR: modifyWakeLockForOperationTimeout(%d, %lld) not acquired by guard'; wifi_idle_mgr 'Set WifiFuncsSetIdleScan fronthaul result %d attempt %d'",
@@ -220984,6 +221245,55 @@
      "address": "0x1069d270",
      "callsite": "0x1069d2f4 / 0x1069d2fc / 0x1069d350 / 0x1069d364",
      "notes": "URL parse gates header formatting; exact header literal10f03b4c and path10f03c34 checked. Binary POST not diagnostic-manifest proof."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10695bac",
+     "notes": "Client factory: requires nonzero atoi on override slots 16 and 17, allocates 0x138c8 bytes, ctor f_1069d87c with cap 0xa000/quantum 0x800 and the two intervals; sole caller at 0x10199be8 in service-init; stores client at root+0xa78."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1069d7cc/0x10f0397c",
+     "notes": "protoEventUploaderClient ctor names the class; vtable 0x10f0397c = {0x1069cd54,0x1069cdc4,f_1069d270,f_1069ce98}, secondary 0x10f03994; four embedded RReportUploader channels at +0x2c48/+0x2e48/+0x3048/+0x3248."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055b9ec",
+     "notes": "Legacy drain: gates +0x43/+0xc/+0x44; marker check vtable+0xc==f_1055d30c picks +0x10 else calls +0xc; attempts+8<=6 -> 300s else 86400s retry; 'Failure ... retrying in %u seconds'; memmove reclaim unless +0x41."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055d2ec/0x1055d024",
+     "notes": "Scheduler thunk: +0x16c selects f_1055d024 protobuf drain ('Proto Event Upload Success/Failure') over f_1055b9ec."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1055db1c/0x10eeb760",
+     "notes": "Channel kind resolver: 'optOutExempt'->1, 'config'->3, else->2; enum->name table with 'optOutExempt' at 0x10eeb76c."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10800a0-0x108012c",
+     "notes": "Scheduled-task registry: 'Download metrics config'->f_105e7ec0, 'Send optOutExempt events'->f_100b944c->f_101855c4(0x11095f88)->f_10372aa4, 'Upload Protobuf Events'->f_10254ee0, 'Send PlayerConfig report'->f_105eb7b8, 'Sync Sonos Business MSP'->f_105eb708."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10f9bc9c",
+     "notes": "Feature-config serializer descriptor rows: metricsConfigURL (type1), metricsConfigV2URL (type1), metricsService (type4) are document field names, not hosts."
     }
    ],
    "channels": "X-Sonos-MessageType: product-data-telemetry header; 'Diagnostic manifest submitted.'; 'Unable to report diagnostic submit status of %s to %s'; submitDiagnostics muse op + playerId,diagnostics,submitDiagnostics route",
@@ -220997,16 +221307,29 @@
     "naming": "event names parsed \"%[^/]/%[^/]\" (namespace/name), malformed rejected; fields locid, sys/run/updateID, uptime, report flags 0x%x, UsageMetrics"
    },
    "sdata_category_registry": ".sdata registry @0x11095d88: three fn-table ptrs (0x10fce6d8/0x10fce65c/0x10fce638 - callback blocks in the eSDK code region) followed by {name_ptr, u32=4} pairs naming channels {api, zc, download, audio, esdk}. 'esdk' is referenced by 10 fns in the eSDK region (0x10cf8-0x10d4c); 'api'->f_10331f34; 'download'->f_105a7e78/f_1068baa4; 'audio'->f_107d5b0c. Consistent with the libsonoseventreporter init_event_ctx/report_event channel registry; priority/weight word constant 4.",
-   "todo": [
-    "Established: concrete POST writer, URL-validation gate, selector14 override and row32 compiled HTTPS fallback msmetrics.ws.sonos.com/data/submit.aspx. Remaining: bind discovery f_1053f8c8 and config producers for ids14/0x25/0x30 to their exact settings/service objects and precedence; join event-client instances to their runtime selectors, consent policies and retry responses separately from diagnostic manifests. Start with f_1069d87c -> f_105402f0 -> f_1053faf8 and f_10556e10. Do not infer that metricsConfigURL/metricsConfigV2URL/metricsService adjacent serializer names are all host strings. This remains actionable static work; the runtime-only-host premise is withdrawn."
-   ],
    "resolved_findings": [
     "Binary event upload and diagnostic manifest submission are separate paths. The checked event client constructs an HTTP POST carrying product-data-telemetry; shared telemetry vocabulary and nearby diagnostics operations do not prove that these event uploads ride submitDiagnostics or share its exemption policy.",
     "Shipped zpMetricsConfigV2.xml describes category/uploader/level configuration, but that configuration is not proof of one universal event cadence, all diagnostics permission rules or a shared upload envelope. The old complete-pipeline/only-three-enabled category assertion is not certified by this endpoint trace.",
     "Event-client constructor f_1069d87c repeatedly requests endpoint selector14 with suffix /data/submit.aspx at0x10f03c34 through f_105402f0. This getter first tries runtime configuration f_10556e10(14,empty); if absent or unusable it falls back through f_1053faf8 using service row32 and scheme https. Row32 at0x10ee7100 supplies msmetrics and ws.sonos.com. With discovery override inactive and suffix/domain overrides empty, this yields compiled fallback https://msmetrics.ws.sonos.com/data/submit.aspx. It is not an unknown runtime-only host.",
     "f_1053fa2c rejects empty override strings and formatting failure/overflow. Fallback f_1053faf8 can first try discovery resolver f_1053f8c8, then uses the stride12 service table and configuration ids0x25/0x30; these can change the resolved endpoint. Its ordinary formatter at0x1053fbd0 is %s://%s.%s%s. A fallback host is not proof of the host selected on a running player.",
-    "Actual request writer f_1069d270 validates/parses the URL through f_10542d7c with http:// and https:// prefixes. Only the success path formats POST %s HTTP/1.1, HOST with port, connection-close, user-agent, application/octet-stream, payload length and X-Sonos-MessageType: product-data-telemetry using format0x10f03b4c. Invalid URL branches to0x1069d4c8 before that formatting. The former path anchor0x10f03c35 was one byte inside the actual literal, and0x10f0ce48 is only submit.aspx, not independently a full path."
-   ]
+    "Actual request writer f_1069d270 validates/parses the URL through f_10542d7c with http:// and https:// prefixes. Only the success path formats POST %s HTTP/1.1, HOST with port, connection-close, user-agent, application/octet-stream, payload length and X-Sonos-MessageType: product-data-telemetry using format0x10f03b4c. Invalid URL branches to0x1069d4c8 before that formatting. The former path anchor0x10f03c35 was one byte inside the actual literal, and0x10f0ce48 is only submit.aspx, not independently a full path.",
+    "Event-client instantiation is fully bound: protoEventUploaderClient (ctor f_1069d87c, vtables 0x10f0397c/0x10f03994, four embedded RReportUploader channels at +0x2c48..+0x3248) is created only when override slots 16 and 17 supply nonzero reporting intervals; created once at service-init (0x10199be8) and stored at root+0xa78. No pushed intervals means no event POST, so pushed config is a precondition, not just a host source.",
+    "The config producer ids are bound to override-table slots: 14=O_EVENTMETRICS_URL (metrics POST base), 37=O_SONOS_CLOUD_API_TEST_ENV (environment), 48=O_AUTOMATION_CLOUD_DOMAIN (domain override). Precedence: provider-pushed value if the slot is valid, else the caller default / compiled registry fallback. The sslauth alternate builder is not reachable for row 32 (flag 0x0c lacks 0x02).",
+    "Retry/consent joined: per-uploader attempts at +0x8 back off 300s then 86400s; +0x41/+0x43/+0x44 flags are written by client methods after settings-state checks; channel names map to {optOutExempt=1,other=2,config=3} via f_1055db1c; scheduled bindings reach UploadOptOutExemptEvents (0x11095f88 -> f_10372aa4), UploadProtoEvents (f_10254ee0) and DLMetricsCfg (f_105e7ec0). Diagnostic manifests remain a separate submitDiagnostics path.",
+    "metricsConfigURL/metricsConfigV2URL/metricsService resolved as feature-config serializer field keys (table 0x10f9bc84+), not host strings; the shipped config is /jffs/settings/zpMetricsConfigV2.xml plus conf copy and .meta."
+   ],
+   "event_client": {
+    "classes": "Two uploader-client classes exist: 'protoEventUploaderClient' (ctor f_1069d87c, primary vtable 0x10f0397c = {dtor 0x1069cd54, deleting-dtor 0x1069cdc4, POST writer f_1069d270, submit f_1069ce98}; secondary vtable 0x10f03994) and 'eventUploaderClient' (vtable 0x10f038e4). Both share one interface vtable tail (0x10544040, 0x10548534, 0x105485f8, 0x10540898, 0x10150f20, 0x10540e2c, 0x10150f30, 0x10150f48) from a common HTTP-client base. f_1069d87c constructs four embedded RReportUploader channels at +0x2c48/+0x2e48/+0x3048/+0x3248, each reached through forwarding thunks 0x1069d6f4-0x1069d73c.",
+    "instantiation": "f_10695bac (called once at 0x10199be8 inside service-init 0x101981f0) allocates the 0x138c8-byte client only when BOTH override-supplied intervals parse nonzero: slot 16 O_EVENTMETRICS_EVENT_REPORTING_INTERVAL and slot 17 O_EVENTMETRICS_CONFIG_REPORTING_INTERVAL (f_10556e10 + paranoid_atoi gates at 0x10695bec-0x10695c30). With no pushed values the client is never created, so the event POST cannot occur. The client is stored at service-root+0xa78 and registers scheduled-task callbacks (UploadCfgReport f_105eb7b8, AddRemoveSfbMSP f_105eb708, f_105eb628) on objects +0x2c40/+0x3248.",
+    "endpoint": "Selector 14 = override slot 14 O_EVENTMETRICS_URL read through f_1053fa2c at 0x10f03c34; empty/absent value falls back to f_1053faf8('https', registry row 32 = msmetrics/ws.sonos.com flag 0x0c) plus suffix '/data/submit.aspx'. The sslauth alternate builder f_1053f8c8 is only reachable for rows with flag 0x02; row 32 has 0x0c so discovery/sslauth does not apply to the metrics endpoint."
+   },
+   "upload_scheduler": {
+    "task_entry": "Scheduled-task rows bind 'UploadOptOutExemptEvents' -> thunk f_100b944c -> f_101855c4 on object 0x11095f88 (drains into +0x14d34 -> f_10372aa4, the entmt/entitlements cache refresh uploader), 'UploadProtoEvents' -> f_10254ee0, 'Download metrics config'/'DLMetricsCfg' -> f_105e7ec0, 'UploadCfgReport' -> f_105eb7b8, 'UploadCrashDump' -> f_100b9948.",
+    "drain": "Per-uploader wrapper 0x1055d2ec picks f_1055d024 (protobuf drain, logs 'Proto Event Upload Success/Failure') when flag +0x16c is set, else f_1055b9ec (legacy drain). f_1055b9ec gates on enable byte +0x43, buffer ptr +0xc and byte +0x44; it invokes the client through a marker check on vtable+0xc (f_1055d30c selects the trivial-marker class' +0x10 slot, otherwise calls +0xc directly = f_1069ce98 submit for the proto client).",
+    "retry": "Attempt counter at +0x8 drives the backoff: while attempts <=6 the isel-selected delay is 300 seconds; beyond that it is 86400 seconds (one day), logged as 'Failure (%u events, %zu bytes, attempt %u, retrying in %u seconds)'. Success logs 'wrote %zu bytes' and consumed buffer is reclaimed by memmove unless byte +0x41 marks it already drained. 'Nothing to submit' exits early. Byte +0x40 marks the in-flight state.",
+    "consent": "Channel taxonomy resolves names to kind codes in f_1055db1c ('optOutExempt'->1, 'config'->3, other->2; reverse table 0x10eeb760). Per-channel enable/suppress bytes +0x41/+0x43 are written by client methods via setters f_1055a65c/f_1055a66c after settings checks (f_10559134/f_10559254/f_10559274/f_10559284/f_10559264 states) inside the client setup at 0x1069db58-0x1069dbec. Positioning telemetry has its own user-facing control (v1/players/{playerId}/positioning/telemetryLevel) which is separate from these buffer gates."
+   },
+   "config_field_names": "metricsConfigURL, metricsConfigV2URL and metricsService are field names in the feature-config serializer descriptor table at 0x10f9bc84+ ({u32 type tag, char* name, u32} per row; types 1 for the URLs, 4 for metricsService, alongside enableExternalPartnerMode, zoneExperiments, preferredRPContainer, enableVoiceDataCollection). They are keys inside the feature-config document, not host strings; the shipped zpMetricsConfigV2.xml lives at /jffs/settings/zpMetricsConfigV2.xml and conf/zpMetricsConfigV2.xml with a .meta side file."
   },
   "trueplay_tuning": {
    "summary": "Trueplay room tuning stack: muse routes for discovery/presence/config/status (+setSelfTruePlay, resetDetectedSpeaker), x-rincon-sonarcal: OGG test-tone URIs played through the streamer (leader/testtone/complete_ht), versioned Trueplay SDK with compat fallback, etag-synced spectral/spatial tuning assets, per-driver RoomCalDelay params, satellite propagation via SetRoomCalibrationStatus, SelfTrueplay variant",
@@ -221086,6 +221409,41 @@
      "build": "86.10-80260",
      "address": "0x10ddb1dc",
      "notes": "paranoid_atoi success/negative rejection and unchanged r5 into f_10ddd5b0; spatial loader stat/pb_decode and1/2/3 outcomes at0x10dd8b18-0x10dd8c2c. State dispatcher0x1035af80-0x1035b118 inspected separately."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ddd5b0",
+     "notes": "addDelay: {channelType,delay} map at obj+0x80/+0x84, max 0xf, 'addDelay: channel limit reached' under 'trueplay_device_calibration'; called at 0x10ddb204/0x10ddb27c on receiver+0x7c/+0x78."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ddd2b8",
+     "notes": "addGain: pow(10.0,arg) then append to 0x14c-stride channel records at obj+0x188 with count +0x184, max 0xf; called at 0x10ddb154/0x10ddb290."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10ddb1e8-0x10ddb27c",
+     "notes": "Delay parse dispatch: atoi reject ('delay conversion to int failed for %s'), negative reject ('cannot apply negative delay for %s'), then addDelay on receiver+0x78 or +0x7c selected by flag r26."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10d96040/0x10d963c0",
+     "notes": "Apply loop iterates delay map, resolves channel index (f_10ddcd1c, +0x40 count) then f_10d96040 maps type->index (f_10d951b4), checks vcall+0x28 and sets via vcall+0x1c(index,delay); 'successfully/failed to set delay for channel type %zu'; guards 'device has %s'/'request exceeds max channels'/'all device channels not tuned'."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1035af1c/0x1035b120",
+     "notes": "State handler at vtable+0x14 {1:spectral,2:spatial,4:clear,else 'unhandled state %d','no calibration ID found'}; secondary vtable 0x10ebd2e4 = MI thunk adjusting this by -0xa78; '/xml/satellite_device.xml' satellite sibling at 0x1035b148."
     }
    ],
    "muse_routes": "v1/players/{playerId}/trueplay/{discovery,presenceDiscovery,presenceRate,config/{id},status} + household variants; ops detectSpeakers, detectSpeakerPresence, setSpeakerPresenceRate, get/setConfiguration, getTrueplayStatus, setSelfTruePlay, resetDetectedSpeaker",
@@ -221172,9 +221530,6 @@
    },
    "channel_config": "trueplay_channel_config_handler: channel-map assembly 'adding channel type: %zu, dir %zu, samplerate %u', 'num channels Device: %zu, Satellite: %zu', per-channel 'device channel: %i %s'/'satellite channel: %i %s'; direction enum {Direct,Indirect Array,Indirect Single Driver}; 'Populated Channel %s with direction %s'; guards 'unsupported paired multi channel device map channel', 'device setup in mono mode', clamp 'tuning_channel-count > max-channel-count, trueplay will operate with max-channel-count %zu'. trueplay_device_calibration/trueplay_device_properties (tpdpMutex) bounds: 'addGain: channel limit reached','addBiquadCoeffs: channel limit reached','addDelay: channel limit reached','calibration ID was truncated','Device UDN is larger than Trueplay Device Properties can store'",
    "apply_validation": "tuning-apply validation ladder (trueplay_tuning_handler + trueplay_manager): per-mode results '{Satellite ,}Spectral Tuning successfully applied','{Satellite ,}Spatial Tuning successfully applied','Spectral Tuning successfully applied'; per-mode failures '{Spatial|Spectral|Satellite Spatial|Satellite Spectral} Tuning: {device has %s|request has %s|request exceeds max channels|Not enough channels in sonar subsystem for channels on system|all device channels not tuned}'; sonar spatial guards 'Sonar Spatial does not contain enough channels to support post crossover {gain,delay}'; per-channel 'failed/successfully set coeffs for channel type %zu', 'failed/successfully set gain for channel type %zu', 'satellite: failed/successfully set gain for channel type %s to %f', 'satellite: failed/successfully set delay for channel type %zu', 'setCoeffs: request exceeds max biquad sections'; trueplay_utils calibration-id parse 'error while parsing trueplay version from calibration ID %s' + 'Trueplay Version %d.%d.%d.%d' + fmt '%d.%d.%d.%d_%4d-%2d-%2d_%2d-%2d-%2d' + 'Calibration ID is not valid %s with length %zu'; trueplay_manager legacy path: 'sonarEQ.xml' legacy tuning file, {'found legacy tuning','found existing tunings, ignoring legacy tuning','did not find legacy tuning file','failed to parse legacy tuning','loading calibrations after legacy conversion','successfully loaded calibrations','no channels in spatial/spectral tuning','number of device channels exceed TRUEPLAY_MAX_DEVICE_CHMAP_SIZE','unknown channel type','happ/settings/'}; trueplay_calibration_manager write path: 'trueplay_spatial_tuning.bin','Adding channel %s with delay %u','failed to write to %s: wrote %zu bytes of %zu'",
-   "todo": [
-    "Established: state1/2/4 spectral/spatial/clear dispatch, legacy nonnegative integer delay admission, and separate protobuf spatial-file loader outcomes. Remaining: follow f_10ddd5b0 and consumers of the calibration records to actual DSP parameter serialization and sample-rate/scaling operations; join state producers and service vtables before assigning original state names or model9 support. Start at0x10ddb1e8-0x10ddb27c and f_10dd8abc. Do not equate the text parser, protobuf asset and RoomCalDelay pointer table without a reachable join. This remains actionable static work, not merely parser-key domain data."
-   ],
    "resolved_findings": [
     "Resolved: mic capture path during tuning = the sonar-cal session plays x-rincon-sonarcal: test-tone URIs (leader/testtone/complete_ht) through the streamer while the mic feed is captured through the AS-tap (as-dspin-* stream taps) into the Trueplay SDK; discovery/presence/config/status ride the muse routes incl. setSelfTruePlay/resetDetectedSpeaker; per-driver RoomCalDelay params hold the applied delays.",
     "The named service verbs and gain/delay/coefficients vocabulary do not prove every model implements them. In particular, the former all-eight-stubbed-on-model9 inference and classification of f_10dd83f0/86f0/8ac0/8c38 as DSP consumers are withdrawn: checked f_10dd8ac0 is inside a calibration file loader, not a DSP writer.",
@@ -221183,8 +221538,23 @@
     "Resolved: the tuning-FSM state enum is bound at the 'trueplay tuning state changed to %d' handler (0x1035af1c): state 1 = apply calibration type 'spectral'; state 2 = apply calibration type 'spatial'; state 4 = 'clearing trueplay state' -> f_100e421c clear call; states {0,3,5+} hit 'unhandled state %d'. Both apply arms first fetch the calibration id via f_102a50ec(dp+0x1a8c, buf, 0x41) - return 2 = found ('found calibration %s' else 'no calibration ID found') - then vcall dp+0x1a80 vptr+0xa8 with {calibrationId=buf, name='dummy', type, 0}",
     "Trueplay vocabularies recovered: session states at 0x10faeed0 {READY=1, ACTIVE=2, CANCELED=3, ERROR=4, STIMULUS_PLAYBACK_COMPLETE=5, COMPLETE=6}; measurement types at 0x10faef4c {ANGLE=1, BEARING=2, DISTANCE=3, MAP=4, ACOUSTIC_SPACE_MAP=5, PORTABLE_SURROUNDS=6}; result types at 0x10faefd4 {NONE=1, SESSION_RESULTS=2, MEASUREMENT_RESULTS=3, MEASUREMENT_RAW_AUDIO=4}; stimulus/probe classes at 0x10faee08 {INAUDIBLE=1, MULTI_INAUDIBLE=2, INAUDIBLE_WIDE=3, MULTI_INAUDIBLE_WIDE=4, AUDIBLE=5, MULTI_AUDIBLE=6, BLE=7}.",
     "Concrete legacy delay parsing in f_10ddaeb0 reaches paranoid_atoi at0x10ddb1dc, rejects conversion failure and negative values, then passes the nonnegative integer unchanged as r5 to f_10ddd5b0 with destination selected from receiver+0x78/+0x7c. This boundary does not establish seconds, samples or DSP ticks. The seven RoomCalDelay names form pointer table0x10fe9de8; co-location alone does not join that table to this parser.",
-    "Spatial loader entry f_10dd8abc constructs trueplay_spatial_tuning.bin, checks stat, reads up to0x2000 and calls pb_decode with descriptor0x11029c98. Return values are1 for successful decode,2 for missing file,3 for decode failure. Thus this persisted spatial asset is protobuf, not established as the keyed textual calibration grammar. f_10dd83ec constructs/logs channel delay records; logging the integer with %u is not unit evidence."
-   ]
+    "Spatial loader entry f_10dd8abc constructs trueplay_spatial_tuning.bin, checks stat, reads up to0x2000 and calls pb_decode with descriptor0x11029c98. Return values are1 for successful decode,2 for missing file,3 for decode failure. Thus this persisted spatial asset is protobuf, not established as the keyed textual calibration grammar. f_10dd83ec constructs/logs channel delay records; logging the integer with %u is not unit evidence.",
+    "DSP join closed for delays: legacy text 'Delay*' values are atoi'd (nonnegative), keyed by channel type into the device-calibration delay map (+0x80 count, 15 max {type,int} pairs), and the apply loop replays them verbatim through f_10d96040 into SDK vcall+0x1c(channelIndex,delay). No unit conversion exists in anacapad; sample-rate/time-base semantics are inside the versioned SDK.",
+    "Gain scaling bound: f_10ddd2b8 (addGain) converts the parsed value with pow(10.0, x) at ingest and stores a double in the +0x184 gain/biquad map (15 x 0x14c-byte records keyed on channel type) - dB to linear happens in anacapad, biquad coefficients pass through unmodified.",
+    "Multiple-inheritance vtable pair explained: secondary vtable 0x10ebd2e4 enters the same methods through this-adjusting thunks (state handler via -0xa78 at 0x1035b120). Earlier 'model9' speculation is not supported: one class implements the interface twice through MI, and state names beyond {1=spectral, 2=spatial, 4=clear} are not statically recoverable since the producer lives behind the interface.",
+    "Parser-to-protobuf boundary confirmed disjoint: the spatial loader (f_10dd8abc, pb_decode desc 0x11029c98, 0x2000-byte read) and the legacy text parser (trueplay_calibration_parser, addDelay/addGain setters) feed the same device-calibration model through different ingest paths; text keys are not the protobuf field schema."
+   ],
+   "param_pipeline": {
+    "device_calibration": "trueplay_device_calibration objects (pair at receiver+0x78/+0x7c, e.g. per channel side) hold two keyed maps. Delay map: count at +0x80, up to 0xf {channelType,delay} pairs at +0x84, addDelay f_10ddd5b0 updates existing keys or appends, over limit logs 'addDelay: channel limit reached' under tag 'trueplay_device_calibration'. Gain/biquad map: count at +0x184, up to 0xf records of 0x14c bytes at +0x188 keyed on channel type, addGain f_10ddd2b8 stores a double at rec+4 computed as pow(10.0, arg) - the parsed dB value is converted to linear gain at ingest.",
+    "apply": "The tuning-apply loop (inside trueplay_tuning_handler) walks the delay map at receiver+0x84 with count +0x80: per {channelType,delay} pair it resolves the SDK channel via f_10ddcd1c (linear scan, +0x40 count) then calls f_10d96040(sdkHandler, delay, sdkDevice, channelType) which maps channel type to index (f_10d951b4, -1 rejects), checks a precondition through vcall+0x28, and performs the set through vcall+0x1c(channel-index, delay) on the SDK object; channel-type constraints apply for types !=0xd and !=3 (f_10ddda44 property read, +0xa0 count <2 gate). Success and failure log 'successfully/failed to set delay for channel type %zu' where %zu is the channel-type key.",
+    "units": "Delays move unchanged from text parse (paranoid_atoi, rejects conversion failure and negatives: 'delay conversion to int failed for %s'/'cannot apply negative delay for %s') through the map into the SDK setter - no sample-rate or time-base conversion exists in anacapad code; the unit contract lives inside the versioned SDK virtual interface. Gains are the one place anacapad scales: dB to linear via pow(10.0, x) at ingest, stored as a double.",
+    "spatial_file": "f_10dd8abc loads trueplay_spatial_tuning.bin, stats it, reads up to 0x2000 bytes and calls pb_decode on descriptor 0x11029c98; return 1 decode ok, 2 file missing, 3 decode failed - the persisted spatial asset is protobuf while the legacy textual parser (trueplay_calibration_parser) covers the spectral-coeffs format. The two encodings coexist and are not interchangeable."
+   },
+   "fsm_binding": {
+    "state_handler": "f_1035af1c handles 'trueplay tuning state changed to %d': state 1 applies type 'spectral' (0x10ebe074), state 2 'spatial', state 4 runs 'clearing trueplay state' into f_100e421c; other values log 'unhandled state %d'; a missing calibration id logs 'no calibration ID found'. It sits at vtable slot +0x14 on the FSM owner class.",
+    "vtables": "The class carries a primary vtable at 0x10ebc700 and a secondary vtable at 0x10ebd2e4 sharing the entire method layout {f_1035ad28, f_1035ed68, f_1035ad80, f_1035ae64, f_1035dea4, f_1035af1c, f_1035a3e8, f_10357ac0, f_1035a51c, f_1035c2ec, f_1035c314, f_1035dbd4, f_10350d5c}; the secondary thunk at 0x1035b120 adjusts this by -0xa78 before entering f_1035af1c - standard C++ multiple-inheritance layout on ONE class, not two implementations or model variants.",
+    "producer": "The state value is produced inside the interface implementation (consumers reach the handler only via the vtable slot; no direct callers exist in the binary), so original producer-side state names are a genuine static boundary: the binary exposes only the numeric states and their dispatch strings."
+   }
   },
   "update_machinery": {
    "summary": "manifest-driven update pipeline: update_manifest carries a base update URL + per-device target rows (udn, model, submodel, swgen, ver, URI, updateID) and a min auto-update version; user updates run manifest-download -> checkDevicesToUpdate -> launchUpdate; auto-update policy gated by R_AutoUpdatePolicy + R_CheckUpdateInterval + R_AutoUpdateWindowStart + autoUpdatesEnabled; timezone table lifecycle: 'no timezone data available (%d)','Unable to open (or copy) timezones file','Timezone url: %s','Downloaded new time zone table; version %u','Download of new time zone table failed: %d'; tone-dir ops 'downloadDir: %s','%s exists: %s','%s removed ok: %s','Failed to delete tone download folder %s','%s created ok: %s','Failed to create tone download folder %s'; update confirm form '<html><head></head><body>Serial: %s<br />%s %s<br /><form action=\"%s\" method=\"POST\"><label for=\"confirm\">Cod...' (POST confirm code page), 'next check for update in %us'; async_file_downloader domain: 'Failed to open file: %s','Failed to write file: %s','Unexpected response (%d) when downloading file (%s).','Cancelled download attempt of file (%s) from url (%s).','Download attempt of file (%s) failed from url (%s).'; cert manifest fields 'MinVersion: [%s]','PrevSWGenMinVersion: [%s]'; build string '86.10-80260-dev-secbuild-20260826'; min swgen bounds '58.0-00000'/'85.0-00000'; version formatters %u.%u.%u.%u-%u.%u, %hhu.%hhu-%u, %u.%u-%05u, <version>%s</version>/<version>%u</version>; 'CONNECT_ONLY is required','Failed to get recent socket'; manifest parser keys {sys_flags,auto_fromver_min,base_url,default_version,description_url,update_list,supported_models,submodel_min,submodel_max,fromver_min,fromver_max,milestone_index,model_list} + logs 'manifest: Setting system version=%s','manifest: System flags=0x%x','manifest: Setting descr=%s','manifest: Setting base version=%s','manifest[%zu]: Adding %d.[%d,%d] [%s,%s] 0x%x %s %s %u' + errors 'too many manifest entries!','Hardware manifest lists not in descending order.','Attempt to set swgen to an invalid value: %u','Input string too long. Returning VALUE_INVALID'; subscribeToUpdatesRequestHandler; UpdateItem emit attrs incl QuarantineReason/UUID/ZoneName/Icon/Configuration; NoReport",
@@ -230069,6 +230439,55 @@
      "address": "0x100fe918",
      "callsite": "0x100fea74 / 0x100fe970",
      "notes": "Unsigned depth guard10 follows cancellation and virtual predicate; caller passes incremented depth. Logging is not the guard itself; disabled logging still skips the deeper call."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1109cc70/0x1109cc9c",
+     "notes": "Share-index db singleton; title table at +0x2c with base+4 (f_109bc7e0), byte-length +8 (f_109bc7f0), count +0x88, lock +0xb8."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10102bd8",
+     "notes": "Binary search over sorted 40-byte records keyed on (File,Leaf) atom ids; 0xCCCCCCCD /40 for element count; reached via f_10106820 from the crawler and from reconciliation f_1010a304."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x11096238/0x102a0750/0x102a01c4",
+     "notes": "Atom store singleton: +4 char* array (id<0x40000), +0x18 hash sub-object, +0x14 collation; intern f_102a01c4; content compare f_100fffa0."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10109f54-0x10109fa8",
+     "notes": "Sort-comparator registration f_101096e0: bbfTitle->f_10101f4c, bbfFile->f_10100190, bbfTracknum->f_10100370 (numeric tiebreak on record+0x24)."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x100b8a10",
+     "notes": "/indexrepl handler: requires id=, parses x-rincon-range 'bytes=', emits x-rincon-last-update-device/x-rincon-content-version; pull side '%s/indexrepl' at 0x1010dc04; format-skip 'replication skipped: local fmt %u, remote fmt %u' at 0x101130c4."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1010fc78/0x10112700",
+     "notes": "Share-state adoption writes shares.xml ('<Shares LastUpdateDevice=.. Version=0>'), logs 'need to recover ix=%d ver=%d' (ix at owner+0xe8) and schedules recovery task f_10113e0c via f_101150a8; 'recovered ix=%d with ver=%d' on success; framework twin 'recovering ix=%d ver=%d' at 0x1066ba58."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10eadf3c-0x10eadfc4",
+     "notes": "Index-DIDL descriptor: element names dc:creator/upnp:albumArtURI, handlers f_102a0fd0..f_102a203c, pre-interned atoms ARTIST/ALBUMARTIST/ALBUM/GENRE/COMPOSER/TRACKS, URI prefixes x-file-cifs: and /getaa?u=%s&v=%u."
     }
    ],
    "itp_parser": {
@@ -230076,9 +230495,6 @@
     "persistence": "'Out of space processing playlist \"%s\", track %d'/'Out of space processing playlist \"%s\"','Ignoring playlist \"%s\", m_bIgnorePlaylist = %s','Ignoring unnamed playlist, m_bIgnorePlaylist = %s','Error writing playlist \"%s\", m_bOutOfSpace = %s','Skipping playlist: (%s)','unmatched playlistsEnd ','duplicate playlistsEnd','Write error: %s%s%s','Could not fit any of the pendingplaylists. Available slots: (%d) for file (%s)','Out of space processing file (%s)','There are no playlists under (%u) tracks (%s)','Requested %u tracks. Enqueued %u tracks from position %u / %u'.",
     "abstract_file": "Abstract-file store for playlists: 'Error writing offsets to abstract file','Failed to seek abstract file (errno = %d)','Abstract file track offset out of bounds','Failed to write URI atoms to abstract file','lookup resulted in path w/o share: %s','lookup resulted in path w/o share %zu times in a row','ignoring non-local track %s','Out of space processing track (%d - %s) - could not atomize'/'could not write','Failed to open file (%s)','Out of space processing file (%s%s%s%s) (%s)','Write error or invalid processing file (%s)'."
    },
-   "todo": [
-    "Established: bounded directory-depth guard and concrete40-byte title-array reader with seven atom-to-XML field bindings, track attribute, empty output and oversize skip. Remaining: follow the title-array constructors/writers feeding f_109bc7e0 and owner+0x88, bind fields+8/+0x18 and atom-store encoding, then join the crawler f_100feba4 to index-file serialization, version/recovery and /indexrepl readers. Start at exporter f_10107e50 and caller0x101082e0; do not equate this diagnostic XML with the disk or replication format. Scheduler and all persisted fields remain actionable static work, not an out-of-image index-store limitation."
-   ],
    "resolved_findings": [
     "The directory walker, title-array reader and XML export are concrete compiled paths. The earlier claim that iTunes parsing drives all scan cadence is not established; playlist import, crawl scheduling and index persistence must be traced separately.",
     "Engine decoded: shares persist as <Shares LastUpdateDevice AlbumArtistDisplayOption IndexSortOrder LastIndexChange> with per-share <Share Path/UserName/Password/VerifiedValidProtocol/Id> - the replicated sharelist. Protocol validation runs once per share (Successfully verified share uses supported protocol, skipping previously-validated, Removing share as it uses an unsupported protocol, Number of unsupported shares removed: %d with removalReason/numRemoved/sharesRemoved/musicShare fields). Add/remove validation taxonomy {share path already exists, maximum number of allowed shares, path subsumed by an existing share, Path is malformed, Access to share is denied, Unable to find given share}. Reindex request carries {ad, sf, fr, si, st, lc} args (request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)) and resort promotes to reindex (Turning resort request into full reindex). Index persistence is versioned with crash recovery (need to recover ix=%d ver=%d / recovered ix=%d with ver=%d, .bak file, processing index: source (%s:%u)); errors {Mounting failed, Local index storage error, Remote file share error, Indexing canceled, connection failure}. Coordinator election via us [%s|%u] vs them [%s|%u] comparison with Rejecting invalid sharelist; replication gates on format version (replication skipped: local fmt %u, remote fmt %u). Sort orders {R_BrowseByFolderSort, File, Tracknum}.",
@@ -230086,8 +230502,26 @@
     "A linked SMB library and the /indexrepl surface do not prove that the local index is absent or that its format is out of image. f_10107e50 reads a compiled title array and resolves stored atoms. Its XML output is a diagnostic/export representation, not proof of an identical persisted record. The earlier not-a-standalone-local-file boundary is withdrawn.",
     "f_10107e50, called at0x101082e0, writes <Titles>, checks count at owner+0x88 and obtains the title-array base through f_109bc7e0. Each selected entry is40 bytes: raw left-shift-by3 plus left-shift-by5 at0x10107f3c-0x10107f4c. It resolves atom words through f_102a0750, then escapes/copies each string with capacity0x400. The format at0x10e8964c binds record+0 File, +4 Leaf, +0x10 Album, +0x14 Artist, +0x1c Composer, +0x20 Genre and +0xc Description; record+0x24 supplies the unsigned track attribute. Fields+8/+0x18 are not named by this exporter.",
     "Empty count skips directly to </Titles>. Combined per-title formatting is bounded to4096 bytes; unsigned result-1<=4094 accepts positive lengths1..4095. Other results skip that title and may log Track data too large, then advance. The16-bit iterator truncation at0x10107f2c/0x101080b4 is a low16 mask, not division or right shift; this reader does not by itself establish the producer capacity.",
-    "Directory walker f_100fe850 tests the cancellation byte first, then calls its input object virtual+8. A successful object predicate leads to an unsigned incoming-depth check against10 at0x100fe918. Depth>10 takes the limit diagnostics and skips the processing call f_100feba4; depth<=10 reaches it at0x100fea74. The caller0x100ff2f0 explicitly increments the propagated depth before calling the walker. This is an actual crawl guard, not an iTunes XML stack-depth limit."
-   ]
+    "Directory walker f_100fe850 tests the cancellation byte first, then calls its input object virtual+8. A successful object predicate leads to an unsigned incoming-depth check against10 at0x100fe918. Depth>10 takes the limit diagnostics and skips the processing call f_100feba4; depth<=10 reaches it at0x100fea74. The caller0x100ff2f0 explicitly increments the propagated depth before calling the walker. This is an actual crawl guard, not an iTunes XML stack-depth limit.",
+    "Title table bound end to end: sorted 40-byte records {File+0, Leaf+4, unk-atom+8, Description+0xc, Album+0x10, Artist+0x14, unk-atom+0x18, Composer+0x1c, Genre+0x20, tracknum-u32+0x24} under the db singleton 0x1109cc70 (+0x2c table, +0xb8 lock); base via f_109bc7e0(+4), byte length via f_109bc7f0(+8), count at +0x88. Lookup is a binary search on (File,Leaf) atom ids (f_10102bd8, /40 multiply).",
+    "Atom store bound: interned-string singleton *(0x11096238) with id-indexed char* array at +4 (id<0x40000, f_102a0750), hash sub-object at +0x18, intern f_102a01c4, content-compare f_100fffa0; 'Conflicts' in <TrackSummary> counts hash collisions.",
+    "Fields +8/+0x18 narrowed to the two non-exported atom slots; candidate semantics albumArtist/albumArtURI (pre-interned 'ALBUMARTIST' atom and the /getaa URL builder exist; all other record slots are atoms except numeric tracknum+0x24, proven by the bbfTracknum comparator's +0x24 numeric tiebreak).",
+    "Crawler join: f_100feba4 (depth<=10) feeds the sorted table through f_10106820->f_10102bd8 and the rescan reconciliation f_1010a304 marks surviving (dir,leaf) pairs; persistence = 'trackinfo' via 'trackinfo.tmp' as DIDL-Lite (dc:title,res,dc:creator,upnp:albumArtURI, x-rincon-playlist/x-file-cifs res URIs) - the on-disk form, while f_10107e50's <Titles> output is a separate diagnostic dump under 'shareindex'.",
+    "Replication bound: /indexrepl (handler f_100b8a10) serves the serialized index per share 'id=' with x-rincon-last-update-device/x-rincon-content-version headers and bytes= ranges; the pull builds '%s/indexrepl' (0x1010dc04) and skips on format mismatch ('replication skipped: local fmt %u, remote fmt %u'); recovery is version-driven ('need to recover ix=%d ver=%d' schedules task f_10113e0c; 'recovered ix=%d with ver=%d')."
+   ],
+   "title_store": {
+    "layout": "The share-index database is the singleton at 0x1109cc70; its title table lives at +0x2c (0x1109cc9c) behind the lock at +0xb8 (held across the diagnostic dump by f_10988558/f_10988984). Table fields: +0x4 = array base (f_109bc7e0 returns it), +0x8 = byte length of the array region (f_109bc7f0; element count = value/40 via the 0xCCCCCCCD multiply), +0x88 = element count (the exporter's loop bound). Records are 40 bytes of ten u32 slots: +0 File atom, +4 Leaf atom, +8 atom (not exported), +0xc Description atom, +0x10 Album atom, +0x14 Artist atom, +0x18 atom (not exported), +0x1c Composer atom, +0x20 Genre atom, +0x24 track number as a plain u32. Inferred: the two non-exported atom slots are albumArtist and albumArtURI - 'ALBUMARTIST' is pre-interned alongside ARTIST/ALBUM/GENRE/COMPOSER/TRACKS at 0x10eae03c-0x10eae070 and album art is served through the '/getaa?u=%s&v=%u' URL builder rather than printed in the dump.",
+    "ordering": "The array is kept sorted on the (File,Leaf) atom-id pair: f_10102bd8 performs a binary search (midpoint = (lo+hi)>>1, entries at idx*40) comparing entry+0 then entry+4 against the needle; ingest calls it through thunk f_10106820 from the crawler at 0x100ff464 and from reconciliation f_1010a304 at 0x1010a47c. Inserts preserve the same order.",
+    "atoms": "Strings are interned in the atom store singleton at *(0x11096238): +4 = char** id-indexed pointer array, resolver f_102a0750 rejects ids >= 0x40000 and NULL slots, intern f_102a01c4 assigns ids, +0x18 = hash sub-object (f_102a0b80 maps strings to slots; the 'Conflicts' counter in <TrackSummary> measures hash collisions), +0x14 = collation key passed to f_10906e2c/f_10906404 string compares. Atom ids compare by content through f_100fffa0 (same-id fast path, else resolve both and strncmp by length). 'atomtable'/'Call made with NULL table' guards a missing store.",
+    "sort_views": "Named browse-sort comparators register through f_101096e0 in init: 'bbfTitle'->f_10101f4c, 'bbfFile'->f_10100190, 'bbfTracknum'->f_10100370. Each takes two u16 record indexes, fetches both 40-byte records, compares primary atoms by content (f_100fffa0), and bbfTracknum breaks ties on record+0x24 numerically - confirming +0x24 as the track number. 'initialization of sorts failed' marks sort-view setup failure at 0x10103040/0x101079e0."
+   },
+   "persistence_replication": {
+    "crawler_join": "Walker f_100fe850 checks the cancel byte then calls the item predicate; depth <= 10 enters f_100feba4, which percent-decodes the path, splits dir/leaf (strrchr '/'), classifies the file via f_1014743c, builds 'x-file-cifs:' URIs, iterates directory entries (f_104668e8/f_10466948/f_10466978), skips dot-entries (cmpwi 46) and '.sparsebundle', rejects 'Unplayable file'/'Inaccessible file', recurses via f_100fe850 at 0x100ff2f0, and records items through f_10106820 into the sorted table. Reconciliation pass f_1010a304 interns (dir,leaf) atoms per scan record (0x18 stride, count cap r27+0x1008), searches f_10102bd8, and bumps a seen counter at record+0xc on hits so stale entries can be pruned.",
+    "on_disk": "The persisted index file is 'trackinfo' written through 'trackinfo.tmp' (0x10109ab8); the share list persists as 'shares.xml' ('<Shares LastUpdateDevice=\"%s\" Version=\"0\">') plus a '.version' side file (0x10112300). The serialized form is a DIDL-Lite document - handlers bind 'dc:title,res', 'dc:creator', 'upnp:albumArtURI' (table at 0x10eadf3c-0x10eadfa8), 'x-rincon-playlist:'/'x-file-cifs:' res URIs and 'r:displayTitle' - distinct from the diagnostic <Titles> dump produced by f_10107e50 for 'shareindex'.",
+    "version_recovery": "f_1010fc78 adopts new share state (swaps the incoming object pair into owner+0xc4/+0xc8, frees the old via f_100c5050, persists shares.xml) and when the stored index/version mismatch demands it logs 'need to recover ix=%d ver=%d' (ix = owner+0xe8), sets flag +0x104 and schedules recovery task f_10113e0c through f_101150a8 with state at +0x4dc8/+0x4dcc/+0x4dcd. Success logs 'recovered ix=%d with ver=%d' at 0x10112700; the file-replication framework logs the same pair as 'recovering ix=%d ver=%d' (0x1066ba58) with its own 'need to recover' at 0x1066c2f0 and 'recovered' at 0x1066a440.",
+    "replication": "GET /indexrepl is served by f_100b8a10: requires query 'id=' (missing returns 0x194), honors 'x-rincon-range' 'bytes=' partial fetch, and answers with headers 'x-rincon-last-update-device' and 'x-rincon-content-version'. The pull side builds 'http://%s/indexrepl' at 0x1010dc04; processing logs 'processing index: source (%s:%u)' at 0x10112f54 and refuses mismatched formats with 'replication skipped: local fmt %u, remote fmt %u' at 0x101130c4 - so the on-wire unit is the serialized index keyed by share id with a content-version header, not the diagnostic XML.",
+    "scheduler": "Scan lifecycle strings bind the scheduled work: 'request reindex (ad:%d sf:%d fr:%d si:%d st:%d lc:%s)', 'Turning resort request into full reindex', 'initial scan for new files failed', 'Would have performed scheduled reindex but shares unchanged', 'processing index complete (c:%d i:%d f:%d lc:%s) - %u', 'skipping commit attempt: m_bCommitted (%d), m_bWait (%d), m_bTerminate (%d)', 'commit %u' at 0x1011854c, and 'initialized index, scheduling advertise' at 0x10113a9c after load."
+   }
   },
   "user_update": {
    "name": "UserUpdateScheduler: user-initiated HH update",
@@ -236871,16 +237305,103 @@
      "build": "86.10-80260",
      "address": "0x1053fd18",
      "notes": "Explicit routing-mode writer; configuration source still unresolved."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10086df4",
+     "notes": "Static constructor initializing all 68 override slots {kind,name,NULL,svcid,0} and the 'RSystemOverrides' mutex at table+0x550; kind values show the sparse global enum (gaps at 8,10..16,18)."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x105570a4",
+     "notes": "Sole writer of entry+8/+0x10: provider->vtable+8(name) -> malloc 0x401 copy, valid=1, '%s override - %s'; failure clears valid and logs '%s override cleared'."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10557388",
+     "notes": "Apply-all/per-name iterator under table mutex; skips kind==39 and unresolved svcids; calls f_105570a4 with provider *(0x1109738c)+0."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x105572e0/0x10199190",
+     "notes": "Singleton provider install: f_10809f0c(4) holder -> f_10557218 stores provider, registers 'overrides' section, applies all; published at 0x1109738c; provider arg = init-root+0x29180."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076f590",
+     "notes": "Overrides fetch task: sleep loop on registry state !=2, POST x-www-form-urlencoded (0x800 buf), on 200 f_1076f2ec parse then f_10557388(0); 'Success' reply at 0x1076f6a0."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1076f2ec",
+     "notes": "Response scraper extracting 'csrfToken','statement','button','delete'; 'devmode' probe via f_1054c1b8; 'Statement removed.' log on delete path."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10647448/0x1053fd0c",
+     "notes": "Routing byte source: isel r3 = (regcert ctx+0x9c != 0) in regdevicecert.cxx func 0x106472f4; f_1053fd0c stores it at 0x110a4a28."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x1053fdb0",
+     "notes": "Lechmere gate: byte-gated suffix match on 'lechmere.<env>.ws.sonos.com'; callers 0x1056be7c (alt request fn 0x110a5668), 0x1056c310, 0x10646e74, 0x10646f28, 0x100b8d0c, 0x1057ac60."
+    },
+    {
+     "type": "firmware",
+     "binary": "opt/bin/anacapad",
+     "build": "86.10-80260",
+     "address": "0x10540460",
+     "notes": "Update URL builder: override slots 39/40 -> '/firmware/swgen/%u/latest/' -> f_1053faf8('https',row31); sibling thunk 0x10540600 bakes ('http',row33 setup)."
     }
    ],
-   "todo": "Residual: bind the environment/domain override writers and global routing-mode setter f_1053fd0c to their configuration sources and service-wrapper callers, including duplicate-prefix registry slots. The 34 compiled {prefix,domain,flags} rows and flag-to-template selection are recovered; per-deployment binding cannot be declared config-only until those writer/caller paths are traced.",
    "resolved_findings": [
     "Registry location corrected: f_1053faf8 computes index*12 at 0x1053fb60-0x1053fb70 and uses table 0x10ee6f80, loading {prefix pointer at +0, domain pointer at +4, flag byte at +8} at 0x1053fb88-0x1053fb90. There are 34 rows, indices 0..33, independently bounded by the hostname-check loop at 0x1053fedc-0x1053fef8. The old evidence address 0x10ee7118 is only sslauth.sonos.com. Thus service-specific routing is partly compiled data, not wholly deployment configuration.",
     "Complete row census, notation index:prefix/domain/flagByte, W=ws.sonos.com, S=sonos.com, E=empty domain: {0:account/W/00,1:thor/E/02,2:ab/W/00,3:iap/W/00,4:api/W/00,5:api/W/02,6:clientdata/W/02,7:crash-upload/W/00,8:thor/E/02,9:feature-config/W/02,10:music-history/W/02,11:keys/W/00,12:lechmere-v1/W/02,13:music-accounts/W/02,14:myaccount/W/00,15:oauth/W/02,16:player-device-files-ab/W/02,17:sve/W/02,18:product-settings/W/00,19:recommendation/E/02,20:registration/W/02,21:service-catalog/W/00,22:feature-config/E/02,23:sonos-nonprod/apigee.net/04,24:smart-play/W/02,25:system-api/S/04,26:system-api-diagnostics/S/04,27:system-api/S/02,28:transfer/W/0c,29:translate/W/02,30:universal-search/W/02,31:update/S/04,32:msmetrics/W/0c,33:setup/W/18}. These are routing rows, not necessarily unique service APIs. Duplicate prefixes must retain their distinct indices and flags rather than being collapsed into a name-only map.",
     "Generic template selection positively traced in f_1053faf8: configuration reader f_10556e10 is called with slot 0x25 for environment and slot 0x30 for domain override at 0x1053fb80-0x1053fba4. Empty environment emits %s://%s.%s%s, using the override domain when nonempty or the row domain otherwise (0x1053fbb4-0x1053fbe8). A nonempty domain override also selects that form when an environment is set (0x1053fc44-0x1053fcbc). Otherwise nonempty environment uses %s://%s%c%s.%s%s at 0x1053fc94, with period when flag 0x04 is clear and hyphen when set; flag 0x08 replaces the environment with literal test. Flag 0x10 instead chooses %s://%s.%s/%s%s at 0x1053fcec, again forcing environment test when 0x08 is set. Scheme and suffix are caller arguments, not per-service hard-coded https in this generic function. GNU e500 isel decoding at 0x1053fc6c confirms the period/hyphen selection.",
     "Alternate routing path: f_1053faf8 first reads global byte 0x110a4a28. If zero it calls f_1053f8c8, which requires row flag 0x02 at 0x1053f8e0-0x1053f8e8 before entering f_1053f8ec. With no environment and no slot-0x31 domain override, the alternate emits https://prefix.sslauth.sonos.com plus suffix. Nonempty environment and empty override instead emit https://prefix-env.lower-sslauth.sonos.com plus suffix (0x1053f9cc-0x1053f9ec). A nonempty slot-0x31 override takes precedence and uses https://prefix.override plus suffix. If the alternate returns null, the generic path is attempted; a nonzero global byte bypasses alternate routing. Both builders return null on nonpositive snprintf result or length >= output capacity (0x1053f990-0x1053f99c and 0x1053fbec-0x1053fbf8). No claim is made that one branch applies to every deployment.",
-    "Runtime configuration is a real input, but its provenance is not yet closed. f_10556e10 indexes a mutable twenty-byte slot array at 0x110a4e90, reads active byte +0x10 and, only when active, returns the pointer at +8; otherwise it returns its caller-provided default (0x10556e54-0x10556e80). f_1053fd0c writes the global routing-mode byte at 0x110a4a28. O_SONOS_CLOUD_API_TEST_ENV is referenced at 0x100872f4, and a Setting cloud env to %s logger at 0x1077687c, but neither name alone proves which of the above slots or mode it controls. Those writer paths and wrapper-to-row bindings are the precise remaining investigation, not a claim that no compiled per-service environment policy exists."
-   ]
+    "Runtime configuration is a real input, but its provenance is not yet closed. f_10556e10 indexes a mutable twenty-byte slot array at 0x110a4e90, reads active byte +0x10 and, only when active, returns the pointer at +8; otherwise it returns its caller-provided default (0x10556e54-0x10556e80). f_1053fd0c writes the global routing-mode byte at 0x110a4a28. O_SONOS_CLOUD_API_TEST_ENV is referenced at 0x100872f4, and a Setting cloud env to %s logger at 0x1077687c, but neither name alone proves which of the above slots or mode it controls. Those writer paths and wrapper-to-row bindings are the precise remaining investigation, not a claim that no compiled per-service environment policy exists.",
+    "Override-table provenance closed: the 68x20 override slot array at 0x110a4e90 is statically initialized by func 0x10086df4 (mutex 'RSystemOverrides'; per-slot {kind,name,NULL,svcid,0}). The only writer of values is f_105570a4, driven by a provider object's vtable+8 name-getter; the singleton provider wrapper is installed by f_105572e0 from the service-init root object at +0x29180. kind is a sparse global key enum (gaps 8,10..16,18 owned by other tables); kind 39 exempts O_SLOW_WIFI_REPORTING_INTERVAL from application.",
+    "Override application trigger bound: HTTP task f_1076f590 waits on registry state, POSTs x-www-form-urlencoded, and on 200 parses the devmode statement response (f_1076f2ec scraping csrfToken/statement/button/delete + 'devmode' probe) then applies every slot; '%s override - %s' and '%s override cleared' are the resulting logs. Values are therefore deployment-pushed through the devmode statement exchange, not local configuration.",
+    "Routing-mode byte bound: 0x110a4a28 = (regdevicecert context+0x9c nonnull) written once per regcert refresh by func 0x106472f4; it gates the 'lechmere.<env>.ws.sonos.com' suffix test in f_1053fdb0 used by six client/response paths including the alternate request fn at 0x110a5668 and regcert 401/403/412 handling.",
+    "Service-wrapper index bindings bound: registry row indices are baked in tail-call wrappers of f_1053faf8 (rows 7,21,25,27,28,31,32,33) and override slot indices in f_1053fa2c callsites (20,25,27,28,32,39,40); the update builder f_10540460 chains override slots 39/40 onto registry row 31 with '/firmware/swgen/%u/latest/'. Per-deployment rows remain overridable data but every code-side index is now bound."
+   ],
+   "override_slot_table": {
+    "layout": "68 slots x 20 bytes at 0x110a4e90, guarded by the 'RSystemOverrides' mutex at table+0x550. Entry = {u32 kind at +0, char* name at +4, char* malloc'd value at +8, i32 svcid at +0xc, u8 valid at +0x10}. A static constructor (func 0x10086df4, registered through the startup init path) fills kind and name for every slot and sets value=NULL, valid=0.",
+    "kind_field": "kind is a sparse global override-key enum, not the table index: values written are 0..7, then 17,9,19..76 with gaps at 8,10..16,18 whose keys are owned by other modules' override tables. kind==39 (slot O_SLOW_WIFI_REPORTING_INTERVAL at index 30) is the sentinel the scan loops test: such entries are treated as already-resolved and are never provider-applied.",
+    "names": "idx0 O_SUBMIT_DIAG_URL,1 O_SUBMIT_AUTO_DIAG_URL,2 O_INITIATE_DIAG_URL,3 O_DISABLE_SUBMIT_AUTO_DIAG,4 O_DIAG_SERVER_INSTRUCT_URL,5 O_MUSIC_SERVICE_URL,6 O_CUSTREG_URL,7 O_CUSTREG_REGSW_URL,8 O_UPDATE_MSG_URL,9 O_USAGE_TRACKING_OPTIN_URL,10 O_PRODUCT_EVENT_LOGGING_URL,11 O_USER_ENTRY_URL,12 O_BETAPROGRAM_URL,13 O_FIRMWARE_UPGRADE_LOGGING_URL,14 O_EVENTMETRICS_URL,15 O_EVENTMETRICS_CONFIG_URL,16 O_EVENTMETRICS_EVENT_REPORTING_INTERVAL,17 O_EVENTMETRICS_CONFIG_REPORTING_INTERVAL,18 O_DZ_STREAMED_MESSAGES_URL,19 O_DZ_TRANSFERO_URL,20 O_MUSIC_SERVICE_CATALOG_URL,21 O_SONAR_SERVER_URL,22 O_SONAR_CALIBRATION_ID,23 O_SONAR_GAIN_ID,24 O_SONAR_DATA_UPLOAD_URL,25 O_CLOUD_API_BASE_URL,26 O_SETUP_SERVER_URL,27 O_HH_ASSOCZPUDN,28 O_TEMPERATURE_REPORTING_INTERVAL,29 O_IR_DB_WS_IRCODE_URL,30 O_SLOW_WIFI_REPORTING_INTERVAL,31 O_SERVICE_OUTAGE_SERVER_URL,32 O_HRMETRICS_URL,33 O_HRMETRICS_INTERVAL,34 O_TRACKPLAYBASE_URL,35 O_SPOTIFY_DC_SID,36 O_DC_DESCRIPTOR_BASE_URL,37 O_SONOS_CLOUD_API_TEST_ENV,38 O_HISTORY_SERVICE_URL,39 OnlineUpdateBaseURL,40 O_UPDATE_SERVER_URL,41 O_AMAZON_LWA_URL,42 O_AMAZON_PCO_URL,43 O_AMAZON_PROFILE_URL,44 O_AMAZON_VOICE_SERVICES_ENDPOINT,45 O_AMAZON_ALEXA_SKILL_ENABLEMENT_BYPASS,46 O_WAKE_WORD_SERVER_URL,47 O_VOICE_WELCOME_BASE_URL,48 O_AUTOMATION_CLOUD_DOMAIN,49 O_AUTOMATION_CLOUD_DOMAIN_MUTUAL_SSL,50 O_AMAZON_SKILL_STAGE_ENV,51 O_UPNP_CONTROL_REQ_EVENT_BITS,52 O_VOICE_LOCALES_SERVER_URL,53 O_VOICE_LOCALES_MAX_DOWNLOAD_INTERVAL_SEC,54 O_VOICE_LOCALES_SKILL_GROUP,55 O_VOICE_GOOGLE_ACTION_ENV,56 O_CLOUD_CONFIG_BASE_URL,57 O_MINIDUMP_SUBMIT_URL,58 O_AMAZON_SHOW_MSP_EDUCATION,59 O_GOOGLE_SHOW_MSP_EDUCATION,60 O_CRASH_UPLOAD_SUBMIT_URL,61 O_VOICE_CLIENT_INT_RESPONSE_CODE,62 O_ZONE_EXPERIMENTS,63 O_UNIVERSAL_SEARCH_URL,64 O_HELPSHEET_SERVER_URL,65 O_SVE_SERVICES_URL,66 O_SVE_TTS_URL,67 O_TIMEZONE_URL",
+    "service_binding": "+0xc svcid selects a backing object in the service registry at 0x11097374 via f_1054bdc8; -1 marks none. Observed values: 7 (default for most slots), 8, 9, 27 (idx39 OnlineUpdateBaseURL), 49 (idx62 O_ZONE_EXPERIMENTS). f_10556ef0(id) reports resolution: kind==39 counts as resolved without a service lookup.",
+    "readers": "f_10556e10(id,default): returns entry+8 when +0x10 valid else the caller default. f_10556ec8(id): returns entry+4 (the name). f_10556f9c(id): returns the valid byte. The environment slot consumed by f_1053faf8 is index 37 O_SONOS_CLOUD_API_TEST_ENV; the domain-override slot is index 48 O_AUTOMATION_CLOUD_DOMAIN; slot 14 O_EVENTMETRICS_URL and slot 39 OnlineUpdateBaseURL are the telemetry and update overrides."
+   },
+   "override_writer_chain": {
+    "writer": "f_105570a4(entry,provider) is the only writer of entry+8/+0x10: it calls provider->vtable+8(entry+4 name, buf@0x401) and on success stores a fresh 0x401-byte copy with valid=1 (logging '%s override - %s'); on failure it clears valid, truncates the stored value and logs '%s override cleared'. There is no local-file or settings-write path into the table.",
+    "apply": "f_10557388(name-or-0) iterates the table under the mutex: for each entry whose kind!=39 and whose svcid resolves, it calls f_105570a4 with the singleton provider *(0x1109738c)+0. Callers: the HTTP task 0x1076f590 (name=0, applies all) and 0x1066b394 (a service-update path).",
+    "provider": "f_105572e0 installs the singleton once: allocates a 4-byte holder via f_10809f0c(4), f_10557218 stores the provider at holder+0, registers the 'overrides' log section and applies all slots immediately; holder is published at 0x1109738c. Sole caller: the monolithic service-init function 0x101981f0 at 0x10199190, passing the provider sub-object at root+0x29180 (computed as addis r28,r3,3 + addi -0x6e80).",
+    "trigger": "f_1076f590 is the fetch-and-apply task: it spin-sleeps until service-registry state f_1054be48(0x11097374)!=2, POSTs an application/x-www-form-urlencoded body (0x800-byte buffer), and on HTTP 200 parses the response with f_1076f2ec then applies all overrides and answers 'Success'. f_1076f2ec scrapes 'csrfToken','statement','button','delete' fields and probes 'devmode' via f_1054c1b8, i.e. the payload is the devmode statement/consent exchange; a sibling handler at 0x1076f7f4 logs 'Statement removed.' on the delete path. Entry is the HTTP-client state callback f_1076f6bc (obj+0==1 + content-type check)."
+   },
+   "routing_mode_byte": {
+    "setter": "f_1053fd0c stores its argument byte at global 0x110a4a28. Sole caller: func 0x106472f4 in '../anacapa-1.0/oc/zone/common/regdevicecert.cxx' at 0x1064744c, which passes isel-selected (context+0x9c != 0), i.e. the byte means a device-certificate context sub-object is present after the regcert refresh sequence.",
+    "reader": "f_1053fdb0 reads the byte; when set and its hostname argument suffix-matches 'lechmere.<env>.ws.sonos.com' (env = f_10556e10 slot 37 default 'prod') it returns true. Six callers: f_1056be7c gates an alternate request path (global fn 0x110a5668) for lechmere hosts, 0x1056c310 is a sibling HTTP helper, 0x10646e74 and 0x10646f28 alter regcert response handling for 401/403/412, 0x100b8d0c and 0x1057ac60 are additional client paths. The byte therefore marks test-environment request routing, not a second public-API registry."
+   },
+   "service_wrapper_bindings": {
+    "shape": "Per-service URL getters are compiled wrappers of two forms: a direct tail-call f_1053faf8(out,len,scheme,row) baking {scheme,registry row}, or an override-first f_1053fa2c(out,len,slot,path) that snprintf's '%s%s' when the override is nonempty and falls back to the registry form.",
+    "bound": "f_10540460 builds update URLs: base from override slot 39 (OnlineUpdateBaseURL), and the '/firmware/swgen/%u/latest/' path from override slot 40 (O_UPDATE_SERVER_URL), falling back to f_1053faf8('https',row31 update). 0x10540600 forces scheme 'http' for row33 setup. Other baked rows seen in tail calls: 21 service-catalog, 25 system-api(0x04), 27 system-api(0x02), 28 transfer, 32 msmetrics, 7 crash-upload. Override slots baked in f_1053fa2c callsites: 25 O_CLOUD_API_BASE_URL, 20 O_MUSIC_SERVICE_CATALOG_URL, 27, 28, 32, 39, 40. Duplicate prefixes keep distinct rows because the flag byte changes the environment-subdomain template (rows 25 vs 27 system-api; rows 4 vs 5 api; 9 vs 22 feature-config)."
+   }
   },
   "ssl_sessions": {
    "name": "Persisted TLS client session cache (standard and household partitions)",
@@ -249869,9 +250390,6 @@
   "bin_mdputil": {
    "name": "mdputil",
    "summary": "Reads factory identity/configuration, stages command-line edits, verifies manufacturing-bundle signatures and erases/writes manufacturing flash. The512-byte identity page and4096-byte second page have distinct layouts. CLI, repair, signature inputs and flash failures are traced; driver-side serial/check commands, geometry and remaining hardware-field consumers still require work.",
-   "todo": [
-    "Residual: identify the live flash backend installed in the kernel MTD callback slot +0xa4 and decode its device-command parameters, including whether/how it changes the requested serial-data extent. The matching kernel ioctl dispatcher and user-copy sizes are now located. Kernel sysword consumers, remaining manufacturing tail fields and individual manifest hardware-code consumers still require tracing."
-   ],
    "artifacts": [
     "bin/mdputil"
    ],
@@ -249885,7 +250403,11 @@
     "/etc/Configure line74 invokes mdputil-B. At0x10001190 the option can check existing MDP2 through/dev/chk, then requests a forced write when original old-version>6. Otherwise it exits early unless-w has already appeared. It is not merely a printing option.",
     "Application MDP flag cleanup has the concrete predicate and bit effects in application_flag_consumer. It clears printk/console bits and sets marker0x20;it is not an inverted capability predicate.",
     "Kernel-side ioctl dispatch located by decompressing the shipped package/86.10-80260-1-9-kernel.uImage gzip payload after its 64-byte uImage header. Addresses here are offsets in that decompressed raw image, not asserted ELF VAs. At raw+0x1aea38-0x1aea44 the dispatch compares request 0x80244d23, reaching raw+0x1aec40; at raw+0x1aed6c-0x1aed74 it compares 0x40044d24. The latter selects device-structure+0x184 as source and copies four bytes to the user argument at raw+0x1aed94-0x1aed9c. This binds the library first ioctl output to a stored device word, not a direct chip command issued by that arm. The exact device initialization producing this word still needs tracing.",
-    "For 0x80244d23 the kernel copies a 36-byte request from the user argument into stack+8 at raw+0x1aec58-0x1aec68, rejects a missing callback at device+0xa4 with -95 at raw+0x1af45c, allocates the requested first-word byte count, and checks request words at +8 and +0x14 against 8 at raw+0x1aec94-0x1aecac. The accepted path calls device+0xa4 with (device, local request, allocated buffer) at raw+0x1af324-0x1af338, propagates a nonzero result, and uses the request first word as the return-copy extent at raw+0x1af354 onward. Thus the 36-byte ioctl header size is not itself the serial-data extent. The library hal_flash_read_fsn requests 256 bytes and separately reports/extracts smaller serial lengths. Backend identity and command-field meanings are not established merely by matching ioctl constants, and remain open rather than claiming a complete kernel trace."
+    "For 0x80244d23 the kernel copies a 36-byte request from the user argument into stack+8 at raw+0x1aec58-0x1aec68, rejects a missing callback at device+0xa4 with -95 at raw+0x1af45c, allocates the requested first-word byte count, and checks request words at +8 and +0x14 against 8 at raw+0x1aec94-0x1aecac. The accepted path calls device+0xa4 with (device, local request, allocated buffer) at raw+0x1af324-0x1af338, propagates a nonzero result, and uses the request first word as the return-copy extent at raw+0x1af354 onward. Thus the 36-byte ioctl header size is not itself the serial-data extent. The library hal_flash_read_fsn requests 256 bytes and separately reports/extracts smaller serial lengths. Backend identity and command-field meanings are not established merely by matching ioctl constants, and remain open rather than claiming a complete kernel trace.",
+    "device+0xa4 backend resolved: the mtdchar call goes through the vnb mtd slot whose default is a thunk (0x1b9de8) that tail-calls mtd->priv(+0x198)->+0xa4; the hardware probe at file 0x264da8 installs the concrete backend fn 0x1b9bd4. The backend claims the chip, programs the IFC command descriptor (0x44000000 header, one <<24-shifted entry per request sequence byte), waits, and copies out min(req[0],0x100) bytes, so the serial-data extent is clamped to 256 bytes. A device-word gate priv+0x184==497 runs an extra select/prepare pair first. The concat mtd layer (0x1acd98) fills +0xa0 with 0xc01ac9f8, a per-sub-chip dispatch loop.",
+    "sysword consumers resolved: 'sysword' is a chk.ko-local 4-byte .sbss global touched only by chk_ioctl's cmd-2 store and cmd-1 read; it is not exported and has no other kernel consumer. The earlier 'undefined kernel-global' note is corrected.",
+    "Manifest hardware-code consumers resolved by absence: the 0x7a61670e magic exists only as a computed constant inside the mdputil printer, and only mdputil reads/writes the +0xb4 selection bytes; the kernel, libsonos-mdp, upgrade and all other shipped code leave the area alone, so the per-code meanings are defined by the manufacturing spec, not by any shipped consumer.",
+    "Manufacturing tail resolved: no field reads exist between DCOFS(+0x100) and CRC(+0x1fc); +0x104..+0x1fb is CRC-covered reserved space. New bound fields: HWFEATURES=+0x68 gated on FLAGS&4 with named bits (ATH_AR2414_WIFI..ALT_ANTENNAS), byte+0x6c, version+0x70, MDP2-magic compare at +0x74, +0x78/+0x7c/+0x84/+0xa0 conditional prints."
    ],
    "binary_identity": {
     "binary": "bin/mdputil",
@@ -250497,6 +251019,62 @@
      "binary": "package/86.10-80260-1-9-kernel.uImage",
      "build": "86.10-80260",
      "notes": "Decompressed payload offsets: 0x1aed6c matches 0x40044d24 and copies device+0x184; 0x1aec40 copies 36-byte request for 0x80244d23; 0x1af338 dispatches device callback+0xa4."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1bbfc4-0x1bc220",
+     "notes": "vnb mtd clone (vnb_initMtd region): copies template fields and fills empty method slots with defaults; +0xa4 default 0xc01b9de8, +0x88 default 0xc01b9df8, name 'Virtual Nand Block' stored at mtd+0x30."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1b9de8",
+     "notes": "vnb +0xa4 thunk: lwz r3,0x198(r3); lwz r9,0xa4(r3); bctr - forwards mtd->a4 calls to priv->a4."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x26543c",
+     "notes": "Hardware probe (func 0x264da8, polls device list 0xc039c108) stores backend fn 0x1b9bd4 into struct+0xa4."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1b9bd4",
+     "notes": "Serial backend: f_1b5ef4 claim(21); extra prep when priv+0x184==497; writes 0x44000000 to desc+0x1110 and req bytes <<24 to desc+0x1014 (count=req+8); req+0x20 drives IFC transfer-length fields; f_1b8d58 copies min(req[0],0x100)."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1ad074",
+     "notes": "Second mtd clone propagates +0x9c/+0xa0 with defaults 0xc01ac9a4/0xc01ac9f8; the +0xa0 default is a sub-device dispatch loop calling each sub's +0xa0."
+    },
+    {
+     "type": "firmware",
+     "binary": "modules/chk.ko",
+     "build": "86.10-80260",
+     "address": ".sbss+0x0",
+     "notes": "sysword defined as 4-byte GLOBAL OBJECT in the module's own .sbss; relocs only at .text+a2/b6 (cmd2 store) and +f6/fa (cmd1 read); no __ksymtab export; no other kernel consumer exists."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002220",
+     "notes": "Only materialization of manifest magic 0x7a61670e (lis 0x7a61 / ori 0x670e) in the image; area +0xb4..+0xdb read/written only by mdputil."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10001760",
+     "notes": "HWFEATURES=+0x68 printed when FLAGS&4; HWFEATURES bit names ATH_AR2414_WIFI..ALT_ANTENNAS; conditional fields +0xa0 (version>5 && +0x84!=0), +0x78/+0x7c/+0x84; no reader of +0x104..+0x1fb exists."
     }
    ],
    "cli_edit_contract": {
@@ -250695,7 +251273,15 @@
     ],
     "series_setter": "sonosSetSeriesID0xe64 takes input(r3),MDP1(r4). It checks first byteA-Z then next three bytes0-9. Invalid prefix returns-1 without storing the four-byte field. A valid prefix stores exactly four bytes at+98..9b and returns0; no input-length/end-of-string check follows, so a longer argument with a valid prefix is accepted. No version/flag is changed. There are no local pointer guards. A stored edit may therefore remain ineligible until write preparation sets a sufficiently new version.",
     "caller_behavior": "mdputil0x10001690 requests a five-byte series string. Return0 causes the literal (dynamic) annotation; return1 uses no annotation. The utility therefore marks X999 as dynamic too. It does not imply that every fallback was a recognized factory series or that a stored series is cross-checked against model/submodel/revision."
-   }
+   },
+   "kernel_serial_backend": {
+    "dispatch_chain": "ioctl 0x80244d23 reaches the mtdchar dispatcher (raw+0x1af324 calls device+0xa4, -95/EOPNOTSUPP at raw+0x1af45c when the slot is empty). For the vnb 'Virtual Nand Block' mtd, slot +0xa4 is the vnb default thunk at file 0x1b9de8 (VA 0xc01b9de8): lwz r3,0x198(r3) then tail-call priv+0xa4, i.e. it forwards to the per-device private object's own +0xa4. The hardware-probe function at file 0x264da8 (polls the device list at global 0xc039c108, reads IFC registers) installs the concrete backend 0x1b9bd4 (VA 0xc01b9bd4) into struct+0xa4. A second mtd-clone in the mtdchar region (func 0x1acd98) propagates +0x9c/+0xa0 with defaults 0xc01ac9a4/0xc01ac9f8; the +0xa0 default is a per-sub-device dispatch loop that indexes sub-chips and calls each sub's +0xa0, i.e. the concat layer's get-fact-prot-info.",
+    "backend_decode": "fn 0x1b9bd4 takes the priv object in r3 and the 36-byte request in r29. It claims the chip via f_1b5ef4(priv+0xc8, 21), runs an extra preparation pair f_1b95f0(255,0,0)+f_1b94c8 when priv+0x184==497 (the device word selects an alternate serial region/die), then programs the descriptor object reached through priv+0xc8 -> +0x120 -> +0x2c0 -> +4: writes 0x44000000 to descriptor+0x1110 and each byte of the request command sequence (req+0xb onward, req+8 iterations) shifted left 24 into descriptor+0x1014, issuing entries via f_1b913c; writes req+0x20 as the device-visible transfer length into the IFC/descriptor fields +0x103c/+0x1044/+0x2c and req+0x24-derived +0x1c; waits on f_1b95f0(priv,255,0,0); copies the result out through f_1b8d58.",
+    "extent": "The result copy length is min(req+0, 0x100): the backend clamps the requested serial-data extent to 256 bytes (cmplwi req[0],0x100 then a select on the copyout length at raw 0x1b9cdc-0x1b9cf0). libflash supplies req[0]=0x100, matching the 8-or-16-byte serial returns it performs on top."
+   },
+   "sysword_resolution": "chk.ko 'sysword' is a 4-byte GLOBAL OBJECT symbol defined in the module's own .sbss (section 17, sym index 35), not an undefined kernel import. Its only relocations are two R_PPC_ADDR16_HA/R_PPC_ADDR16_LO pairs inside chk_ioctl: text+a2/b6 stores the user-supplied word after the cmd-2 copy_from_user, and text+f6/fa loads it for the cmd-1 copy_to_user. chk.ko exports nothing (no __ksymtab section), so no other kernel code or module can name the symbol; there are no kernel consumers beyond chk_ioctl itself. The word is therefore a write/read stash shared between the two ioctls and its meaning lives entirely in userspace: the mdputil -B boot check stores 0x1996 there, consistent with the application-side flag convention (printk bit0, console bit1, cleanup marker 0x20) but the kernel performs no bit tests on it.",
+   "manifest_consumers": "The manifest header magic 0x7a61670e is materialized only inside the mdputil manifest printer (lis 0x7a61 / ori 0x670e at file offset 0x2220, VA 0x10002220) and the 40-byte selection area at page+0xb4 is written only by mdputil's %d=%d edit path. No other shipped component references the magic or the area: the kernel image contains neither the word nor a computed compare, libsonos-mdp has no manifest symbol or string, and upgrade's own hal_flash_get_mdp2 use reads buffer offsets +0xec..+0x104 (the key-bundle region below the +0xb4..+0xdb manifest area). Individual selection codes for LED, AMP, TEMP_SENSOR(AMP/CPU), ALS, ACCELEROMETER, FUEL_GAUGE and RADIO therefore have no consumer in the shipped rootfs or kernel; their numeric meaning is fixed by the manufacturing manifest specification outside this image.",
+   "mdp1_tail_fields": "The identity printer reads no named field past DCOFS at +0x100: the only accesses inside +0x100..+0x1fc in the whole binary are the four-word block at file 0x1d88-0x1da0 (the +0x100..+0x10c region including DCOFS) and the prepared-page CRC store at +0x1fc. Since preparation computes crc32 over 508 bytes, offsets +0x104..+0x1fb are integrity-covered but carry no field reader in this build; they are reserved space inside the CRC span, not untraced fields. Additional named fields bound while checking the tail: HWFEATURES is the u32 at +0x68, printed only when FLAGS&4 (the FLAGS name list orders bits: KERNEL_PRINTK_ENABLE=1, CONSOLE_ENABLE=2, HAS_HWFEATURES=4, HAS_VERSION=0x10) with per-bit names {ATH_AR2414_WIFI=1, STMICRO_NAND=2, REDROCKS=4, ATH_AR5416_WIFI=8, ATH_AR9000_WIFI=0x10, LED_SWAP=0x20, ALT_ANTENNAS=0x40}; a byte field at +0x6c (the -i target); the old-version u32 at +0x70; the +0x74 u32 compared against 0xfa87b921 (MDP2 second-page magic); conditional fields +0x78/+0x7c/+0x84; the +0xa0 u32 printed only when version>5 and +0x84!=0; and the string field at +0x24."
   },
   "bin_frcheck": {
    "name": "frcheck",
@@ -722185,11 +722771,11 @@
   "root_cert_bundles_page": "/root_cert_bundles -> f_105eb9a0 -> f_1055e63c (in f_1055e59c): hex-dumps loaded CA bundle with %02X%s... formatting; bundle fetched via verify-registry 0x11095f88 vfunc+108/+40",
   "registration_page": "/registration -> f_105eb17c: <Registration><RegState>%d</RegState><CustomerID>%s</CustomerID></Registration>",
   "bundle_download": "logs: \"Downloaded new cert bundle (ETag: %s)\",\"Local cert bundle unchanged (ETag: %s)\",\"Failed to load newly downloaded cert bundle\": ETag-change-detected refresh; mbedTLS loads CA list + client cert; \"JWT cert validation finished: %s\"; sources devicecertmanager.cxx,regdevicecert.cxx,certmanager.cxx",
-  "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV) and the deeper fields inside the 0xb0-byte mbedtls_ssl_config (mbedTLS library structure)",
+  "unresolved": "the concrete endpoint VALUES behind the O_* URL keys (runtime settings, env-dependent via O_SONOS_CLOUD_API_TEST_ENV). mbedTLS library-internal layout of the 0xb0 config beyond the stores the firmware itself performs is library data, not device behavior",
   "download_flow": {
    "provenance": "devicecertmanager.cxx unit f_105a6984-f_105a8724 (source-path literal proven)",
    "orchestrator": "f_105a7dac prepares the staging path and calls fetch helper f_1055030c at 0x105a8274. The later f_105a7868 call logs the download outcome; f_105a75dc is a separate metrics path.",
-   "request": "The URL comes from cert.uri. The user/household and manufacturing-data strings are not by themselves proof of the outgoing request-body key set.",
+   "request": "POST <cert.uri path> HTTP/1.1 rebuilt from fetch helper f_1055030c + request writer f_10544994: request line 'POST <path> HTTP/1.1', headers CONNECTION: close, Host: <host>[:port], ACCEPT: */* (ctx+0x8568 compiled default), USER-AGENT: 'Linux UPnP/1.0 Sonos/<version> (<model>)' (f_10550f6c snprintf into global 0x110a4ba4), Content-Type: application/json, Transfer-Encoding: chunked (stack flag arm; Content-Length is the alternate arm), then packed extra headers from ctx+0x490: 'X-Sonos-Muse-Household-Id: <hhid>' (header pair built at 0x105a8078-0x105a8094 from mgr+0x111c vfunc+0x54 string) and 'If-None-Match: <stored etag>' (added by f_1055030c at 0x105505a4 only when the 0x41-byte etag copy at this+0x10d2 is non-empty). Authorization/COOKIE lines exist in the writer but only emit when ctx+0x488/0x48c/0x494 are configured, which this path does not do. Body: one JSON object {\"_objectType\":\"manufacturingData\",\"model\":..,\"submodel\":..,\"revision\":..,\"region\":..,\"color\":..} serialized by vfunc+0x8 f_10a6cc54 -> f_10a6cb9c of the sp+0x50 aggregate (ctor f_10a6c6d8, type-id 0xa3 stored at obj+4 by base ctor f_109ec9f0, name table 0x10f97094); the five values are getters f_10909550/60/70/80(+0x10c/0x110/0x114/0x120) and f_10908cd8(+0xe8) on the device-properties singleton f_1090ad44 (0x110b8150).",
    "staging": "downloads written to *.tmp files (\"file %s [%s]\" log) then installed; state+etag persisted as settings keys (state, etag literals in scope)",
    "events": "muse Registration event emitted with eventType=downloaded, certType=deviceCert, secureReg fields; refresh scheduler f_105a6984 wakes via Job* fields and re-arms \"refresh check in %ld seconds\"; expiry path logs \"certificate expired\"",
    "driver": "f_1064556c (regdevicecert.cxx cluster, \"regcert\" literal former) drives refresh check",
@@ -722201,11 +722787,9 @@
     "newETag",
     "previousETag",
     "eventType=download on this path"
-   ]
+   ],
+   "response_handling": "f_1055030c streams the response body in 0x1000-byte reads (ctx vfunc+8) to the '<dir>/<file>.tmp' staging file with a 0x4000-byte budget (arg r7), fsync+close+re-stat size check before returning 0. Status word ctx+0x856c: HTTP 417 returns 2; (status-200)>2 unsigned returns -7; request failure unlinks and returns -1; open/write/size/verify failures return -2/-3/-4/-5 with the staging file unlinked. Return 1 = no-fetch cache hit when the staging file already exists (stat==0 under flag arg9==0). Response ETag header parsed into ctx+0x8679 is strlcpy'd (0x41) over the caller's etag buffer, which the orchestrator then logs as newETag and persists via the 'state'/'etag' settings keys."
   },
-  "todo": [
-   "Residual: reconstruct the exact HTTP body and headers by tracking inputs to the fetch helper, and attribute any deeper wrapper fields beyond the stores proven by f_1056c7d0. Neither the post-fetch event object nor the selector context proves that schema or layout. The deployed cert.uri value comes from settings."
-  ],
   "local_store": {
    "layout": "<JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt} - constructed by f_106b268c via imported constructJFFSRootPath(buf, mgr->+0x10a4) then strlcat '/' + env + '/' + filename",
    "files": {
@@ -722220,7 +722804,10 @@
   "resolved_findings": [
    "The concrete URL value in cert.uri comes from runtime settings.",
    "Established: keycert id vocabulary, selector flag-bit mapping, per-id cert-object tables (0x110a5670 locks / 0x110a56d8 refcounted objects holding a malloc(0xb0) mbedtls_ssl_config), /regcert + /root_cert_bundles + /registration routes, the download flow, the local store layout <JFFSRoot>/<subdir>/<env>/{cert.xml,metadata.txt}, and the endpoint provenance (settings key cert.uri).",
-   "In build 86.10-80260, f_105a7dac calls f_1055030c at 0x105a8274 between clock_gettime calls (0x105a8214 and 0x105a829c). Only afterward does it populate the object at sp+0xb4 (0x105a8300 onward); 0x105a8388 sets eventType to the literal download and f_10559024 at 0x105a83b4 returns a singleton without using the incoming event pointer. The caller loads vtable slot +0x1c at 0x105a83d0, sets r4 to sp+0xb4 at 0x105a83d8, and passes the object to that slot at 0x105a83e0. Those fields do not describe the HTTP response."
+   "In build 86.10-80260, f_105a7dac calls f_1055030c at 0x105a8274 between clock_gettime calls (0x105a8214 and 0x105a829c). Only afterward does it populate the object at sp+0xb4 (0x105a8300 onward); 0x105a8388 sets eventType to the literal download and f_10559024 at 0x105a83b4 returns a singleton without using the incoming event pointer. The caller loads vtable slot +0x1c at 0x105a83d0, sets r4 to sp+0xb4 at 0x105a83d8, and passes the object to that slot at 0x105a83e0. Those fields do not describe the HTTP response.",
+   "The download request is a POST (not GET) when a body object is present: f_1055030c tests the body-pointer stack arg (caller sp+0x30 {ptr,len} pair produced by f_109ece48 at 0x105a81b4); nonzero dispatches vtable+0x60, which for this ctx equals f_101512f8 so the direct call f_10546158 is used (0x1055049c). When the body pointer is null it falls back to ctx vfunc+0x5c (0x10550738) instead.",
+   "Exact wire form established: 'POST <path> HTTP/1.1\\r\\nCONNECTION: close\\r\\nHost: <host>[port]' then ACCEPT: */*, USER-AGENT 'Linux UPnP/1.0 Sonos/<version> (<model>)', Content-Type: application/json, Transfer-Encoding: chunked, caller headers X-Sonos-Muse-Household-Id plus conditional If-None-Match, and a chunked JSON body {_objectType:'manufacturingData', model, submodel, revision, region, color} drawn from the device-properties singleton (0x110b8150 fields +0x10c/+0x110/+0x114/+0x120/+0xe8).",
+   "Cert-object wrapper deeper fields attributed: f_1056d5c0 fresh-builds the 0x10 wrapper {flag 0x1000000, malloc(0xb0) mbedtls_ssl_config, +8, +0xc}; it pins conf+0/conf+4 = 0x303 (TLS1.2 min and max), mbedtls_ssl_conf_authmode(conf,2) VERIFY_REQUIRED, conf+0x44 = f_10579c2c plus mbedtls_ssl_conf_verify (f_10579e08,0), mbedtls_ssl_conf_cert_profile(sonos::certval::getCertProfile()), mbedtls_ssl_conf_groups (table 0x10ecd8b0); arg2 credential record is refcounted into wrapper+8 with conf+0x6c = cred+0xc, and arg3 RootCACertBundle into wrapper+0xc with mbedtls_ssl_conf_ca_chain(conf, bundle+4, 0) and conf+0xa4 = bundle+8 (CRL head). The clone path f_1056cfc4 memcpy's the whole 0xb0 conf and re-shares +8/+0xc. The per-id wrappers land in table 0x110a56d8[id] built by f_1056dc3c, which matches credential records against hostnames such as 'sonos.com' (f_1056c9bc)."
   ],
   "endpoints": {
    "registry": "the O_* settings-key vocabulary is fully enumerated in rodata at 0x10eea650..0x10eead00 (~67 keys); URL-class keys include O_MUSIC_SERVICE_URL, O_CUSTREG_URL, O_UPDATE_MSG_URL, O_CLOUD_API_BASE_URL, O_DC_DESCRIPTOR_BASE_URL, O_SETUP_SERVER_URL, O_UPDATE_SERVER_URL, O_SERVICE_OUTAGE_SERVER_URL, O_HRMETRICS_URL, O_TRACKPLAYBASE_URL, O_UNIVERSAL_SEARCH_URL, O_TIMEZONE_URL plus non-URL keys (intervals, sids, flags). Key VALUES are runtime settings populated from provisioning/environment config - the O_SONOS_CLOUD_API_TEST_ENV key selects the environment.",
@@ -722228,6 +722815,72 @@
    "request_headers": "The image contains user ID, household ID, device registration status, software version, conditional ETag, and accepted-format header names. The complete set actually sent by the registration-device download has not been verified from the fetch helper."
   },
   "reject_reasons": "cert validation reject codes emitted as strings: BAD_FILE, BAD_KEY, BAD_CERT, BAD_ISSUE_DATE, MISMATCH_ENV, MISMATCH_ISSUER, MISMATCH_HHID, MISMATCH_USER, not_present (0x10ef2430-0x10ef24b4)",
-  "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce"
+  "storage": "persistence/staging: 'cert.xml' (0x10f051f4, certmanager.cxx), 'ssl_server_certs' (0x10eff9ac), '/run/rcb' + 'rootcerts_download' staging file (0x10eeb7a8), '*.tmp' download staging suffix (0x10eeb864); 'new cert updating mDNS service [%s]' (0x10ea24dc) shows cert install triggers mDNS re-announce",
+  "evidence": [
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x105a7e68",
+    "address": "0x105a8274",
+    "notes": "fetch call: r3=ctx@sp+0x10c8, r4=url, r5=staging '.tmp' path (strlcat 0x10eeb864 at 0x105a815c), r6=header list sp+0x38, r7=0x4000 byte budget, r8=0x7530 ms deadline, r9=1/r10=1 etag mode; stack: etag buf sp+0xd818 (copied from this+0x10d2 at entry), size 0x41, body ptr sp+0x30, flag 1, 'application/json'"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x1055030c",
+    "address": "0x10550444",
+    "notes": "ctx+0x490 = sp+0xbc accumulator buffer built by f_105512c4/f_1055181c; If-None-Match appended at 0x105505a4 when *etagbuf != 0; caller header list walked 0x10550418-0x1055043c (node+0x10 name, +0x28 value)"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x1055030c",
+    "address": "0x1055064c",
+    "notes": "response body written to staging file via open64 0x1055064c, write loop vfunc+8 chunk read 0x10550678, byte budget r21 -= chunk, fsync 0x105507fc, re-stat verify 0x10550814"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x10544994",
+    "address": "0x10544a3c",
+    "notes": "request fmt '%s %s HTTP/1.1\\r\\nCONNECTION: close\\r\\nHost: %s%s\\r\\n'; ACCEPT/USER-AGENT/Content-Type conditional on args; 'Transfer-Encoding: chunked' when stack flag byte 0x2093 != 0; extra headers ctx+0x490 iterated as packed name\\0value pairs emitted '%s: %s\\r\\n' through vfunc+0x38 filter (default f_10540a18)"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x10a6cb9c",
+    "address": "0x10a6cbc4",
+    "notes": "JSON body members: '_objectType'(name table 0x10f97094[id], id=obj+4=0xa3 'manufacturingData'), 'model','submodel','revision','region','color' from obj+8..+0x18 via f_109d1570 key-value writes"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x10550f6c",
+    "address": "0x10550fb4",
+    "notes": "UA string 'Linux UPnP/1.0 Sonos/%s (%s)' snprintf into global 0x110a4ba4; version via f_1090b078, model via f_10908370(f_1090ad44())"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x1056d5c0",
+    "address": "0x1056d654",
+    "notes": "fresh conf: mbedtls_ssl_config_defaults(conf,0,0,0); conf+0=conf+4=0x303 (TLS1.2 pin); authmode 2; f_1057a090 installs conf+0x44=f_10579c2c + conf_verify(f_10579e08,0); cert_profile getCertProfile; groups 0x10ecd8b0; wrapper+8=cred rec (conf+0x6c=cred+0xc); wrapper+0xc=CA bundle (conf_ca_chain bundle+4; conf+0xa4=bundle+8)"
+   },
+   {
+    "type": "firmware",
+    "binary": "anacapad",
+    "build": "86.10-80260",
+    "function": "0x105a7e68",
+    "address": "0x105a8084",
+    "notes": "'X-Sonos-Muse-Household-Id' header pair: hhid string obtained via mgr+0x111c vfunc+0x54 then vfunc+0xc at 0x105a8004-0x105a8034; pair pushed by f_105a8b48 into list sp+0x38"
+   }
+  ]
  }
 }
