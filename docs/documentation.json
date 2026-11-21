@@ -119614,9 +119614,105 @@
         "address": "0x106a98ec",
         "function": "0x106a95e8",
         "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a76b8",
+        "address": "0x106a7738",
+        "notes": "registerSource(manager, id r4, provider r5, ctx r6): calls provider vfunc+0x08 first; on zero return writes first-free slot {id@+0, provider@+4, ctx@+8} in the 9-entry table at manager+0x2e8 (0xc stride). Sole callsite 0x10219cf0 (f_10219600) registers ID 2 with provider=*(zp+0x59f8)+8 (vptr 0x10ea53a8) and ctx=spotifyObj+0x148. No other f_106a76b8 callsite exists in this build, so Spotify is the only registered VLI source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104db630",
+        "address": "0x1021992c",
+        "notes": "The registered ctx is an embedded RSpotifyAudioInput at spotifyObj+0x148, constructed by f_104db630 with args (*(r30+4) partner, r31+0x872b buffer base, 0x40000 size). Ctor installs vptrs +0=0x10ed9c94, +4=0x10ed9ce0, +8=0x10ed9d00 (log tags 'RSpotifyAudioInput' 0x10ed9f70, 'spotifyAudioInput' 0x10ed9f84) and zeroes +0xb8..+0x100."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a95e8",
+        "address": "0x106a98a4",
+        "notes": "State-3 dispatch in StartTransmission: calls manager vfunc+0x28 = f_106a6008 (reads node=manager+0x354 then ctx=node+8 vfunc+0x08). Then ctx slot reads: provider vptr 0x10ea53a8 slot+0x40 = f_1022af48 ('spot' log 'Ignoring audio flush while setting state / delegating.' - the spotify audio/state flush delegate)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a95e8",
+        "address": "0x106a98bc",
+        "notes": "manager+0x2d4 is dereferenced as object and its vfunc+0x08 invoked. +0x2d4/+0x2d8 are the {ptr,ctrl} of a shared_ptr copied in ctor f_106aae20 (0x106ab038) from the incoming media-player config chain (f_103fa434 arg at +0x288; f_104019c8 shared_ptr copy with atomic incref). The concrete interface object is bound per media-player construction by the mpmgr caller, not statically in vli code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106aae20",
+        "address": "0x106ab03c",
+        "notes": "VLI manager ctor (called once from media-player filler f_103fa434 at 0x103fbe30): stores arg6=media-player+0x1998 object (0x420-byte VliCtrl, ctor f_104132a8 'VliCtrl' 0x10ecc138) at +0x2d0, copies the caller-supplied shared_ptr into +0x2d4/+0x2d8, installs vptr 0x10f045c4 at +0 and mutex+conds at +0x150/+0x1e0/+0x230."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106ca360",
+        "address": "0x106ca440",
+        "notes": "Snapshot worker: calls *(transport+4) vfunc+0x14 then the returned interface's vfunc+0x0c (result at stack+0x24), then NodeTX=transport+0x6c vfunc+0x38 = f_10636bc8 with out-slots +0xec/+0xf0/+0xf4/+0xf8 and args (1, -1, 0)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10636bc8",
+        "address": "0x10636bc8",
+        "notes": "NodeTX +0x38 vfunc = 'nodetx' status collector: iterates the destination-node list via f_10633e20 (entry lhz+8), checks f_10636a4c, formats via f_10633a7c/f_1063311c and writes per-node status through the caller-supplied out pointers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10638090",
+        "address": "0x106381f0",
+        "notes": "'nodetx' sender loop pushes 0x408-byte packets (f_1063391c fill, f_106690c0 deliver) to each destination; if NodeTX+0x53c is nonzero calls listener vfunc+0x08 with kind 2 (per-destination) and 3 (round), plus vfunc+0x0c with (node+0xe8, lhz+0xe6, +0x120). The listener is optional and set through the secondary interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10636214",
+        "address": "0x10636214",
+        "notes": "Raw setter stw r4 -> NodeTX+0x53c. It is slot+0 of the NodeTX secondary vtable 0x10efb7a8 (MI sub-object), so registration goes through that interface pointer; no direct-bl callsite exists (runtime-invoked via the sub-vptr). Siblings: +4=f_10636538, +8=f_10636224, +0xc=f_1063844c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106690c0",
+        "address": "0x106690c0",
+        "notes": "Delivery bridge: sendto on fd *(this+0x14) (fd -1 short-circuits), target from arg buffer; on failure logs inet_ntoa+strerror on 'sdbt'. Packet payload produced by f_1063391c into a 0x408 buffer allocated through f_10634454 on member +0xfc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106c96f0",
+        "address": "0x106c9824",
+        "notes": "'vli_playback_tracker' 'start sess': vfunc call on tracker, memset+sonos_uuid_generate+sonos_uuid_copy to mint the session id, memcpy payload, then f_1025149c dispatches on 'inprocess-events'. Sibling f_106c98f0 logs 'end sess', sonos_uuid_clear, same dispatcher. Tracker object sits at manager+0x390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025149c",
+        "address": "0x1025149c",
+        "notes": "Inprocess event dispatcher: locks, allocates event nodes via f_10809f0c and switches on handler vptr (f_100e4784, f_100e73e8, f_100e47f4, f_100e47d8 ...) - the same queue machinery as rc_impl inprocess events. Consumed by the tracker for start/stop session events."
        }
       ],
-      "todo": "Established: embedded NodeTX binding and all state-3 indirect dispatch sites through 0x106a9940 are identified. Residual: recover concrete selected context+0xc/+0x18 and provider+0x40 dependencies, and manager+0x2d4 interface+8, for each registered source. The inspected constructor and worker no longer leave transport+0x6c unresolved. Include active snapshot dependencies in f_106ca360/f_10636bc8."
+      "todo": "Established: concrete binding for every state-3 dependency. Selected node manager+0x354 = {id@0, provider@4, ctx@8}: provider is the sole registered source (ID 2, vptr 0x10ea53a8); its +0x40 callback = f_1022af48 'Ignoring audio flush while setting state / delegating' and +0x34 = f_1022c054 blocking snapshot. ctx = embedded RSpotifyAudioInput at spotifyObj+0x148 (vptr 0x10ed9c94, ctor f_104db630, 0x40000 buffer): +0x0c = f_104dee78 (shared_ptr swap into +0xc0), +0x18 = f_104da2f4 (sub-object iterator), +0x24 = f_104dc5a8 (snapshot via f_104dc4a4/f_105a9024), +0x08 = f_104dfb10 (returns +0xb8 clock). manager+0x2d4 = shared_ptr from the incoming media-player config (mpmgr descriptor); +0x2d0 = VliCtrl (media-player+0x1998). Snapshot f_106ca360: transport+4 +0x14 -> iface +0x0c, then NodeTX +0x38 f_10636bc8 'nodetx' collector. Tracker manager+0x390 start-sess f_106c96f0 -> f_1025149c inprocess dispatch; sender f_10638090 delivers 0x408 packets via f_106690c0 sendto on 'sdbt', optional NodeTX+0x53c listener (vfunc+8 kinds 0..3, +0xc detail) set via secondary vptr 0x10efb7a8 slot+0. Unknown: the concrete object behind the +0x2d4 config-injected interface (bound per media-player construction at runtime; not statically resolvable in vli code) and which component registers the optional +0x53c listener. Next: identify the +0x2d4 provider object from the mpmgr config producer and find the +0x53c listener registrant via the secondary interface handoff."
      },
      "side_effects": [
       {
@@ -120921,9 +121017,57 @@
         "address": "0x106a93c0",
         "function": "0x106a933c",
         "notes": "State-snapshot worker f_106a933c fills the pending transport snapshot through slot +0x60 -> f_106ca360, reads pending snapshot manager+0x2dc and selected descriptor+0x354, and may invoke descriptor context+8 slot +0x24 at 0x106a94a8. The f_1021cd6c no-op target is explicitly bypassed. It calls selected provider+0x34 at 0x106a9440, stores the selected type in snapshot+0x108 at 0x106a9468 (zero if absent), calls f_1066f0c8 and clears manager+0x2dc at 0x106a9478. Context/provider snapshot callbacks are separate from the now-bound NodeTX pointer setter. f_106ca360 selects its inactive/active snapshot branch from current==3: inactive writes snapshot+0xf0 and clears +0xec/+0xf4/+0xf8/+0xfc/+0x100/+0x104; active reads the object at transport+4 through +0x14 then returned interface+0xc, and invokes embedded NodeTX+0x38 -> f_10636bc8 at 0x106ca48c. These snapshot dependencies remain distinct from NodeTX+0x34 attachment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a933c",
+        "address": "0x106a93ec",
+        "notes": "StopTransmission snapshot arm (mutex +0x150, vli_source_manager.cxx:0x4e9): when pending snapshot +0x2dc is nonzero it logs 'Recording State Snapshot in state %d' (current +0x2e0) and calls transport+0x358 vfunc+0x60 with (isState3 = (state^3)==0, pending +0x2dc)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a933c",
+        "address": "0x106a9410",
+        "notes": "ctx+0x24 snapshot gate: ctx=*(manager+0x354 +8); its vfunc+0x24 is compared against the default f_1021cd6c and only invoked (at 0x106a94a0, arg pending +0x2dc) when overridden. For RSpotifyAudioInput (vptr 0x10ed9c94) +0x24 = f_104dc5a8, so the Spotify path always runs it."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104dc5a8",
+        "address": "0x104dc5a8",
+        "notes": "RSpotifyAudioInput +0x24 = the Spotify snapshot producer: locks (f_10988564/f_10988990 pair), runs f_104dc4a4 and f_105a9024 against the arg snapshot buffer, logs on 'spot'. It is the concrete ctx+0x24 dependency for the only registered source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a933c",
+        "address": "0x106a943c",
+        "notes": "provider+0x34 call: provider=*(manager+0x354 +4) (vptr 0x10ea53a8), vfunc+0x34 = f_1022c054 with arg pending +0x2dc - the Spotify blocking snapshot/flush (f_10cf6834 + f_1098ca54 wait pairs, 'spot' log). Afterward node id is stored at snapshot+0x108 and +0x2dc is freed via f_1066f0c8 and zeroed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a6008",
+        "address": "0x106a6008",
+        "notes": "manager clock getter (vptr 0x10f045c4 +0x28): reads selected node manager+0x354, ctx=node+8, calls ctx vfunc+0x08 = f_104dfb10 on RSpotifyAudioInput which simply returns its +0xb8 member - the source's stored clock/cookie, consumed by the state-2 wait loop."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106c98f0",
+        "address": "0x106c9954",
+        "notes": "'vli_playback_tracker' 'end sess' (manager+0x390 tracker): logs on 'vli_playback_tracker', sonos_uuid_clear, then f_1025149c queues the inprocess event. This is the tracker sink for StopTransmission state-2 teardown."
        }
       ],
-      "todo": "Established: NodeTX object/table binding and state-2 clock/tracker/snapshot/current/desired/condition dependencies are enumerated. Residual: bind the selected context+0x24 and provider+0x34 snapshot callbacks reached by f_106a933c and the manager+0x28 clock getter to their concrete source-specific dependencies. Full f_106a94b8 inspection shows no separate hidden transport cleanup call. Include snapshot reads through transport+4 slot+0x14, returned interface+0xc and embedded NodeTX+0x38 in f_106ca360."
+      "todo": "Established: full state-2 dependency chain. manager+0x28 clock getter = vfunc f_106a6008 -> ctx vfunc+0x08 = f_104dfb10 returning RSpotifyAudioInput +0xb8. f_106a933c under mutex +0x150 logs 'Recording State Snapshot in state %d' (+0x2e0), calls transport+0x358 vfunc+0x60 with (isState3, pending +0x2dc); gates ctx+0x24 vs default f_1021cd6c and calls it for Spotify (f_104dc5a8 -> f_104dc4a4/f_105a9024); calls provider+0x34 = f_1022c054 blocking snapshot (f_10cf6834/f_1098ca54 waits); stores node id at snapshot+0x108, frees +0x2dc via f_1066f0c8 and zeroes it. Snapshot reads in f_106ca360 go through transport+4 vfunc+0x14 -> iface vfunc+0x0c and NodeTX +0x38 = f_10636bc8; NodeTX+0x53c optional listener (kind events 0/1 in f_10636574/f_106374cc, 2/3 in sender f_10638090, detail vfunc+0xc). Tracker end-sess = f_106c98f0 -> f_1025149c. Unknown: internals of f_106a94b8's sibling cleanup arm (proven to contain no hidden transport call) and the non-Spotify branches of f_1021cd6c-default ctxs are unreachable in this build. Next: none required for the recorded state; residual packet-pool internals f_10634188/f_10637314 and tracker event payload layout can be lifted from f_1025149c's vptr switch if needed."
      },
      "side_effects": [
       {
@@ -121938,6 +122082,14 @@
      "address": "0x10219cf0",
      "function": "0x10219600",
      "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106aa814",
+     "address": "0x106aa86c",
+     "notes": "Metadata trigger path: manager vfunc+0x74 = f_106aa814 locks manager+0x150 then calls f_106aa710, the 'CurrentTrackMetaData' evented-var setter writing through the +0x508 state store (f_10676994/f_10676cf8/f_10676a44 chain, 0x14-char name). This is how VLI source metadata reaches GENA subscribers."
     }
    ],
    "notes": "Static binding is proven; no runtime-injected-vptr impossibility remains. The internal controller at media-player+0x1998 is distinct from this SOAP source manager at +0x19a0. Shared vli_transport_detail and eventing records were not edited.",
@@ -121945,7 +122097,9 @@
     "common/vli_{sink,source_manager,playback_tracker}.cxx",
     "zoneplayer/media_player_vli_ctrl.cxx"
    ],
-   "todo": "Established: embedded NodeTX binding resolves f_106ca000 to pointer-only f_106361d4; numeric source-thread handoff and state-2/state-3 dispatch/workers, Spotify ID-2 provider/getter/interface/request path, CurrentTrackMetaData serialization and sender wakeup are traced. Residual: bind other accepted source registrations and source-specific audio/snapshot callbacks, finish NodeTX resync and tracker/Spotify request sinks, bind the sender constructor/delivery bridge and establish metadata trigger reachability. Raw branch/pointer/registry-base searches and constructor/worker traces are recorded in the action/event evidence; these residuals remain static trace work, not a proven runtime-only boundary."
+   "todo": [
+    "Established: all named residuals bound. Only one source is registered in this build (ID 2 Spotify at 0x10219cf0; 9-slot table scanned first-free); provider callbacks +0x08/+0x30/+0x34/+0x40 = f_10232088/f_1022abbc->f_1022abac (null)/f_1022c054/f_1022af48 and ctx = embedded RSpotifyAudioInput (vptr 0x10ed9c94; +0x08 clock getter f_104dfb10 -> +0xb8, +0x0c f_104dee78, +0x18 f_104da2f4, +0x24 f_104dc5a8). Tracker sinks: start sess f_106c96f0 / end sess f_106c98f0 -> inprocess dispatcher f_1025149c. Sender/delivery: f_10638090 -> f_106690c0 sendto 'sdbt', packets 0x408 via f_10634454, optional NodeTX+0x53c listener (secondary vptr 0x10efb7a8 slot+0 f_10636214). Metadata trigger reachable: manager vfunc+0x74 f_106aa814 -> f_106aa710 'CurrentTrackMetaData' store at +0x508. Residual: the config-injected interface at manager+0x2d4 (shared_ptr supplied by the media-player construction chain; +8 vfunc consumed in StartTransmission) is bound by the mpmgr caller and has no static name in vli code."
+   ]
   },
   "/MediaServer/ConnectionManager/Control": {
    "name": "ConnectionManager",
