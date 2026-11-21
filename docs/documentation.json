@@ -245002,9 +245002,6 @@
   "bin_mdputil": {
    "name": "mdputil",
    "summary": "Reads factory identity/configuration, stages command-line edits, verifies manufacturing-bundle signatures and erases/writes manufacturing flash. The512-byte identity page and4096-byte second page have distinct layouts. CLI, repair, signature inputs and flash failures are traced; driver-side serial/check commands, geometry and remaining hardware-field consumers still require work.",
-   "todo": [
-    "Residual: identify the live flash backend installed in the kernel MTD callback slot +0xa4 and decode its device-command parameters, including whether/how it changes the requested serial-data extent. The matching kernel ioctl dispatcher and user-copy sizes are now located. Kernel sysword consumers, remaining manufacturing tail fields and individual manifest hardware-code consumers still require tracing."
-   ],
    "artifacts": [
     "bin/mdputil"
    ],
@@ -245018,7 +245015,11 @@
     "/etc/Configure line74 invokes mdputil-B. At0x10001190 the option can check existing MDP2 through/dev/chk, then requests a forced write when original old-version>6. Otherwise it exits early unless-w has already appeared. It is not merely a printing option.",
     "Application MDP flag cleanup has the concrete predicate and bit effects in application_flag_consumer. It clears printk/console bits and sets marker0x20;it is not an inverted capability predicate.",
     "Kernel-side ioctl dispatch located by decompressing the shipped package/86.10-80260-1-9-kernel.uImage gzip payload after its 64-byte uImage header. Addresses here are offsets in that decompressed raw image, not asserted ELF VAs. At raw+0x1aea38-0x1aea44 the dispatch compares request 0x80244d23, reaching raw+0x1aec40; at raw+0x1aed6c-0x1aed74 it compares 0x40044d24. The latter selects device-structure+0x184 as source and copies four bytes to the user argument at raw+0x1aed94-0x1aed9c. This binds the library first ioctl output to a stored device word, not a direct chip command issued by that arm. The exact device initialization producing this word still needs tracing.",
-    "For 0x80244d23 the kernel copies a 36-byte request from the user argument into stack+8 at raw+0x1aec58-0x1aec68, rejects a missing callback at device+0xa4 with -95 at raw+0x1af45c, allocates the requested first-word byte count, and checks request words at +8 and +0x14 against 8 at raw+0x1aec94-0x1aecac. The accepted path calls device+0xa4 with (device, local request, allocated buffer) at raw+0x1af324-0x1af338, propagates a nonzero result, and uses the request first word as the return-copy extent at raw+0x1af354 onward. Thus the 36-byte ioctl header size is not itself the serial-data extent. The library hal_flash_read_fsn requests 256 bytes and separately reports/extracts smaller serial lengths. Backend identity and command-field meanings are not established merely by matching ioctl constants, and remain open rather than claiming a complete kernel trace."
+    "For 0x80244d23 the kernel copies a 36-byte request from the user argument into stack+8 at raw+0x1aec58-0x1aec68, rejects a missing callback at device+0xa4 with -95 at raw+0x1af45c, allocates the requested first-word byte count, and checks request words at +8 and +0x14 against 8 at raw+0x1aec94-0x1aecac. The accepted path calls device+0xa4 with (device, local request, allocated buffer) at raw+0x1af324-0x1af338, propagates a nonzero result, and uses the request first word as the return-copy extent at raw+0x1af354 onward. Thus the 36-byte ioctl header size is not itself the serial-data extent. The library hal_flash_read_fsn requests 256 bytes and separately reports/extracts smaller serial lengths. Backend identity and command-field meanings are not established merely by matching ioctl constants, and remain open rather than claiming a complete kernel trace.",
+    "device+0xa4 backend resolved: the mtdchar call goes through the vnb mtd slot whose default is a thunk (0x1b9de8) that tail-calls mtd->priv(+0x198)->+0xa4; the hardware probe at file 0x264da8 installs the concrete backend fn 0x1b9bd4. The backend claims the chip, programs the IFC command descriptor (0x44000000 header, one <<24-shifted entry per request sequence byte), waits, and copies out min(req[0],0x100) bytes, so the serial-data extent is clamped to 256 bytes. A device-word gate priv+0x184==497 runs an extra select/prepare pair first. The concat mtd layer (0x1acd98) fills +0xa0 with 0xc01ac9f8, a per-sub-chip dispatch loop.",
+    "sysword consumers resolved: 'sysword' is a chk.ko-local 4-byte .sbss global touched only by chk_ioctl's cmd-2 store and cmd-1 read; it is not exported and has no other kernel consumer. The earlier 'undefined kernel-global' note is corrected.",
+    "Manifest hardware-code consumers resolved by absence: the 0x7a61670e magic exists only as a computed constant inside the mdputil printer, and only mdputil reads/writes the +0xb4 selection bytes; the kernel, libsonos-mdp, upgrade and all other shipped code leave the area alone, so the per-code meanings are defined by the manufacturing spec, not by any shipped consumer.",
+    "Manufacturing tail resolved: no field reads exist between DCOFS(+0x100) and CRC(+0x1fc); +0x104..+0x1fb is CRC-covered reserved space. New bound fields: HWFEATURES=+0x68 gated on FLAGS&4 with named bits (ATH_AR2414_WIFI..ALT_ANTENNAS), byte+0x6c, version+0x70, MDP2-magic compare at +0x74, +0x78/+0x7c/+0x84/+0xa0 conditional prints."
    ],
    "binary_identity": {
     "binary": "bin/mdputil",
@@ -245630,6 +245631,62 @@
      "binary": "package/86.10-80260-1-9-kernel.uImage",
      "build": "86.10-80260",
      "notes": "Decompressed payload offsets: 0x1aed6c matches 0x40044d24 and copies device+0x184; 0x1aec40 copies 36-byte request for 0x80244d23; 0x1af338 dispatches device callback+0xa4."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1bbfc4-0x1bc220",
+     "notes": "vnb mtd clone (vnb_initMtd region): copies template fields and fills empty method slots with defaults; +0xa4 default 0xc01b9de8, +0x88 default 0xc01b9df8, name 'Virtual Nand Block' stored at mtd+0x30."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1b9de8",
+     "notes": "vnb +0xa4 thunk: lwz r3,0x198(r3); lwz r9,0xa4(r3); bctr - forwards mtd->a4 calls to priv->a4."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x26543c",
+     "notes": "Hardware probe (func 0x264da8, polls device list 0xc039c108) stores backend fn 0x1b9bd4 into struct+0xa4."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1b9bd4",
+     "notes": "Serial backend: f_1b5ef4 claim(21); extra prep when priv+0x184==497; writes 0x44000000 to desc+0x1110 and req bytes <<24 to desc+0x1014 (count=req+8); req+0x20 drives IFC transfer-length fields; f_1b8d58 copies min(req[0],0x100)."
+    },
+    {
+     "type": "firmware",
+     "binary": "package/86.10-80260-1-9-kernel.uImage",
+     "build": "86.10-80260",
+     "address": "raw+0x1ad074",
+     "notes": "Second mtd clone propagates +0x9c/+0xa0 with defaults 0xc01ac9a4/0xc01ac9f8; the +0xa0 default is a sub-device dispatch loop calling each sub's +0xa0."
+    },
+    {
+     "type": "firmware",
+     "binary": "modules/chk.ko",
+     "build": "86.10-80260",
+     "address": ".sbss+0x0",
+     "notes": "sysword defined as 4-byte GLOBAL OBJECT in the module's own .sbss; relocs only at .text+a2/b6 (cmd2 store) and +f6/fa (cmd1 read); no __ksymtab export; no other kernel consumer exists."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10002220",
+     "notes": "Only materialization of manifest magic 0x7a61670e (lis 0x7a61 / ori 0x670e) in the image; area +0xb4..+0xdb read/written only by mdputil."
+    },
+    {
+     "type": "firmware",
+     "binary": "bin/mdputil",
+     "build": "86.10-80260",
+     "address": "0x10001760",
+     "notes": "HWFEATURES=+0x68 printed when FLAGS&4; HWFEATURES bit names ATH_AR2414_WIFI..ALT_ANTENNAS; conditional fields +0xa0 (version>5 && +0x84!=0), +0x78/+0x7c/+0x84; no reader of +0x104..+0x1fb exists."
     }
    ],
    "cli_edit_contract": {
@@ -245828,7 +245885,15 @@
     ],
     "series_setter": "sonosSetSeriesID0xe64 takes input(r3),MDP1(r4). It checks first byteA-Z then next three bytes0-9. Invalid prefix returns-1 without storing the four-byte field. A valid prefix stores exactly four bytes at+98..9b and returns0; no input-length/end-of-string check follows, so a longer argument with a valid prefix is accepted. No version/flag is changed. There are no local pointer guards. A stored edit may therefore remain ineligible until write preparation sets a sufficiently new version.",
     "caller_behavior": "mdputil0x10001690 requests a five-byte series string. Return0 causes the literal (dynamic) annotation; return1 uses no annotation. The utility therefore marks X999 as dynamic too. It does not imply that every fallback was a recognized factory series or that a stored series is cross-checked against model/submodel/revision."
-   }
+   },
+   "kernel_serial_backend": {
+    "dispatch_chain": "ioctl 0x80244d23 reaches the mtdchar dispatcher (raw+0x1af324 calls device+0xa4, -95/EOPNOTSUPP at raw+0x1af45c when the slot is empty). For the vnb 'Virtual Nand Block' mtd, slot +0xa4 is the vnb default thunk at file 0x1b9de8 (VA 0xc01b9de8): lwz r3,0x198(r3) then tail-call priv+0xa4, i.e. it forwards to the per-device private object's own +0xa4. The hardware-probe function at file 0x264da8 (polls the device list at global 0xc039c108, reads IFC registers) installs the concrete backend 0x1b9bd4 (VA 0xc01b9bd4) into struct+0xa4. A second mtd-clone in the mtdchar region (func 0x1acd98) propagates +0x9c/+0xa0 with defaults 0xc01ac9a4/0xc01ac9f8; the +0xa0 default is a per-sub-device dispatch loop that indexes sub-chips and calls each sub's +0xa0, i.e. the concat layer's get-fact-prot-info.",
+    "backend_decode": "fn 0x1b9bd4 takes the priv object in r3 and the 36-byte request in r29. It claims the chip via f_1b5ef4(priv+0xc8, 21), runs an extra preparation pair f_1b95f0(255,0,0)+f_1b94c8 when priv+0x184==497 (the device word selects an alternate serial region/die), then programs the descriptor object reached through priv+0xc8 -> +0x120 -> +0x2c0 -> +4: writes 0x44000000 to descriptor+0x1110 and each byte of the request command sequence (req+0xb onward, req+8 iterations) shifted left 24 into descriptor+0x1014, issuing entries via f_1b913c; writes req+0x20 as the device-visible transfer length into the IFC/descriptor fields +0x103c/+0x1044/+0x2c and req+0x24-derived +0x1c; waits on f_1b95f0(priv,255,0,0); copies the result out through f_1b8d58.",
+    "extent": "The result copy length is min(req+0, 0x100): the backend clamps the requested serial-data extent to 256 bytes (cmplwi req[0],0x100 then a select on the copyout length at raw 0x1b9cdc-0x1b9cf0). libflash supplies req[0]=0x100, matching the 8-or-16-byte serial returns it performs on top."
+   },
+   "sysword_resolution": "chk.ko 'sysword' is a 4-byte GLOBAL OBJECT symbol defined in the module's own .sbss (section 17, sym index 35), not an undefined kernel import. Its only relocations are two R_PPC_ADDR16_HA/R_PPC_ADDR16_LO pairs inside chk_ioctl: text+a2/b6 stores the user-supplied word after the cmd-2 copy_from_user, and text+f6/fa loads it for the cmd-1 copy_to_user. chk.ko exports nothing (no __ksymtab section), so no other kernel code or module can name the symbol; there are no kernel consumers beyond chk_ioctl itself. The word is therefore a write/read stash shared between the two ioctls and its meaning lives entirely in userspace: the mdputil -B boot check stores 0x1996 there, consistent with the application-side flag convention (printk bit0, console bit1, cleanup marker 0x20) but the kernel performs no bit tests on it.",
+   "manifest_consumers": "The manifest header magic 0x7a61670e is materialized only inside the mdputil manifest printer (lis 0x7a61 / ori 0x670e at file offset 0x2220, VA 0x10002220) and the 40-byte selection area at page+0xb4 is written only by mdputil's %d=%d edit path. No other shipped component references the magic or the area: the kernel image contains neither the word nor a computed compare, libsonos-mdp has no manifest symbol or string, and upgrade's own hal_flash_get_mdp2 use reads buffer offsets +0xec..+0x104 (the key-bundle region below the +0xb4..+0xdb manifest area). Individual selection codes for LED, AMP, TEMP_SENSOR(AMP/CPU), ALS, ACCELEROMETER, FUEL_GAUGE and RADIO therefore have no consumer in the shipped rootfs or kernel; their numeric meaning is fixed by the manufacturing manifest specification outside this image.",
+   "mdp1_tail_fields": "The identity printer reads no named field past DCOFS at +0x100: the only accesses inside +0x100..+0x1fc in the whole binary are the four-word block at file 0x1d88-0x1da0 (the +0x100..+0x10c region including DCOFS) and the prepared-page CRC store at +0x1fc. Since preparation computes crc32 over 508 bytes, offsets +0x104..+0x1fb are integrity-covered but carry no field reader in this build; they are reserved space inside the CRC span, not untraced fields. Additional named fields bound while checking the tail: HWFEATURES is the u32 at +0x68, printed only when FLAGS&4 (the FLAGS name list orders bits: KERNEL_PRINTK_ENABLE=1, CONSOLE_ENABLE=2, HAS_HWFEATURES=4, HAS_VERSION=0x10) with per-bit names {ATH_AR2414_WIFI=1, STMICRO_NAND=2, REDROCKS=4, ATH_AR5416_WIFI=8, ATH_AR9000_WIFI=0x10, LED_SWAP=0x20, ALT_ANTENNAS=0x40}; a byte field at +0x6c (the -i target); the old-version u32 at +0x70; the +0x74 u32 compared against 0xfa87b921 (MDP2 second-page magic); conditional fields +0x78/+0x7c/+0x84; the +0xa0 u32 printed only when version>5 and +0x84!=0; and the string field at +0x24."
   },
   "bin_frcheck": {
    "name": "frcheck",
