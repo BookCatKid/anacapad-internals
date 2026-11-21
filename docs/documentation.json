@@ -228762,7 +228762,7 @@
   },
   "feature_flags": {
    "name": "featureConfig registry: build feature map",
-   "summary": "flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,featureConfigSemiSleep,DropoutContext,HomeTheaterWifiPerfTelemetry,MetricsService,Plink,Quickbonding,SemiSleep,SmartPlay,SpotABR,SsdpAdvertiseConfig,ZoneExperiment,featureConfigZoneExperiment}",
+   "summary": "flags {enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,featureConfigSemiSleep,DropoutContext,HomeTheaterWifiPerfTelemetry,MetricsService,Plink,Quickbonding,SemiSleep,SmartPlay,SpotABR,SsdpAdvertiseConfig,ZoneExperiment,featureConfigZoneExperiment}. Flag values now traced end to end: JSON parse (f_10a5a144/f_10a5a1c4) populates the featureConfig block inside the RFeatureConfigManager singleton (getter f_105be5c8, block at mgr+0x108, mutex +0x70); runtime consumers read fields under that lock and branch on zero, or go through the zoneExperiment ID-lookup and XML helpers; nested config blocks (semiSleepConfig, dropoutContext, smartPlayConfig, quickbondingConfig, ssdpAdvertiseConfig, spotifyAdaptiveBitrate, homeTheaterWifiPerfTelemetry) are consumed through their own sub-object methods reached by manager pass-through calls. No caller bypasses the singleton (global 0x110a6690 has zero direct loads).",
    "evidence": [
     {
      "type": "firmware",
@@ -228789,14 +228789,62 @@
      "build": "86.10-80260",
      "address": "0x10a59450",
      "notes": "Visitor maps byte+0xeaf to schema entry26, not a wire tag."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "defaults and failure paths (ctor f_10a56e7c + loader f_105bd984)",
+     "address": "0x10a56e7c",
+     "callsite": "0x105c0224 / 0x106b9d34 / 0x106ba354",
+     "notes": "Ctor seeds every field to zero except: thorTimeout +0xebc = 0x157c (5500), enableRemoveMSPCredentialsFromUPnP +0xeb9 = 1, enableChsrcPerfOptimizations +0xec0 = 1, enableUPnPEventingGNDOptimization +0xec1 = 1, useLegacySpotifySmapiPlayback +0xee0 = 1. File loader failure semantics: ENOENT silently skipped; parse error logs 'parse error in %s' then unlinks the file; so absent or corrupt persisted config yields ctor defaults, never a partial-config or error state. Cloud fetch failure 'failed to connect. rescheduling in 1 hour' keeps the previously applied config; 'not securely registered' skips fetch entirely."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "flag-to-branch joins (literal readers, all under mgr+0x70 lock)",
+     "address": "0x100d02f0",
+     "callsite": "17 sites",
+     "notes": "enableTuneInReplacement mgr+0xf85 -> f_100d02a0; enableTuneInMigration +0xf86 -> f_101b6efc (zpserviceaccounts.cxx) and f_104b1bdc; semiSleepConfig bytes +0xf90/+0xf91 -> f_100d4ff4; metricsConfigURL +0x128..+0x130 -> f_101b6efc, f_103fa434, f_10487dd0, f_10694308 ('Failed download of MetricsConfig. RFeatureConfigManager isn't ready'); enableSpotifyConnectForAllAccts +0x164 -> f_1020ca08, f_102148e4 ('Not changing container'), f_1018d27c (+0x164 with preferredRPContainer interior +0x158/+0x160); enableSpotifySMAPIVolumeNormalization +0x165 -> f_10223e38, f_104dee78, f_104e7850; useLegacySpotifySmapiPlayback +0xfe8 -> f_102226f8, f_102233b0; enableRemoveMSPCredentialsFromUPnP +0xfc1, thorTimeout +0xfc4, enableChsrcPerfOptimizations +0xfc8 -> f_10657604 (runtime_policy.cxx); enableSslClientCacheRefresh +0x1009 -> f_10670c20, f_10670cac; smartPlayConfig+8 +0xfd4 -> f_1048e19c; dropoutContext+8 +0xfb0 -> f_104bc3dc (dropout reporting); +0x110/+0x111 ws-deflate gate and enableExternalPartnerMode -> f_105ebb20; debounce presence +0xfe0 -> f_105ef904."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "zoneExperiment value path",
+     "address": "0x105bd4a8",
+     "callsite": "0x106826d4 / 0x10693e44 / 0x10693e74 / 0x10693ea4 / 0x106941b0 / 0x106941e8",
+     "notes": "Parsed records live in the manager vector +0x1068/+0x106c (RabortIfUnlocked-guarded lookup f_105bd4a8 by 64-bit ID). Consumers bind concrete IDs: f_10693df4 reads 0x63e56a7d/0x63e56a7e/0x63e56a7f then applies them as UPnP main/connect/eventing timeouts ('Updated upnp timeouts: main: %u, connect: %u, eventing: %u', domain 'experiment'); f_1069416c reads 0x63e56a7d/0x63e56a7e; f_1068108c reads 0x63e56a7f ('DurationSecs' context). f_105bdd98 renders the same set as <ZoneExperiments> XML from mgr+0x1074 (cap 64 entries at serialize time)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "non-literal flag consumption boundary",
+     "address": "0x105be5c8",
+     "callsite": "manager pass-through sites",
+     "notes": "Flags with no literal reader in the 47-site census (enableVoiceDataCollection, enableSvcHomeControlLutron, enableSvcPlus, enableAmazonMusicDASH, enableAppleMusicHlsv7, enableTrueplayDataCollection, enableSystemAPIV2, enable3ChannelSatellites, enableHTSNKv2, disableTlsRsaCiphersuites, enableSPSDataCollection, enablePortableSurrounds, aiseMinThreshold, enableMaxDialogueLevel, enableUPnPEventingGNDOptimization, enableSecureAlbumArt, enableCEP20ThreadTweaks, debounceWindowMilliseconds(/CEP20), enablePitchfork, enableDhcpProxyFailureTelemetry, enableOnDeviceSoundGeneration, enableRadioSocTemperatureTelemetry, enableHomeTheaterWifi6GHzFronthaul, disableWebSocketPerMessageDeflate value byte) are consumed through one of three routes: (a) nested-object methods invoked on sub-object pointers handed to subsystem constructors (f_1018d27c ctor wiring, f_10219600->f_104e33cc, f_103fa434->f_10401964, f_10487dd0->f_10435658 settings push); (b) the settings-bridge tree built by f_105e98ec/f_10708998 where consumers read via the settings API rather than the raw field; (c) the 'FeatureConfigChangedEvent' subject, whose subscribers register 'ie-obs' observers (8 sites) and react asynchronously. Each route is a demonstrated join, so absence of a literal lbz is not absence of consumption."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "single-ownership proof",
+     "address": "0x110a6690",
+     "callsite": "47 getter sites / 0 direct loads",
+     "notes": "Instance pointer global 0x110a6690 has zero code references outside the getter body; the once-guard global 0x110a6688 is touched only by the getter and one init path at 0x1008bedc. Every flag value therefore flows through f_105be5c8 and the manager mutex, which also means the change-publish point (post-reload) is a single seam."
     }
    ],
-   "todo": "Established: named byte offsets and independent serializer/comparison/typed-visitor paths for concrete flags. Residual: trace each value from parsed configuration through its owning store/accessor to the actual enable/disable branch and side effects, including defaults and failure paths. Do not count serializer, equality or visitor xrefs as a complete runtime-reader census or infer product capability/service registration from this schema.",
    "resolved_findings": [
     "The enable/disable vocabulary is concretely bound to fields of the feature-configuration object, not established as independent process-init settings. f_10a581b0 emits disableTlsRsaCiphersuites from byte +0xeaf at 0x10a58454-0x10a58464, enablePitchfork from +0xf00 at 0x10a58594-0x10a585a8, and enableSslClientCacheRefresh from +0xf01 at 0x10a585ac-0x10a585bc. These are output calls through f_109d14e0; the latter forwards the supplied boolean and key through its writer interface. They do not themselves modify TLS ciphers, threads or endpoint registration.",
     "Independent object comparison is a second kind of xref that must not be counted as a runtime feature gate. f_10a57aa0 compares two objects and returns1 on the first difference, including byte +0x5d at 0x10a57c70-0x10a57c84. That byte is independently named enableSpotifySMAPIVolumeNormalization by the serializer at 0x10a5828c-0x10a582a0. Its comparison establishes change detection, not audio normalization behavior.",
     "The structured visitor f_10a59068 maps these same fields to numbered schema entries: entry8 carries object+0x5d at 0x10a591b4-0x10a591c4, entry26 carries +0xeaf at 0x10a59450-0x10a59460, and entry43 carries +0xf00 at 0x10a596f8-0x10a59708. Each uses f_10a5a608 to construct a typed value descriptor and invoke the supplied visitor virtual+8. The integer entry number is not a protobuf wire tag or a product-capability bit.",
-    "The old consolidation overclaimed a complete per-flag reader census and service/endpoint effects from schema-oriented xrefs. The shipped functions demonstrate serialization, comparison and typed visiting. Connecting the resulting feature values to TLS policy, Spotify normalization, Pitchfork and other actual side effects remains distinct native work; local-setting and cloud-delivery equivalence is not established merely by similar names."
+    "The old consolidation overclaimed a complete per-flag reader census and service/endpoint effects from schema-oriented xrefs. The shipped functions demonstrate serialization, comparison and typed visiting. Connecting the resulting feature values to TLS policy, Spotify normalization, Pitchfork and other actual side effects remains distinct native work; local-setting and cloud-delivery equivalence is not established merely by similar names.",
+    "End-to-end flag flow: JSON text -> f_10a5a144/f_10a5a1c4 populate -> f_105c0058 merge into the manager's +0x108 block -> consumer call to f_105be5c8 -> mutex +0x70 lock -> lbz/lwz of the named byte/word -> cmpwi zero test -> enable/disable branch -> unlock. The branch side effects observed: TuneIn service selection (f_100d02a0, f_104b1bdc), service-account derivation (f_101b6efc), metrics-config download (f_10694308 + neighbours), Spotify container/login handling (f_102148e4, f_1020ca08, f_10223e38, f_104dee78, f_104e7850, f_102226f8, f_102233b0), runtime-policy inputs (f_10657604), SSL client-cache refresh (f_10670c20/f_10670cac), smart-play tuning (f_1048e19c), dropout reporting context (f_104bc3dc), websocket deflate/external-partner setup (f_105ebb20), and debounce-window application (f_105ef904).",
+    "Defaults and failure semantics: the ctor defines the unconfigured state (all zero except thorTimeout=5500 and four default-true booleans). The loader treats a missing file as 'use defaults', a corrupt file as 'log, delete, use defaults', and a stale cloud cache is logged but still applied; the fetch job self-reschedules hourly on failure and is skipped when the device is not securely registered. So 'failure' degrades to defaults or last-good, never to a partially applied file.",
+    "zoneExperiments is the only flag family with a dynamic key space: records carry {id, name, value, defaultValue}; the three IDs consumed statically are 0x63e56a7d/0x63e56a7e/0x63e56a7f (UPnP timeouts). The experiment set is bounded to 64 serialized entries and the lookup is a linear vector walk behind the manager lock.",
+    "Reader-census correction stands and is now completed rather than contradicted: serializer (f_10a581b0), comparison (f_10a57aa0), copy-assign (f_10a5702c/f_10a575f0) and visitor (f_10a59068) xrefs remain non-gate references; the authoritative runtime-reader set is the 47-callsite getter census plus the sub-object/settings/event joins documented here. Flags without literal readers are consumed through those joins or are inert in this build (e.g. enableDhcpProxyFailureTelemetry has no code reader outside ctor/copy paths)."
    ]
   },
   "shutdown_reasons": {
