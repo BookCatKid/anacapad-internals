@@ -12008,7 +12008,7 @@
     }
    },
    "events": {
-    "mechanism": "The /AudioIn/Event route enters shared GENA handling. The AudioIn event-source registration is separately gated by the audio-input capability and is not performed by the SOAP action stub.",
+    "mechanism": "The /AudioIn/Event route enters shared GENA handling (f_105e8290 -> f_1068faa4). The concrete event source behind zp+0xaa64 is now identified: the AudioInputZP implementation built by f_10208dcc embeds an 'AudioInput' source at impl+8 (vptr 0x10ea1274, WSS topic index 9). In this build its GENA serializer slot +0x14 is the empty stub f_10208b28, so accepted subscriptions are plumbed end to end but the NOTIFY body serializes no properties.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -12037,9 +12037,51 @@
       "build": "86.10-80260",
       "address": "0x10189cd8",
       "notes": "The later HTControl registration uses a separate pointer at zp+0x3d508; its event-source slot +0x14 reaches f_10243170. That HTControl binding does not identify the AudioIn renderer."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10208e2c",
+      "notes": "f_10208dcc builds AudioInputZP: pre-store 0x10ea0e9c at impl+0, then f_1067aec4(impl+8, configuration, 'AudioInput', topic idx 9, opt-byte-ptr); post-ctor installs impl vptr 0x10ea1240 at impl+0 and source vptr 0x10ea1274 at impl+8 (0x10208f44)."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10ea1288",
+      "notes": "Source vptr 0x10ea1274 slot +0x14 is f_10208b34, a this-8 thunk to f_10208b28; f_10208b28 is exactly stwu r1,-0x10 / addi r1,0x10 / blr, an empty serializer that emits no propertyset content."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018e7d8",
+      "notes": "zp init f_1018d27c stores the impl returned through 0xc4(r1) at zp+0xaa64 and zp+0xaa68 (stw r11,-0x559c/-0x5598 with r30=zp+0x10000); the impl is built by f_10208dcc via f_101ada1c at callsite 0x10190378."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a2ac",
+      "notes": "f_1018a20c case '/AudioIn/Event': requires capability byte zp+0x5704, loads r31=*(zp+0xaa64) and yields impl+8 when non-null; null impl falls through to the generic registered-map path at 0x1018a2d8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x10180274",
+      "notes": "Producer f_1018014c posts internal typed entries 0xd/0x13 (f_109dadb8/f_109dad10) after wrapping sources with f_1067cff4, then calls f_1067c6ec(*(zp+0xaa64)+8) to raise source+0x110 and wake the sender."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068406c",
+      "notes": "Shared delivery call site inside f_10683da0: invokes source vptr+0x18 (f_1067ab54) -> primary +0x14 serializer for each populated eligible group, then f_1068108c transmits the NOTIFY per unique callback sockaddr."
      }
     ],
-    "notify_path": "Capability-gated source registration at 0x10189ad8; no AudioIn-specific render or send target established.",
+    "notify_path": "zp+0xaa64 holds the AudioInputZP impl (ctor f_10208dcc called at 0x101adb7c inside f_101ada1c, itself invoked at 0x10190378 in zp init; the pointer is stored at zp+0xaa64 and zp+0xaa68 at 0x1018e7d8-0x1018e7dc). Its embedded source at impl+8 is constructed by f_1067aec4 at 0x10208e2c with name 'AudioInput' and WSS topic index 9; the derived source vptr 0x10ea1274 is stored at 0x10208f44 and carries getName f_100c9bac at +0x08, serializer thunk f_10208b34 at +0x14, bridge f_1067ab54 at +0x18 and default hasEventsToSend f_100e4ef4 at +0x1c. SUBSCRIBE on /AudioIn/Event reaches f_1068faa4, which resolves the path through gena-server vptr+0x44 (f_1018a570 -> f_1018a20c): the case at 0x1018a2ac requires capability byte zp+0x5704 and yields (*(zp+0xaa64))+8 when the impl pointer is non-null, otherwise falling to the generic map path. f_1067e4d8 stores the parsed callback sockaddr subscriber on source+0x98/+0xa0 and the handler answers 200 with SID and TIMEOUT headers, then wakes the sender (gena vptr+0xa0 -> sender+4 -> f_10678c50) for the initial notify. Producer side, f_1018014c wraps the source through f_1067cff4 and emits internal typed entries 0xd and 0x13 via f_109dadb8/f_109dad10 before calling f_1067c6ec(*(zp+0xaa64)+8) at 0x10180274, which raises source+0x110 through f_1067c46c and sets sender+0x10e under mutex +0x28 signalling cond +0xb8. The shared 'upnpeventing' sender (singleton at zp+0x5740, thread spawned at 0x101997fc) runs f_10679b14 -> f_10683da0: it walks source+0xa0 dropping expired subscriptions, groups eligible subscribers, invokes the serializer at 0x1068406c via vptr+0x18 -> +0x14, and delivers per callback sockaddr through f_1068108c (NOTIFY 'NTS: upnp:propchange', TCP with optional mbedTLS, 5000ms poll for 'HTTP/1.1 200 OK', failures reaped by f_1067c0bc). The serializer reached on this source is f_10208b34 -> f_10208b28, a three-instruction empty function: it writes no propertyset elements, so the notification body carries no AudioIn state in this build.",
     "payload_model": null,
     "wss_registry": [
      {
@@ -12055,11 +12097,12 @@
       "tag": 15
      }
     ],
-    "todo": [
-     "Residual: identify the concrete event-source implementation behind zp+0xaa64 on a model with the capability enabled, and trace its notification renderer and delivery. No AudioIn emission follows from route registration alone. The WSS names audioInput and lineInStatus are registry entries, not publisher evidence."
-    ],
     "resolved_findings": [
-     "The event source and the reject-all SOAP object are separate. The optical-input and IR-repeater renderer is bound to HTControl, not to the AudioIn SOAP stub."
+     "The event source and the reject-all SOAP object are separate. The optical-input and IR-repeater renderer is bound to HTControl, not to the AudioIn SOAP stub.",
+     "The object behind zp+0xaa64 is the AudioInputZP implementation: f_10208dcc constructs it (primary vptr 0x10ea1240, label 'AudioInputZP' at 0x10ea1314, module tag 'audioinzoneplayer'), and f_101ada1c at callsite 0x10190378 supplies it to zp init, which stores it at zp+0xaa64 and zp+0xaa68.",
+     "Its embedded GENA source at impl+8 is named 'AudioInput' (WSS topic index 9) with derived vptr 0x10ea1274; the +0x14 serializer resolves to f_10208b28, an empty three-instruction function, so an eligible batch produces a NOTIFY with no propertyset body in this build.",
+     "Subscription intake, dirty propagation (producer f_1018014c via f_1067c6ec at 0x10180274), sender wakeup and TCP callback delivery through f_1068108c are the shared upnpeventing chain also used by every other service; the AudioIn-specific gap is the empty renderer, not missing plumbing.",
+     "The 'lineInStatus' WSS registry name (idx 19) belongs to a different topic than this source's idx 9 and remains name-based attribution only."
     ]
    },
    "errors": [
@@ -31199,7 +31242,7 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE is accepted at /GroupManagement/Event. The GroupManagement core has a statically bound property renderer; the registration-to-delivery chain for that source is not established.",
+    "mechanism": "GENA SUBSCRIBE is accepted at /GroupManagement/Event. The GroupManagement core has a statically bound property renderer, and the registration-to-delivery chain is now traced end to end: the source is resolved from the path map, the callback sockaddr subscriber is stored on source+0x98/+0xa0, and the shared upnpeventing sender serializes and TCP-delivers the NOTIFY.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -31249,9 +31292,30 @@
       "build": "86.10-80260",
       "address": "0x10395518",
       "notes": "The SetSourceAreaIds update path marks gm_impl+0x164 dirty and calls f_1067c6ec on the same embedded source. The shared worker dispatches slot +0x18 at 0x1068406c for a nonempty subscriber group."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a338",
+      "notes": "Generic resolver path: f_1040edf4 looks the request path up in the mutex-guarded map at zp+0x3fa8c (via f_1040ebfc), then f_103f8280(impl, path) strcmp-matches '/GroupManagement/Event' at 0x103f83a0 and returns member impl+0x19b0 with source = member+8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067e4d8",
+      "notes": "f_1067e4d8 createSubscription: parses the callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8, dedups/appends subscriber nodes on source+0x98/+0xa0 (URL +0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, addr pair +0x17c/+0x180, flag +0x170, last-notify +0x18c/+0x190)."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068108c",
+      "notes": "f_1068108c sendNotification: allocates a 0x5c8 block per subscription, matches sockaddr via f_1067bde4 vs node+0x17c, writes NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', opens TCP with optional mbedTLS, polls 5000ms (f_105be5c8) for 'HTTP/1.1 200 OK\\r\\n'; dead subs are unlinked by f_1067c0bc ('Terminated subscription %s for %s:%d to %s')."
      }
     ],
-    "notify_path": "The owner registers gm_impl+8 with f_1067938c via f_104017c8. SetSourceAreaIds can signal that source; with eligible subscribers the shared worker calls source slot +0x18 (f_1067ab54), which forwards to +0x14 (f_10390ae0). That thunk adjusts this by -8 and enters f_10390a04. Its primary slot +0x20 calls f_10390d70 to write the property XML.",
+    "notify_path": "The owner registers gm_impl+8 with f_1067938c via f_104017c8, using the sender dereferenced from *(owner+0x228)+4. SUBSCRIBE on /GroupManagement/Event reaches f_1068faa4 (route thunk f_105e8290), which parses nt/callback/sid/deviceudn/user-agent/timeout and resolves the path through gena-server vptr+0x44 (f_1018a570 -> f_1018a20c). /GroupManagement/Event is not a hardcoded case: the generic path at 0x1018a2d8 finds the path in the mutex-guarded map at zp+0x3fa8c (f_1040edf4 -> f_1040ebfc) and calls member resolver f_103f8280, whose strcmp at 0x103f83a0 matches '/GroupManagement/Event' and returns member impl+0x19b0 with source = member+8, i.e. gm_impl+8. f_1067e4d8 then parses the callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8 and dedups/appends a subscriber node on the list rooted at source+0x98/+0xa0 (URL +0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, addr pair +0x17c/+0x180, flag +0x170, last-notify +0x18c/+0x190). The reply is 200 with SID and TIMEOUT headers, then the handler drives gena vptr+0xa0 -> sender+4 -> f_10678c50 to schedule the initial notify. SetSourceAreaIds can signal that source through f_1067c6ec -> f_1067c46c (pending byte source+0x110, sender+0x10e under mutex +0x28, cond +0xb8). The 'upnpeventing' worker f_10679b14 calls f_10683da0 at 0x10679e54: it walks source+0xa0 dropping expired subscriptions (f_10685fc4/f_10686038), groups eligible subscribers, and for a populated batch calls event-source slot +0x18 at 0x1068406c; f_1067ab54 forwards to +0x14 (f_10390ae0), which adjusts this by -8 and enters f_10390a04 whose primary slot +0x20 calls f_10390d70 to write the property XML (GroupCoordinatorIsLocal, LocalGroupUUID, VirtualLineInGroupID, SourceAreaIds). Delivery is per unique callback sockaddr in f_1068108c: a 0x5c8 block per subscription, sockaddr match via f_1067bde4 against node+0x17c, NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', TCP with optional mbedTLS (sonosCertvalSetSSLToSonosDevice), a 5000ms poll (f_105be5c8) for 'HTTP/1.1 200 OK\\r\\n', log lines 'Subscription %s for %.100s %s to %s:%d (%d)' and 'prepping %zu notifications for %s', and reaping of failed subscriptions through f_1067c0bc ('Terminated subscription %s for %s:%d to %s').",
     "wss_registry": [
      {
       "idx": 34,
@@ -31266,11 +31330,10 @@
       "tag": 12
      }
     ],
-    "todo": [
-     "Residual: bind the accepted GroupManagement subscription request to an eligible subscriber on this source and verify callback delivery. The sender registration, a producer, and the conditional renderer call are statically traced. The WSS names are registry entries, not publisher evidence."
-    ],
     "resolved_findings": [
-     "GroupManagement uses the shared sender with a concrete, reference-counted event source. SetSourceAreaIds is one producer; its internal change record does not by itself guarantee a GENA event."
+     "GroupManagement uses the shared sender with a concrete, reference-counted event source. SetSourceAreaIds is one producer; its internal change record does not by itself guarantee a GENA event.",
+     "The accepted-subscription binding is concrete: /GroupManagement/Event resolves through the zp+0x3fa8c path map (f_1040edf4) and member resolver f_103f8280 to gm_impl+8, and f_1067e4d8 inserts the callback sockaddr subscriber node on source+0x98/+0xa0, the same list f_10683da0 iterates for eligible delivery.",
+     "Callback delivery is verified statically: f_1068108c opens TCP to the subscriber callback address, writes the NTS upnp:propchange NOTIFY with SID/SEQ/X-SONOS-SERVICETYPE headers, waits up to 5000ms for 'HTTP/1.1 200 OK' and unlinks failures via f_1067c0bc."
     ]
    },
    "errors": [
@@ -34871,7 +34934,7 @@
     }
    },
    "events": {
-    "mechanism": "GENA SUBSCRIBE is accepted at /HTControl/Event. Property text is produced by f_10243170, reached from event-source virtual +0x14. f_1024340c adjusts this by -8 and branches to f_102432dc, which calls f_10243170 at 0x10243338 and 0x10243350 for non-null property buffers, because the source object is the embedded object at impl+8, and slot +0x18 (f_1067ab54) tail-calls slot +0x14 with the same r3, r4, and r5. The renderer emits TOSLinkConnected from the byte at impl+0x1e5 and IRRepeaterState from the string at impl+0x1ec. It does not emit LEDFeedbackState or RemoteConfigured. Registration: f_101981f0 calls f_10189a10 at 0x1019826c. In f_10189a10, r31 is the zone player and r29 is r31+0x40000. The load at 0x10189cc4 reads the htc impl from r29-0x2af8, which is zone-player+0x3d508. The addi at 0x10189ccc forms impl+8. The isel at 0x10189cd4 keeps that pointer when the impl is non-null and substitutes 0 when the impl is null, then 0x10189cd8 calls f_106795b4 with the sender loaded from zone-player+0x5744. f_106795b4 appends its r4 argument to the vector at sender+0x110 when the byte at sender+0x10d is 0. The sender constructor f_106782b4 stores 0 at that byte (0x10678388). The other store of that byte is f_10678ab8, which stores 1, and f_101981f0 does not call f_10678ab8. Signal: SetIRRepeaterState calls f_1067c6ec, which calls f_1067c46c with null buffers, so that call does not enter f_10243170. f_1067c46c calls f_10678c50 on the sender at source+0xb4. That sets sender+0x10e and signals the condition at sender+0xb8. The consumer f_10679b14 scans a snapshot of active sender+0x110, skips sources found in pending-removal sender+0x128, and applies readiness and timing checks before calling f_10683da0 at 0x10679e54. The slot +0x08 comparison at 0x10679d44-0x10679d4c is a getter fast path, not a universal eligibility gate: equality with f_100c9bac loads source+0xbc directly, while inequality calls the getter virtually at 0x10679fc4 and rejoins at 0x10679d54. The HTControl source vtable 0x10ea628c has f_100c9bac at +0x08, f_1024340c at +0x14, and f_1067ab54 at +0x18. In f_10683da0, frame+0x50 is initially zero at 0x10683e0c, but is also the linked-node head at table+8 for the table rooted at frame+0x48. At 0x10683e4c the code passes &frame[0x48] to f_10684d00, called at 0x10683e50 for a name group rooted at source+0xa0 before its subscriber eligibility loop. A missing key allocates a node at 0x10684dac-0x10684de8 and calls f_10684ac8 at 0x10684dfc with r4=table and r7=new node. When insertion finds an empty destination bucket, 0x10684c98-0x10684ca0 links the old head into the new node and stores the new node at table+8: stw r26,8(r30) at 0x10684ca0 therefore writes the caller's frame+0x50. This happens on first insertion into the initially empty table. An existing key returns its value without this insertion; insertion into an already populated bucket uses 0x10684b48-0x10684b58 instead. A second lookup/insertion at 0x10683fa8 uses the same table when frame+0x54 is zero and source+0xf0 is zero (0x10683f68-0x10683f7c). Thus frame+0x50 is not invariant zero, and the collector is conditionally reachable. The real gates remain: a nonzero head at 0x10683fe0-0x10683fe8 and a nonempty group vector at 0x10683ff8-0x10684004. Eligible subscriber entries are added after f_10686038 returns nonzero at 0x10683e78-0x10683eb4; creating a name group alone does not establish a nonempty vector. For a populated batch, 0x10684060 loads source+0x18 and 0x1068406c calls it with the global object's property buffers at +0x90/+0x94, reaching the HTControl renderer chain above. In plain English, the sender builds groups before generating the properties for groups that have work; a helper can populate the apparently zero local head through its containing table. This establishes static reachability, not a live subscription or successful wire delivery. f_1067b214 instead walks the separate global list at 0x11097824, with insert sites 0x1059bf34 and 0x106261c4. TODO: Established: registration, wakeup, the table alias write, batch gates and the renderer dispatch are traced above. Unknown: the complete binding from an accepted /HTControl/Event subscription to an eligible source+0xa0 record and successful callback delivery remains untraced. Next: follow the SUBSCRIBE handler's insertion into source+0xa0, trace its f_10686038 eligibility result and group-vector population, then follow the populated batch to its notification callback.",
+    "mechanism": "GENA SUBSCRIBE is accepted at /HTControl/Event. Property text is produced by f_10243170, reached from event-source virtual +0x14. f_1024340c adjusts this by -8 and branches to f_102432dc, which calls f_10243170 at 0x10243338 and 0x10243350 for non-null property buffers, because the source object is the embedded object at impl+8, and slot +0x18 (f_1067ab54) tail-calls slot +0x14 with the same r3, r4, and r5. The renderer emits TOSLinkConnected from the byte at impl+0x1e5 and IRRepeaterState from the string at impl+0x1ec. It does not emit LEDFeedbackState or RemoteConfigured. Registration: f_101981f0 calls f_10189a10 at 0x1019826c. In f_10189a10, r31 is the zone player and r29 is r31+0x40000. The load at 0x10189cc4 reads the htc impl from r29-0x2af8, which is zone-player+0x3d508. The addi at 0x10189ccc forms impl+8. The isel at 0x10189cd4 keeps that pointer when the impl is non-null and substitutes 0 when the impl is null, then 0x10189cd8 calls f_106795b4 with the sender loaded from zone-player+0x5744. f_106795b4 appends its r4 argument to the vector at sender+0x110 when the byte at sender+0x10d is 0. The sender constructor f_106782b4 stores 0 at that byte (0x10678388). The other store of that byte is f_10678ab8, which stores 1, and f_101981f0 does not call f_10678ab8. Signal: SetIRRepeaterState calls f_1067c6ec, which calls f_1067c46c with null buffers, so that call does not enter f_10243170. f_1067c46c calls f_10678c50 on the sender at source+0xb4. That sets sender+0x10e and signals the condition at sender+0xb8. The consumer f_10679b14 scans a snapshot of active sender+0x110, skips sources found in pending-removal sender+0x128, and applies readiness and timing checks before calling f_10683da0 at 0x10679e54. The slot +0x08 comparison at 0x10679d44-0x10679d4c is a getter fast path, not a universal eligibility gate: equality with f_100c9bac loads source+0xbc directly, while inequality calls the getter virtually at 0x10679fc4 and rejoins at 0x10679d54. The HTControl source vtable 0x10ea628c has f_100c9bac at +0x08, f_1024340c at +0x14, and f_1067ab54 at +0x18. In f_10683da0, frame+0x50 is initially zero at 0x10683e0c, but is also the linked-node head at table+8 for the table rooted at frame+0x48. At 0x10683e4c the code passes &frame[0x48] to f_10684d00, called at 0x10683e50 for a name group rooted at source+0xa0 before its subscriber eligibility loop. A missing key allocates a node at 0x10684dac-0x10684de8 and calls f_10684ac8 at 0x10684dfc with r4=table and r7=new node. When insertion finds an empty destination bucket, 0x10684c98-0x10684ca0 links the old head into the new node and stores the new node at table+8: stw r26,8(r30) at 0x10684ca0 therefore writes the caller's frame+0x50. This happens on first insertion into the initially empty table. An existing key returns its value without this insertion; insertion into an already populated bucket uses 0x10684b48-0x10684b58 instead. A second lookup/insertion at 0x10683fa8 uses the same table when frame+0x54 is zero and source+0xf0 is zero (0x10683f68-0x10683f7c). Thus frame+0x50 is not invariant zero, and the collector is conditionally reachable. The real gates remain: a nonzero head at 0x10683fe0-0x10683fe8 and a nonempty group vector at 0x10683ff8-0x10684004. Eligible subscriber entries are added after f_10686038 returns nonzero at 0x10683e78-0x10683eb4; creating a name group alone does not establish a nonempty vector. For a populated batch, 0x10684060 loads source+0x18 and 0x1068406c calls it with the global object's property buffers at +0x90/+0x94, reaching the HTControl renderer chain above. In plain English, the sender builds groups before generating the properties for groups that have work; a helper can populate the apparently zero local head through its containing table. This establishes static reachability. f_1067b214 instead walks the separate global list at 0x11097824, with insert sites 0x1059bf34 and 0x106261c4. The remaining gap, an accepted subscription's insertion into source+0xa0 and its callback delivery, is now closed: the SUBSCRIBE side is documented under notify_path.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -34990,9 +35053,30 @@
       "build": "86.10-80260",
       "address": "0x1068406c",
       "notes": "A populated group invokes the source's slot +0x18, which forwards to slot +0x14, HTControl thunk f_1024340c. f_102432dc calls the property renderer at 0x10243338 and 0x10243350 with the two non-null buffers."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a464",
+      "notes": "f_1018a20c case '/HTControl/Event': strcmp at 0x1018a470, gate lbz zp+0x571c at 0x1018a47c, impl load lwz r9,-0x2af8(zp+0x40000) = zp+0x3d508 at 0x1018a48c, source = impl+8 at 0x1018a498, joins f_1067e4d8 path at 0x1018a26c."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067e4d8",
+      "notes": "f_1067e4d8 createSubscription: parses the callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8, dedups/appends subscriber nodes on the list rooted at source+0x98/+0xa0 (URL +0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, addr pair +0x17c/+0x180, flag +0x170, last-notify +0x18c/+0x190)."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068108c",
+      "notes": "f_1068108c sendNotification: allocates a 0x5c8 block per subscription, matches sockaddr via f_1067bde4 vs node+0x17c, writes NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', opens TCP with optional mbedTLS, polls 5000ms (f_105be5c8) for 'HTTP/1.1 200 OK\\r\\n'; dead subs are unlinked by f_1067c0bc ('Terminated subscription %s for %s:%d to %s')."
      }
     ],
-    "notify_path": "f_10189a10 registers the home-theater implementation's embedded source at impl+8 with the shared sender at 0x10189cd8 when the implementation pointer is present. f_1067c6ec signals through f_1067c46c and f_10678c50. Consumer f_10679b14 calls f_10683da0 at 0x10679e54. For a populated subscription group this calls event-source slot +0x18 at 0x1068406c; f_1067ab54 forwards to +0x14 (f_1024340c), which leads to f_10243170.",
+    "notify_path": "f_10189a10 registers the home-theater implementation's embedded source at impl+8 with the shared sender at 0x10189cd8 when the implementation pointer is present. SUBSCRIBE on /HTControl/Event reaches f_1068faa4 (via route thunk f_105e8290): it parses nt/callback/sid/deviceudn/user-agent/timeout and resolves the path through gena-server vptr+0x44 (f_1018a570 -> f_1018a20c), whose hardcoded case at 0x1018a464 requires zp+0x571c and returns (*(zp+0x3d508))+8 when the htc impl is non-null. f_1067e4d8 then parses the callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8 and dedups/appends a subscriber node on the list rooted at source+0x98/+0xa0: the node stores the URL at +0xc/+0x10, deviceUDN at +0x24/+0x28, the callback sockaddr at +0x3c/+0x40, a normalized address pair at +0x17c/+0x180, flag +0x170 and last-notify times +0x18c/+0x190. That node is the concrete eligible record the eligibility loop later walks at source+0xa0. The reply is 200 with SID and TIMEOUT headers, then the handler drives gena vptr+0xa0 -> sender+4 -> f_10678c50 so the initial notify is scheduled on the same worker as later dirty events. f_1067c6ec signals through f_1067c46c and f_10678c50. Consumer f_10679b14 calls f_10683da0 at 0x10679e54, which walks source+0xa0 dropping expired subscriptions (f_10685fc4/f_10686038) and groups eligible subscribers by name before invoking the serializer. For a populated subscription group this calls event-source slot +0x18 at 0x1068406c; f_1067ab54 forwards to +0x14 (f_1024340c), which leads to f_10243170. Delivery is per unique callback sockaddr in f_1068108c: a 0x5c8 block per subscription, sockaddr match via f_1067bde4 against node+0x17c, NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', TCP with optional mbedTLS (sonosCertvalSetSSLToSonosDevice), a 5000ms poll (f_105be5c8) for 'HTTP/1.1 200 OK\\r\\n', log lines 'Subscription %s for %.100s %s to %s:%d (%d)' and 'prepping %zu notifications for %s', and reaping of failed subscriptions through f_1067c0bc ('Terminated subscription %s for %s:%d to %s').",
     "wss_registry": [
      {
       "idx": 41,
@@ -35001,11 +35085,11 @@
       "tag": 72
      }
     ],
-    "todo": [
-     "Residual: map the accepted /HTControl/Event request to a concrete eligible record rooted at source+0xa0 and verify delivery to the callback. The subscribed-source renderer path and its population gates are identified; an accepted subscription alone does not establish successful notification delivery. The htControl WSS name is not proof of a WSS publisher."
-    ],
     "resolved_findings": [
-     "The initial zero at sp+0x50 is not invariant: the subscription-group insert helper receives the containing table by address and writes the list head indirectly. The renderer call also requires a nonempty subscriber vector for that group."
+     "The initial zero at sp+0x50 is not invariant: the subscription-group insert helper receives the containing table by address and writes the list head indirectly. The renderer call also requires a nonempty subscriber vector for that group.",
+     "The eligible record rooted at source+0xa0 is concrete: f_1067e4d8 inserts one subscriber node per accepted SUBSCRIBE on source+0x98/+0xa0 keyed by the parsed callback sockaddr, and f_10683da0's eligibility loop iterates that same list, so an accepted /HTControl/Event subscription reaches the delivery path mechanically.",
+     "Callback delivery is verified statically: f_1068108c opens a TCP connection to the subscriber's callback address, writes the NTS upnp:propchange NOTIFY with SID/SEQ/X-SONOS-SERVICETYPE headers, waits up to 5000ms for 'HTTP/1.1 200 OK' and unlinks the subscription via f_1067c0bc on failure.",
+     "The /HTControl/Event resolver in f_1018a20c is capability-gated (zp+0x571c) and yields the htc impl's embedded source (*(zp+0x3d508))+8, matching the object registered with the sender by f_10189a10."
     ]
    },
    "errors": [
@@ -78395,7 +78479,7 @@
    },
    "state_variables": {},
    "events": {
-    "mechanism": "GENA subscription handler f_105e8290 for /MediaRenderer/ConnectionManager/Event; the eligible subscriber renderer writes separate properties rather than a LastChange document.",
+    "mechanism": "GENA subscription handler f_105e8290 for /MediaRenderer/ConnectionManager/Event; the renderer writes a fixed propertyset (empty SourceProtocolInfo and CurrentConnectionIDs, constant SinkProtocolInfo capability list) rather than a LastChange document, and the shared upnpeventing sender delivers it to subscribed callback URLs over TCP.",
     "lastchange_template": null,
     "no_template_note": "Only 3 LastChange/event doc templates exist in rodata (RCS 0x10e88928, AVT 0x10eb29e8, Queue 0x10ed1c6c); the event-namespace registry at 0x10f0bedc-0x10f0bfa8 lists only AVT/RCS/Queue - proven: this service emits no LastChange payload",
     "wss_event_names": [
@@ -78430,9 +78514,65 @@
       "build": "86.10-80260",
       "address": "0x1032ead0",
       "notes": "The thunk subtracts 8 from this and branches to f_1032e9e0. The renderer emits all three named properties and ends with f_10676968, which appends the GENA propertyset closing tag."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1018a43c",
+      "notes": "f_1018a20c hardcodes /MediaRenderer/ConnectionManager/Event: requires zp+0x571c, then forms zp+0x40000-0x2ea8 = zp+0x3d158, the embedded source inside the CM-renderer impl at zp+0x3d150."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032ebc4",
+      "notes": "f_1032eb80 builds the CM-renderer impl: r3=impl, f_1067aec4(impl+8, configuration, 'ConnectionManagerRenderer', topic idx 22, opt-byte-ptr) at 0x1032ebc4; post-ctor stores install vptrs 0x10eb8710 at impl+0 and source vptr 0x10eb8730 at impl+8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1032e9e0",
+      "notes": "f_1032e9e0 writes '<e:propertyset xmlns:e=...>' via f_1067693c, emits empty SourceProtocolInfo and CurrentConnectionIDs elements through f_10676994/f_10676a44 pairs, writes the constant rodata sink protocol list 0x10eb87e4 via f_10676cf8, closes with f_10676968, then copies the 8-byte metadata pair from global 0x110a5010 into its last out-arg."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1034ccf0",
+      "notes": "Impl vfunc+0x50 f_1034cabc (connection state-change callback taking direction arg r5 and out-code r6): on its accepted path it stores 1 at impl+0x94c and calls f_1067c6ec(impl+8) at 0x1034ccf0, raising source+0x110."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1034dcac",
+      "notes": "f_1034d858 rewrites the impl+0xe34 connection list via f_101227cc, sets impl+0x94c=1 and dirties the source at 0x1034dcac; called by impl vfunc+0x1c f_1034e5c8 and by f_1034dd80/f_1034f8ac."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x101997fc",
+      "notes": "f_101981f0 calls f_10678600(zp+0x5740) once; it spawns the 'upnpeventing' thread (entry f_1067a398, arg=sender) through f_10d51b5c -> f_1098a680 at sender+0x10. zp+0x5740 is built by f_106783f4 with vptr 0x10e97724, a 0x140-byte worker block and a 0x14-byte control (vptr 0x10f00700); shared pair zp+0x57f0/+0x57f4 is what configurations copy into source+0xb4/+0xb8."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1067e4d8",
+      "notes": "f_1067e4d8 createSubscription: parses the SUBSCRIBE callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8, dedups on the subscriber list rooted at source+0x98/+0xa0 and stores node fields (URL +0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, addr pair +0x17c/+0x180, flag +0x170, last-notify pair +0x18c/+0x190)."
+     },
+     {
+      "type": "firmware",
+      "binary": "anacapad",
+      "build": "86.10-80260",
+      "address": "0x1068108c",
+      "notes": "f_1068108c sendNotification: allocates a 0x5c8 block per subscription, matches sockaddr via f_1067bde4 vs node+0x17c, emits NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', opens TCP with optional mbedTLS (sonosCertvalSetSSLToSonosDevice), polls 5000ms via f_105be5c8 for 'HTTP/1.1 200 OK\\r\\n', logs 'Subscription %s for %.100s %s to %s:%d (%d)' / 'prepping %zu notifications for %s'; failures reach f_1067c0bc ('Terminated subscription %s for %s:%d to %s')."
      }
     ],
-    "notify_path": "The MediaRenderer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032ead0) and f_1032e9e0. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+    "notify_path": "The MediaRenderer core embeds a GENA event source at zp+0x3d158 (CM-renderer impl zp+0x3d150 +8, secondary vptr 0x10eb8730; ctor f_1032eb80 calls f_1067aec4 at 0x1032ebc4 with name ConnectionManagerRenderer and WSS topic index 22). SUBSCRIBE on /MediaRenderer/ConnectionManager/Event reaches f_1068faa4 (thunk f_105e8290), which parses nt/callback/sid/deviceudn/user-agent/timeout and resolves the path through gena-server vptr+0x44 (f_1018a570 -> f_1018a20c); the hardcoded case at 0x1018a434 requires zp+0x571c and yields zp+0x3d158. f_1067e4d8 then parses the callback URL into a sockaddr (f_106868c4, inet_ntop), locks source+8 and dedups/appends a subscriber node on the list rooted at source+0x98/+0xa0 (URL at node+0xc/+0x10, deviceUDN +0x24/+0x28, sockaddr +0x3c/+0x40, normalized addr pair +0x17c/+0x180). The reply is 200 with SID and TIMEOUT headers, after which the handler drives gena vptr+0xa0 -> sender+4 -> f_10678c50 to schedule the initial notify. Producers dirty the source through f_1067c6ec -> f_1067c46c: impl+0x94c is set and the pending byte source+0x110 goes high at callsites 0x1034ccf0 (impl vfunc+0x50 f_1034cabc, the connection state-change callback) and 0x1034dcac (f_1034d858, which rewrites the impl+0xe34 connection list through f_101227cc; invoked by impl vfunc+0x1c f_1034e5c8 and by f_1034dd80/f_1034f8ac). f_10678c50 then sets sender+0x10e under mutex +0x28 and signals cond +0xb8. The sender is the zone singleton at zp+0x5740 (ctor f_106783f4, vptr 0x10e97724; shared pair zp+0x57f0/+0x57f4 copied into source configuration+4/+8 -> source+0xb4/+0xb8); its 'upnpeventing' thread is spawned once by f_10678600 at 0x101997fc in zp init, entry f_1067a398 -> f_1067a2dc -> runOnce f_10679b14. runOnce clears +0x10e, compacts the +0x110/+0x114 source vector (f_10679678), tests hasEventsToSend f_1067d028 and calls f_10683da0: locks source+8, stamps +0xc4/+0xc8, walks source+0xa0 dropping expired subscriptions (f_10685fc4/f_10686038), groups eligible subscribers (f_10684d00/f_10684ac8/f_10684e98), dedups callback sockaddrs (f_10680d88/f_106858e4), clears source+0x110, invokes the serializer at 0x1068406c through source vptr+0x18 (f_1067ab54) -> primary +0x14 (f_1032ead0 -> f_1032e9e0), and hands the document to f_1068108c per sockaddr. f_1068108c allocates a 0x5c8 block per subscription, matches the sockaddr against node+0x17c (f_1067bde4), writes NOTIFY 'NTS: upnp:propchange\\r\\nSID: %s\\r\\nSEQ: %d\\r\\nX-SONOS-SERVICETYPE: %s\\r\\n\\r\\n', opens TCP with optional mbedTLS (sonosCertvalSetSSLToSonosDevice), polls 5000ms (f_105be5c8) for 'HTTP/1.1 200 OK\\r\\n' and logs 'Subscription %s for %.100s %s to %s:%d (%d)' / 'prepping %zu notifications for %s'; dead subscriptions are unlinked by f_1067c0bc ('Terminated subscription %s for %s:%d to %s') and the next wakeup is scheduled via timevalMinimize.",
     "wss_registry": [
      {
       "idx": 22,
@@ -78441,11 +78581,11 @@
       "tag": 67
      }
     ],
-    "todo": [
-     "Residual: verify which state changes, if any, mark this source dirty after initial subscription and trace a concrete accepted subscription through callback delivery. The connectionManager WSS registry name alone does not prove a publisher."
-    ],
     "resolved_findings": [
-     "The MediaRenderer core embeds a GENA event source at +8. The eligible-group worker calls that source's slot +0x18 (f_1067ab54), forwarding to slot +0x14 (0x1032ead0) and f_1032e9e0. The renderer builds a propertyset containing SourceProtocolInfo, SinkProtocolInfo and CurrentConnectionIDs. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher."
+     "The MediaRenderer core embeds a GENA event source at zp+0x3d158. The eligible-group worker calls that source's slot +0x18 (f_1067ab54) at 0x1068406c, forwarding to slot +0x14 (0x1032ead0) and f_1032e9e0. The renderer builds a propertyset containing empty SourceProtocolInfo and CurrentConnectionIDs elements plus SinkProtocolInfo carrying the constant rodata protocol list at 0x10eb87e4. f_10735918 is the GetCurrentConnectionIDs SOAP response executor, not an event publisher.",
+     "The subscription-to-delivery chain is fully static: f_1068faa4 accepts SUBSCRIBE, f_1018a20c maps the gated path to zp+0x3d158, f_1067e4d8 stores the callback sockaddr subscriber on source+0x98/+0xa0, and the shared 'upnpeventing' sender thread (zp+0x5740, spawned at 0x101997fc) serializes once per batch at 0x1068406c and TCP-delivers the NOTIFY to each unique callback sockaddr via f_1068108c, expecting 'HTTP/1.1 200 OK' and reaping failures through f_1067c0bc.",
+     "Dirty producers are concrete: impl vfunc+0x50 f_1034cabc (connection state-change callback) and f_1034d858 (impl+0xe34 connection-list update via f_101227cc) each set impl+0x94c and call f_1067c6ec on the embedded source, which raises source+0x110 and wakes the sender through f_10678c50.",
+     "The connectionManager WSS registry name corresponds to topic index 22 passed to f_1067aec4 by the same source constructor; GENA delivery no longer depends on that registry name for proof."
     ]
    },
    "errors": [
@@ -109200,9 +109340,9 @@
      "state_dependencies": {
       "description": "Primary +0x0c -> f_1046c0b0 first calls f_100d8664 -> f_100d8568 under mutex +0x938. Only Master or FocusMode enter its volume-read gate f_100d846c; that concrete reader rejects FocusMode and nonzero InstanceID, so only Master/InstanceID zero can reach a nonnull +0x3c0 VLI manager. f_106a7f44 takes DesiredMute and cached master volume, gets selected descriptor +0x354, its provider +4, provider slot +0x30, then returned interface slot +0x0c. A nonzero hook result returns SOAP success without normal RC application. Null/zero falls through. The proven Spotify provider vptr 0x10ea53a8 slot +0x30 is f_1022abbc -> f_1022abac, a literal-null getter, so Spotify cannot intercept here; other concrete providers remain to bind. Under mutex +0x938, f_100d99b0 first rejects nonzero InstanceID with 702. Exact Master, LF, RF and FocusMode select cached bytes +0x7f1/+0x7f2/+0x7f3/+0x7f4; other names return 402. Master writes DesiredMute before checking configuration: if +0x7ff is nonzero and +0x801 is zero it copies saved volume +0x7e0 into master +0x7da. Master always copies +0x7da into shadow +0x3c8. Every accepted channel calls f_100d7f34, sets dirty +0x7f5, requests f_1067c6ec(this+8) and schedules f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so accepted local mute returns zero. No equality shortcut, general +0x7ff rejection or rollback occurs. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish.",
       "todo": [
-       "Established: Source/cache/topology guards, sound-device readiness, deferred per-zone mute and LED-state gating.",
-       "Unknown: Remaining source-control providers, concrete DSP registrations, optional LED subclass and cleanup sessions.",
-       "Next: Bind the DSP observer objects iterated at f_10d8ca38 virtual +0x18 and playback-gain consumer f_10d54ca8; finish the renderer+0x3b4 attachment through media-player+0x274/+0x278 to its LED subclass. Bind remaining VLI source-control providers and topology-cleanup sessions below f_1046c148."
+       "Established: Source/cache/topology guards, sound-device readiness, deferred per-zone mute and LED-state gating. Source-control chain bound: registry f_106a76b8 fills manager+0x2e8 slots via provider+0x08, but the only in-build registration is Spotify ID 2 (provider zp+0x59f8+8, vptr 0x10ea53a8) whose +0x30 interface getter returns null, so the f_106a7f44 hook returns zero and local fallback f_100d99b0 always runs. Cleanup bound: f_1046c148 = VerifyThenRemoveSystemwide over 'topology'/'Master' sessions. DSP listeners bound: 'DSPControl'/'DSPControlChProc' obj+8 subobjects (vptrs 0x10fe8b7c/0x10fe8db4; +0x18 stub, +0x20 f_10d724c8 -> obj+0x708 store, +0x24 f_10d72aec -> internal +0x98 chain) plus '%s-dsp' AudioStreamDSP listeners (vptr 0x10f2c2e8, stub slots) in the 22-slot array of mgr+0xc4. Playback-gain consumer bound: ampManager f_10d54ca8 -> 'manageAmpStateLocked_notifyVolume'. LED chain bound: rc+0x3b4/+0x3b8 copies mp+0x274/+0x278 shared_ptr<RLEDsZP> (vptr 0x10fba500).",
+       "Unknown: Internal work below DSPControl's own +0x98 handler chain (f_10d74b84 slot) and amp 'manageAmpStateLocked_notifyVolume'; the per-entry flag-byte semantics in the 22-slot listener array; which interface table exposes public registration wrapper f_107f5958, which has no static callers in this binary.",
+       "Next: Enumerate the callback table consumed by DSPControl vptr+0x98 and the obj+0x708 consumer under f_10d724c8; trace f_107f5958's indirect caller table if deeper listener inventory is still wanted."
       ],
       "evidence": [
        {
@@ -109288,6 +109428,86 @@
         "build": "86.10-80260",
         "address": "0x107f7078",
         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetMute still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8bf0c",
+        "address": "0x10d8bf0c",
+        "notes": "DSPStateManager addVolumeChangeCallback: fills the first free of 22 listener slots in the array at mgr+0x90..+0xe4 (mtctr 0x16, aborts 'Too many volume change callbacks added'), storing listener pointer, name and a flag byte per entry; removal mirror f_10d8c06c scans the same +0x8c-based array. Iterators: f_10d8ca38 calls listener vptr+0x18, f_10d8cacc calls f_10d8ca38 then calls +0x20 per entry, f_10d8cc50 calls +0x24."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f9100",
+        "address": "0x107f9660",
+        "notes": "Sound-device ctor registers *(dev+0xcc)+8 as 'DSPControlChProc' (name 0x10f2b5c0) at 0x107f9660 and *(dev+0xc8)+8 as 'DSPControl' (0x10f2b5d4) at 0x107f9684 via f_10d8bf0c on mgr dev+0xc4. This is the normal path; the alternate branch at 0x107f9894 only applies 'app/debug/dsp/persistentEQ.xml' when that debug file exists (fopen64 'r', 'Found and applying persistent EQ xml file')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f8ab8",
+        "address": "0x107f8bc8",
+        "notes": "Sound-device dtor removes the same two listener subobjects via f_10d8c06c at 0x107f8bc8 (*(dev+0xcc)+8) and 0x107f8be0 (*(dev+0xc8)+8), then calls vfunc+0x18 on dev+0xd0 and releases dev+0xd4 amp via f_10d5635c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d74c2c",
+        "address": "0x10fe8b7c",
+        "notes": "DSPControl ctor f_10d74c2c installs listener-interface vptr 0x10fe8b7c at obj+8 (variant ctor f_10d74ca0 installs 0x10fe8db4; identical handler set). Slots: +0x18 f_104f502c no-op stub, +0x20 f_10d724c8 locks object mutex and stores the argument at obj+0x708, +0x24 f_10d72aec which forwards into the object's own vptr+0x98 callback chain (slot f_10d74b84)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10800dec",
+        "address": "0x10801118",
+        "notes": "AudioStreamDSP ctor (audio_stream_dsp.cxx; names itself '<name>-dsp' via snprintf) registers the object itself with mgr *(this+0xa8) at 0x10801118, flag byte this+0x9c; vptr 0x10f2c2e8. Embedded in player objects at +0x780 and +0x860 (ctor calls in f_107fe1a4 at 0x107fe2a0/0x107fe464, another in f_10de0994 at 0x10de0a90); dtor f_10800704 deregisters at 0x1080072c. Its +0x18/+0x20/+0x24 slots are empty stubs f_104f502c/f_104f5044/f_104f5050."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d54ca8",
+        "address": "0x10d54ca8",
+        "notes": "AmpManager (ampManager.cxx) notifyVolume on dev+0xd4 amp object: stores the level at amp+0xd8 and calls vptr+0x14 'manageAmpStateLocked_notifyVolume'; 'zone %d volume %f -> %f' logged on 'amp'. The playback-gain consumer paired with the mute apply."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a76b8",
+        "address": "0x106a76b8",
+        "notes": "vli source registry: first free of 9 slots at manager+0x2e8 (12-byte entries {id,provider,ctx}); calls provider vfunc+0x08 then stores {id@+0, provider@+4, ctx@+8}; failure logs 'Error (0x%x) registering vli source (%d)' on 'vli'. Sole callsite 0x10219cf0 in f_10219600 registers ID 2 with provider *(zp+0x59f8)+8; no other bl, addis/addi or rodata references to f_106a76b8 exist and no direct stores into +0x2e8..+0x350 occur, so no IDs 1,3,6,8 providers are registered in this build."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a7f44",
+        "address": "0x106a7f44",
+        "notes": "Active-source dispatch used by rc_impl f_100d8568 (channel must strcmp 'Master' or 'FocusMode', then f_100d846c validation): locks manager mutex +0x150, node=*(manager+0x354), provider=node+4, iface=provider->vfunc+0x30(provider), then iface->vfunc+0x0c(iface, arg, halfword). Returns zero when node/provider/iface is null; Spotify provider vptr 0x10ea53a8 +0x30 = f_1022abbc -> f_1022abac returns literal null, so this hook cannot consume a source in this build."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046c148",
+        "address": "0x1046c148",
+        "notes": "VerifyThenRemoveSystemwide (tag 0x10e8bcdc): snapshots topology via f_10759984(+0xbc8,+0x9c8), looks up session URIs for the 'Master' group ('lookup of %s URIs for %s failed' on 'topology'), then removes the matched sessions systemwide through f_10765a00/f_10762d0c/f_106f88cc/f_106fbf80. Called by f_10470968 at 0x10470a1c and f_10470a34 at 0x10470b44 after f_1046e57c builds the URI set."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fd65c",
+        "address": "0x103fdcd4",
+        "notes": "rc_impl+0x3b4/+0x3b8 LED shared_ptr is copied from media-player+0x274/+0x278 by f_103fd65c -> f_100dd650 during RC configuration. mp+0x274/+0x278 itself is filled at 0x103fa994-0x103fa9a0 in the incoming-config filler f_103fa434 (called from f_1040fffc at 0x10410744 and f_101afaa4 at 0x101b0140). The pointed object is RLEDsZP: vptr 0x10fba500, ctor f_10c8ef38 (+8=1, +0xa0=0, +0xb0=9), 0xc0-byte allocation at 0x100c1a14 with control block vptr 0x10e72ad0, dtor f_10c8e804 ('~RLEDsZP'), 'bEnableLedSwap=%s, bCanSetWhiteBrightness=%s' at 0x10fba5c0."
        }
       ]
      },
@@ -111331,9 +111551,9 @@
      "state_dependencies": {
       "description": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish. Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword.",
       "todo": [
-       "Established: Cache/mode/source gates, sound-device readiness and normal/deferred per-zone volume selection.",
-       "Unknown: Remaining source-control, cleanup, DSP listener and optional LED subclass dependencies.",
-       "Next: Bind remaining source-control providers f_106a76b8 +0x30 / interface +0x08, cleanup f_1046c148 sessions, concrete DSP listeners below f_10d8fdc8/f_10d8c304 and playback-gain consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278."
+       "Established: Cache/mode/source gates, sound-device readiness and normal/deferred per-zone volume selection. Source-control chain bound: registry f_106a76b8 fills manager+0x2e8 slots via provider+0x08, but the only in-build registration is Spotify ID 2 (provider zp+0x59f8+8, vptr 0x10ea53a8) whose +0x30 interface getter returns null, so f_106a7f44/f_106a8014 hooks return zero and f_100d9b4c always falls back to local f_100d99b0. Cleanup bound: f_1046c148 = VerifyThenRemoveSystemwide over 'topology'/'Master' sessions. DSP listeners bound: 'DSPControl'/'DSPControlChProc' obj+8 subobjects (vptrs 0x10fe8b7c/0x10fe8db4; +0x18 stub, +0x20 f_10d724c8 -> obj+0x708 store, +0x24 f_10d72aec -> internal +0x98 chain) plus '%s-dsp' AudioStreamDSP listeners (vptr 0x10f2c2e8, stub slots) in the 22-slot array of mgr+0xc4. Playback-gain consumer bound: ampManager f_10d54ca8 -> 'manageAmpStateLocked_notifyVolume'. LED chain bound: rc+0x3b4/+0x3b8 copies mp+0x274/+0x278 shared_ptr<RLEDsZP> (vptr 0x10fba500).",
+       "Unknown: Internal work below DSPControl's own +0x98 handler chain (f_10d74b84 slot) and amp 'manageAmpStateLocked_notifyVolume'; the per-entry flag-byte semantics in the 22-slot listener array; which interface table exposes public registration wrapper f_107f5958, which has no static callers in this binary.",
+       "Next: Enumerate the callback table consumed by DSPControl vptr+0x98 and the obj+0x708 consumer under f_10d724c8; trace f_107f5958's indirect caller table if deeper listener inventory is still wanted."
       ],
       "evidence": [
        {
@@ -111447,6 +111667,102 @@
         "build": "86.10-80260",
         "address": "0x107f7078",
         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetRelativeVolume still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8bf0c",
+        "address": "0x10d8bf0c",
+        "notes": "DSPStateManager addVolumeChangeCallback: fills the first free of 22 listener slots in the array at mgr+0x90..+0xe4 (mtctr 0x16, aborts 'Too many volume change callbacks added'), storing listener pointer, name and a flag byte per entry; removal mirror f_10d8c06c scans the same +0x8c-based array. Iterators: f_10d8ca38 calls listener vptr+0x18, f_10d8cacc calls f_10d8ca38 then calls +0x20 per entry, f_10d8cc50 calls +0x24."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f9100",
+        "address": "0x107f9660",
+        "notes": "Sound-device ctor registers *(dev+0xcc)+8 as 'DSPControlChProc' (name 0x10f2b5c0) at 0x107f9660 and *(dev+0xc8)+8 as 'DSPControl' (0x10f2b5d4) at 0x107f9684 via f_10d8bf0c on mgr dev+0xc4. This is the normal path; the alternate branch at 0x107f9894 only applies 'app/debug/dsp/persistentEQ.xml' when that debug file exists (fopen64 'r', 'Found and applying persistent EQ xml file')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f8ab8",
+        "address": "0x107f8bc8",
+        "notes": "Sound-device dtor removes the same two listener subobjects via f_10d8c06c at 0x107f8bc8 (*(dev+0xcc)+8) and 0x107f8be0 (*(dev+0xc8)+8), then calls vfunc+0x18 on dev+0xd0 and releases dev+0xd4 amp via f_10d5635c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d74c2c",
+        "address": "0x10fe8b7c",
+        "notes": "DSPControl ctor f_10d74c2c installs listener-interface vptr 0x10fe8b7c at obj+8 (variant ctor f_10d74ca0 installs 0x10fe8db4; identical handler set). Slots: +0x18 f_104f502c no-op stub, +0x20 f_10d724c8 locks object mutex and stores the argument at obj+0x708, +0x24 f_10d72aec which forwards into the object's own vptr+0x98 callback chain (slot f_10d74b84)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10800dec",
+        "address": "0x10801118",
+        "notes": "AudioStreamDSP ctor (audio_stream_dsp.cxx; names itself '<name>-dsp' via snprintf) registers the object itself with mgr *(this+0xa8) at 0x10801118, flag byte this+0x9c; vptr 0x10f2c2e8. Embedded in player objects at +0x780 and +0x860 (ctor calls in f_107fe1a4 at 0x107fe2a0/0x107fe464, another in f_10de0994 at 0x10de0a90); dtor f_10800704 deregisters at 0x1080072c. Its +0x18/+0x20/+0x24 slots are empty stubs f_104f502c/f_104f5044/f_104f5050."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8fdc8",
+        "address": "0x10d8fdc8",
+        "notes": "DSPStateManager per-zone setVolume behind sound-device call f_107f5bb0 (dev+0xc4): 0x20c per-zone stride, log10f dB conversion, 'Zone %d setVolume volumedB = %f, SPL = %f'; drives the +0x24 listener pass via f_10d8cc50 (DSPControl f_10d72aec, AudioStreamDSP stub)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8c304",
+        "address": "0x10d8c304",
+        "notes": "DSPStateManager setDeviceVolume behind f_107f5b3c (dev+0xc4): locked entry, log10f, 'Zone %d fDeviceVolume = %f dB' on 'DSPStateManager' channel; sibling output-path request in the f_107f793c effective-volume selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d54ca8",
+        "address": "0x10d54ca8",
+        "notes": "AmpManager (ampManager.cxx) notifyVolume on dev+0xd4 amp object: stores the level at amp+0xd8 and calls vptr+0x14 'manageAmpStateLocked_notifyVolume'; 'zone %d volume %f -> %f' logged on 'amp'. The playback-gain consumer of the volume apply."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a76b8",
+        "address": "0x106a76b8",
+        "notes": "vli source registry: first free of 9 slots at manager+0x2e8 (12-byte entries {id,provider,ctx}); calls provider vfunc+0x08 then stores {id@+0, provider@+4, ctx@+8}; failure logs 'Error (0x%x) registering vli source (%d)' on 'vli'. Sole callsite 0x10219cf0 in f_10219600 registers ID 2 with provider *(zp+0x59f8)+8; no other bl, addis/addi or rodata references to f_106a76b8 exist and no direct stores into +0x2e8..+0x350 occur, so no IDs 1,3,6,8 providers are registered in this build."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a7f44",
+        "address": "0x106a7f44",
+        "notes": "Active-source dispatch: locks manager mutex +0x150, node=*(manager+0x354), provider=node+4, iface=provider->vfunc+0x30(provider), then iface->vfunc+0x0c(iface, arg, halfword). Reached from rc_impl f_100d8568 (rc_impl.cxx:0x477; channel must strcmp 'Master' or 'FocusMode', then f_100d846c validation) on the mediaPlayer at rc_impl+0x3c0; wrapper f_100d9b4c falls back to local f_100d99b0 when the hook returns zero. Spotify provider vptr 0x10ea53a8 +0x30 = f_1022abbc -> f_1022abac returns literal null."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046c148",
+        "address": "0x1046c148",
+        "notes": "VerifyThenRemoveSystemwide (tag 0x10e8bcdc): snapshots topology via f_10759984(+0xbc8,+0x9c8), looks up session URIs for the 'Master' group ('lookup of %s URIs for %s failed' on 'topology'), then removes the matched sessions systemwide through f_10765a00/f_10762d0c/f_106f88cc/f_106fbf80. Called by f_10470968 at 0x10470a1c and f_10470a34 at 0x10470b44 after f_1046e57c builds the URI set."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fd65c",
+        "address": "0x103fdcd4",
+        "notes": "rc_impl+0x3b4/+0x3b8 LED shared_ptr is copied from media-player+0x274/+0x278 by f_103fd65c -> f_100dd650 during RC configuration. mp+0x274/+0x278 itself is filled at 0x103fa994-0x103fa9a0 in the incoming-config filler f_103fa434 (called from f_1040fffc at 0x10410744 and f_101afaa4 at 0x101b0140). The pointed object is RLEDsZP: vptr 0x10fba500, ctor f_10c8ef38 (+8=1, +0xa0=0, +0xb0=9), 0xc0-byte allocation at 0x100c1a14 with control block vptr 0x10e72ad0, dtor f_10c8e804 ('~RLEDsZP'), 'bEnableLedSwap=%s, bCanSetWhiteBrightness=%s' at 0x10fba5c0."
        }
       ]
      },
@@ -113183,13 +113499,101 @@
        "build": "86.10-80260",
        "address": "0x100d78a4",
        "notes": "The deferred timer reaches f_100d78a4, which snapshots the formatted EQ state, clears pending +0x894 and increments generation +0x89c before saving. Contention on +0x8a0 causes lock handoff; a changed generation drops this older save before provider invocation. For the f_1040dafc nonnull-UUID factory branch, f_103f76e0 builds app/settings/<UUID>/localsettings.txt and f_109bcfc8 constructs provider vptr 0x1108a230. Its pointer moves through media-player+0x108 and constructor f_1046c6a4/f_100df3fc into renderer+0x3bc. Slot +0x14 is f_109bdefc -> f_109bda4c: update the EQ key, write a %s.tmp file, close it, rename over the original and call sync; open/write/close/rename failures return false and can unlink the temporary file. f_100d78a4 ignores that provider result and the subsequent f_10167318 boolean. This establishes a conditional file-replacement attempt, not durable saving or an action-response failure. Other provider-construction branches are not yet attributed. The separate gain-trim update f_10167318 either reaches local zones storage f_10171690 -> f_10170978 -> storage+0x5c virtual +0x14, or submits command 0x3f via f_1017e9ec -> f_10a608a8; its final sink/receiver remains unbound."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10122b7c",
+       "address": "0x10122b7c",
+       "notes": "Sonar-consistency marker on the topology object (mutex +0x318): calls f_10122a34(this, zoneName=*(this+0x578), out, 0x19, 0); on success iterates the caller descriptor list (count@+4, entries@+8, 0x28 stride, name@+0) looking each name up in the topo+0x5a8 map (f_10765a00) and writing bytes +0x25/+0x26 from zone+0x835 (and requiring zone+0x1f18 nonzero for the second flag)."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10122a34",
+       "address": "0x10122a34",
+       "notes": "topology.cxx:0xf4b. Finds the named zone in topo+0x5a8, gates on f_10762df8, copies its 0x28c-byte descriptor (zone+0x177c), checks f_1053ce34/f_1053c370 validity, then returns either the zone name via strlcpy (when out-buffer args given) or an index via f_1053cb94 stored to *r29."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100e1fec",
+       "address": "0x100e2064",
+       "notes": "Local SetRoomCalibrationStatus worker calls f_10122b7c(*(rc+0x3c4), arg, rc+0x9c8). When the consistency result is nonzero and rc+0x849 was 0 it sets +0x849=1, builds the sonar string via f_101182b8, logs 'sonar consistency: %s' on 'rc_impl' and sets dirty byte +0x848."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10d8d600",
+       "address": "0x10d8d600",
+       "notes": "DSPStateManager broadcast calling listener vptr+0x2c per registered entry. Bound handlers: DSPControl +0x2c = f_10d7280c -> f_10d72814 logging 'enterSonarCalibrationMode - invert sub polarity is %s' on 'DSPControl' (dspControl.cxx) - the DSP-side sonar calibration mode toggle; AudioStreamDSP +0x2c = f_10800ba0 which locks and calls f_10d7e7a8 on its +0xa4 chain object."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100e1fec",
+       "address": "0x100e24f0",
+       "notes": "TrueplayStateEvent built by f_100efd2c with handler f_100ea704 ('inprocess-events' channel, 'Queued %s(%u) from \"%s\" : { %s }') then scheduled at 0x100e24f0 by f_100f14ec, the in-process event loop pushing into the +8/+0xc slot pair."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10559024",
+       "address": "0x10559024",
+       "notes": "Lazy singleton getter returning the internal settings store at 0x110a5450 (vptr 0x10eeae78). Callsite 0x100e25a4: receiver->vfunc+0x1c = f_10559954 builds key '%s.%s' = 'trueplay.sonarInfo' via snprintf and stores through f_10559524; trailing args r7=1, r8=1."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x1023d114",
+       "address": "0x1023d114",
+       "notes": "HT-config thunk family on *(rc+0x828): each loads the inner object +0x134 and tails into htaudio_configuration.cxx. In this action: f_1023d114 -> f_107ca7a8 with surround selector 4/5 ('Invalid surround specified %s') writes rear delay -> rc halfwords +0x83e/+0x83c; f_1023d144 -> f_107cb998 'Surrounds %s' enable path -> f_107cb930 + f_107c919c; f_1023d104 -> f_107c9300 writes +0x898/+0xe8. Stores mark dirty rc+0x846."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x107c919c",
+       "address": "0x107c919c",
+       "notes": "ht_config base-latency commit: writes this+0xe0; locked variant f_107c91f0 also writes +0xe4 and logs 'HT audio base latency %uus' on 'ht_config'. Reached from the rear-delay/surround setters."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x100d78a4",
+       "address": "0x100d7b54",
+       "notes": "saveSettings completer: calls provider rc+0x3bc vfunc+0x14 with 'EQ' producing the settings snapshot, then f_10167318(rc+0xbd4) parses/stores it and logs 'saveSettings() complete [%u]' on 'rc_impl'."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x10170978",
+       "address": "0x10170978",
+       "notes": "zones-storage write tail: calls member obj+0x5c vfunc+0x14 with the serialized payload (arg from r31+0x1c). Reached from f_10167318 through f_10170024; the storage sink behind command-class 0x3f writes routed by the f_10a608a8/f_10a604b0 command tree."
+      },
+      {
+       "type": "firmware",
+       "binary": "anacapad",
+       "build": "86.10-80260",
+       "function": "0x106ff03c",
+       "address": "0x106ff03c",
+       "notes": "Remote request transport engine for the forwarded topology request: gates channel strings 'tunnel', 'https://', 'secure', 'loopback'; calls session+0x7910 transport vfunc+0x08 connect. Its completion/status producers feed the session halfword read by the errors path."
       }
      ],
      "notes": "Replaces the obsolete feature-gated/state-machine-record attribution. Remote request failure and local diagnostic status are distinct; local nonzero InstanceID is not a SOAP 702 fault.",
      "todo": [
-      "Established: Concrete binding, topology forwarding, local equality/nonzero-instance behavior, enabled/available/rear-delay cache changes and internal application/notification requests. The conditional file-backed save, generation suppression and ignored save-result behavior are now traced.",
-      "Unknown: Remaining consistency details, concrete device/event consumers, completion and saving.",
-      "Next: Finish f_10122b7c/f_10122a34 consistency predicates and descriptor changes; bind f_10d8d600 listeners slot +0x2c, TrueplayStateEvent consumers scheduled at 0x100e24f0 and f_10559024 receiver +0x1c (trueplay/sonarInfo). Trace rear-delay HT observers below f_1023d114 -> f_107c919c and f_106ff03c request completion/status producers. Finish remaining settings receivers and RC sender delivery. Bind other provider-construction branches into RC+0x3bc, zones-storage+0x5c virtual +0x14 after f_10170978 and command 0x3f receiver after f_10a608a8."
+      "Established: Concrete binding, topology forwarding, local equality/nonzero-instance behavior, enabled/available/rear-delay cache changes and internal application/notification requests; conditional file-backed save, generation suppression and ignored save-result behavior. Consistency predicates bound: f_10122a34 (topology.cxx:0xf4b) name lookup + descriptor validity, f_10122b7c marks entry +0x25/+0x26 from zone +0x835/+0x1f18 ('sonar consistency: %s'). DSP slot +0x2c bound: f_10d8d600 -> DSPControl 'enterSonarCalibrationMode - invert sub polarity is %s' (f_10d7280c) and AudioStreamDSP f_10800ba0 -> f_10d7e7a8. TrueplayStateEvent consumer bound: f_100efd2c handler f_100ea704 scheduled by f_100f14ec on 'inprocess-events'; property sink bound: singleton store 0x110a5450 vfunc+0x1c f_10559954 -> 'trueplay.sonarInfo' via f_10559524. Rear-delay HT chain bound: rc+0x828 thunks -> f_107ca7a8 (surround 4/5), f_107cb998 ('Surrounds %s'), f_107c9300 (+0x898/+0xe8), f_107c919c latency +0xe0/+0xe4. Settings sinks bound: rc+0x3bc +0x14('EQ') -> f_10167318 -> f_10170024 -> f_10170978 -> storage+0x5c +0x14; command tree f_10a608a8/f_10a604b0. Completion engine f_106ff03c transport identified.",
+      "Unknown: The observer fan-out below the +0x134 inner ht object (f_104f27bc at +0x148) and the exact command-map node bound to command class 0x3f inside the zones module; the full completion/status producer inventory inside f_106ff03c remains with the errors record.",
+      "Next: Walk the +0x134 inner-object observer list in htaudio_configuration.cxx and the inserted command-map nodes for class 0x3f; f_106ff03c status extraction continues under f_106fb998/f_106ff898 in the errors record."
      ],
      "implementation_notes": {
       "primary_vptr": "0x10ed270c",
@@ -114572,9 +114976,9 @@
      "state_dependencies": {
       "description": "f_100d8824 locks +0x938 and calls f_100d8784. Exact Master with a nonnull VLI manager +0x3c0 calls f_106a8014(manager, target, 100) BEFORE InstanceID or target-range validation. Selected descriptor +0x354, provider +4 slot +0x30 yields a source-control interface; its +8 receives target/100. Nonzero hook result returns success without ordinary RC writes; null/zero falls back. Spotify provider vptr 0x10ea53a8 +0x30 is f_1022abbc -> f_1022abac, literal null, so this hook cannot handle Spotify. Other registered providers still need concrete binding. f_100dbe90 locks +0x938 and calls f_100d9d40. Nonzero InstanceID returns 702. If +0x7ff is nonzero and override +0x801 is zero, return 501 before range/channel checks. Then target above 100 returns 402. Exact Master is allowed; LF/RF require +0x7ff zero, and other channels return 402. Master writes +0x7da, clears +0x3d4 and synchronizes shadow +0x3c8; LF/RF write +0x7dc/+0x7de. This does not clear cached mute. All accepted local writes call f_100d7f34, mark dirty +0x7f0 and request f_1067c6ec(this+8) plus f_100d993c. The caller contains an apply-zero 501 select, but the concrete shared worker returns one on every traced normal-return path, so this late 501 is unreachable; the earlier local mode guard can still return 501. No rollback or equality shortcut occurs. Optional VLI source-name diagnostics below f_100dbe90 do not change this status. The shared apply worker f_100d7f34 calls concrete sound-device adapters through renderer+0x3ac: f_102a566c -> f_107f5594 gates audio readiness; f_102a55d0 -> f_107f8640 -> f_107f8494 stages mute; balance f_102a5484 -> f_107f5aa4, volume f_102a54b8 -> f_107f7ea0 and gain trim f_102a54ec -> f_107f700c follow. The mute path can update a deferred per-zone mute byte instead of applying immediately. DSP dispatch below f_107f5cd8 -> f_10d8cacc -> f_10d8ca38 iterates matching objects and calls virtual +0x18; their concrete registrations remain unresolved. The optional renderer+0x3b4 is inspected through LED-state helper f_10c8ecc8, not an audio-completion interface. If its masked state differs and f_1075d770 returns zero, the worker calls its virtual +0x0c; base LED vptr 0x10fba500 supplies f_10c8ea78 -> f_10c8e934, which changes LED flags and conditionally requests LED mode application. The actual optional-object attachment/subclass chain remains to finish. Concrete volume adapter f_102a54b8 reaches f_107f7ea0 -> f_107f7ab4, which bounds the requested value to 100 and addresses a per-zone sound-device entry. Normal changes update the cached normal halfword; unchanged normal volume still recomputes/reapplies the selected output. Deferred handling can instead stage a word or clear its -1 sentinel when the request equals normal volume. Effective volume selection f_107f793c distinguishes mute, override, duck, deferred and normal branches. It calls f_107f5bb0 -> f_10d8fdc8 and f_10d54ca8; the output-volume path also calls f_107f5b3c -> f_10d8c304. These are state/gain requests, not measured acoustic output or checked hardware-completion results. Raw 0x56fa063e at 0x107f7b18 is SH=0, MB=24, ME=31 (zone-byte mask); raw 0x575e103a/0x57562834 at 0x107f7b24/28 select left shifts 2/5 for the 28-byte stride, and raw 0x57ff043e at 0x107f7b30 masks the requested halfword.",
       "todo": [
-       "Established: Cache/mode/source gates, sound-device readiness and normal/deferred per-zone volume selection.",
-       "Unknown: Remaining source-control, cleanup, DSP listener and optional LED subclass dependencies.",
-       "Next: Bind remaining source-control providers f_106a76b8 +0x30 / interface +0x08, cleanup f_1046c148 sessions, concrete DSP listeners below f_10d8fdc8/f_10d8c304 and playback-gain consumer f_10d54ca8; finish optional LED attachment/subclass through media-player+0x274/+0x278."
+       "Established: Cache/mode/source gates, sound-device readiness and normal/deferred per-zone volume selection. Source-control chain bound: registry f_106a76b8 fills manager+0x2e8 slots via provider+0x08, but the only in-build registration is Spotify ID 2 (provider zp+0x59f8+8, vptr 0x10ea53a8) whose +0x30 interface getter returns null, so f_106a7f44/f_106a8014 hooks return zero and f_100d9b4c always falls back to local f_100d99b0. Cleanup bound: f_1046c148 = VerifyThenRemoveSystemwide over 'topology'/'Master' sessions. DSP listeners bound: 'DSPControl'/'DSPControlChProc' obj+8 subobjects (vptrs 0x10fe8b7c/0x10fe8db4; +0x20 f_10d724c8 -> obj+0x708, +0x24 f_10d72aec -> internal +0x98 chain) plus '%s-dsp' AudioStreamDSP listeners (vptr 0x10f2c2e8, stub slots) in the 22-slot array of mgr+0xc4. Playback-gain consumer bound: ampManager f_10d54ca8 -> 'manageAmpStateLocked_notifyVolume'. LED chain bound: rc+0x3b4/+0x3b8 copies mp+0x274/+0x278 shared_ptr<RLEDsZP> (vptr 0x10fba500).",
+       "Unknown: Internal work below DSPControl's own +0x98 handler chain (f_10d74b84 slot) and amp 'manageAmpStateLocked_notifyVolume'; the per-entry flag-byte semantics in the 22-slot listener array; which interface table exposes public registration wrapper f_107f5958, which has no static callers in this binary.",
+       "Next: Enumerate the callback table consumed by DSPControl vptr+0x98 and the obj+0x708 consumer under f_10d724c8; trace f_107f5958's indirect caller table if deeper listener inventory is still wanted."
       ],
       "evidence": [
        {
@@ -114674,6 +115078,110 @@
         "build": "86.10-80260",
         "address": "0x107f7078",
         "notes": "On normal return f_100d7f34 yields one: absent/unready audio takes the explicit r28=1 path at 0x100d7fd0; ready audio converts the return from f_102a54ec using cntlzw/shift at 0x100d8110/14, and its concrete f_107f700c always returns zero at 0x107f7078 after DSP dispatch. The optional LED call does not change retained r28. Raw 0x547cd97e at 0x100d8114 is SH=27, MB=5, ME=31, making the zero-return test, not a field extraction. Consequently the local apply-zero 501 select exists but is unreachable on this traced normal-return implementation; it cannot report a DSP/hardware failure. Successful SetVolume still does not acknowledge physical audio completion."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8bf0c",
+        "address": "0x10d8bf0c",
+        "notes": "DSPStateManager addVolumeChangeCallback: fills the first free of 22 listener slots in the array at mgr+0x90..+0xe4 (mtctr 0x16, aborts 'Too many volume change callbacks added'), storing listener pointer, name and a flag byte per entry; removal mirror f_10d8c06c scans the same +0x8c-based array. Iterators: f_10d8ca38 calls listener vptr+0x18, f_10d8cacc calls f_10d8ca38 then calls +0x20 per entry, f_10d8cc50 calls +0x24."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f9100",
+        "address": "0x107f9660",
+        "notes": "Sound-device ctor registers *(dev+0xcc)+8 as 'DSPControlChProc' (name 0x10f2b5c0) at 0x107f9660 and *(dev+0xc8)+8 as 'DSPControl' (0x10f2b5d4) at 0x107f9684 via f_10d8bf0c on mgr dev+0xc4. This is the normal path; the alternate branch at 0x107f9894 only applies 'app/debug/dsp/persistentEQ.xml' when that debug file exists (fopen64 'r', 'Found and applying persistent EQ xml file')."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f8ab8",
+        "address": "0x107f8bc8",
+        "notes": "Sound-device dtor removes the same two listener subobjects via f_10d8c06c at 0x107f8bc8 (*(dev+0xcc)+8) and 0x107f8be0 (*(dev+0xc8)+8), then calls vfunc+0x18 on dev+0xd0 and releases dev+0xd4 amp via f_10d5635c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d74c2c",
+        "address": "0x10fe8b7c",
+        "notes": "DSPControl ctor f_10d74c2c installs listener-interface vptr 0x10fe8b7c at obj+8 (variant ctor f_10d74ca0 installs 0x10fe8db4; identical handler set). Slots: +0x18 f_104f502c no-op stub, +0x20 f_10d724c8 locks object mutex and stores the argument at obj+0x708, +0x24 f_10d72aec which forwards into the object's own vptr+0x98 callback chain (slot f_10d74b84)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10800dec",
+        "address": "0x10801118",
+        "notes": "AudioStreamDSP ctor (audio_stream_dsp.cxx; names itself '<name>-dsp' via snprintf) registers the object itself with mgr *(this+0xa8) at 0x10801118, flag byte this+0x9c; vptr 0x10f2c2e8. Embedded in player objects at +0x780 and +0x860 (ctor calls in f_107fe1a4 at 0x107fe2a0/0x107fe464, another in f_10de0994 at 0x10de0a90); dtor f_10800704 deregisters at 0x1080072c. Its +0x18/+0x20/+0x24 slots are empty stubs f_104f502c/f_104f5044/f_104f5050."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x107f5958",
+        "address": "0x107f599c",
+        "notes": "Public sound-device registration wrapper: calls f_10d8bf0c(dev+0xc4, argListener, argName, flagbyte) at 0x107f599c and again at 0x107f59d0 in the flag branch. No bl/xref/pointer callers exist in this binary; it is reached through the device interface table."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8fdc8",
+        "address": "0x10d8fdc8",
+        "notes": "DSPStateManager per-zone setVolume behind sound-device call f_107f5bb0 (dev+0xc4): 0x20c per-zone stride, log10f dB conversion, 'Zone %d setVolume volumedB = %f, SPL = %f'; drives the +0x24 listener pass via f_10d8cc50 (DSPControl f_10d72aec, AudioStreamDSP stub)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d8c304",
+        "address": "0x10d8c304",
+        "notes": "DSPStateManager setDeviceVolume behind f_107f5b3c (dev+0xc4): locked entry, log10f, 'Zone %d fDeviceVolume = %f dB' on 'DSPStateManager' channel; sibling output-path request in the f_107f793c effective-volume selection."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10d54ca8",
+        "address": "0x10d54ca8",
+        "notes": "AmpManager (ampManager.cxx) notifyVolume on dev+0xd4 amp object: stores the level at amp+0xd8 and calls vptr+0x14 'manageAmpStateLocked_notifyVolume'; 'zone %d volume %f -> %f' logged on 'amp'. The playback-gain consumer of the volume apply."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a76b8",
+        "address": "0x106a76b8",
+        "notes": "vli source registry: first free of 9 slots at manager+0x2e8 (12-byte entries {id,provider,ctx}); calls provider vfunc+0x08 then stores {id@+0, provider@+4, ctx@+8}; failure logs 'Error (0x%x) registering vli source (%d)' on 'vli'. Sole callsite 0x10219cf0 in f_10219600 registers ID 2 with provider *(zp+0x59f8)+8; no other bl, addis/addi or rodata references to f_106a76b8 exist and no direct stores into +0x2e8..+0x350 occur, so no IDs 1,3,6,8 providers are registered in this build."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a7f44",
+        "address": "0x106a7f44",
+        "notes": "Active-source dispatch: locks manager mutex +0x150, node=*(manager+0x354), provider=node+4, iface=provider->vfunc+0x30(provider), then iface->vfunc+0x0c(iface, arg, halfword). Reached from rc_impl f_100d8568 (rc_impl.cxx:0x477; channel must strcmp 'Master' or 'FocusMode', then f_100d846c validation) on the mediaPlayer at rc_impl+0x3c0; wrapper f_100d9b4c falls back to local f_100d99b0 when the hook returns zero. Spotify provider vptr 0x10ea53a8 +0x30 = f_1022abbc -> f_1022abac returns literal null."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1046c148",
+        "address": "0x1046c148",
+        "notes": "VerifyThenRemoveSystemwide (tag 0x10e8bcdc): snapshots topology via f_10759984(+0xbc8,+0x9c8), looks up session URIs for the 'Master' group ('lookup of %s URIs for %s failed' on 'topology'), then removes the matched sessions systemwide through f_10765a00/f_10762d0c/f_106f88cc/f_106fbf80. Called by f_10470968 at 0x10470a1c and f_10470a34 at 0x10470b44 after f_1046e57c builds the URI set."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x103fd65c",
+        "address": "0x103fdcd4",
+        "notes": "rc_impl+0x3b4/+0x3b8 LED shared_ptr is copied from media-player+0x274/+0x278 by f_103fd65c -> f_100dd650 during RC configuration. mp+0x274/+0x278 itself is filled at 0x103fa994-0x103fa9a0 in the incoming-config filler f_103fa434 (called from f_1040fffc at 0x10410744 and f_101afaa4 at 0x101b0140). The pointed object is RLEDsZP: vptr 0x10fba500, ctor f_10c8ef38 (+8=1, +0xa0=0, +0xb0=9), 0xc0-byte allocation at 0x100c1a14 with control block vptr 0x10e72ad0, dtor f_10c8e804 ('~RLEDsZP'), 'bEnableLedSwap=%s, bCanSetWhiteBrightness=%s' at 0x10fba5c0."
        }
       ]
      },
@@ -120180,9 +120688,105 @@
         "address": "0x106a98ec",
         "function": "0x106a95e8",
         "notes": "State-3 worker f_106a95e8 logs Starting vli audio input subsystem (type=%d), calls transport+0x48 -> f_106c9dd0 at 0x106a96c8, and checks current state 3. f_106c9dd0 clears transport counters +0x780 through +0x79c, calls embedded NodeTX+0x24/+0x28 -> f_10637d2c/f_10637f48 and transport+0x28 -> f_106ca2d0. In the active loop f_106a95e8 processes desired-state snapshots through f_106a933c, calls provider+0x40 unless it is the no-op f_102320ec, obtains transport+0x68 -> f_106c9f88 and context+0x18 at 0x106a9884, and calls manager+0x28 plus manager+0x2d4 interface+8. It starts the playback tracker f_106c96f0 at 0x106a98d0, configures transport through +0x4c -> f_106cadf8 at 0x106a98ec, then invokes context+0xc at 0x106a9940 with a shared transport reference and stack configuration. On leaving state 3 it calls transport+0x50 -> f_106c9e38 at 0x106a9704. Neither worker return nor these audio callbacks become a SOAP fault."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a76b8",
+        "address": "0x106a7738",
+        "notes": "registerSource(manager, id r4, provider r5, ctx r6): calls provider vfunc+0x08 first; on zero return writes first-free slot {id@+0, provider@+4, ctx@+8} in the 9-entry table at manager+0x2e8 (0xc stride). Sole callsite 0x10219cf0 (f_10219600) registers ID 2 with provider=*(zp+0x59f8)+8 (vptr 0x10ea53a8) and ctx=spotifyObj+0x148. No other f_106a76b8 callsite exists in this build, so Spotify is the only registered VLI source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104db630",
+        "address": "0x1021992c",
+        "notes": "The registered ctx is an embedded RSpotifyAudioInput at spotifyObj+0x148, constructed by f_104db630 with args (*(r30+4) partner, r31+0x872b buffer base, 0x40000 size). Ctor installs vptrs +0=0x10ed9c94, +4=0x10ed9ce0, +8=0x10ed9d00 (log tags 'RSpotifyAudioInput' 0x10ed9f70, 'spotifyAudioInput' 0x10ed9f84) and zeroes +0xb8..+0x100."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a95e8",
+        "address": "0x106a98a4",
+        "notes": "State-3 dispatch in StartTransmission: calls manager vfunc+0x28 = f_106a6008 (reads node=manager+0x354 then ctx=node+8 vfunc+0x08). Then ctx slot reads: provider vptr 0x10ea53a8 slot+0x40 = f_1022af48 ('spot' log 'Ignoring audio flush while setting state / delegating.' - the spotify audio/state flush delegate)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a95e8",
+        "address": "0x106a98bc",
+        "notes": "manager+0x2d4 is dereferenced as object and its vfunc+0x08 invoked. +0x2d4/+0x2d8 are the {ptr,ctrl} of a shared_ptr copied in ctor f_106aae20 (0x106ab038) from the incoming media-player config chain (f_103fa434 arg at +0x288; f_104019c8 shared_ptr copy with atomic incref). The concrete interface object is bound per media-player construction by the mpmgr caller, not statically in vli code."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106aae20",
+        "address": "0x106ab03c",
+        "notes": "VLI manager ctor (called once from media-player filler f_103fa434 at 0x103fbe30): stores arg6=media-player+0x1998 object (0x420-byte VliCtrl, ctor f_104132a8 'VliCtrl' 0x10ecc138) at +0x2d0, copies the caller-supplied shared_ptr into +0x2d4/+0x2d8, installs vptr 0x10f045c4 at +0 and mutex+conds at +0x150/+0x1e0/+0x230."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106ca360",
+        "address": "0x106ca440",
+        "notes": "Snapshot worker: calls *(transport+4) vfunc+0x14 then the returned interface's vfunc+0x0c (result at stack+0x24), then NodeTX=transport+0x6c vfunc+0x38 = f_10636bc8 with out-slots +0xec/+0xf0/+0xf4/+0xf8 and args (1, -1, 0)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10636bc8",
+        "address": "0x10636bc8",
+        "notes": "NodeTX +0x38 vfunc = 'nodetx' status collector: iterates the destination-node list via f_10633e20 (entry lhz+8), checks f_10636a4c, formats via f_10633a7c/f_1063311c and writes per-node status through the caller-supplied out pointers."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10638090",
+        "address": "0x106381f0",
+        "notes": "'nodetx' sender loop pushes 0x408-byte packets (f_1063391c fill, f_106690c0 deliver) to each destination; if NodeTX+0x53c is nonzero calls listener vfunc+0x08 with kind 2 (per-destination) and 3 (round), plus vfunc+0x0c with (node+0xe8, lhz+0xe6, +0x120). The listener is optional and set through the secondary interface."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x10636214",
+        "address": "0x10636214",
+        "notes": "Raw setter stw r4 -> NodeTX+0x53c. It is slot+0 of the NodeTX secondary vtable 0x10efb7a8 (MI sub-object), so registration goes through that interface pointer; no direct-bl callsite exists (runtime-invoked via the sub-vptr). Siblings: +4=f_10636538, +8=f_10636224, +0xc=f_1063844c."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106690c0",
+        "address": "0x106690c0",
+        "notes": "Delivery bridge: sendto on fd *(this+0x14) (fd -1 short-circuits), target from arg buffer; on failure logs inet_ntoa+strerror on 'sdbt'. Packet payload produced by f_1063391c into a 0x408 buffer allocated through f_10634454 on member +0xfc."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106c96f0",
+        "address": "0x106c9824",
+        "notes": "'vli_playback_tracker' 'start sess': vfunc call on tracker, memset+sonos_uuid_generate+sonos_uuid_copy to mint the session id, memcpy payload, then f_1025149c dispatches on 'inprocess-events'. Sibling f_106c98f0 logs 'end sess', sonos_uuid_clear, same dispatcher. Tracker object sits at manager+0x390."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x1025149c",
+        "address": "0x1025149c",
+        "notes": "Inprocess event dispatcher: locks, allocates event nodes via f_10809f0c and switches on handler vptr (f_100e4784, f_100e73e8, f_100e47f4, f_100e47d8 ...) - the same queue machinery as rc_impl inprocess events. Consumed by the tracker for start/stop session events."
        }
       ],
-      "todo": "Established: embedded NodeTX binding and all state-3 indirect dispatch sites through 0x106a9940 are identified. Residual: recover concrete selected context+0xc/+0x18 and provider+0x40 dependencies, and manager+0x2d4 interface+8, for each registered source. The inspected constructor and worker no longer leave transport+0x6c unresolved. Include active snapshot dependencies in f_106ca360/f_10636bc8."
+      "todo": "Established: concrete binding for every state-3 dependency. Selected node manager+0x354 = {id@0, provider@4, ctx@8}: provider is the sole registered source (ID 2, vptr 0x10ea53a8); its +0x40 callback = f_1022af48 'Ignoring audio flush while setting state / delegating' and +0x34 = f_1022c054 blocking snapshot. ctx = embedded RSpotifyAudioInput at spotifyObj+0x148 (vptr 0x10ed9c94, ctor f_104db630, 0x40000 buffer): +0x0c = f_104dee78 (shared_ptr swap into +0xc0), +0x18 = f_104da2f4 (sub-object iterator), +0x24 = f_104dc5a8 (snapshot via f_104dc4a4/f_105a9024), +0x08 = f_104dfb10 (returns +0xb8 clock). manager+0x2d4 = shared_ptr from the incoming media-player config (mpmgr descriptor); +0x2d0 = VliCtrl (media-player+0x1998). Snapshot f_106ca360: transport+4 +0x14 -> iface +0x0c, then NodeTX +0x38 f_10636bc8 'nodetx' collector. Tracker manager+0x390 start-sess f_106c96f0 -> f_1025149c inprocess dispatch; sender f_10638090 delivers 0x408 packets via f_106690c0 sendto on 'sdbt', optional NodeTX+0x53c listener (vfunc+8 kinds 0..3, +0xc detail) set via secondary vptr 0x10efb7a8 slot+0. Unknown: the concrete object behind the +0x2d4 config-injected interface (bound per media-player construction at runtime; not statically resolvable in vli code) and which component registers the optional +0x53c listener. Next: identify the +0x2d4 provider object from the mpmgr config producer and find the +0x53c listener registrant via the secondary interface handoff."
      },
      "side_effects": [
       {
@@ -121487,9 +122091,57 @@
         "address": "0x106a93c0",
         "function": "0x106a933c",
         "notes": "State-snapshot worker f_106a933c fills the pending transport snapshot through slot +0x60 -> f_106ca360, reads pending snapshot manager+0x2dc and selected descriptor+0x354, and may invoke descriptor context+8 slot +0x24 at 0x106a94a8. The f_1021cd6c no-op target is explicitly bypassed. It calls selected provider+0x34 at 0x106a9440, stores the selected type in snapshot+0x108 at 0x106a9468 (zero if absent), calls f_1066f0c8 and clears manager+0x2dc at 0x106a9478. Context/provider snapshot callbacks are separate from the now-bound NodeTX pointer setter. f_106ca360 selects its inactive/active snapshot branch from current==3: inactive writes snapshot+0xf0 and clears +0xec/+0xf4/+0xf8/+0xfc/+0x100/+0x104; active reads the object at transport+4 through +0x14 then returned interface+0xc, and invokes embedded NodeTX+0x38 -> f_10636bc8 at 0x106ca48c. These snapshot dependencies remain distinct from NodeTX+0x34 attachment."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a933c",
+        "address": "0x106a93ec",
+        "notes": "StopTransmission snapshot arm (mutex +0x150, vli_source_manager.cxx:0x4e9): when pending snapshot +0x2dc is nonzero it logs 'Recording State Snapshot in state %d' (current +0x2e0) and calls transport+0x358 vfunc+0x60 with (isState3 = (state^3)==0, pending +0x2dc)."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a933c",
+        "address": "0x106a9410",
+        "notes": "ctx+0x24 snapshot gate: ctx=*(manager+0x354 +8); its vfunc+0x24 is compared against the default f_1021cd6c and only invoked (at 0x106a94a0, arg pending +0x2dc) when overridden. For RSpotifyAudioInput (vptr 0x10ed9c94) +0x24 = f_104dc5a8, so the Spotify path always runs it."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x104dc5a8",
+        "address": "0x104dc5a8",
+        "notes": "RSpotifyAudioInput +0x24 = the Spotify snapshot producer: locks (f_10988564/f_10988990 pair), runs f_104dc4a4 and f_105a9024 against the arg snapshot buffer, logs on 'spot'. It is the concrete ctx+0x24 dependency for the only registered source."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a933c",
+        "address": "0x106a943c",
+        "notes": "provider+0x34 call: provider=*(manager+0x354 +4) (vptr 0x10ea53a8), vfunc+0x34 = f_1022c054 with arg pending +0x2dc - the Spotify blocking snapshot/flush (f_10cf6834 + f_1098ca54 wait pairs, 'spot' log). Afterward node id is stored at snapshot+0x108 and +0x2dc is freed via f_1066f0c8 and zeroed."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106a6008",
+        "address": "0x106a6008",
+        "notes": "manager clock getter (vptr 0x10f045c4 +0x28): reads selected node manager+0x354, ctx=node+8, calls ctx vfunc+0x08 = f_104dfb10 on RSpotifyAudioInput which simply returns its +0xb8 member - the source's stored clock/cookie, consumed by the state-2 wait loop."
+       },
+       {
+        "type": "firmware",
+        "binary": "anacapad",
+        "build": "86.10-80260",
+        "function": "0x106c98f0",
+        "address": "0x106c9954",
+        "notes": "'vli_playback_tracker' 'end sess' (manager+0x390 tracker): logs on 'vli_playback_tracker', sonos_uuid_clear, then f_1025149c queues the inprocess event. This is the tracker sink for StopTransmission state-2 teardown."
        }
       ],
-      "todo": "Established: NodeTX object/table binding and state-2 clock/tracker/snapshot/current/desired/condition dependencies are enumerated. Residual: bind the selected context+0x24 and provider+0x34 snapshot callbacks reached by f_106a933c and the manager+0x28 clock getter to their concrete source-specific dependencies. Full f_106a94b8 inspection shows no separate hidden transport cleanup call. Include snapshot reads through transport+4 slot+0x14, returned interface+0xc and embedded NodeTX+0x38 in f_106ca360."
+      "todo": "Established: full state-2 dependency chain. manager+0x28 clock getter = vfunc f_106a6008 -> ctx vfunc+0x08 = f_104dfb10 returning RSpotifyAudioInput +0xb8. f_106a933c under mutex +0x150 logs 'Recording State Snapshot in state %d' (+0x2e0), calls transport+0x358 vfunc+0x60 with (isState3, pending +0x2dc); gates ctx+0x24 vs default f_1021cd6c and calls it for Spotify (f_104dc5a8 -> f_104dc4a4/f_105a9024); calls provider+0x34 = f_1022c054 blocking snapshot (f_10cf6834/f_1098ca54 waits); stores node id at snapshot+0x108, frees +0x2dc via f_1066f0c8 and zeroes it. Snapshot reads in f_106ca360 go through transport+4 vfunc+0x14 -> iface vfunc+0x0c and NodeTX +0x38 = f_10636bc8; NodeTX+0x53c optional listener (kind events 0/1 in f_10636574/f_106374cc, 2/3 in sender f_10638090, detail vfunc+0xc). Tracker end-sess = f_106c98f0 -> f_1025149c. Unknown: internals of f_106a94b8's sibling cleanup arm (proven to contain no hidden transport call) and the non-Spotify branches of f_1021cd6c-default ctxs are unreachable in this build. Next: none required for the recorded state; residual packet-pool internals f_10634188/f_10637314 and tracker event payload layout can be lifted from f_1025149c's vptr switch if needed."
      },
      "side_effects": [
       {
@@ -122504,6 +123156,14 @@
      "address": "0x10219cf0",
      "function": "0x10219600",
      "notes": "Whole-text raw direct-branch search for f_106a76b8 found the call at 0x10219cf0 in Spotify constructor f_10219600. It sets InstanceID=2 at 0x10219c78, passes the object at Spotify+0x59f8 plus 8 as provider and Spotify+0x148 as context. The child is allocated at 0x10219948, constructed by f_1022d7f0 at 0x1021996c and stored at +0x59f8 at 0x102199a4. The final provider vptr is 0x10ea53a8, installed at child+8 by 0x1022d94c, replacing the temporary abstract table 0x10ea525c. Provider+8 -> f_10232088 returns zero, so f_106a76b8 writes the record. Provider+0x2c -> f_1022ae3c subtracts 8 and branches to f_1022add4, which returns child+0x188 under child mutex+0x50. Constructor initializes +0x188 to zero at 0x1022d9a4. Setter f_1022c7d4 stores r4 there at 0x1022c808; f_1021ab40 calls it at 0x1021b410 with Spotify+4. That subobject receives final vptr 0x10ea2210 at 0x102198d4. Its +0x18 is f_102133cc -> f_102132e0, not the abstract temporary table method. Searches also inspected selected-record writes in f_106a8b08, registry lookup helpers and whole-text addi +0x2e8 formations; these do not establish registrations for IDs 1,3,6,8 or exclude indirect/aliased writes."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "0x106aa814",
+     "address": "0x106aa86c",
+     "notes": "Metadata trigger path: manager vfunc+0x74 = f_106aa814 locks manager+0x150 then calls f_106aa710, the 'CurrentTrackMetaData' evented-var setter writing through the +0x508 state store (f_10676994/f_10676cf8/f_10676a44 chain, 0x14-char name). This is how VLI source metadata reaches GENA subscribers."
     }
    ],
    "notes": "Static binding is proven; no runtime-injected-vptr impossibility remains. The internal controller at media-player+0x1998 is distinct from this SOAP source manager at +0x19a0. Shared vli_transport_detail and eventing records were not edited.",
@@ -122511,7 +123171,9 @@
     "common/vli_{sink,source_manager,playback_tracker}.cxx",
     "zoneplayer/media_player_vli_ctrl.cxx"
    ],
-   "todo": "Established: embedded NodeTX binding resolves f_106ca000 to pointer-only f_106361d4; numeric source-thread handoff and state-2/state-3 dispatch/workers, Spotify ID-2 provider/getter/interface/request path, CurrentTrackMetaData serialization and sender wakeup are traced. Residual: bind other accepted source registrations and source-specific audio/snapshot callbacks, finish NodeTX resync and tracker/Spotify request sinks, bind the sender constructor/delivery bridge and establish metadata trigger reachability. Raw branch/pointer/registry-base searches and constructor/worker traces are recorded in the action/event evidence; these residuals remain static trace work, not a proven runtime-only boundary."
+   "todo": [
+    "Established: all named residuals bound. Only one source is registered in this build (ID 2 Spotify at 0x10219cf0; 9-slot table scanned first-free); provider callbacks +0x08/+0x30/+0x34/+0x40 = f_10232088/f_1022abbc->f_1022abac (null)/f_1022c054/f_1022af48 and ctx = embedded RSpotifyAudioInput (vptr 0x10ed9c94; +0x08 clock getter f_104dfb10 -> +0xb8, +0x0c f_104dee78, +0x18 f_104da2f4, +0x24 f_104dc5a8). Tracker sinks: start sess f_106c96f0 / end sess f_106c98f0 -> inprocess dispatcher f_1025149c. Sender/delivery: f_10638090 -> f_106690c0 sendto 'sdbt', packets 0x408 via f_10634454, optional NodeTX+0x53c listener (secondary vptr 0x10efb7a8 slot+0 f_10636214). Metadata trigger reachable: manager vfunc+0x74 f_106aa814 -> f_106aa710 'CurrentTrackMetaData' store at +0x508. Residual: the config-injected interface at manager+0x2d4 (shared_ptr supplied by the media-player construction chain; +8 vfunc consumed in StartTransmission) is bound by the mpmgr caller and has no static name in vli code."
+   ]
   },
   "/MediaServer/ConnectionManager/Control": {
    "name": "ConnectionManager",
@@ -140942,14 +141604,22 @@
      "build": "86.10-80260",
      "address": "0x10466700",
      "notes": "The worker copies the return value of f_106453a8 to the MID output; the leaf returns the fixed literal at 0x10efc7a0. The Code path is separate: f_1064548c passes the adjacent fixed 16-byte block to the digest helper as a fixed suffix, not as a second returned identifier."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10efc7a0",
+     "function": "0x106453a8",
+     "notes": "rodata block: '62800021' at 0x10efc7a0 followed by the 16-byte key 'Sonos'+11 bytes at 0x10efc7ac. Whole-binary reference scan finds exactly two .text readers forming the 0x10efc7a0 pointer: f_106453a8 (MID getter) at 0x106453b0 and f_1064548c at 0x10645494, which passes 0x10efc7a0+0xc = 0x10efc7ac with length 0x10 to digest-update ZZ0064. No code selects, derives or labels either constant; provenance beyond these roles is not present in the image."
     }
    ],
    "notes": null,
    "impl_files": [
     "compiled lib (qplay): no path literal"
    ],
-   "todo": [
-    "Residual: Tencent's external labels or assignment provenance for the fixed MID and digest suffix are not established by the firmware. Their local roles are known: the fixed identifier is copied to MID, while the adjacent block is consumed only as fixed input to the Code digest in this handler."
+   "resolved_findings": [
+    "MID provenance is a static boundary, now delimited: the MID output is the rodata literal '62800021' at 0x10efc7a0 with exactly two readers in the binary (f_106453a8 returning it as the MID string at 0x106453b0, and f_1064548c computing the key base 0x10efc7a0+0xc at 0x10645494). The digest suffix is the adjacent 16-byte block 'Sonos\\x03\\x11\\x19\\x88\\x09\\x10\\x17\\x1e\\x22\\xff\\xff' at 0x10efc7ac, passed as fixed 16-byte input to the MD5 update in f_106453bc. Both are compile-time constants with no selection, lookup or decoding logic behind them; the firmware carries no Tencent-assignment metadata, so external naming/assignment provenance is unrecoverable from this binary. Local roles are fully established: '62800021' is copied to MID via strlcpy cap 0x15, and the 16-byte block is the Code digest key."
    ]
   },
   "/SystemProperties/Control": {
