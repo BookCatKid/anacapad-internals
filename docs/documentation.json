@@ -221937,7 +221937,7 @@
   },
   "feature_config": {
    "name": "featureConfig complete schema",
-   "summary": "{disableWebSocketPerMessageDeflate,metricsConfigURL,metricsConfigV2URL,preferredRPContainer,spotifyAdaptiveBitrate,enableSpotifyConnectForAllAccts,enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,thorTimeout,enableChsrcPerfOptimizations,enableUPnPEventingGNDOptimization,enableSecureAlbumArt,enableCEP20ThreadTweaks,smartPlayConfig,debounceWindowMilliseconds,debounceWindowMillisecondsCEP20,useLegacySpotifySmapiPlayback,quickbondingConfig,ssdpAdvertiseConfig,enablePitchfork,enableSslClientCacheRefresh,plink,enableDhcpProxyFailureTelemetry,homeTheaterWifiPerfTelemetry,enableOnDeviceSoundGeneration,enableRadioSocTemperatureTelemetry,enableHomeTheaterWifi6GHzFronthaul,reportHtSurrounds,reportHtSwap,reportPortableSurrounds,wifiTxRateThreshold,wifiLatencyThresholdMillis,requests,frequencyMins,delayRandPct,enableQuickbonding,enabledHT,thresholdDC,dropoutSensitiveDC,ssdpBroadcastOnlyZonePlayer1,ssdpAdvertiseOnlyEssentialServices,numLFEChannels,numHeightChannels,streamDescription,groupingLatency,enableTrueRoom,enableFlexibleSurroundsTuning,enableVirtualHeight,systemResult,numDevices,numUpdatedDevices}",
+   "summary": "{disableWebSocketPerMessageDeflate,metricsConfigURL,metricsConfigV2URL,preferredRPContainer,spotifyAdaptiveBitrate,enableSpotifyConnectForAllAccts,enableSpotifySMAPIVolumeNormalization,zoneExperiments,metricsService,enableVoiceDataCollection,enableSvcHomeControlLutron,enableSvcPlus,enableAmazonMusicDASH,enableAppleMusicHlsv7,enableTuneInReplacement,enableTuneInMigration,semiSleepConfig,enableTrueplayDataCollection,dropoutContext,enableSystemAPIV2,enable3ChannelSatellites,enableHTSNKv2,disableTlsRsaCiphersuites,enableSPSDataCollection,enablePortableSurrounds,aiseMinThreshold,enableMaxDialogueLevel,enableRemoveMSPCredentialsFromUPnP,thorTimeout,enableChsrcPerfOptimizations,enableUPnPEventingGNDOptimization,enableSecureAlbumArt,enableCEP20ThreadTweaks,smartPlayConfig,debounceWindowMilliseconds,debounceWindowMillisecondsCEP20,useLegacySpotifySmapiPlayback,quickbondingConfig,ssdpAdvertiseConfig,enablePitchfork,enableSslClientCacheRefresh,plink,enableDhcpProxyFailureTelemetry,homeTheaterWifiPerfTelemetry,enableOnDeviceSoundGeneration,enableRadioSocTemperatureTelemetry,enableHomeTheaterWifi6GHzFronthaul,reportHtSurrounds,reportHtSwap,reportPortableSurrounds,wifiTxRateThreshold,wifiLatencyThresholdMillis,requests,frequencyMins,delayRandPct,enableQuickbonding,enabledHT,thresholdDC,dropoutSensitiveDC,ssdpBroadcastOnlyZonePlayer1,ssdpAdvertiseOnlyEssentialServices,numLFEChannels,numHeightChannels,streamDescription,groupingLatency,enableTrueRoom,enableFlexibleSurroundsTuning,enableVirtualHeight,systemResult,numDevices,numUpdatedDevices}. Full lifecycle traced: RFeatureConfigManager singleton (0x1080B, instance at global 0x110a6690 via getter f_105be5c8) embeds the ~0xf64-byte featureConfig object at +0x108 behind mutex +0x70. Boot path f_105c0774 loads JSON candidates settings/cloudconfig_override.json then cloud-cached copy (unlinks unparseable files); scheduled job 'fetchFeatureConfiguration' polls the 'fcs' cloud endpoint hourly-on-failure; a /fcs web endpoint accepts override posts/removals and triggers reload; consumers join through 47 getter call sites (direct field reads, experiment-ID lookups, shared-handle acquire, or manager pass-through).",
    "evidence": [
     {
      "type": "firmware",
@@ -221964,14 +221964,90 @@
      "build": "86.10-80260",
      "address": "0x10a582a4",
      "notes": "Experiment serializer caps count at64 and validates each record."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "manager singleton f_105be5c8 / f_105be304 ctor",
+     "address": "0x105be5c8",
+     "callsite": "47 call sites",
+     "notes": "Returns *0x110a6690 under once-mutex 0x110a6688 (f_108073a0 init check); allocates 0x1080 bytes via f_10809f0c and runs ctor f_105be304. Layout: mutex +0x70 (lock f_10988564/unlock f_10988990 wrap every field read), shared_ptr member +0x68 (acquire helpers f_105be73c/f_105bebcc do lwarx/stwcx refcount bump, abort on null), featureConfig sub-object +0x108..+0x106b, parsed zoneExperiments vector +0x1068/+0x106c, XML list ptr +0x1074. Log domain 'featureconfig', class strings 'RFeatureConfigManager'/'FeatureConfigManager' at 0x10ef3dc4/0x10ef3ddc."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "boot/override/cached loader f_105c01e4 + f_105bd984 + f_105be220",
+     "address": "0x105c01e4",
+     "callsite": "0x100c16b0 (boot) / 0x105eba68 / 0x106b9f80,0x106ba4c4,0x106ba57c,0x106ba68c (web+fetch reloads)",
+     "notes": "Ctor f_10a56e7c zero-inits all fields (defaults: thorTimeout 0x157c=5500, enableRemoveMSPCredentialsFromUPnP=1, enableChsrcPerfOptimizations=1, enableUPnPEventingGNDOptimization=1, useLegacySpotifySmapiPlayback=1). Path builder f_105be220 yields 'settings/cloudconfig_override.json' plus cloud-cached candidates. f_105bd984 does fopen64 'r' + f_109cd80c + JSON populate f_10a5a1c4 + fclose per candidate; on parse failure logs 'parse error in %s' and unlinks the file, ENOENT tolerated. Logs 'Using override config' / 'Using %s cloud-cached config' / 'stale'. f_105c0058 merges parsed copy into the manager."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "cloud fetch job f_105e8110 + f_105c0798, registration 0x100c23f4",
+     "address": "0x105c0798",
+     "callsite": "0x105e814c",
+     "notes": "'fetchFeatureConfiguration' registered at boot through job table f_10572dbc alongside musicAccountReplicationPush/Pull/wifiCheck. f_105e8110 calls f_105c0798(mgr): aborts 'failed to fetch config: not securely registered' without device registration; builds the 'fcs' endpoint request, fetches via f_109e6290; failure path 'failed to connect. rescheduling in 1 hour' re-arms f_105e8110 via f_105cc43c. 'Fetching cloud data.' precedes the ingest; result persists as the cloud-cached candidate the boot loader reads."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "/fcs web dispatcher f_106ba5b0 + handlers f_106b9ba4/f_106b9fac/f_106b98d0",
+     "address": "0x106ba5b0",
+     "callsite": "0x106ba710 / 0x106ba720 / 0x106ba730",
+     "notes": "Routes on content-type (application/x-www-form-urlencoded vs application/json). Form path f_106b9ba4 commits override body to cloudconfig_override.json ('Error committing override file'). JSON path f_106b9fac parses body via f_10a56e7c+f_10a5a144 ('Error initializing object'), verbs 'overrideconfig'/'button'/'submit'/'remove'; 'remove' unlinks the override file at 0x106ba4a4. All mutations finish with f_105be5c8+f_105c01e4 reload and a refresh redirect to /fcs. Verb/domain 'fcs', 'Request body size does not match content length'."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "consumer joins: direct flag reads (17 sites)",
+     "address": "0x100d02dc",
+     "callsite": "47 getter sites enumerated",
+     "notes": "Pattern: f_105be5c8 -> lock mgr+0x70 -> lbz/lwz field -> unlock. Verified field-to-flag map: +0xe7d enableTuneInReplacement in f_100d02a0; +0xe88/+0xe89 semiSleepConfig bytes in f_100d4ff4; +0xe7e enableTuneInMigration in f_101b6efc and f_104b1bdc; +0x20..0x28 metricsConfigURL string interior in f_101b6efc and f_10694308 ('Failed download of MetricsConfig'); +0x5c enableSpotifyConnectForAllAccts in f_1020ca08 and f_102148e4 (container/login logic); +0x5d enableSpotifySMAPIVolumeNormalization in f_10223e38, f_104dee78, f_104e7850; +0xee0 useLegacySpotifySmapiPlayback in f_102226f8 and f_102233b0; +0xeb9 enableRemoveMSPCredentialsFromUPnP +0xebc thorTimeout +0xec0 enableChsrcPerfOptimizations in f_10657604 (runtime_policy.cxx); +0xf01 enableSslClientCacheRefresh in f_10670c20 and f_10670cac; +0xecc smartPlayConfig+8 in f_1048e19c; +0xea8 dropoutContext+8 in f_104bc3dc (reporting); +0x8/+0x9 disableWebSocketPerMessageDeflate/enableExternalPartnerMode in f_105ebb20; +0xed8 debounce presence byte in f_105ef904."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "consumer joins: experiment + handle helpers",
+     "address": "0x105bd4a8",
+     "callsite": "0x106826d4 / 0x10693e44 / 0x10693e74 / 0x10693ea4 / 0x106941b0 / 0x106941e8",
+     "notes": "f_105bd4a8(out,mgr,id_lo,id_hi=0) looks up a zoneExperiment by 64-bit ID in the mgr+0x1068 vector (RabortIfUnlocked guard). Queried IDs: 0x63e56a7d, 0x63e56a7e, 0x63e56a7f \u2014 the UPnP main/connect/eventing timeout experiments consumed by f_10693df4 ('Updated upnp timeouts: main: %u, connect: %u, eventing: %u', domain 'experiment'), f_1069416c and f_1068108c ('DurationSecs' context). f_105bdd98 walks mgr+0x1074 into '<ZoneExperiments>'/'<ZoneExperiment id=\"%llu\" name=\"%s\" value=\"%u\" defaultValue=\"%u\" />' XML via tail caller f_100b9170. Shared-handle helpers f_105be73c/f_105bebcc refcount-bump mgr+0x68 for f_101939a4 ('RZonePlayer shutdown') and f_101981f0 (netsettings.txt/inprocess-events)."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "consumer joins: manager pass-through (no field read at callsite)",
+     "address": "0x100c16bc",
+     "callsite": "17 sites",
+     "notes": "Callers hand the manager pointer onward: f_100c1478 boot wiring (f_10566f40 callback registration + f_10703e34 allocating a 0x610-byte object published at global 0x110a7914); f_101804d4 tails f_1070881c; f_1018d27c x3 subsystem-ctor wiring (incl. RRuntimeZPPolicy ctor f_100f5c28 neighbour); f_10219600 -> f_104e33cc; f_102c74b4 x2 embeds mgr in arg block for f_10439cc4/f_10439d38; f_103fa434 -> f_10401964 + shared_ptr bump; f_10487dd0 x2 -> f_10435658 settings push; f_105e98ec -> f_10708998 settings-subtree registration; f_105e8110 fetch entry. Settings vocabulary: 'featureConfig' and nested 'featureConfig*' keys at 0x10f97268-0x10f97290; 'FeatureConfigChangedEvent' at 0x10e87858 with 8 subscriber-registration xrefs."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "function": "verified field-offset map extension",
+     "address": "0x10f9bc60",
+     "callsite": "schema table + serializer pairing",
+     "notes": "Schema descriptor rows are {type, name, 0} triples at 0x10f9bc80+ (type 3 bool, 1 string, 0/4/5 nested/group). Pairing serializer loads with emitted names resolves: +0x8 ws deflate gate, +0x9 enableExternalPartnerMode, +0xa disableWebSocketPerMessageDeflate, +0x10 metricsConfigURL, +0x2c metricsConfigV2URL, +0x44 preferredRPContainer, +0x48 spotifyAdaptiveBitrate nested, +0x5c/+0x5d spotify bools, +0x60 zoneExperiments count, +0x64 record array (0x38 stride), +0xe78..+0xe7e service bools, +0xe80 semiSleepConfig, +0xe9c enableTrueplayDataCollection, +0xea0 dropoutContext, +0xeac..+0xec3 bools, +0xebc thorTimeout=5500 default, +0xec4 smartPlayConfig, +0xed0/+0xed8 presence gates, +0xed4/+0xedc debounce ms pair, +0xee0 useLegacySpotifySmapiPlayback, +0xee4 quickbondingConfig, +0xef0 ssdpAdvertiseConfig, +0xf00 enablePitchfork, +0xf01 enableSslClientCacheRefresh, +0xf48 enableDhcpProxyFailureTelemetry, +0xf4c homeTheaterWifiPerfTelemetry nested, +0xf5c..+0xf5e sound-gen/radio-temp/wifi6 bools."
     }
    ],
-   "todo": "Established: concrete schema/output paths, presence checks, scalar-versus-nested distinctions and the bounded experiment-output walk. Residual: trace the input/fetch/persist call chain and every actual feature consumer, including missing/default/invalid configuration behavior; distinguish writer/comparison/visitor xrefs from runtime gates. The former claimed complete reader census does not establish these semantics.",
    "resolved_findings": [
     "Native schema evidence corrects the old reader-census claim. f_10a581b0 is a structured-output serializer, not a configuration-loader gate: r31 is the writer, r30 the configuration object, and named fields are passed to output helpers. Wrapper f_10a58938 calls it and returns writer+0x28. At 0x10a58210-0x10a58220 disableWebSocketPerMessageDeflate comes from byte +0xa, while 0x10a58274-0x10a582a0 emits enableSpotifyConnectForAllAccts and enableSpotifySMAPIVolumeNormalization from +0x5c/+0x5d. Those xrefs prove representation and output, not downstream enablement.",
     "Optional strings have separate presence and value checks. At 0x10a58224-0x10a58238 metricsConfigURL is emitted through the alternate branch only when presence byte +0xc and stored length +0x14 are nonzero; metricsConfigV2URL repeats that pattern at +0x28/+0x30. An omitted serialized URL is therefore not by itself evidence that the corresponding subsystem is disabled. The associated string helper and owning application policy are separate consumers.",
     "zoneExperiments output is bounded structurally: 0x10a582a4-0x10a58318 reads count +0x60, chooses min(count,64), and walks records starting +0x64 at stride0x38. Each record is checked by f_10a600d0 and only qualifying records enter nested output via f_10a60108. This is a serializer-side maximum and filter, not an assignment, rollout or experiment-enforcement algorithm.",
-    "Scalar and nested schema are distinct. The descriptor rows at 0x10f9bc84 onwards have twelve-byte {name pointer,zero,type-code} layout; examples have type-code3 for booleans and code4 for nested spotifyAdaptiveBitrate. The writer separately emits numeric debounceWindowMilliseconds, not a member boolean. Prior prose claiming every key uses one bool getter and that all downstream readers were exhausted is withdrawn. Fetch/persist integration and per-flag effects require concrete caller traces, not a total inferred from string xrefs."
+    "Scalar and nested schema are distinct. The descriptor rows at 0x10f9bc84 onwards have twelve-byte {name pointer,zero,type-code} layout; examples have type-code3 for booleans and code4 for nested spotifyAdaptiveBitrate. The writer separately emits numeric debounceWindowMilliseconds, not a member boolean. Prior prose claiming every key uses one bool getter and that all downstream readers were exhausted is withdrawn. Fetch/persist integration and per-flag effects require concrete caller traces, not a total inferred from string xrefs.",
+    "Input/fetch/persist chain: boot calls f_105c0774 -> f_105c01e4 which constructs the featureConfig object (f_10a56e7c) and tries persisted candidates via f_105bd984 \u2014 the operator override settings/cloudconfig_override.json first, then the cloud-cached copy \u2014 logging 'Using override config' or 'Using %s cloud-cached config'. A candidate that fails JSON parsing is logged and deleted (unlink), so corrupt persisted state self-heals to defaults; ENOENT is silently tolerated. Missing files therefore produce the ctor defaults, not an error state.",
+    "Cloud refresh: the 'fetchFeatureConfiguration' scheduled job (f_105e8110) runs f_105c0798 against the 'fcs' service endpoint, requires secure device registration, reschedules itself one hour out on connection failure, and stores the downloaded JSON as the cloud-cached candidate consumed on the next reload. A separate /fcs web endpoint (f_106ba5b0 dispatching on content-type) lets a local operator POST an override (form or JSON body) or 'remove' it; every mutation path ends in f_105c01e4 reload, so file state and runtime state re-converge on each write.",
+    "Object ownership: all runtime access funnels through f_105be5c8 (47 direct call sites). The 0x1080-byte RFeatureConfigManager wraps the ~0xf64-byte config block at +0x108 plus a mutex +0x70, a shared_ptr member +0x68 acquired via refcount helpers, and a parsed zoneExperiments vector +0x1068/+0x106c with its XML materialization at +0x1074. Flag reads always bracket the field load in the mutex; no consumer touches the config block without the getter.",
+    "Consumer census: of the 47 getter call sites, 17 perform direct field reads (mapped per-flag: tunein replacement/migration, spotify connect/volume-normalization/legacy-smapi, semiSleep bytes, metricsConfigURL string state, remove-MSP-credentials + thorTimeout + chsrc-perf inside runtime_policy.cxx, ssl-client-cache refresh, smartPlay +8, dropoutContext +8, websocket deflate + external-partner mode, debounce presence), 6 are zoneExperiment ID lookups (0x63e56a7d/e/f, the UPnP timeout experiments), 4 go through shared-handle or ZoneExperiments-XML helpers, and the remaining ~20 pass the manager into subsystem constructors, the settings bridge, the fetch job or the /fcs web handler. The change vocabulary 'FeatureConfigChangedEvent' has eight subscriber-registration sites, so flag effects also propagate asynchronously beyond the direct readers.",
+    "Residual semantics now bounded: with ctor defaults captured (thorTimeout 5500ms; enableRemoveMSPCredentialsFromUPnP, enableChsrcPerfOptimizations, enableUPnPEventingGNDOptimization and useLegacySpotifySmapiPlayback all default-true), the unconfigured behavior is concrete: absent files or parse failures do not disable features unless the ctor default says so. The writer/comparison/visitor functions f_10a5702c/f_10a575f0/f_10a57aa0 are copy-assign variants, and f_10a5a144/f_10a5a1c4 are the JSON populate pair \u2014 distinct from the runtime gates listed above."
    ]
   },
   "household_settings": {
