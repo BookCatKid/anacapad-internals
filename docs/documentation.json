@@ -140008,14 +140008,22 @@
      "build": "86.10-80260",
      "address": "0x10466700",
      "notes": "The worker copies the return value of f_106453a8 to the MID output; the leaf returns the fixed literal at 0x10efc7a0. The Code path is separate: f_1064548c passes the adjacent fixed 16-byte block to the digest helper as a fixed suffix, not as a second returned identifier."
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x10efc7a0",
+     "function": "0x106453a8",
+     "notes": "rodata block: '62800021' at 0x10efc7a0 followed by the 16-byte key 'Sonos'+11 bytes at 0x10efc7ac. Whole-binary reference scan finds exactly two .text readers forming the 0x10efc7a0 pointer: f_106453a8 (MID getter) at 0x106453b0 and f_1064548c at 0x10645494, which passes 0x10efc7a0+0xc = 0x10efc7ac with length 0x10 to digest-update ZZ0064. No code selects, derives or labels either constant; provenance beyond these roles is not present in the image."
     }
    ],
    "notes": null,
    "impl_files": [
     "compiled lib (qplay): no path literal"
    ],
-   "todo": [
-    "Residual: Tencent's external labels or assignment provenance for the fixed MID and digest suffix are not established by the firmware. Their local roles are known: the fixed identifier is copied to MID, while the adjacent block is consumed only as fixed input to the Code digest in this handler."
+   "resolved_findings": [
+    "MID provenance is a static boundary, now delimited: the MID output is the rodata literal '62800021' at 0x10efc7a0 with exactly two readers in the binary (f_106453a8 returning it as the MID string at 0x106453b0, and f_1064548c computing the key base 0x10efc7a0+0xc at 0x10645494). The digest suffix is the adjacent 16-byte block 'Sonos\\x03\\x11\\x19\\x88\\x09\\x10\\x17\\x1e\\x22\\xff\\xff' at 0x10efc7ac, passed as fixed 16-byte input to the MD5 update in f_106453bc. Both are compile-time constants with no selection, lookup or decoding logic behind them; the firmware carries no Tencent-assignment metadata, so external naming/assignment provenance is unrecoverable from this binary. Local roles are fully established: '62800021' is copied to MID via strlcpy cap 0x15, and the 16-byte block is the Code digest key."
    ]
   },
   "/SystemProperties/Control": {
