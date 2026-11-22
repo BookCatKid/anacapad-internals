@@ -196082,7 +196082,7 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "GET shows model, device id, and version, then a form with csrfToken, an 11 by 80 statement textarea, and submit or delete buttons. Success text is 'Statement installed.' (0x10f15efc) or 'Statement removed.' Handler f_105e8d90."
+      "behavior": "Registered handler 0x105e8d90 is a thunk to 0x1076f6bc. Method word 5 with Content-Type application/x-www-form-urlencoded enters f_1076f590 then f_1076f2ec, which reads form fields statement (0x10f15ed4), button (0x10efefbc), and csrfToken. button value delete (0x10f15ee0) calls f_1054c1b8 and logs 'Statement removed.' (0x10f15ee8). A statement value is base64-decoded and passed to f_1054c424; success logs 'Statement installed.' (0x10f15efc) at 0x1076f568. Method word 1 renders the page through f_1076f238. The unlink of conf/rdmconfig and conf/rdmlocation is the next function, f_105e8d9c, called from f_105ebeb4 at 0x105ec56c, not from this route handler."
      },
      {
       "address": "0x110911b0",
@@ -196191,7 +196191,7 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "mDNS announce button on /spotifyzc. Handler f_100c1230."
+      "behavior": "Handler f_100c1230 uses the shared response helpers f_100b4614, f_100a606c, and f_100b4388, then requires Content-Type application/x-www-form-urlencoded and a csrfToken field. The announce itself is DNSServiceResendResponses at 0x100c13f0, followed by DNSServiceRefDeallocate at 0x100c1400. Failure logs 'Failed to trigger ResendResponses: %i' under domain mod_zp (0x100c1440). Success text is 'Success'."
      },
      {
       "address": "0x110912ac",
@@ -196280,7 +196280,8 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "Handler f_100be454. Gate f_10548a14 selects f_100be1cc to write the config; the other arm is the 500-class failure."
+      "todo": "Established: f_10548a14 returning 0 makes /dolby_config send status 500 at 0x100be498. Nonzero reaches f_107cf97c through f_100be1cc, f_1023d3cc (this+0x188), and f_107d58c8 (add 0x940). Still unknown: which Dolby fields f_107cf97c writes and where. Next: disassemble f_107cf97c, whose function map entry is only 0x10 bytes, and name the stores.",
+      "behavior": "Handler f_100be454 calls f_10548a14. A zero result sends status 500 (r4=0x1f4 at 0x100be498) and returns -2. Nonzero calls f_100be1cc, which requires Content-Type application/json (0x100be210) and then calls f_1023d3cc at 0x100be318. f_1023d3cc loads this+0x188 and, when that pointer is nonzero, tails to f_107d58c8, which adds 0x940 and tails to f_107cf97c. The bytes f_107cf97c writes are not named in this pass."
      },
      {
       "address": "0x11091370",
@@ -196366,7 +196367,7 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "Sonos Logger admin form, POST with csrfToken. Fields: dest one of file, udp, or stderr; cat a category such as avt_impl; level 0-11. UDP fields udp, udp_addr, udp_port, udp_default. stderr fields stderr and stderr_default. Diag message field msg. Log backup fields backup_dir and submitAction=logBackup (string at 0x10f1570d), which targets /jffs/app/log. Errors include invalid log level, invalid UDP port, UDP already enabled, and 'Private IP address is required for UDP logging' (0x10f15c6b). Handler f_105e93d8."
+      "behavior": "Handler f_105e93d8 calls f_105489fc. A zero result sets status 0x193 through f_100b4614 and returns -2. A nonzero result calls f_105e9024, which does not parse the logger form: it builds conf/rdmconfig (0x10ef82ac) through f_105e674c and f_1068a70c, reads at most 0xf bytes with sonosFileReadWhole, and returns strtoul of that text (0x105e90c8). A nonzero value tails to f_1076c8d0 with the object at global 0x11097680+0x810. f_1076c8d0 is the form handler: fields dest, cat, level, udp, udp_addr, udp_port, udp_default, stderr, stderr_default, msg, backup_dir, and submitAction. submitAction value logBackup (0x10f1582c, compared at 0x1076d42c) writes under /jffs/app/log (0x1076e440). Failures include 'Error: Invalid log level ' (0x1076d810), 'Error: Invalid UDP port ', 'Error: UDP logging is already enabled.', 'Error: Private IP address is required for UDP logging.', and 'Error: Diag Msg not allowed.'"
      },
      {
       "address": "0x11091434",
@@ -196403,7 +196404,7 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "Factory reset and reboot page from handler f_105e935c. The page is the shared form '<h2>%s</h2>' with POST /%s, csrfToken, and Submit, plus the texts 'Remote factory reset.' and the reboot heading."
+      "behavior": "Handler f_105e935c calls f_105489e4. Nonzero tails to f_1068dcdc(global 0x11097680, request, 1) at 0x105e939c. Zero instead calls f_105e9024, the conf/rdmconfig decimal read described for /logger; a nonzero file value also tails to f_1068dcdc, and zero sets status 0x193 and returns -2. f_1068dcdc is the page: headings 'Reboot'/'reboot' and 'Factory Reset'/'reset', csrfToken, Cache-Control no-cache, and on submit the texts '<h2>%s</h2>Rebooting...' (0x1068dee8) and 'Remote factory reset.' (0x10f02888 at 0x1068df54) under domain mod_zp."
      },
      {
       "address": "0x11091488",
@@ -196489,7 +196490,7 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "Handler f_100bd5e4 checks that vtable slot +0x124 is f_100c3f5c, the snapshot function, and then takes the snapshot."
+      "behavior": "Handler f_100bd5e4 calls f_1054bdc8 with argument 5. Zero goes to the 'Feature not supported.' reply at 0x100bd70c. Nonzero loads the object at global 0x11095f88 and compares vtable slot +0x124 with f_100c3f5c (0x100bd62c-0x100bd638). A mismatch also takes 'Feature not supported.' A match calls f_10240a6c at 0x100bd68c and replies status 200 with 'Internal SPDIF Tap Snapshotted. Tap must be uncompressed before use!' (0x10e73b2c)."
      },
      {
       "address": "0x1109154c",
@@ -196576,7 +196577,7 @@
        "0x0",
        "0x0"
       ],
-      "behavior": "Reset NTS button target on the /spotifyzc page. Handler f_100b7fd8 gates through f_1054bdc8 and then calls f_100b4614, f_100a606c, and f_100b4388."
+      "behavior": "Handler f_100b7fd8 uses f_100b4614, f_100a606c, and f_100b4388 only as the shared response helpers (the same three calls appear in /mdnsannounce and the /logger failure arm). After the urlencoded Content-Type check and the csrfToken check (0x100b8100), it calls f_1020d4d0 at 0x100b8134. That function logs 'force reset %s' (0x10ea1594) under domain spot and calls f_1020b1e4; a nonzero object then goes to f_1021c09c, which calls f_1021a06c (log 'ps %s shutdown...' at 0x1021a0c4, then f_1016af1c on the object at +0x130) and logs 'NTS shut down.' (0x10ea34d4) at 0x1021c0d8. The page then returns 'Success'."
      },
      {
       "address": "0x11091610",
