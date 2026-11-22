@@ -13116,7 +13116,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0. The primary writes HTSatelliteDefn through impl+0x960 slot +0x14 at 0x1034f038 and ActiveZoneID at 0x1034f05c. The satellite path loads locSetMgr from impl+0x950 at 0x1034d504 and calls slot +0x28 at 0x1034d56c, then loads the settings object at 0x1034d588 beside the UnpairedLED, UnpairedButtonLock and UnpairedZoneName names. The earlier read at 0x1034d404 uses settings slot +0x24 and compares the buffers with Off and On.",
+      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0. The primary loads the settings object from impl+0x960 at 0x1034f038 and calls slot +0x14 with HTSatelliteDefn, then loads it again at 0x1034f05c and calls slot +0x14 with ActiveZoneID. The satellite path loads locSetMgr from impl+0x950 at 0x1034d504 and calls slot +0x28 at 0x1034d56c, then loads the settings object at 0x1034d588 beside the UnpairedLED, UnpairedButtonLock and UnpairedZoneName names. The earlier read at 0x1034d404 uses settings slot +0x24 and compares the buffers with Off and On.",
       "evidence": [
        {
         "type": "firmware",
@@ -13183,7 +13183,7 @@
        }
       ],
       "todo": [
-       "Traced for AddHTSatellite: impl+0x950 at 0x1034d504 is locSetMgr and 0x1034d56c is its slot +0x28. impl+0x960 is written by name at 0x1034f038 and 0x1034f05c.",
+       "Traced for AddHTSatellite: impl+0x950 at 0x1034d504 is locSetMgr and 0x1034d56c is its slot +0x28. impl+0x960 is loaded at 0x1034f038 and 0x1034f05c, and slot +0x14 is then called with HTSatelliteDefn and ActiveZoneID.",
        "Still unjoined: the vtable of that settings object. f_103fa434 stores the pointer at zone-player+0x108 at 0x103fa730.",
        "Next: name the shared_ptr loaded from sp+0xe8 at 0x101b0108."
       ]
@@ -14943,7 +14943,7 @@
      },
      "outputs": {
       "State": {
-       "description": "The wrapper passes the 0x400-byte buffer at sp+0xbc as r6 of slot +0x60. On vtable 0x10ebc630 that slot is f_103523fc, which forwards the pointer as r6 to f_10364848 at 0x103524b0. f_10364848 writes a zero byte at 0x1036489c and does not write the buffer again. speaker-detect, trueroom and room_calibration-calibrate receive the pointer as r5 and replace r5 with an immediate before their first call, so they store nothing into it. The emitted State is an empty string for every mode on this path.",
+       "description": "The wrapper passes the 0x400-byte buffer at sp+0xbc as r6 of slot +0x60. On vtable 0x10ebc630 that slot is f_103523fc, which forwards the pointer as r6 to f_10364848 at 0x103524b0. f_10364848 writes a zero byte at 0x1036489c and does not write the buffer again. All four mode handlers receive that pointer as r5 and replace r5 before their first call: button-notify f_1035d0c8 at 0x10364adc (addi r5 at 0x1035d0d4), speaker-detect f_10363450 at 0x10364a10, room_calibration-calibrate f_10364360 at 0x10364bec, and trueroom f_10362190 at 0x10364c64. None of them stores into the buffer. The emitted State is an empty string.",
        "direction": "out",
        "primitive": {
         "fmt_helper": null,
@@ -14953,10 +14953,10 @@
        "format": "empty string",
        "unit": "none",
        "accepted_values": "empty string",
-       "range": "up to 1023 characters",
-       "special_values": "none identified",
+       "range": "the buffer is a single zero byte",
+       "special_values": "the only value emitted is the empty string",
        "required": false,
-       "default": "none; written on success",
+       "default": "empty string on success",
        "validation": "emitted via the response object vfuncs",
        "evidence": [
         {
@@ -19776,7 +19776,7 @@
       }
      ],
      "events_triggered": {
-      "description": "f_105b4490 loads locSetMgr from impl+0x950 at 0x105b44c8. Vtable 0x10faf5d0 slot +0x24 is f_10bd45cc, called at 0x105b4518. f_10bd45cc calls f_10bd428c, which reads the selectors through f_10bd39e4 and f_10bfbf94 into the caller buffers. The stores at 0x10bd3a6c fill that stack descriptor. This chain does not call the event sender f_1067c6ec. f_105b4490 returns 0 at 0x105b4558.",
+      "description": "f_105b4490 loads locSetMgr from impl+0x950 at 0x105b44c8 and calls vtable 0x10faf5d0 slot +0x24, f_10bd45cc, at 0x105b4518. The per-key loop in f_10bd39e4 calls slot 0 at 0x10bd3b4c of the object f_10bcce90 builds; that slot is f_10bccd24, which copies one pointer or advances an iterator and returns. The same loop calls f_10bfbf94 at 0x10bd3ed0 with the member pointer {f_10bfc18c, 0} stored at 0x10bd461c. The low bit is clear, so the dispatcher takes the direct bctr at 0x10bfbfec into f_10bfc18c and does not take the virtual bctr at 0x10bfbfd4. f_10bfc18c calls f_10be7f14, which tail-calls one of the eight copiers at 0x10fb0194. Those are leaf copies: one tails to strlcpy, one to f_10831bc0, and the other six return with no call. None of these calls f_1067c6ec or f_10bc9ea8. f_105b4490 returns 0 at 0x105b4558.",
       "evidence": [
        {
         "type": "firmware",
@@ -19795,7 +19795,7 @@
       ]
      },
      "state_transitions": {
-      "description": "The read does not store into the DeviceProperties object. f_10bd39e4 writes the stack result descriptor at 0x10bd3a6c, where r9 holds r28, and f_10be8d3c tails to f_10bf1350 to copy a found value into the caller buffer. f_105b4490 only formats the configuration with snprintf and returns 0.",
+      "description": "The read does not store into the DeviceProperties object. f_10bd39e4 writes the stack result descriptor at 0x10bd3a6c, where r9 holds r28. The value copiers reached from f_10be7f14 write the caller buffer (strlcpy, or f_10831bc0) and do not call onward. f_105b4490 formats the configuration with snprintf and returns 0.",
       "evidence": [
        {
         "type": "firmware",
@@ -27454,7 +27454,12 @@
       }
      ],
      "events_triggered": {
-      "description": "The ordinary attribute write calls locSetMgr slot +0x28, f_10bcd03c, at 0x105b46e8. That builds a descriptor with f_10bccda0 and calls slot +0x2c, f_10bd3820, which logs under locSet and returns at 0x10bd39a8 without calling f_1067c6ec. A zero result returns from the worker at 0x105b4734 with no GENA request. The override can still enter sonar cleanup after a failed write: it gates on the sonar query at 0x10356ec4 and the topology query at 0x10356f3c. Cleanup clears the sonar flag and calls the GENA framework with the service event source at impl+0x8 (0x10356dd8 and 0x10356de0). That requests event processing. The property set includes ZoneName, Icon and Configuration.",
+      "description": "The ordinary attribute write calls locSetMgr slot +0x28, f_10bcd03c, at 0x105b46e8. That builds a descriptor with f_10bccda0 and calls slot +0x2c, f_10bd3820. A failed lookup logs '[Mg] updateSettings() bad keyId %u' and returns 0x16 at 0x10bd39a8. A count of zero returns 0 at 0x10bd39dc. A key already in the list tails to f_10bd2e48 at 0x10bd39d8. A successful lookup tail-calls slot +0x28 of the settings-group object at 0x10bd3918. The sonar cleanup path still requests event processing at 0x10356de0 after the sonar query at 0x10356ec4 and the topology query at 0x10356f3c. The property set includes ZoneName, Icon and Configuration.",
+      "todo": [
+       "Established: the success write is the bctr at 0x10bd3918, slot +0x28 of the object f_10bd0198 returns (the pointer loaded at 0x10bd0204). LocalSettingsEventing::notifyOnChange is f_10bc9ea8, slot 0 of vtable 0x10faf3b0, built at the settings object +0x40 by f_10bc9784.",
+       "Still unjoined: whether that group object's slot +0x28 reaches f_10bc9ea8 or another publisher.",
+       "Next: name the vtable of the object returned at 0x10bd021c and disassemble its slot +0x28 through every exit."
+      ],
       "evidence": [
        {
         "type": "firmware",
