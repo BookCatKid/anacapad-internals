@@ -19781,12 +19781,7 @@
       }
      ],
      "events_triggered": {
-      "description": "No direct publisher in the wrapper or getter; the backend delegate can have its own effects.",
-      "todo": [
-       "Established: The getter delegates the read through impl+0x950, slot +0x24 at 0x105b4518.",
-       "Unknown: Whether that backend publishes an event from a read.",
-       "Next: Bind the receiver loaded at 0x105b44c8 and trace the slot +0x24 body and its delegates."
-      ],
+      "description": "f_105b4490 loads locSetMgr from impl+0x950 at 0x105b44c8. Vtable 0x10faf5d0 slot +0x24 is f_10bd45cc, called at 0x105b4518. f_10bd45cc calls f_10bd428c, which reads the selectors through f_10bd39e4 and f_10bfbf94 into the caller buffers. The stores at 0x10bd3a6c fill that stack descriptor. This chain does not call the event sender f_1067c6ec. f_105b4490 returns 0 at 0x105b4558.",
       "evidence": [
        {
         "type": "firmware",
@@ -19805,12 +19800,7 @@
       ]
      },
      "state_transitions": {
-      "description": "The getter itself does not write fields on the DeviceProperties implementation; it delegates the read through slot +0x24 at 0x105b4518.",
-      "todo": [
-       "Established: The getter delegates the read through impl+0x950, slot +0x24 at 0x105b4518.",
-       "Unknown: Whether that backend read mutates state.",
-       "Next: Bind the receiver at impl+0x950 and trace writes in the slot +0x24 implementation."
-      ],
+      "description": "The read does not store into the DeviceProperties object. f_10bd39e4 writes the stack result descriptor at 0x10bd3a6c, where r9 holds r28, and f_10be8d3c tails to f_10bf1350 to copy a found value into the caller buffer. f_105b4490 only formats the configuration with snprintf and returns 0.",
       "evidence": [
        {
         "type": "firmware",
@@ -27469,7 +27459,7 @@
       }
      ],
      "events_triggered": {
-      "description": "The ordinary attribute write calls the backend at impl+0x950, slot +0x28, at 0x105b46e8. The base worker checks its result without directly requesting a GENA update. The override can enter sonar cleanup even after a failed write: it gates on the sonar query at 0x10356ec4 and the topology query at 0x10356f3c, not the saved write result. Cleanup clears the sonar flag and calls the GENA framework with the service event source at impl+0x8 (0x10356dd8 and 0x10356de0). This requests event processing, not necessarily a wire NOTIFY. The property set includes ZoneName, Icon and Configuration.",
+      "description": "The ordinary attribute write calls locSetMgr slot +0x28, f_10bcd03c, at 0x105b46e8. That builds a descriptor with f_10bccda0 and calls slot +0x2c, f_10bd3820, which logs under locSet and returns at 0x10bd39a8 without calling f_1067c6ec. A zero result returns from the worker at 0x105b4734 with no GENA request. The override can still enter sonar cleanup after a failed write: it gates on the sonar query at 0x10356ec4 and the topology query at 0x10356f3c. Cleanup clears the sonar flag and calls the GENA framework with the service event source at impl+0x8 (0x10356dd8 and 0x10356de0). That requests event processing. The property set includes ZoneName, Icon and Configuration.",
       "evidence": [
        {
         "type": "firmware",
@@ -27527,11 +27517,6 @@
         "address": "0x1067ab54",
         "notes": "framework method dispatching through slot +0x14"
        }
-      ],
-      "todo": [
-       "Established: The normal batch write goes through slot +0x28 at 0x105b46e8; the separate sonar cleanup requests GENA processing at 0x10356de0.",
-       "Unknown: Whether an ordinary write requests a DeviceProperties GENA update outside sonar cleanup.",
-       "Next: Bind the backend passed in r8 to f_105b66f0 (stored at impl+0x950 at 0x105b6b34), then trace the batch write and changed-key callbacks."
       ]
      },
      "state_transitions": {
