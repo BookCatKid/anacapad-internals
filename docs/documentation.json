@@ -30470,7 +30470,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "f_107388a4 reads MemberID with f_1056157c and ResultCode with f_10561514. Request slot +0x8 at 0x10738920 returning zero is raised through slot +0x14 at 0x10738960.",
       "evidence": [
        {
         "type": "firmware",
@@ -83231,7 +83231,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "Empty ContainerURI selects f_1014f808 and a nonempty value selects f_1014fb34, tested at 0x1051171c. A newline returns 800 at 0x1014fc24.",
        "evidence": [
         {
          "type": "firmware",
@@ -83306,7 +83306,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "ContainerMetaData is taken from job+0x419 at 0x105117b8 and stored at row+0x774 (0x1014b34c).",
        "evidence": [
         {
          "type": "firmware",
@@ -83373,7 +83373,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "DesiredFirstTrackNumberEnqueued is the halfword at job+0x141e, loaded at 0x10511a04. f_1014ddb0 clamps it to old_length+1.",
        "evidence": [
         {
          "type": "firmware",
@@ -83464,7 +83464,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "EnqueueAsNext is the byte at job+0x1420, loaded at 0x10511a00, and is 0 or 1.",
        "evidence": [
         {
          "type": "firmware",
@@ -83629,7 +83629,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "EnqueuedURIsAndMetaData is parsed by f_1014ce8c at 0x10511894. The parser code byte is 0, 1000, or the first insert result.",
        "evidence": [
         {
          "type": "firmware",
@@ -83727,7 +83727,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "NumTracksAdded is the u16 accumulated at job+0x1434 and read at 0x105119c8.",
        "evidence": [
         {
          "type": "firmware",
@@ -83773,7 +83773,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "NewQueueLength is the u16 at sp+0x26 of f_1032e368, loaded at 0x10511a50.",
        "evidence": [
         {
          "type": "firmware",
@@ -83860,7 +83860,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "NewUpdateID is re-read by f_10149b24 at 0x10511a40 after the commit at 0x10511a2c.",
        "evidence": [
         {
          "type": "firmware",
@@ -83901,7 +83901,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "FirstTrackNumberEnqueued is the u16 at sp+0x28 of f_1032e368, loaded at 0x10511a58.",
        "evidence": [
         {
          "type": "firmware",
@@ -92316,7 +92316,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "The empty test at 0x102f7a88 chooses the insert shape for ContainerURI. A newline returns 800 at 0x1014fc24, and the text is stored at row+0x770.",
        "evidence": [
         {
          "type": "firmware",
@@ -92391,7 +92391,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "ContainerMetaData is bound by f_1056157c at 0x10465484 and stored at row+0x774. A newline returns 800 at 0x1014f508.",
        "evidence": [
         {
          "type": "firmware",
@@ -92458,7 +92458,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "CurrentTrackIndex is the word at job+0x141c, loaded at 0x102f7f10 and formatted as list A at 0x102f7f38 for the opcode-16 request.",
        "evidence": [
         {
          "type": "firmware",
@@ -92542,7 +92542,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "NewCurrentTrackIndices is comma-separated text. strchr for ',' and strtol run at 0x102f775c, then f_10c39f14 tokenizes it at 0x102f7ed8.",
        "evidence": [
         {
          "type": "firmware",
@@ -92735,7 +92735,7 @@
          "notes": "tail call callback->v[+8] = f_100d1218 (uncounted)"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "The handler splits this text itself at 0x102f775c and 0x102f7ed8. Each index has to fall between 0 and the number of tracks added, or the action returns 402.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: post-parse handling of `NewCurrentTrackIndices` = verbatim forward to impl vfunc +48 (obj r5-in, call site 0x104650f4); the handler segment contains no compare/convert call on the parsed value, so no impl-layer rejection exists - validation is the request parse (402) plus delegate internals.",
@@ -92820,7 +92820,7 @@
        "special_values": "none identified",
        "required": true,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "EnqueuedURIsAndMetaData is parsed by f_1014ce8c at 0x102f7c40. The uri attribute is copied at 0x10370354.",
        "evidence": [
         {
          "type": "firmware",
@@ -92910,7 +92910,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "NewUpdateID is the word at sp+0x24, loaded at 0x102f7ffc and stored for emission at 0x1046425c.",
        "evidence": [
         {
          "type": "firmware",
@@ -92935,7 +92935,7 @@
          "notes": "stw r5,0xc(r3)"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "The emitted update id is the word at sp+0x24 after f_10149b24, stored at 0x1046425c.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved: after the commit request is submitted (0x102f7fe0) f_10149b24(queue,&sp24,&sp22,0) at 0x102f7ff4 re-reads the queue update id; sp24 goes as r5 of adapter->v[+0xc] (f_10464254 stores it at adapter+0xc) at 0x102f8010 and the wrapper emits it."
@@ -92959,7 +92959,7 @@
        "special_values": "none identified",
        "required": false,
        "default": "none",
-       "validation": "fetched via request-object slot; impl validates internally",
+       "validation": "NewQueueLength is the halfword at sp+0x20, loaded at 0x102f8000.",
        "evidence": [
         {
          "type": "firmware",
@@ -93000,7 +93000,7 @@
          "notes": "NewQueueLength store"
         }
        ],
-       "notes": "populated from SCPD: arg read as raw value via request slot, not a typed parse-descriptor",
+       "notes": "The emitted length is the halfword at sp+0x20. The clear path passes req+0x114 as the length at 0x10265fe0.",
        "buf_cap": null,
        "resolved_findings": [
         "Resolved (provenance): u16 out-param sp+0x20 of f_1032e398 (r10 at 0x102f7fb0), passed as r4 of adapter->v[+0xc] at 0x102f8000 and stored at adapter+8.",
@@ -118438,7 +118438,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073ce18 reads InstanceID with f_105614e0 at 0x1073ce50. Request slot +0x8 at 0x1073ce6c returning zero is raised through slot +0x14 at 0x1073cea8.",
       "evidence": [
        {
         "type": "firmware",
@@ -119158,7 +119158,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073cf04 reads InstanceID with f_105614e0. Request slot +0x8 at 0x1073cf58 returning zero is raised through slot +0x14 at 0x1073cf94.",
       "evidence": [
        {
         "type": "firmware",
@@ -119921,7 +119921,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073cff0 reads InstanceID with f_105614e0. Request slot +0x8 at 0x1073d044 returning zero is raised through slot +0x14 at 0x1073d080.",
       "evidence": [
        {
         "type": "firmware",
@@ -120312,7 +120312,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073d0dc reads InstanceID and DesiredVolume, each with f_105614e0. Request slot +0x8 at 0x1073d154 returning zero sets 402 at 0x1073d1d0 and raises it through slot +0x14 at 0x1073d194. Otherwise the service object's slot +0x24 is called with the instance id and the volume.",
       "evidence": [
        {
         "type": "firmware",
@@ -120739,7 +120739,7 @@
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073d3f4 reads InstanceID with f_105614e0 and CoordinatorID with f_1056157c. Request slot +0x8 at 0x1073d470 returning zero faults through slot +0x14. Otherwise the service object's slot +0x8 is called with a 0x81-byte buffer, and a zero result is written as CurrentTransportSettings through request slot +0x24 at 0x1073d504 and slot +0x10.",
       "evidence": [
        {
         "type": "firmware",
@@ -121727,7 +121727,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073d1f0 reads InstanceID with f_105614e0. Request slot +0x8 at 0x1073d244 returning zero is raised through slot +0x14 at 0x1073d280.",
       "evidence": [
        {
         "type": "firmware",
@@ -122118,7 +122118,7 @@
      },
      "outputs": {},
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "VirtualLineIn f_1073d544 reads InstanceID with f_105614e0 and CoordinatorID with f_1056157c. Request slot +0x8 at 0x1073d5c0 returning zero sets 402 at 0x1073d63c and raises it through slot +0x14 at 0x1073d600. Otherwise the service object's slot +0xc runs at 0x1073d5e4, and a zero result commits through request slot +0xc at 0x1073d648.",
       "evidence": [
        {
         "type": "firmware",
