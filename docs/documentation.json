@@ -214571,10 +214571,17 @@
      "binary": "anacapad",
      "build": "86.10-80260",
      "notes": "whole-section pointer-run census: .data.rel.ro 2451 .text ptrs in 284 runs, .data 322 ptrs (10x12-slot connfilter family), .init_array 420 entries, .got2 368 entries"
+    },
+    {
+     "type": "firmware",
+     "binary": "anacapad",
+     "build": "86.10-80260",
+     "address": "0x110859d0",
+     "notes": "Recount of .data.rel.ro (VA 0x110859d0) and .rodata (VA 0x10e706a0). 237 .text pointers into 0x10ba0000-0x10c20000, 120 into 0x10c20000-0x10c70000, 11 into 0x10ca0000-0x10cd0000. .rodata: 3295 pointers into 0x10aa0000-0x10ba0000, 1299 into 0x10a00000-0x10aa0000. LED 14-entry run at 0x10fba500. Spotify 17-entry run at 0x10fdec44. Expat 6-word-run claim withdrawn; see verification."
     }
    ],
    "text_region_map": {
-    "method": "per-0x20000-block string sampling (lis/addi literal loads) + bl-target fingerprinting; confident where cross-checked against vtable referrers",
+    "method": "per-0x10000/0x20000-block string sampling. Vendored ranges below were recomputed from .data.rel.ro/.data/.rodata pointer runs on this ELF; Sonos application keys from 0x1006xxxx through 0x1083xxxx are still sample labels and are not individually cross-checked",
     "map": {
      "0x10aa0000-0x10b9xxxx": "protobuf-RPC namespace dispatch runtime - 'Namespace has no actor' per-verb dispatchers; carries cloud API path 'v1/players/%s/settings/player' (0x10b2 block) and IBT planner ('already generated ibt plan', 0x10b8 block) - the muse/spec engine's generated-message layer",
      "0x10ba0000-0x10c1xxxx": "household/local-settings engine: [Rq] request builders (setupGetRequest/setupUpdateAllRequest/calculateUserPermissionsJSON), [Gp] group-settings write/storage, [Mg]/[lo] location-settings ingest, LocalSettingsEventing::notifyOnChange, 'DATA_CORRUPTION[.%08X] settings group', write-authorization guards - code body of settings/hhsettings/local_settings_mgr subsystems",
@@ -214684,16 +214691,20 @@
      "0x100exxxx-0x100fxxxx": "rendering-control event layer (Unduck, StereoPairStateEvent, VolumeScalingFactor, SpeakerSize, SubGain/Crossover, DuckingEvent, ProxiedFastVol0Event, runtime_policy)"
     },
     "notes": "Boundaries approximate at 0x20000 granularity; vendored-block identity inferred from sampled literals. Sonos-code subsystems whose bodies live in the 0x10aa-0x10e7 span: muse/spec RPC engine, household-settings engine, LED engine, Spotify eSDK, evo decoder, dsplib, htaudio chproc, SPDIF writer.",
+    "todo": [
+     "Established: recomputed on build 86.10-80260. .data.rel.ro holds 237 .text pointers into 0x10ba0000-0x10c20000 (55 runs) and 120 into 0x10c20000-0x10c70000 (15 runs), and 11 into 0x10ca0000-0x10cd0000. .data holds the one Spotify .text pointer into 0x10ce0000-0x10d50000. .rodata holds 3295 .text pointers into 0x10aa0000-0x10ba0000 (2066 runs) and 1299 into 0x10a00000-0x10aa0000 (520 runs). The only dense LED table is the 14-entry run at 0x10fba500; Spotify's is the 17-entry run at 0x10fdec44. The old '108 expat pointers in uniform 6-word runs' does not reproduce: 0x10c40000-0x10c60000 has 293 .rodata .text pointers with run lengths 1, 2, 4, 6, 9, 16 and 25, and only one run of length 6.",
+     "Still open: every Sonos application key from 0x1006xxxx through 0x1083xxxx is a string-sample label. No check yet requires a literal named in that label to be formed by a lis/addi whose PC lies inside the key, so a neighbor's string can still be mis-filed. Next: for each such key, resolve one named literal to a VA and accept the key only when at least one forming instruction falls in range; move or split keys that fail. Edges stay coarse at 0x10000/0x20000 until that pass."
+    ],
     "resolved_findings": [
-     "Resolved: every block now carries an attribution verified by named-dynsym residency, vtable-method residency, or dense module-file literal clusters; no sampling-only attribution remains."
+     "Vendored pointer census recomputed from the ELF (see todo for the counts and the withdrawn expat 6-word claim). That census does not cover the Sonos application keys, which stay on the todo."
     ]
    },
    "rela_dyn": ".rela.dyn = 17 relocs: 12x R_PPC_COPY (kHttpsPortDeltaFromBase,kDefaultBaseHttpPort,kSecureHHHttpsPortDeltaFromBase,g_pszJFFSRoot,timevalInf/Zero,environ,stdin/stdout/stderr copied from a shared lib into .bss @0x1109b000+), 4x R_PPC_ADDR32 into .data.rel.ro, 1x R_PPC_GLOB_DAT (.got 0x110953ac). Confirms those named consts are exported by a Sonos shared lib, not defined here.",
    "tbss": ".tbss 16B @0x1109b328 - thread-local storage, minimal",
    "build_metadata": ".comment = GCC 5.5.0 (crosstool-NG 1.24.0) for app code + many GCC 4.3.2 objects (vendored libstdc++/old libs); build-id 76be87c7d664cac4bf54251a8afb3c33f72bf4df; .gnu_debuglink \"anacapad\" crc 0xd61b897d; interp /lib/ld.so.1; ABI-tag GNU/Linux kernel>=2.6.32; gnu.attributes PPC (soft-float flags embedded); .PPC.EMB.apuinfo = APUinfo header (embedded-PPC aux info); .gnu.hash + .gnu.version normal dynamic tables.",
-   "verification": "Per-region cross-verification complete. .data.rel.ro/.data/.sdata vtable-slot residency: household/settings block 0x10ba-0x10c2 = 237 slots (vtable-heavy C++ module, confirmed); JSON-schema/expat block 0x10c2-0x10c7 = 120 slots (validator classes, confirmed); vorbis+metadata block = 11 (mostly-C with a thin C++ metadata layer); spotify eSDK block = 1 (C-style callback structs, no vtables); LED driver and expat sub-block = 0 slots (pure C). .rodata function-table residency fills the gap: muse engine blocks carry dense generated dispatch tables (0x10aa-0x10ba = 3295 ptrs in small runs, 0x10a0-0x10aa = 1299) rather than C++ vtables - consistent with the generated namespace/message layer; expat carries 108 ptrs in uniform 6-word runs = its per-encoding scanner tables; LED = single 14-entry table; spotify = single 17-entry callback table. Every region's table style matches its module attribution.",
+   "verification": "Recomputed from this ELF, not a sampling claim. .data.rel.ro .text-pointer residency: 0x10ba0000-0x10c20000 = 237 pointers in 55 runs; 0x10c20000-0x10c70000 = 120 pointers in 15 runs; 0x10ca0000-0x10cd0000 = 11 pointers in 3 runs. .data holds 1 .text pointer into 0x10ce0000-0x10d50000 (the Spotify slot; .data.rel.ro has none there). .rodata .text-pointer residency: 0x10aa0000-0x10ba0000 = 3295 pointers in 2066 runs; 0x10a00000-0x10aa0000 = 1299 pointers in 520 runs. LED range 0x10c80000-0x10ca0000 has no .data.rel.ro vtable slots; its only dense .rodata run is 14 pointers at 0x10fba500, plus a 2-pointer run at 0x10fbaa70 and one pointer at 0x10ff9344. Spotify's only dense .rodata run is 17 pointers at 0x10fdec44. The previous sentence that expat holds 108 pointers in uniform 6-word runs is withdrawn: 0x10c40000-0x10c60000 has 293 .rodata .text pointers and the run-length histogram is {1:13, 2:5, 4:1, 6:1, 9:2, 16:12, 25:2}. These counts cover the vendored ranges only. The Sonos application keys are the open todo on text_region_map.",
    "resolved_findings": [
-    "Resolved: per-region verification pass done - vtable-slot counts (.data.rel.ro) and rodata function-table runs both corroborate the module attributions; no mislabeled regions found."
+    "Vendored-range pointer census recomputed (see verification). It corroborates the household, JSON-schema, vorbis, Spotify, LED and muse-engine attributions listed there. It does not certify the Sonos application keys, and it withdraws the expat 108-pointer / 6-word-run sentence."
    ]
   },
   "protobuf_descriptors": {
