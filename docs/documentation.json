@@ -29399,14 +29399,14 @@
       }
      },
      "validation": {
-      "description": "Wrapper convention (proven on this service): each input is fetched by req->v[+0x1c] named lookup plus a typed parse helper (f_105614e0 int, f_1056157c string w/ cap, f_10561514 int, f_10561444 bool); req->v[+0x8] then validates the request (nonzero proceeds); the impl call impl->v[slot] returns a code -> cr0.eq emits outputs, nonzero goes through req->v[+0x14] as a SOAP fault with the impl code verbatim.",
+      "description": "Handler f_10738654 looks up 'MemberID' through request slot +0x1c at 0x10738690 and parses it with f_1056157c, capacity 0x19, at 0x107386a4. It looks up 'BootSeq' through slot +0x1c at 0x107386b4 and parses it with f_105614e0 at 0x107386cc. Slot +0x8 at 0x107386e0 must be nonzero; a zero result branches to the 402 fault at 0x107386f0. The worker is called through implementation vtable slot +0x8 at 0x10738748. A nonzero worker result is raised through request slot +0x14 at 0x1073875c.",
       "evidence": [
        {
         "type": "firmware",
         "binary": "anacapad",
         "build": "86.10-80260",
         "address": "0x10738654",
-        "notes": "wrapper decode"
+        "notes": "MemberID lookup 0x10738690, BootSeq lookup 0x107386b4, validity slot +0x8 at 0x107386e0, fault slot +0x14 at 0x1073875c."
        }
       ]
      },
@@ -29418,7 +29418,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10738654",
-        "notes": "req-vfunc call map: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}"
+        "notes": "Handler calls slot +0x1c twice (MemberID, BootSeq), slot +0x8 once, and slot +0x14 once. Success writes five outputs through slot +0x24 and four through slot +0x10, then commits through slot +0xc."
        }
       ]
      },
@@ -29456,7 +29456,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10738654",
-        "notes": "bl call scan: notify-family sites = []"
+        "notes": "Neither f_10738654 nor f_10394d10 calls f_1067c6ec or f_1067c46c. Success calls f_10391dd8(impl, 1) and f_10392c7c with the literal 'Add'."
        }
       ]
      },
@@ -29480,7 +29480,7 @@
         "binary": "anacapad",
         "build": "86.10-80260",
         "function": "0x10738654",
-        "notes": "commit/fault slot usage: {'0x1c': 2, '0x8': 1, '0x14': 1, '0x24': 5, '0x10': 4, '0xc': 1}"
+        "notes": "A zero worker result falls through to the output writes. A nonzero result takes request slot +0x14 at 0x1073875c. Worker r31 values are 0, 402, 800, 801, 802, 803, 804, 806, 807, and 808. 805 is not among them."
        }
       ]
      },
@@ -29488,216 +29488,397 @@
      "errors": [
       {
        "code": 402,
-       "code_expr": "vret; parse/req-layer",
-       "meaning": "402 from request validation, and 402 from the worker when MemberID is null or empty.",
-       "fault_sites": [
-        "0x10738898",
-        "0x10394fdc"
-       ],
-       "conditions": [
-        {
-         "description": "Validation slot +0x08 returning 0 faults 402 at 0x10738898. The worker returns 402 at 0x10394fdc when MemberID is null or its first byte is 0, with the log 'Adding member failed - invalid argument'.",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10738654",
-           "notes": "0x192 literal in handler"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10738654",
-         "notes": "402 gate"
-        }
-       ],
-       "domain_note": "delegated-rc semantics: impl rc surfaced via req->v[+0x14]"
-      },
-      {
-       "code": 800,
-       "code_expr": "vret(gm_impl,+0x08)",
-       "meaning": "gm_impl AddMember impl-level failure",
-       "fault_sites": [
-        "0x10738768"
-       ],
-       "conditions": [
-        {
-         "description": "incompatible member OR proto-compat retrieval failure ('Unable to retrieve invisibility/node proto compatibility', 'incompatible member')",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103953a0",
-           "notes": "li r31,0x320 in f_10394d10; also compat-fail site 0x103950d4"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103953a0",
-         "notes": "li r31,0x320 in f_10394d10; also compat-fail site 0x103950d4"
-        }
-       ]
-      },
-      {
-       "code": 801,
-       "code_expr": "vret(gm_impl,+0x08)",
-       "meaning": "gm_impl AddMember impl-level failure",
-       "fault_sites": [
-        "0x10738768"
-       ],
-       "conditions": [
-        {
-         "description": "MemberID equals own/coordinator ID (strcmp this+0x210)",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10395420",
-           "notes": "li r31,0x321 reached from bc 0x10395170 when strcmp hits"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10395420",
-         "notes": "li r31,0x321 reached from bc 0x10395170 when strcmp hits"
-        }
-       ]
-      },
-      {
-       "code": 803,
-       "code_expr": "vret(gm_impl,+0x08)",
-       "meaning": "gm_impl AddMember impl-level failure",
-       "fault_sites": [
-        "0x10738768"
-       ],
-       "conditions": [
-        {
-         "description": "BootSeq out-of-sync with group manager ('out-of-sync GM')",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10395404",
-           "notes": "li r31,0x323 + log 'Adding member %s with bootseq %u failed - out-of-sync GM'"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10395404",
-         "notes": "li r31,0x323 + log 'Adding member %s with bootseq %u failed - out-of-sync GM'"
-        }
-       ]
-      },
-      {
-       "code": 804,
-       "code_expr": "vret(gm_impl,+0x08)",
-       "meaning": "gm_impl AddMember impl-level failure",
-       "fault_sites": [
-        "0x10738768"
-       ],
-       "conditions": [
-        {
-         "description": "target member is a satellite ('Adding member to satellite is not supported')",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x103950e8",
-           "notes": "li r31,0x324 before satellite log at 0x10395100"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x103950e8",
-         "notes": "li r31,0x324 before satellite log at 0x10395100"
-        }
-       ]
-      },
-      {
-       "code": 808,
-       "code_expr": "vret(gm_impl,+0x08)",
-       "meaning": "gm_impl AddMember impl-level failure",
-       "fault_sites": [
-        "0x10738768"
-       ],
-       "conditions": [
-        {
-         "description": "GC or new member is an ungroupable player",
-         "evidence": [
-          {
-           "type": "firmware",
-           "binary": "anacapad",
-           "build": "86.10-80260",
-           "address": "0x10395028",
-           "notes": "li r31,0x328 + log 'Rejecting AddMember: GC or new member is an ungroupable player'"
-          }
-         ]
-        }
-       ],
-       "evidence": [
-        {
-         "type": "firmware",
-         "binary": "anacapad",
-         "build": "86.10-80260",
-         "address": "0x10395028",
-         "notes": "li r31,0x328 + log 'Rejecting AddMember: GC or new member is an ungroupable player'"
-        }
-       ]
-      },
-      {
-       "code": null,
-       "code_expr": "return value of f_10394d10, passed to TRequest slot +0x14",
-       "meaning": "Worker fault codes from f_10394d10: 800 when the local identity strings disagree or the compatibility lookup fails; 801 when MemberID equals the string at impl+0x210; 802 when all 32 member slots are occupied; 803 when BootSeq is out of sync; 804 when f_1075d770 reports a satellite; 806 when the compatibility byte is 0; 807 when impl+0xda4 is 0; 808 when f_10759850 reports an ungroupable player.",
+       "code_expr": "request slot +0x8 returned 0, or the worker found an empty MemberID",
+       "meaning": "402 when request slot +0x8 returns 0 (the compare at 0x107386e8 branches to 0x10738894), and 402 from the worker when MemberID is null or its first byte is 0.",
        "fault_sites": [],
        "evidence": [
         {
          "type": "firmware",
          "binary": "anacapad",
          "build": "86.10-80260",
-         "address": "0x10394d10",
-         "notes": "AddMember impl - full 800-series ladder"
+         "function": "0x10738654",
+         "address": "0x107386f0",
+         "notes": "zero result of slot +0x8 branches to the 402 fault"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10394fdc",
+         "notes": "addi r31, 402; log 0x10ec30f8 at 0x10394ff0"
         }
        ],
        "conditions": [
         {
-         "description": "Each code is the value left in r31 and returned at 0x10394de0. The log strings are at 0x10ec30a0 (808), 0x10ec3120 (804), 0x10ec317c (800), 0x10ec314c (806), 0x10ec31bc (803), and 0x10ec31f8 (already present, which still returns 0 when the refresh succeeds).",
+         "description": "The handler faults 402 before the worker when validation returns 0. The worker sets r31 to 402 at 0x10394fdc and, when the diag gate allows, logs 'Adding member failed - invalid argument' (0x10ec30f8) at 0x10394ff0.",
          "evidence": [
           {
            "type": "firmware",
            "binary": "anacapad",
            "build": "86.10-80260",
+           "function": "0x10738654",
+           "address": "0x107386f0",
+           "notes": "zero result of slot +0x8 branches to the 402 fault"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 800,
+       "code_expr": "r31 = 800 inside f_10394d10",
+       "meaning": "800 when impl+0x210 and impl+0x120 differ, or when the compatibility lookup yields no record.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x1039515c",
+         "notes": "unequal identity strings go to the 800 arm"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x103950d4",
+         "notes": "800 after log 0x10ec317c"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x103953a0",
+         "notes": "800 with no log when the diag gate skips it"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "strcmp(impl+0x210, impl+0x120) nonzero at 0x10395154 branches to 0x10395350, sets 800, and uses the shared log 'Adding member %s failed; tx: %s ret=%u' (0x10ec3224). A zero byte at sp+0x3c logs 'Unable to retrieve invisibility/node proto compatibility for %s' (0x10ec317c) at 0x103950c4 and sets 800 at 0x103950d4. If that diag gate is off, 800 is set at 0x103953a0 with no log.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x1039515c",
+           "notes": "unequal identity strings go to the 800 arm"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 801,
+       "code_expr": "r31 = 801 inside f_10394d10",
+       "meaning": "801 when MemberID equals the coordinator id at impl+0x210.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395170",
+         "notes": "strcmp equal branches to 801"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395420",
+         "notes": "addi r31, 801; no code-specific log"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "strcmp(impl+0x210, MemberID) equal at 0x10395168 branches to 0x1039541c, which sets 801 at 0x10395420. There is no dedicated 801 string. The arm uses the shared log 'Adding member %s failed; tx: %s ret=%u' (0x10ec3224) at 0x1039533c.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x10395170",
+           "notes": "strcmp equal branches to 801"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 802,
+       "code_expr": "r31 = 802 inside f_10394d10",
+       "meaning": "802 when all 32 member slots are occupied.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x103952e8",
+         "notes": "cmpwi r26, 32"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x103952f0",
+         "notes": "addi r31, 802"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "cmpwi r26, 32 at 0x103952e8 takes the equal path, sets 802 at 0x103952f0, and uses the shared log 'Adding member %s failed; tx: %s ret=%u' (0x10ec3224). There is no separate slots-full string.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x103952e8",
+           "notes": "cmpwi r26, 32"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 803,
+       "code_expr": "r31 = 803 inside f_10394d10",
+       "meaning": "803 when BootSeq is out of sync with the group manager.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395404",
+         "notes": "addi r31, 803 after log 0x10ec31bc"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395414",
+         "notes": "803 with no log when the diag gate is off"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "f_10123d80 at 0x103953b8 reports the out-of-sync byte. The arm logs 'Adding member %s with bootseq %u failed - out-of-sync GM' (0x10ec31bc) at 0x103953fc and sets 803 at 0x10395404. If the diag gate skips the log, 803 is set at 0x10395414 with no log.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x10395404",
+           "notes": "addi r31, 803 after log 0x10ec31bc"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 804,
+       "code_expr": "r31 = 804 inside f_10394d10",
+       "meaning": "804 when the target is a satellite.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x103950e8",
+         "notes": "addi r31, 804"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395100",
+         "notes": "log 0x10ec3120"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "f_1075d770 nonzero at 0x10395068 takes this arm. It sets 804 at 0x103950e8 and logs 'Adding member to satellite is not supported' (0x10ec3120) at 0x10395100 when the diag gate allows it.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x103950e8",
+           "notes": "addi r31, 804"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 806,
+       "code_expr": "r31 = 806 inside f_10394d10",
+       "meaning": "806 when the compatibility byte is clear.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395120",
+         "notes": "lbz sp+0x3e; zero goes to 806"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x1039536c",
+         "notes": "addi r31, 806"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395388",
+         "notes": "log 0x10ec314c"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "The byte at sp+0x3e is tested at 0x10395120. Zero branches to 0x10395360, sets 806 at 0x1039536c, and logs 'Adding member %s failed - incompatible member' (0x10ec314c) at 0x10395388.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x10395120",
+           "notes": "lbz sp+0x3e; zero goes to 806"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 807,
+       "code_expr": "r31 = 807 inside f_10394d10",
+       "meaning": "807 when the ready byte at impl+0xda4 is zero.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10394db8",
+         "notes": "ready byte zero falls into 807"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10394dc8",
+         "notes": "addi r31, 807; no log string"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "cmpwi of impl+0xda4 at 0x10394db8 falls through on zero, sets 807 at 0x10394dc8, calls f_102ae574, and returns at 0x10394de0. This arm has no log string.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x10394db8",
+           "notes": "ready byte zero falls into 807"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": 808,
+       "code_expr": "r31 = 808 inside f_10394d10",
+       "meaning": "808 when the coordinator or the new member is ungroupable.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395028",
+         "notes": "addi r31, 808"
+        },
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10395048",
+         "notes": "log 0x10ec30a0"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "The arm sets 808 at 0x10395028 and logs 'Rejecting AddMember: GC or new member is an ungroupable player (gcUUID=%s memberID=%s)' (0x10ec30a0) at 0x10395048.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
+           "address": "0x10395028",
+           "notes": "addi r31, 808"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "code": null,
+       "code_expr": "not returned by f_10394d10",
+       "meaning": "805 is not a return value of AddMember.",
+       "fault_sites": [],
+       "evidence": [
+        {
+         "type": "firmware",
+         "binary": "anacapad",
+         "build": "86.10-80260",
+         "function": "0x10394d10",
+         "address": "0x10394d10",
+         "notes": "immediate census: no 0x325"
+        }
+       ],
+       "conditions": [
+        {
+         "description": "Every addi-from-r0 immediate in f_10394d10 was enumerated. 0x325, which is 805, does not occur. The values stored in r31 are 0, 402, 800, 801, 802, 803, 804, 806, 807, and 808.",
+         "evidence": [
+          {
+           "type": "firmware",
+           "binary": "anacapad",
+           "build": "86.10-80260",
+           "function": "0x10394d10",
            "address": "0x10394d10",
-           "notes": "AddMember impl - full 800-series ladder"
+           "notes": "immediate census: no 0x325"
           }
          ]
         }
