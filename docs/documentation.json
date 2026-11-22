@@ -22485,7 +22485,7 @@
      },
      "side_effects": [
       {
-       "description": "If the gated interruption check denies the request, the worker returns success with PlayId 0xffffffff without creating a stream or calling the source. Otherwise, on the successful start path f_104f669c creates the chirp stream, invokes external source slot +0x1c and stores its returned identifier at object+0x98 under the object mutex. The ID store does not prove audible playback.",
+       "description": "If the gated interruption check denies the request, the worker returns success with PlayId 0xffffffff without creating a stream or calling the source. Otherwise, on the successful start path f_104f669c creates the chirp stream, invokes external source slot +0x1c and stores its returned identifier at object+0x98 under the object mutex. The ID store does not prove audible playback. The call at 0x104f68f0 passes r5=0x21, r6=0 and r7=2. The source at object+0x9c is the shared_ptr f_101ad8f0 returns at 0x103fa330, stored by f_104f6144 at 0x104f61e8. The chirp object is room_detection_send, vtable 0x10edca50.",
        "evidence": [
         {
          "type": "firmware",
@@ -22531,9 +22531,9 @@
         }
        ],
        "todo": [
-        "Established: A denied interruption returns the sentinel without starting; the other success path calls source slot +0x1c at 0x104f68f0 and stores its returned ID.",
-        "Unknown: When the source starts rendering audio rather than only accepting the chirp stream.",
-        "Next: Bind the concrete source loaded from object+0x9c at 0x104f68d0 and follow its +0x1c implementation into the rendering path."
+        "Traced: slot +0x1c at 0x104f68f0 is called with r5=0x21, and the source pointer is installed at 0x104f61e8 from f_101ad8f0.",
+        "Still unjoined: whether that source slot +0x1c starts rendering or only accepts the stream.",
+        "Next: name the object returned at 0x101ad940 and read its slot +0x1c."
        ]
       },
       {
@@ -22566,9 +22566,9 @@
      "events_triggered": {
       "description": "The wrapper and mapper have no direct publisher. The sender and, for a nonzero flag, the swappable-audio query delegate into the audio layer.",
       "todo": [
-       "Established: Successful chirp startup calls the audio-source delegate at 0x104f68f0, and the gated swappable-audio path reaches a delegate at 0x1035b46c.",
-       "Unknown: Whether either delegate publishes an event.",
-       "Next: Bind the chirp audio-source slot +0x1c and the swappable-audio delegate reached through f_104ad918."
+       "Traced: startup uses the room_detection_send source installed at 0x104f61e8 and calls its slot +0x1c at 0x104f68f0.",
+       "Still unjoined: whether that slot, or the swappable-audio delegate at 0x1035b46c, calls f_1067c6ec.",
+       "Next: name the source from the load at 0x101ad940, then disassemble its slot +0x1c."
       ],
       "evidence": [
        {
@@ -23199,9 +23199,9 @@
      "events_triggered": {
       "description": "There is no direct publisher in the wrapper, mapper or sender; the sender delegates to the chirp audio source.",
       "todo": [
-       "Established: The stop path calls source slots +0x30 and +0x20 at 0x104f6460 and 0x104f65d4.",
-       "Unknown: Whether either source call publishes an event.",
-       "Next: Bind both source slots and trace their concrete bodies and publication calls."
+       "Traced: stop calls slots +0x30 and +0x20 on the source at object+0x9c, stored at 0x104f61e8.",
+       "Still unjoined: whether either slot calls f_1067c6ec.",
+       "Next: name the source from 0x101ad940 and read those two vtable slots."
       ],
       "evidence": [
        {
@@ -23223,9 +23223,9 @@
      "state_transitions": {
       "description": "The sender clears the stored play id at 0x104f65e4 only when the audio-source stop call succeeds. A zero return at 0x104f65d8 branches to failure without rolling back any effects of that call.",
       "todo": [
-       "Established: A zero result from the stop call at 0x104f65d4 leaves the stored play ID unchanged.",
-       "Unknown: Whether that result can still change actual playback.",
-       "Next: Bind the slot +0x20 implementation reached at 0x104f65d4 and trace its zero-result branches."
+       "Traced: a zero result at 0x104f65d4 leaves the play id at object+0x98 unchanged. The callee is the source at object+0x9c.",
+       "Still unjoined: whether slot +0x20 changes playback when it returns zero.",
+       "Next: name the source from 0x101ad940 and follow the zero branch in its slot +0x20."
       ],
       "evidence": [
        {
