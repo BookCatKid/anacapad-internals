@@ -12479,7 +12479,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "The initial path reads impl+0xbb4, +0xe60 and +0x25c. Failure can invoke f_105b5030 at 0x10354aa0, reaching runtime teardown. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
+      "description": "The initial path reads impl+0xbb4, +0xe60 and +0x25c. Failure can invoke f_105b5030 at 0x10354aa0, reaching runtime teardown. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88. AddBondedZones reaches that teardown from f_103548f4. f_105b5030 at 0x10354aa0 calls slot +0x78 unless the slot is f_105b43d4. On vtable 0x10ebc630 the slot is f_10352dd4, the word at 0x10ebc6a8, and f_10352dd4 calls f_10360784 at 0x10352f38. On vtable 0x10ebd214 the slot is f_10360784, the word at 0x10ebd28c. The impl+0x960 slot +0x14 writes at 0x1036092c, 0x1036094c and, when the byte at sp+0x1a is nonzero, 0x1036097c are not tested. locSetMgr, vtable 0x10faf5d0, is read at 0x10360be4. A zero word at sp+0x30 takes snprintf at 0x10360de0, and both arms call f_105b4574 at 0x10360c14. f_102d5524 at 0x10360d44 and f_102aed44 at 0x10360d50 are followed by the branch at 0x10360d54.",
       "evidence": [
        {
         "type": "firmware",
@@ -12546,9 +12546,9 @@
        }
       ],
       "todo": [
-       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
-       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
-       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
+       "Traced for AddBondedZones: locSetMgr at impl+0x950 is vtable 0x10faf5d0, and impl+0x1a88 is passed to f_102d5524 and f_102aed44.",
+       "Still unjoined: the vtable of the settings object f_103fa434 stores at zone-player+0x108 at 0x103fa730. Its slot +0x14 writes ChannelMapSet, ActiveZoneID and Invisible.",
+       "Next: name the object loaded from sp+0xe8 at 0x101b0108 and passed as r5 to f_103fa434."
       ]
      },
      "side_effects": [
@@ -13116,7 +13116,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0. The primary reads settings receiver +0x960; the first satellite transition reads property receiver +0x950 and settings receiver +0x960.",
+      "description": "Reads the zone-player context at impl+0x25c; the role implementations work on the topology and group state and on the satellite-side copies of the unpaired LED, button-lock, zone name, icon and configuration settings ('UnpairedLED', 'UnpairedButtonLock', 'UnpairedZoneName', 'UnpairedIcon', 'UnpairedConfiguration'). The primary worker reads the IPC object at impl+0x1a9c, rendering/sonar manager at +0x1a80 and topology monitor at +0x1368. Follow-up reads the pending map at +0x10e0. The primary writes HTSatelliteDefn through impl+0x960 slot +0x14 at 0x1034f038 and ActiveZoneID at 0x1034f05c. The satellite path loads locSetMgr from impl+0x950 at 0x1034d504 and calls slot +0x28 at 0x1034d56c, then loads the settings object at 0x1034d588 beside the UnpairedLED, UnpairedButtonLock and UnpairedZoneName names. The earlier read at 0x1034d404 uses settings slot +0x24 and compares the buffers with Off and On.",
       "evidence": [
        {
         "type": "firmware",
@@ -13183,9 +13183,9 @@
        }
       ],
       "todo": [
-       "Established: The primary uses impl+0x960 and the first satellite transition uses impl+0x950 and +0x960 for settings access.",
-       "Unknown: The concrete receivers and which delegated operations depend on their state.",
-       "Next: Trace the objects stored by the DeviceProperties construction and binding paths, then bind the calls reached from 0x1034f038, 0x1034f05c, 0x1034d404, 0x1034d504 and 0x1034d588."
+       "Traced for AddHTSatellite: impl+0x950 at 0x1034d504 is locSetMgr and 0x1034d56c is its slot +0x28. impl+0x960 is written by name at 0x1034f038 and 0x1034f05c.",
+       "Still unjoined: the vtable of that settings object. f_103fa434 stores the pointer at zone-player+0x108 at 0x103fa730.",
+       "Next: name the shared_ptr loaded from sp+0xe8 at 0x101b0108."
       ]
      },
      "side_effects": [
@@ -14018,7 +14018,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "The initial path reads impl+0xbb4, +0xe60 and +0x25c. Failure can invoke f_105b5030 at 0x10354aa0, reaching runtime teardown. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
+      "description": "The initial path reads impl+0xbb4, +0xe60 and +0x25c. Failure can invoke f_105b5030 at 0x10354aa0, reaching runtime teardown. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88. CreateStereoPair's override f_10350210 calls slot +0x18 at 0x10350218 and returns through it. The worker f_103548f4 is still the function that calls f_105b5030 at 0x10354aa0, so the failure path is the slot +0x78 dispatch above. In the teardown body the settings writes are not tested, the locSetMgr read at 0x10360be4 does not stop the call to f_105b4574, and the transport calls are not tested before the branch at 0x10360d54.",
       "evidence": [
        {
         "type": "firmware",
@@ -14085,9 +14085,9 @@
        }
       ],
       "todo": [
-       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
-       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
-       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
+       "Traced for CreateStereoPair: the override returns through slot +0x18 at 0x10350218, and the worker failure path calls f_105b5030 at 0x10354aa0.",
+       "Still unjoined: the vtable of the settings object at zone-player+0x108, the receiver of slot +0x14 in f_10360784.",
+       "Next: name the r5 shared_ptr of f_103fa434 from the load at 0x101b0108."
       ]
      },
      "side_effects": [
@@ -21006,7 +21006,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
+      "description": "RemoveBondedZones calls f_10360784 at 0x10352f38. That function reads the current map at impl+0xbb4, the UUID at +0x25c, the trigger byte at +0xe34, the rendering manager at +0x1a80 and the flag at +0xa54. Its settings slot +0x14 writes are not the function result. The locSetMgr read at 0x10360be4 only chooses snprintf at 0x10360de0 or the fall-through, and f_105b4574 at 0x10360c14 runs for both. The transport calls at 0x10360d44 and 0x10360d50 are discarded by the branch at 0x10360d54.",
       "evidence": [
        {
         "type": "firmware",
@@ -21052,9 +21052,9 @@
        }
       ],
       "todo": [
-       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
-       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
-       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
+       "Traced for RemoveBondedZones: f_10360784 at 0x10352f38 performs the three delegate calls and does not use their returns as its result.",
+       "Still unjoined: the class of the settings object at impl+0x960. The pointer is the one stored at zone-player+0x108.",
+       "Next: identify it from the shared_ptr loaded at 0x101b0108."
       ]
      },
      "side_effects": [
@@ -23666,7 +23666,7 @@
       ]
      },
      "state_dependencies": {
-      "description": "The override also reads the submitted map at 0x103503f4. Local teardown reads the current map at impl+0xbb4, UUID at +0x25c, trigger byte at +0xe34, rendering/sonar manager at +0x1a80, flag +0xa54, settings backend +0x960, configuration backend +0x950, and transport manager +0x1a88.",
+      "description": "SeparateStereoPair's override f_103503a8 reads the submitted map at 0x103503f4 and does not call f_10360784. The worker f_10352dd4 does, at 0x10352f38. The settings slot +0x14 returns are ignored there, the locSetMgr word at sp+0x30 does not stop f_105b4574, and f_102d5524 together with f_102aed44 take the branch at 0x10360d54.",
       "evidence": [
        {
         "type": "firmware",
@@ -23712,9 +23712,9 @@
        }
       ],
       "todo": [
-       "Established: f_10360784 validates and updates the local map, then uses configuration and playback delegates.",
-       "Unknown: Which concrete delegates supply the remaining teardown state and how their results affect teardown.",
-       "Close it by following the constructor objects at impl+0x960, +0x950 and +0x1a88 into the calls reached from 0x10360910, 0x10360bd4 and 0x10360d2c."
+       "Traced for SeparateStereoPair: f_103503a8 stops after the map parse, and f_10352dd4 at 0x10352f38 is what enters the delegate body.",
+       "Still unjoined: the concrete vtable of impl+0x960. f_103fa434 installs that pointer at 0x103fa730.",
+       "Next: follow the load at 0x101b0108 back to the constructor of that shared_ptr."
       ]
      },
      "side_effects": [
