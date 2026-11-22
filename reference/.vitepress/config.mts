@@ -140,7 +140,11 @@ export default defineConfig({
   outDir: '../site',
   cacheDir: './.vitepress/cache',
   ignoreDeadLinks: [/^files\//, /^\.\.\/files\//, /^\/files\//],
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${BASE}favicon.svg` }],
+  ],
   themeConfig: {
+    logo: { src: `${BASE}logo.svg`, alt: 'anacapad internals logo' },
     nav: [
       { text: 'SOAP', link: '/soap/' },
       { text: 'muse', link: '/muse/' },

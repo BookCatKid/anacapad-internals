@@ -20,8 +20,8 @@ Pipeline:
   6. Dispatchers: service vptr slot +8; plus an exhaustive sweep for
      dispatcher-shaped functions not reachable from registration records
   7. Handlers: bounded by the function map; arg reads/writes classified by
-     the request-vfunc slot invoked (+0x1c/+0x3c in, +0x24 out, +0x14 fault,
-     +0x0c/+0x38 commit); trailing helper calls are decoded once each to
+     the request-vfunc slot invoked (+0x1c/+0x20 in, +0x24/+0x28 out,
+     +0x14 fault, +0x0c/+0x10 commit); trailing helper calls are decoded once each to
      recover typed-buffer tags / format strings
   8. Capability plumbing: readers/writers of the enabled bytes and the
      capability-mask word
@@ -172,11 +172,24 @@ def decode(w, pc):
         rs, ra, sh = (w >> 21) & 31, (w >> 16) & 31, (w >> 11) & 31
         mb, me = (w >> 6) & 31, (w >> 1) & 31
         m = {20: "rlwimi", 21: "rlwinm", 23: "rlwnm"}[op]
-        if op == 21 and mb == 0 and me == 31 - sh:
-            return ("slwi", ra, rs, sh)
-        if op == 21 and sh == 0 and me == 31:
-            return ("srwi" if mb else "clrrwi", ra, rs, 32 - mb if mb else 0)
-        return (m, ra, rs, sh, mb, me)
+        suffix = "." if w & 1 else ""
+        if op == 21:
+            if mb == 0 and me == 31 - sh:
+                return ("slwi" + suffix, ra, rs, sh)
+            if me == 31 and mb > 0 and sh == 32 - mb:
+                return ("srwi" + suffix, ra, rs, mb)
+            if sh == 0 and me == 31:
+                return ("clrlwi" + suffix, ra, rs, mb)
+            if sh == 0 and mb == 0:
+                return ("clrrwi" + suffix, ra, rs, 31 - me)
+            if mb == 0 and me == 31:
+                return ("rotlwi" + suffix, ra, rs, sh)
+            if mb == 0:
+                return ("extlwi" + suffix, ra, rs, me + 1, sh)
+            if me == 31:
+                n = 32 - mb
+                return ("extrwi" + suffix, ra, rs, n, (sh - n) & 31)
+        return (m + suffix, ra, rs, sh, mb, me)
     if op == 31:
         xo = (w >> 1) & 0x3FF
         m = _XO.get(xo)
@@ -475,7 +488,9 @@ class FuncEmu:
         elif op == "subf":
             _, rd, ra, rb = ins
             self.reg[rd] = ("sub", R[rb], R[ra])
-        elif op in ("slwi", "srwi", "clrrwi"):
+        elif op.rstrip(".") in ("slwi", "srwi", "clrrwi", "clrlwi",
+                                 "rotlwi", "extlwi", "extrwi",
+                                 "rlwinm", "rlwnm", "rlwimi"):
             self.reg[ins[1]] = ("xform", op, R[ins[2]])
         elif op in ("slw", "srw", "rlwinm", "rlwnm", "rlwimi", "and", "andc",
                     "or", "xor", "orc", "nand", "nor", "extsh", "extsb",
@@ -775,9 +790,6 @@ def analyze_router(elf, text, starts, extents, fva, plt):
             if xs and xs[-1][2] in ("stb", "stbu"):
                 en = xs
                 break
-        if en is None:
-            xs = stw.get(o + 0x0C) or stw.get(o + 0x10)
-            en = xs
         if en:
             pc_, src, sz = en[-1]
             rec["enabled"] = {"val": src, "pc": pc_, "size": sz}
@@ -944,11 +956,12 @@ def classify_dispatcher(elf, text, starts, extents, fva, tables, plt):
 
 # ============================================ handler analysis ============
 
-REQ_IN_SLOTS = (0x1c, 0x20, 0x3c)
-REQ_OUT_SLOT = 0x24
+REQ_IN_SLOTS = (0x1c, 0x20)
+REQ_OUT_SLOTS = (0x24, 0x28)
 REQ_FAULT_SLOT = 0x14
-REQ_COMMIT_SLOTS = (0x0c, 0x38)
+REQ_COMMIT_SLOTS = (0x0c, 0x10)
 REQ_PARSE_SLOT = 0x08
+REQ_STATUS_SLOT = 0x38
 
 
 def classify_helper(elf, text, starts, extents, fva, plt, cache):
@@ -1012,7 +1025,8 @@ def analyze_handler(elf, text, starts, extents, hva, plt, helper_cache,
     req_srcs = {}
     for pc, kind, ev in events:
         if kind == "vcall" and ev["slot"] in REQ_IN_SLOTS + \
-                (REQ_OUT_SLOT, REQ_FAULT_SLOT) + REQ_COMMIT_SLOTS:
+                REQ_OUT_SLOTS + (REQ_FAULT_SLOT, REQ_PARSE_SLOT,
+                                 REQ_STATUS_SLOT) + REQ_COMMIT_SLOTS:
             req_srcs[vstr(ev["obj"])] = req_srcs.get(
                 vstr(ev["obj"]), 0) + 1
     if req_srcs:
@@ -1081,7 +1095,7 @@ def analyze_handler(elf, text, starts, extents, hva, plt, helper_cache,
                     "name": s4, "name_va": a4, "site": pc,
                     "slot": slot, "helper": helper,
                     "type_tag": tag, "buf_cap": cap, "fmt": fmt})
-            elif on_req and slot == REQ_OUT_SLOT and s4:
+            elif on_req and slot in REQ_OUT_SLOTS and s4:
                 helper = None
                 fmt = None
                 for pc2, k2, e2 in evs[idx + 1:idx + 6]:
@@ -1096,7 +1110,7 @@ def analyze_handler(elf, text, starts, extents, hva, plt, helper_cache,
                         break
                 res["out_args"].append({
                     "name": s4, "name_va": a4, "site": pc,
-                    "helper": helper, "fmt": fmt})
+                    "slot": slot, "helper": helper, "fmt": fmt})
             elif on_req and slot == REQ_FAULT_SLOT:
                 src = "const" if isinstance(a4, int) else vstr(a4)
                 res["faults"].append({
@@ -1107,7 +1121,8 @@ def analyze_handler(elf, text, starts, extents, hva, plt, helper_cache,
                 res["vcalls"].append({"site": pc, "slot": slot,
                                       "purpose": "commit" if slot in
                                       REQ_COMMIT_SLOTS else
-                                      "parse" if slot == REQ_PARSE_SLOT
+                                      "parse" if slot == REQ_PARSE_SLOT else
+                                      "status" if slot == REQ_STATUS_SLOT
                                       else "other"})
             elif not on_req:
                 # service impl / arg-record / other object vfuncs
@@ -1897,14 +1912,18 @@ def main():
                            "names": [e["name"] for e in t["entries"]]}
                           for t in tables],
         "request_vtable": {
-            "0x08": "parse/validate args (rc -> 402)",
-            "0x0c": "commit response",
-            "0x14": "raise fault (r4 = code)",
-            "0x1c": "get in-arg record by name",
-            "0x20": "get in-arg record by name (variant accessor)",
-            "0x24": "get/create out-arg record by name",
-            "0x38": "finalize",
-            "0x3c": "in-arg fetch (alternate)",
+            "0x08": "validate/materialize queued input-argument records",
+            "0x0c": "serialize/commit SOAP success response",
+            "0x10": "alias success-response commit path",
+            "0x14": "emit non-success UPnP/SOAP result (r4 = code)",
+            "0x18": "fixed-code 1000 wrapper around fault/result emitter",
+            "0x1c": "advance/allocate next input-argument record",
+            "0x20": "same input-argument allocator as +0x1c",
+            "0x24": "advance/allocate next output-argument record",
+            "0x28": "alternate output-record allocator",
+            "0x34": "embedded request/zone context accessor",
+            "0x38": "current request result/status accessor",
+            "0x3c": "no-op hook",
         },
     }
     blob = json.dumps(out, indent=1, default=str)
