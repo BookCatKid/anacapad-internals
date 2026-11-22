@@ -83894,7 +83894,7 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "Neither the SOAP handler nor the six append functions calls the settings-notify family, and this path does not log enqueueEvent. A successful append still dirties the queue record (the snapshot drain clears q+0x74 at 0x10146cfc). The shared Queue sender at 0x10684060 then calls generator f_10465e28 through thunk f_10465f74. isDue override f_10465b4c reports the first nonzero dirty byte at record+0x10, +0x18, +0x119 or +0x52b. The generator writes the initial property set at 0x10465ee4, or the update set at 0x10465f04 only when a value changed, including QueueID as LastChange from f_10465b54 at 0x10465c00.",
       "evidence": [
        {
         "type": "firmware",
@@ -84111,7 +84111,7 @@
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Handler f_10464f34 tests the implementation result at 0x10464fa8. Zero writes outputs through request slot +0x24 (four calls) and commits through slot +0xc. Nonzero raises a fault through slot +0x14. The container insert returns 803 when the queue is full (0x1014fb98), 804 when an entry was added but produced no rows (0x1014fcec), or the per-entry code passed through at 0x1014fcc0. The parser's code byte at +0xc is 0 (0x1014cecc), 1000 (0x10144cc4), or the first insert result (0x1014468c).",
       "evidence": [
        {
         "type": "firmware",
@@ -85253,7 +85253,7 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The SOAP handler has no settings-notify call. The append path f_102b62e8 logs enqueueEvent (0x10eb0348) with category 'queue' (0x10ea29a4) at 0x102b64b0. Property delivery is separate: isDue override f_10465b4c reports a dirty queue record, and the sender at 0x10684060 calls generator f_10465e28 through thunk f_10465f74. The generator writes the initial property set at 0x10465ee4, or the update set at 0x10465f04 only when a value changed. QueueID is emitted as LastChange by f_10465b54 at 0x10465c00. Pending byte +0x110 is set by mark-changed at 0x1067c4c8 and cleared by the sender at 0x10683fdc.",
       "evidence": [
        {
         "type": "firmware",
@@ -85472,7 +85472,7 @@
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Handler f_1046453c tests the implementation result at 0x104646c0 (mr. r4, r3; branch when zero). Zero writes outputs through request slot +0x24 (four calls) and commits through slot +0xc. Nonzero raises a fault through slot +0x14. The insert path returns 800 for a newline in the URI (0x1014f4cc), 803 when the queue is full (0x1014f884) or the handler fails that way (0x1014f5c4), 804 from the isel at 0x1014fa04, and 802 at 0x10153fcc. A browse failure is kept only when its code is 1042 through 1045 (0x10153c1c, accepted by f_10c3ba54); any other browse code becomes 800.",
       "evidence": [
        {
         "type": "firmware",
@@ -86216,7 +86216,7 @@
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Handler f_104647b8 tests the implementation result at 0x1046484c (mr. r4, r3; branch when zero). Zero writes the read outputs through request slots +0x24 (two calls) and +0x10, then commits through slot +0xc. Nonzero raises a fault through slot +0x14. The handler materializes no fault-code immediate; the read itself is the li r5,0 call into f_10146cc0 at 0x102b2d08.",
       "evidence": [
        {
         "type": "firmware",
@@ -88220,7 +88220,7 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The SOAP handler has no settings-notify call. On success it calls f_102c350c(impl, 'Replaced', id, 6) at 0x102c37d4, and f_102c350c posts the op-15 request at 0x102c3674. Bit 1 of the flags (test at 0x102c3514) selects the cloud-session branch, which can evict the session (0x102c362c) and issue SetAVTransportURI with an empty URI (0x102d09d0). Subscriber entries are then kicked at 0x1067b570 (vslot +0x10, change index 3) and 0x1067b584 (vslot +0x14).",
       "evidence": [
        {
         "type": "firmware",
@@ -88690,7 +88690,7 @@
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Implementation f_102dff24 stores 0 and returns it at 0x102e0050, after the queue unlock. The handler therefore takes the success path: one output write through request slot +0x24 and a commit through slot +0xc. The handler still contains a fault slot +0x14, which this constant 0 does not reach.",
       "evidence": [
        {
         "type": "firmware",
@@ -92978,7 +92978,7 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The SOAP handler and the replace functions do not call the settings-notify family. A successful replace dirties the queue record. The shared Queue event path then runs: isDue override f_10465b4c (vtable 0x10ed1c10 slot +0x1c) reports the first nonzero dirty byte at record+0x10, +0x18, +0x119 or +0x52b, and the sender at 0x10684060 calls generator f_10465e28 through thunk f_10465f74. That generator writes the initial property set at 0x10465ee4, or the update set at 0x10465f04 only when a value changed, including QueueID as LastChange from f_10465b54 at 0x10465c00. Mark-changed sets pending byte +0x110 (0x1067c4c8) and the sender clears it (0x10683fdc).",
       "evidence": [
        {
         "type": "firmware",
@@ -93195,7 +93195,7 @@
       ]
      },
      "return_behavior": {
-      "description": "0/ok -> out-args via req->v[+0x24/+0x10] then req->v[+0x0c] commit (200); failure -> req->v[+0x14] raise-fault with impl code (r4 lits: [])",
+      "description": "Handler f_10465090 tests the implementation result at 0x104650f4. Zero writes outputs through request slot +0x24 (two calls) and commits through slot +0xc. Nonzero raises a fault through slot +0x14. The insert path supplies 803 when the queue is full (0x1014fb98), 804 when an entry was added but produced no rows (0x1014fcec), or the per-entry code passed through at 0x1014fcc0. The parser's code byte at +0xc is 0 (0x1014cecc), 1000 (0x10144cc4), or the first insert result (0x1014468c).",
       "evidence": [
        {
         "type": "firmware",
@@ -93992,7 +93992,7 @@
      },
      "side_effects": [
       {
-       "description": "state-mutation delegate: r30 v[+0x24] (call-derived member-method semantics)",
+       "description": "Moves the playlist listener's shared pointer into the saved-queue store at +0xc0 (0x104791f4) and calls that listener (0x1047cde4). The store is the 0x3c0-byte replicated-settings object constructed by f_10650660 and kept at main+0x2900c. The listener then emits the 'SQ:' update id.",
        "evidence": [
         {
          "type": "firmware",
@@ -94081,7 +94081,7 @@
       }
      ],
      "events_triggered": {
-      "description": "direct notify-family call(s) in impl: none - no f_1067c6ec/settings-notify call present in impl; event emission, if any, is inside the delegated member method",
+      "description": "The SOAP handler has no settings-notify call. The save calls the store listener at 0x1047cde4. Listener vtable 0x10ed3054 slot +0x14 (0x1047ce18) emits an 'SQ:' id and CdNotifyUpdateId. The replicated-settings manager, registered for setting 2 at 0x10198f98, schedules ReplicatedSettingsChangedEvent asynchronously at 0x10654d84 through f_100f14ec.",
       "evidence": [
        {
         "type": "firmware",
@@ -94169,7 +94169,7 @@
       ]
      },
      "state_transitions": {
-      "description": "no state-machine transition literal in impl; transition, if any, inside member delegate(s): r30 v[+0x24]",
+      "description": "No transport-state literal. The saved-playlist store gains the listener and the new playlist id, and setting 2 schedules ReplicatedSettingsChangedEvent. Queue playback state is unchanged.",
       "evidence": [
        {
         "type": "firmware",
